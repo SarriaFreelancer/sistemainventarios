@@ -1,0 +1,204 @@
+{
+  "node": {
+    "4026e716b01dafc29a8275b48cadc7367de9e69049": {
+      "workers": {
+        "app/dashboard/sales/page": {
+          "moduleId": "(action-browser)/./node_modules/.pnpm/next@15.0.4_@babel+core@7.29.7_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CInformacion%20David%5C%5CDesarrollo%5C%5Cinvetario_productos%5C%5Capp%5C%5Cactions%5C%5Csales-actions.ts%22%2C%5B%5B%224026e716b01dafc29a8275b48cadc7367de9e69049%22%2C%22createSale%22%5D%2C%5B%2240470b35fa379e061a47f72a6309fc0467d8f02efe%22%2C%22voidSale%22%5D%2C%5B%22407cffb3a63d83297c2b3ca15a91f3abb693c2b0c2%22%2C%22getSalesReport%22%5D%2C%5B%2240827e65a0f6f50c6b3ac0aae11bc199980b4b6eb9%22%2C%22completePendingSale%22%5D%2C%5B%2240bdbf9044f55896b9b8ef6b0de9f9f1b217f9249e%22%2C%22deleteSale%22%5D%5D%5D%5D&__client_imported__=true!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/dashboard/sales/page": "action-browser"
+      }
+    },
+    "40470b35fa379e061a47f72a6309fc0467d8f02efe": {
+      "workers": {
+        "app/dashboard/sales/page": {
+          "moduleId": "(action-browser)/./node_modules/.pnpm/next@15.0.4_@babel+core@7.29.7_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CInformacion%20David%5C%5CDesarrollo%5C%5Cinvetario_productos%5C%5Capp%5C%5Cactions%5C%5Csales-actions.ts%22%2C%5B%5B%224026e716b01dafc29a8275b48cadc7367de9e69049%22%2C%22createSale%22%5D%2C%5B%2240470b35fa379e061a47f72a6309fc0467d8f02efe%22%2C%22voidSale%22%5D%2C%5B%22407cffb3a63d83297c2b3ca15a91f3abb693c2b0c2%22%2C%22getSalesReport%22%5D%2C%5B%2240827e65a0f6f50c6b3ac0aae11bc199980b4b6eb9%22%2C%22completePendingSale%22%5D%2C%5B%2240bdbf9044f55896b9b8ef6b0de9f9f1b217f9249e%22%2C%22deleteSale%22%5D%5D%5D%5D&__client_imported__=true!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/dashboard/sales/page": "action-browser"
+      }
+    },
+    "407cffb3a63d83297c2b3ca15a91f3abb693c2b0c2": {
+      "workers": {
+        "app/dashboard/sales/page": {
+          "moduleId": "(action-browser)/./node_modules/.pnpm/next@15.0.4_@babel+core@7.29.7_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CInformacion%20David%5C%5CDesarrollo%5C%5Cinvetario_productos%5C%5Capp%5C%5Cactions%5C%5Csales-actions.ts%22%2C%5B%5B%224026e716b01dafc29a8275b48cadc7367de9e69049%22%2C%22createSale%22%5D%2C%5B%2240470b35fa379e061a47f72a6309fc0467d8f02efe%22%2C%22voidSale%22%5D%2C%5B%22407cffb3a63d83297c2b3ca15a91f3abb693c2b0c2%22%2C%22getSalesReport%22%5D%2C%5B%2240827e65a0f6f50c6b3ac0aae11bc199980b4b6eb9%22%2C%22completePendingSale%22%5D%2C%5B%2240bdbf9044f55896b9b8ef6b0de9f9f1b217f9249e%22%2C%22deleteSale%22%5D%5D%5D%5D&__client_imported__=true!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/dashboard/sales/page": "action-browser"
+      }
+    },
+    "40827e65a0f6f50c6b3ac0aae11bc199980b4b6eb9": {
+      "workers": {
+        "app/dashboard/sales/page": {
+          "moduleId": "(action-browser)/./node_modules/.pnpm/next@15.0.4_@babel+core@7.29.7_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CInformacion%20David%5C%5CDesarrollo%5C%5Cinvetario_productos%5C%5Capp%5C%5Cactions%5C%5Csales-actions.ts%22%2C%5B%5B%224026e716b01dafc29a8275b48cadc7367de9e69049%22%2C%22createSale%22%5D%2C%5B%2240470b35fa379e061a47f72a6309fc0467d8f02efe%22%2C%22voidSale%22%5D%2C%5B%22407cffb3a63d83297c2b3ca15a91f3abb693c2b0c2%22%2C%22getSalesReport%22%5D%2C%5B%2240827e65a0f6f50c6b3ac0aae11bc199980b4b6eb9%22%2C%22completePendingSale%22%5D%2C%5B%2240bdbf9044f55896b9b8ef6b0de9f9f1b217f9249e%22%2C%22deleteSale%22%5D%5D%5D%5D&__client_imported__=true!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/dashboard/sales/page": "action-browser"
+      }
+    },
+    "40bdbf9044f55896b9b8ef6b0de9f9f1b217f9249e": {
+      "workers": {
+        "app/dashboard/sales/page": {
+          "moduleId": "(action-browser)/./node_modules/.pnpm/next@15.0.4_@babel+core@7.29.7_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CInformacion%20David%5C%5CDesarrollo%5C%5Cinvetario_productos%5C%5Capp%5C%5Cactions%5C%5Csales-actions.ts%22%2C%5B%5B%224026e716b01dafc29a8275b48cadc7367de9e69049%22%2C%22createSale%22%5D%2C%5B%2240470b35fa379e061a47f72a6309fc0467d8f02efe%22%2C%22voidSale%22%5D%2C%5B%22407cffb3a63d83297c2b3ca15a91f3abb693c2b0c2%22%2C%22getSalesReport%22%5D%2C%5B%2240827e65a0f6f50c6b3ac0aae11bc199980b4b6eb9%22%2C%22completePendingSale%22%5D%2C%5B%2240bdbf9044f55896b9b8ef6b0de9f9f1b217f9249e%22%2C%22deleteSale%22%5D%5D%5D%5D&__client_imported__=true!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/dashboard/sales/page": "action-browser"
+      }
+    },
+    "401e7930754e86d4afb430a1b000a4211805d71f30": {
+      "workers": {
+        "app/dashboard/products/page": {
+          "moduleId": "(action-browser)/./node_modules/.pnpm/next@15.0.4_@babel+core@7.29.7_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CInformacion%20David%5C%5CDesarrollo%5C%5Cinvetario_productos%5C%5Capp%5C%5Cactions%5C%5Cproduct-actions.ts%22%2C%5B%5B%22401e7930754e86d4afb430a1b000a4211805d71f30%22%2C%22quickSellProduct%22%5D%2C%5B%224027acbba757f016f3fce9218d7a0efe7b13e62b09%22%2C%22updateProduct%22%5D%2C%5B%22407d46975de7bcbb6f81621d6f48e1ab866e20c593%22%2C%22createProduct%22%5D%2C%5B%22409719ed96945a9f26636320b2402fa6524070cdd5%22%2C%22deleteProduct%22%5D%5D%5D%5D&__client_imported__=true!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/dashboard/products/page": "action-browser"
+      }
+    },
+    "4027acbba757f016f3fce9218d7a0efe7b13e62b09": {
+      "workers": {
+        "app/dashboard/products/page": {
+          "moduleId": "(action-browser)/./node_modules/.pnpm/next@15.0.4_@babel+core@7.29.7_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CInformacion%20David%5C%5CDesarrollo%5C%5Cinvetario_productos%5C%5Capp%5C%5Cactions%5C%5Cproduct-actions.ts%22%2C%5B%5B%22401e7930754e86d4afb430a1b000a4211805d71f30%22%2C%22quickSellProduct%22%5D%2C%5B%224027acbba757f016f3fce9218d7a0efe7b13e62b09%22%2C%22updateProduct%22%5D%2C%5B%22407d46975de7bcbb6f81621d6f48e1ab866e20c593%22%2C%22createProduct%22%5D%2C%5B%22409719ed96945a9f26636320b2402fa6524070cdd5%22%2C%22deleteProduct%22%5D%5D%5D%5D&__client_imported__=true!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/dashboard/products/page": "action-browser"
+      }
+    },
+    "407d46975de7bcbb6f81621d6f48e1ab866e20c593": {
+      "workers": {
+        "app/dashboard/products/page": {
+          "moduleId": "(action-browser)/./node_modules/.pnpm/next@15.0.4_@babel+core@7.29.7_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CInformacion%20David%5C%5CDesarrollo%5C%5Cinvetario_productos%5C%5Capp%5C%5Cactions%5C%5Cproduct-actions.ts%22%2C%5B%5B%22401e7930754e86d4afb430a1b000a4211805d71f30%22%2C%22quickSellProduct%22%5D%2C%5B%224027acbba757f016f3fce9218d7a0efe7b13e62b09%22%2C%22updateProduct%22%5D%2C%5B%22407d46975de7bcbb6f81621d6f48e1ab866e20c593%22%2C%22createProduct%22%5D%2C%5B%22409719ed96945a9f26636320b2402fa6524070cdd5%22%2C%22deleteProduct%22%5D%5D%5D%5D&__client_imported__=true!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/dashboard/products/page": "action-browser"
+      }
+    },
+    "409719ed96945a9f26636320b2402fa6524070cdd5": {
+      "workers": {
+        "app/dashboard/products/page": {
+          "moduleId": "(action-browser)/./node_modules/.pnpm/next@15.0.4_@babel+core@7.29.7_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CInformacion%20David%5C%5CDesarrollo%5C%5Cinvetario_productos%5C%5Capp%5C%5Cactions%5C%5Cproduct-actions.ts%22%2C%5B%5B%22401e7930754e86d4afb430a1b000a4211805d71f30%22%2C%22quickSellProduct%22%5D%2C%5B%224027acbba757f016f3fce9218d7a0efe7b13e62b09%22%2C%22updateProduct%22%5D%2C%5B%22407d46975de7bcbb6f81621d6f48e1ab866e20c593%22%2C%22createProduct%22%5D%2C%5B%22409719ed96945a9f26636320b2402fa6524070cdd5%22%2C%22deleteProduct%22%5D%5D%5D%5D&__client_imported__=true!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/dashboard/products/page": "action-browser"
+      }
+    },
+    "400f39d01c448dafbc52cf26cf379a4f0227439ef3": {
+      "workers": {
+        "app/dashboard/groups/page": {
+          "moduleId": "(action-browser)/./node_modules/.pnpm/next@15.0.4_@babel+core@7.29.7_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CInformacion%20David%5C%5CDesarrollo%5C%5Cinvetario_productos%5C%5Capp%5C%5Cactions%5C%5Cgroup-actions.ts%22%2C%5B%5B%22400f39d01c448dafbc52cf26cf379a4f0227439ef3%22%2C%22createGroup%22%5D%2C%5B%224028b65922fee341dbfc791aa7cb1e3978fc8a5e88%22%2C%22updateGroup%22%5D%2C%5B%22405dd6dfae8d58383bafc64358d3520ac23289ab31%22%2C%22deleteGroup%22%5D%5D%5D%5D&__client_imported__=true!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/dashboard/groups/page": "action-browser"
+      }
+    },
+    "4028b65922fee341dbfc791aa7cb1e3978fc8a5e88": {
+      "workers": {
+        "app/dashboard/groups/page": {
+          "moduleId": "(action-browser)/./node_modules/.pnpm/next@15.0.4_@babel+core@7.29.7_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CInformacion%20David%5C%5CDesarrollo%5C%5Cinvetario_productos%5C%5Capp%5C%5Cactions%5C%5Cgroup-actions.ts%22%2C%5B%5B%22400f39d01c448dafbc52cf26cf379a4f0227439ef3%22%2C%22createGroup%22%5D%2C%5B%224028b65922fee341dbfc791aa7cb1e3978fc8a5e88%22%2C%22updateGroup%22%5D%2C%5B%22405dd6dfae8d58383bafc64358d3520ac23289ab31%22%2C%22deleteGroup%22%5D%5D%5D%5D&__client_imported__=true!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/dashboard/groups/page": "action-browser"
+      }
+    },
+    "405dd6dfae8d58383bafc64358d3520ac23289ab31": {
+      "workers": {
+        "app/dashboard/groups/page": {
+          "moduleId": "(action-browser)/./node_modules/.pnpm/next@15.0.4_@babel+core@7.29.7_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CInformacion%20David%5C%5CDesarrollo%5C%5Cinvetario_productos%5C%5Capp%5C%5Cactions%5C%5Cgroup-actions.ts%22%2C%5B%5B%22400f39d01c448dafbc52cf26cf379a4f0227439ef3%22%2C%22createGroup%22%5D%2C%5B%224028b65922fee341dbfc791aa7cb1e3978fc8a5e88%22%2C%22updateGroup%22%5D%2C%5B%22405dd6dfae8d58383bafc64358d3520ac23289ab31%22%2C%22deleteGroup%22%5D%5D%5D%5D&__client_imported__=true!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/dashboard/groups/page": "action-browser"
+      }
+    },
+    "40400b05caa99e7e2b00285709003240bad47e62c9": {
+      "workers": {
+        "app/dashboard/categories/page": {
+          "moduleId": "(action-browser)/./node_modules/.pnpm/next@15.0.4_@babel+core@7.29.7_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CInformacion%20David%5C%5CDesarrollo%5C%5Cinvetario_productos%5C%5Capp%5C%5Cactions%5C%5Ccategory-actions.ts%22%2C%5B%5B%2240400b05caa99e7e2b00285709003240bad47e62c9%22%2C%22createCategory%22%5D%2C%5B%22407e61c7cc97c8740a0fe7d7cbd8930b61f793ca57%22%2C%22updateCategory%22%5D%2C%5B%2240bbc02623e3981ff6b4555e69a397ed6b2d2bfe99%22%2C%22deleteCategory%22%5D%5D%5D%5D&__client_imported__=true!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/dashboard/categories/page": "action-browser"
+      }
+    },
+    "407e61c7cc97c8740a0fe7d7cbd8930b61f793ca57": {
+      "workers": {
+        "app/dashboard/categories/page": {
+          "moduleId": "(action-browser)/./node_modules/.pnpm/next@15.0.4_@babel+core@7.29.7_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CInformacion%20David%5C%5CDesarrollo%5C%5Cinvetario_productos%5C%5Capp%5C%5Cactions%5C%5Ccategory-actions.ts%22%2C%5B%5B%2240400b05caa99e7e2b00285709003240bad47e62c9%22%2C%22createCategory%22%5D%2C%5B%22407e61c7cc97c8740a0fe7d7cbd8930b61f793ca57%22%2C%22updateCategory%22%5D%2C%5B%2240bbc02623e3981ff6b4555e69a397ed6b2d2bfe99%22%2C%22deleteCategory%22%5D%5D%5D%5D&__client_imported__=true!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/dashboard/categories/page": "action-browser"
+      }
+    },
+    "40bbc02623e3981ff6b4555e69a397ed6b2d2bfe99": {
+      "workers": {
+        "app/dashboard/categories/page": {
+          "moduleId": "(action-browser)/./node_modules/.pnpm/next@15.0.4_@babel+core@7.29.7_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CInformacion%20David%5C%5CDesarrollo%5C%5Cinvetario_productos%5C%5Capp%5C%5Cactions%5C%5Ccategory-actions.ts%22%2C%5B%5B%2240400b05caa99e7e2b00285709003240bad47e62c9%22%2C%22createCategory%22%5D%2C%5B%22407e61c7cc97c8740a0fe7d7cbd8930b61f793ca57%22%2C%22updateCategory%22%5D%2C%5B%2240bbc02623e3981ff6b4555e69a397ed6b2d2bfe99%22%2C%22deleteCategory%22%5D%5D%5D%5D&__client_imported__=true!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/dashboard/categories/page": "action-browser"
+      }
+    },
+    "403be6b228434449bff7599d4d284ad10f082119cb": {
+      "workers": {
+        "app/dashboard/suppliers/page": {
+          "moduleId": "(action-browser)/./node_modules/.pnpm/next@15.0.4_@babel+core@7.29.7_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CInformacion%20David%5C%5CDesarrollo%5C%5Cinvetario_productos%5C%5Capp%5C%5Cactions%5C%5Csupplier-actions.ts%22%2C%5B%5B%22403be6b228434449bff7599d4d284ad10f082119cb%22%2C%22updateSupplier%22%5D%2C%5B%2240a58af068fdae3fc3b8bb88ba358e503aa1c4547b%22%2C%22deleteSupplier%22%5D%2C%5B%2240cc8dee6644e97be17955108df3a3ab886726d7ec%22%2C%22createSupplier%22%5D%5D%5D%5D&__client_imported__=true!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/dashboard/suppliers/page": "action-browser"
+      }
+    },
+    "40a58af068fdae3fc3b8bb88ba358e503aa1c4547b": {
+      "workers": {
+        "app/dashboard/suppliers/page": {
+          "moduleId": "(action-browser)/./node_modules/.pnpm/next@15.0.4_@babel+core@7.29.7_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CInformacion%20David%5C%5CDesarrollo%5C%5Cinvetario_productos%5C%5Capp%5C%5Cactions%5C%5Csupplier-actions.ts%22%2C%5B%5B%22403be6b228434449bff7599d4d284ad10f082119cb%22%2C%22updateSupplier%22%5D%2C%5B%2240a58af068fdae3fc3b8bb88ba358e503aa1c4547b%22%2C%22deleteSupplier%22%5D%2C%5B%2240cc8dee6644e97be17955108df3a3ab886726d7ec%22%2C%22createSupplier%22%5D%5D%5D%5D&__client_imported__=true!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/dashboard/suppliers/page": "action-browser"
+      }
+    },
+    "40cc8dee6644e97be17955108df3a3ab886726d7ec": {
+      "workers": {
+        "app/dashboard/suppliers/page": {
+          "moduleId": "(action-browser)/./node_modules/.pnpm/next@15.0.4_@babel+core@7.29.7_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CInformacion%20David%5C%5CDesarrollo%5C%5Cinvetario_productos%5C%5Capp%5C%5Cactions%5C%5Csupplier-actions.ts%22%2C%5B%5B%22403be6b228434449bff7599d4d284ad10f082119cb%22%2C%22updateSupplier%22%5D%2C%5B%2240a58af068fdae3fc3b8bb88ba358e503aa1c4547b%22%2C%22deleteSupplier%22%5D%2C%5B%2240cc8dee6644e97be17955108df3a3ab886726d7ec%22%2C%22createSupplier%22%5D%5D%5D%5D&__client_imported__=true!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/dashboard/suppliers/page": "action-browser"
+      }
+    }
+  },
+  "edge": {},
+  "encryptionKey": "9oHd5ZJKJ3rnyiN8bTwKGE+PZa1rVa5da3Prkp7ZlR4="
+}

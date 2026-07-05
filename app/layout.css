@@ -1,0 +1,6 @@
+/* Layout specific styles – can be extended later */
+
+/* Example: ensure body takes full height */
+html, body {
+  height: 100%;
+}

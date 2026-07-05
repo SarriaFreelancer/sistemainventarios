@@ -1,0 +1,73 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "pnpm build",
+			"type": "shell",
+			"command": "pnpm build",
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "check node versions",
+			"type": "shell",
+			"command": "node --version && npm --version && pnpm --version",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "clean build",
+			"type": "shell",
+			"command": "cmd /c \"rmdir /s /q .next && pnpm build\"",
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "pnpm build after auth import fix",
+			"type": "shell",
+			"command": "pnpm build",
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "pnpm build after auth import fix",
+			"type": "shell",
+			"command": "pnpm build",
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "prisma generate",
+			"type": "shell",
+			"command": "pnpm prisma generate",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "repair prisma client",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"Set-Location 'c:\\Informacion David\\Desarrollo\\invetario_productos'; Get-ChildItem 'node_modules\\.pnpm\\@prisma+client*\\node_modules\\.prisma\\client\\query_engine-windows.dll.node*' | Remove-Item -Force; pnpm prisma generate\"",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Seed Prisma DB",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"pnpm prisma db push && pnpm db:seed"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		}
+	]
+}

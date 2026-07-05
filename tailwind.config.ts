@@ -1,0 +1,100 @@
+import type { Config } from 'tailwindcss';
+
+export default {
+  darkMode: 'class',
+  content: ['./app/**/*.{ts,tsx}', './components/**/*.{ts,tsx}'],
+  theme: {
+    extend: {
+      colors: {
+        background: 'var(--background)',
+        foreground: 'var(--foreground)',
+        card: {
+          DEFAULT: 'var(--card)',
+          foreground: 'var(--card-foreground)',
+        },
+        popover: {
+          DEFAULT: 'var(--popover)',
+          foreground: 'var(--popover-foreground)',
+        },
+        primary: {
+          DEFAULT: 'var(--primary)',
+          foreground: 'var(--primary-foreground)',
+        },
+        secondary: {
+          DEFAULT: 'var(--secondary)',
+          foreground: 'var(--secondary-foreground)',
+        },
+        muted: {
+          DEFAULT: 'var(--muted)',
+          foreground: 'var(--muted-foreground)',
+        },
+        accent: {
+          DEFAULT: 'var(--accent)',
+          foreground: 'var(--accent-foreground)',
+        },
+        destructive: {
+          DEFAULT: 'var(--destructive)',
+          foreground: 'oklch(0.60 0.18 25)',
+        },
+        border: 'var(--border)',
+        input: 'var(--input)',
+        ring: 'var(--ring)',
+        'surface-tint': '#B18ACF',
+        brand: {
+          50: '#f7f2ff',
+          100: '#efe5ff',
+          200: '#e1ccff',
+          300: '#d2b2ff',
+          400: '#b681ff',
+          500: '#9b4dff',
+          600: '#7f2be6',
+          700: '#6a20bd',
+          800: '#561a95',
+          900: '#471777',
+        },
+      },
+      borderRadius: {
+        DEFAULT: '0.25rem',
+        lg: '0.5rem',
+        xl: '0.75rem',
+        full: '9999px',
+      },
+      spacing: {
+        xs: '4px',
+        gutter: '24px',
+        md: '16px',
+        base: '4px',
+        '3xl': '64px',
+        xl: '32px',
+        lg: '24px',
+        'margin-mobile': '16px',
+        sm: '8px',
+        'container-max': '1440px',
+        '2xl': '48px',
+      },
+      fontFamily: {
+        'body-md': ['Inter', 'sans-serif'],
+        'body-lg': ['Inter', 'sans-serif'],
+        'display-lg': ['Hanken Grotesk', 'sans-serif'],
+        'headline-lg-mobile': ['Hanken Grotesk', 'sans-serif'],
+        'headline-md': ['Hanken Grotesk', 'sans-serif'],
+        'label-sm': ['Inter', 'sans-serif'],
+        'label-md': ['Inter', 'sans-serif'],
+        'headline-lg': ['Hanken Grotesk', 'sans-serif'],
+        'body-sm': ['Inter', 'sans-serif'],
+      },
+      fontSize: {
+        'body-md': ['16px', { lineHeight: '24px', fontWeight: '400' }],
+        'body-lg': ['18px', { lineHeight: '28px', fontWeight: '400' }],
+        'display-lg': ['48px', { lineHeight: '56px', letterSpacing: '-0.02em', fontWeight: '600' }],
+        'headline-lg-mobile': ['24px', { lineHeight: '32px', fontWeight: '600' }],
+        'headline-md': ['24px', { lineHeight: '32px', fontWeight: '500' }],
+        'label-sm': ['12px', { lineHeight: '16px', fontWeight: '500' }],
+        'label-md': ['14px', { lineHeight: '16px', letterSpacing: '0.01em', fontWeight: '600' }],
+        'headline-lg': ['32px', { lineHeight: '40px', letterSpacing: '-0.01em', fontWeight: '600' }],
+        'body-sm': ['14px', { lineHeight: '20px', fontWeight: '400' }],
+      },
+    },
+  },
+  plugins: [],
+} satisfies Config;

@@ -1,0 +1,234 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleName {
+  ADMIN
+  SUPERADMIN
+  USER
+}
+
+enum SaleStatus {
+  PENDING
+  REVIEWED
+  PAID
+  COMPLETED
+  VOIDED
+}
+
+enum DiscountScope {
+  GLOBAL
+  PRODUCT
+  PRODUCTS
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+enum ProductStatus {
+  AVAILABLE
+  OUT_OF_STOCK
+}
+
+enum CategoryStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum SupplierStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model ProductGroup {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  products  Product[]
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  password      String
+  image         String?
+  roleId       String?   // foreign key to Role
+  role         Role?     @relation(fields: [roleId], references: [id])
+  rememberMe    Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  auditLogs     AuditLog[]
+  sales         Sale[]
+  voidedSales   Sale[]      @relation("VoidedSales")
+
+  @@index([email])
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  name        RoleName @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  permissions RolePermission[]
+  users       User[]
+}
+
+model Category {
+  id          String         @id @default(cuid())
+  name        String         @unique
+  description String?
+  status      CategoryStatus @default(ACTIVE)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  products    Product[]
+
+  @@index([name])
+}
+
+model Supplier {
+  id          String         @id @default(cuid())
+  companyName String         @unique
+  contactName String
+  phone       String
+  email       String         @unique
+  address     String
+  city        String
+  country     String         @default("Colombia")
+  status      SupplierStatus @default(ACTIVE)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  products    Product[]
+
+  @@index([companyName])
+}
+
+model Product {
+  id                  String        @id @default(cuid())
+  code                String        @unique
+  name                String
+  categoryId          String
+  supplierId          String
+  quantityAvailable   Int           @default(0)
+  unitCost            Float         @default(0)
+  salePrice           Float         @default(0)
+  soldQuantity        Int           @default(0)
+  status              ProductStatus @default(AVAILABLE)
+  productGroupId      String?
+  productGroup        ProductGroup? @relation(fields: [productGroupId], references: [id])
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  category            Category      @relation(fields: [categoryId], references: [id])
+  supplier            Supplier      @relation(fields: [supplierId], references: [id])
+  saleDetails         SaleDetail[]
+
+  @@index([name])
+  @@index([categoryId])
+  @@index([supplierId])
+  @@index([productGroupId])
+}
+
+model Sale {
+  id            String        @id @default(cuid())
+  saleNumber    String        @unique
+  userId        String
+  client        String?
+  discount      Float         @default(0)
+  total         Float         @default(0)
+  paymentMethod String        @default("EFECTIVO")
+  status        SaleStatus   @default(PENDING)
+  remarks       String?
+  voidedByUserId String?
+  voidedByUser   User?        @relation("VoidedSales", fields: [voidedByUserId], references: [id])
+  voidedAt       DateTime?
+  voidedReason   String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  user          User          @relation(fields: [userId], references: [id])
+  details       SaleDetail[]
+
+  @@index([userId])
+  @@index([voidedByUserId])
+}
+
+model SaleDetail {
+  id          String   @id @default(cuid())
+  saleId      String
+  productId   String
+  quantity    Int
+  unitPrice   Float
+  subtotal    Float
+  discount    Float    @default(0)
+  total       Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  sale        Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id])
+
+  @@index([saleId])
+  @@index([productId])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String
+  details   String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([entity])
+  @@index([createdAt])
+}
+
+model Discount {
+  id          String       @id @default(cuid())
+  name        String
+  type        DiscountType
+  value       Float
+  scope       DiscountScope
+  productId   String?      // for PRODUCT scope
+  productIds  Json?        // for PRODUCTS scope (array of product IDs)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model InvoiceCounter {
+  id          Int      @id @default(autoincrement())
+  date        DateTime @unique
+  lastSeq     Int      @default(0)
+}
+
+model Setting {
+  key   String @id
+  value String
+}
+
+
+
+model Permission {
+  id          String   @id @default(cuid())
+  action      String
+  resource    String
+  roles       RolePermission[]
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role        @relation(fields: [roleId], references: [id])
+  permission   Permission  @relation(fields: [permissionId], references: [id])
+
+  @@id([roleId, permissionId])
+}

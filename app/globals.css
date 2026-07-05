@@ -1,0 +1,169 @@
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    color-scheme: light;
+}
+
+.dark {
+    color-scheme: dark;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    min-height: 100vh;
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+/* ─── Responsive base ─── */
+img, video {
+    max-width: 100%;
+    height: auto;
+}
+
+/* ─── Custom Scrollbar ─── */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #D8C1EC;
+    border-radius: 10px;
+    transition: background 0.2s;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+    background: #3A2E50;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #B18ACF;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+    background: #D8C1EC;
+}
+
+/* ─── Focus Ring Utility ─── */
+.focus-ring:focus-within {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(177, 138, 207, 0.25);
+    border-color: #B18ACF;
+}
+
+/* ─── Glassmorphism Panel ─── */
+.glass-panel {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(216, 193, 236, 0.4);
+}
+
+.dark .glass-panel {
+    background: rgba(32, 25, 45, 0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(58, 46, 80, 0.45);
+}
+
+/* ─── Form elements: always solid background ─── */
+input,
+textarea,
+select {
+  background-color: hsl(var(--card));
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--border));
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Dropdown option elements in dark mode */
+.dark option {
+  background-color: hsl(var(--card));
+  color: hsl(var(--foreground));
+}
+
+/* ─── Dialog / Modal solid backgrounds ─── */
+[data-slot="dialog-content"],
+[data-slot="dialog-overlay"] {
+  background-color: hsl(var(--card));
+}
+
+[data-slot="dialog-overlay"] {
+  background-color: rgba(0, 0, 0, 0.45) !important;
+  backdrop-filter: blur(4px);
+}
+
+/* ─── Dark mode: reduce harsh borders ─── */
+.dark [class*="border-border"] {
+  border-color: hsl(var(--border) / 0.5);
+}
+
+.dark input,
+.dark textarea,
+.dark select {
+  border-color: hsl(var(--border) / 0.6);
+}
+
+/* ─── SweetAlert2 Overrides ─── */
+.swal2-popup {
+  border-radius: 24px !important;
+  padding: 2rem !important;
+  font-family: 'Inter', sans-serif !important;
+  background-color: hsl(var(--card)) !important;
+  color: hsl(var(--foreground)) !important;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.25) !important;
+}
+
+.swal2-title {
+  color: hsl(var(--foreground)) !important;
+}
+
+.swal2-html-container {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+.swal2-input,
+.swal2-textarea,
+.swal2-select {
+  background-color: hsl(var(--card)) !important;
+  color: hsl(var(--foreground)) !important;
+  border-color: hsl(var(--border)) !important;
+  border-radius: 12px !important;
+}
+
+.swal2-input:focus,
+.swal2-textarea:focus {
+  border-color: hsl(var(--primary)) !important;
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.15) !important;
+}
+
+@layer base {
+  .theme {
+    --font-heading: var(--font-sans);
+    --font-sans: var(--font-sans);
+  }
+  :root {
+    color-scheme: light;
+  }
+  .dark {
+    color-scheme: dark;
+  }
+}
