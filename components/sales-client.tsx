@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { createSale, voidSale, completePendingSale } from "@/app/actions/sales-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -74,6 +75,7 @@ const selectCls = "flex h-10 w-full rounded-xl border border-border bg-card px-3
 const labelCls = "text-[10px] font-bold uppercase tracking-wider text-muted-foreground";
 
 function NewSaleDialog({ products, userId, onSuccess }: { products: Product[]; userId: string; onSuccess?: () => void }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
@@ -156,13 +158,61 @@ function NewSaleDialog({ products, userId, onSuccess }: { products: Product[]; u
       return;
     }
 
-    const confirmed = await confirmAction(
-      '¿Confirmar Registro?',
-      `Estado: ${status} · Total: ${total.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}`,
-      'Confirmar',
-      'Revisar'
-    );
-    if (!confirmed) return;
+    const fmtVal = (n: number) => n.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+
+    const { isConfirmed } = await brandAlert.fire({
+      title: 'Confirmar Venta',
+      html: `
+        <div class="text-left space-y-4 font-sans text-sm">
+          <div class="border-b border-border/60 pb-2.5 text-xs space-y-1">
+            <p class="text-muted-foreground">Cliente: <strong class="text-foreground">${client || 'Consumidor Final'}</strong></p>
+            <p class="text-muted-foreground">Pago: <strong class="text-foreground">${paymentMethod}</strong></p>
+            <p class="text-muted-foreground">Estado: <strong class="text-primary">${status === 'PENDING' ? 'Pendiente (Reserva)' : 'Completada'}</strong></p>
+          </div>
+          <div class="max-h-[180px] overflow-y-auto pr-1 space-y-2">
+            ${cart.map(i => `
+              <div class="flex justify-between items-start text-xs border-b border-border/40 pb-2 last:border-b-0">
+                <div>
+                  <p class="font-medium text-foreground">${i.name}</p>
+                  <p class="text-[10px] text-muted-foreground">${i.quantity} u. x ${fmtVal(i.unitPrice)}</p>
+                </div>
+                <div class="text-right">
+                  <p class="font-semibold text-foreground">${fmtVal(i.quantity * i.unitPrice)}</p>
+                  ${i.discount > 0 ? `<p class="text-[10px] font-semibold text-red-500">Desc: -${fmtVal(i.discount)}</p>` : ''}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          <div class="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-1.5 text-xs">
+            <div class="flex justify-between text-muted-foreground">
+              <span>Subtotal Productos</span>
+              <span>${fmtVal(subtotal)}</span>
+            </div>
+            ${(discount > 0 || cart.reduce((sum, i) => sum + i.discount, 0) > 0) ? `
+              <div class="flex justify-between text-red-500 font-medium">
+                <span>Descuentos Totales</span>
+                <span>-${fmtVal(discount + cart.reduce((sum, i) => sum + i.discount, 0))}</span>
+              </div>
+            ` : ''}
+            <div class="flex justify-between font-bold text-sm text-primary pt-1.5 border-t border-primary/25">
+              <span>Total Facturado</span>
+              <span>${fmtVal(total)}</span>
+            </div>
+          </div>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Confirmar Registro',
+      cancelButtonText: 'Revisar',
+      customClass: {
+        popup: 'rounded-3xl border border-border bg-card text-foreground font-sans shadow-2xl p-6 w-[480px]',
+        confirmButton: 'bg-gradient-to-r from-[#B18ACF] to-[#8B5CF6] text-white rounded-xl px-6 py-3 font-semibold text-sm hover:opacity-95 transition mr-2',
+        cancelButton: 'bg-secondary/10 hover:bg-secondary/20 border border-border text-foreground rounded-xl px-6 py-3 font-semibold text-sm transition ml-2',
+      },
+      buttonsStyling: false,
+    });
+
+    if (!isConfirmed) return;
 
     startTransition(async () => {
       const result = await createSale({
@@ -187,6 +237,7 @@ function NewSaleDialog({ products, userId, onSuccess }: { products: Product[]; u
         );
         resetForm();
         setOpen(false);
+        router.refresh();
         onSuccess?.();
       } else {
         errorAlert('Error al Registrar', (result as any).error ?? 'No fue posible guardar la venta.');
@@ -586,10 +637,20 @@ function SaleDetailDialog({ sale }: { sale: Sale }) {
                 <span className="text-muted-foreground">Subtotal Productos</span>
                 <span className="font-semibold text-foreground">{fmt(sale.details.reduce((s, d) => s + d.subtotal, 0))}</span>
               </div>
-              {(sale.discount > 0 || sale.details.reduce((s, d) => s + d.discount, 0) > 0) && (
-                <div className="flex justify-between text-red-500">
-                  <span>Descuentos Totales</span>
-                  <span>-{fmt(sale.discount + sale.details.reduce((s, d) => s + d.discount, 0))}</span>
+              {sale.details.reduce((s, d) => s + d.discount, 0) > 0 && (
+                <div className="space-y-1">
+                  {sale.details.reduce((s, d) => s + d.discount, 0) - sale.discount > 0 && (
+                    <div className="flex justify-between text-red-500">
+                      <span>Descuentos por Producto</span>
+                      <span>-{fmt(sale.details.reduce((s, d) => s + d.discount, 0) - sale.discount)}</span>
+                    </div>
+                  )}
+                  {sale.discount > 0 && (
+                    <div className="flex justify-between text-red-500">
+                      <span>Descuento Global</span>
+                      <span>-{fmt(sale.discount)}</span>
+                    </div>
+                  )}
                 </div>
               )}
               <div className="border-t border-primary/20 pt-1.5 flex justify-between font-bold text-sm">
@@ -704,6 +765,7 @@ export function SalesClient({
   products: Product[];
   userId: string;
 }) {
+  const router = useRouter();
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterPayment, setFilterPayment] = useState('');
@@ -749,25 +811,85 @@ export function SalesClient({
 
       if (result.success) {
         successAlert('Venta Anulada', `La venta ${sale.saleNumber} fue anulada y se devolvió el stock.`);
+        router.refresh();
       } else {
         errorAlert('Error', (result as any).error ?? 'No se pudo anular la venta.');
       }
     });
   };
 
-  const handleCompletar = async (saleId: string) => {
-    const confirmed = await confirmAction(
-      '¿Completar Venta?',
-      'Esta venta pasará a estado completada y se descontarán los productos del stock.',
-      'Sí, completar',
-      'Cancelar'
-    );
-    if (!confirmed) return;
+  const handleCompletar = async (sale: Sale) => {
+    const fmtVal = (n: number) => n.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+
+    const { isConfirmed } = await brandAlert.fire({
+      title: '¿Completar Venta?',
+      html: `
+        <div class="text-left space-y-4 font-sans text-sm">
+          <p class="text-xs text-muted-foreground">Esta venta pasará a estado completada y se descontarán los productos del stock. Por favor, confirma los detalles:</p>
+          <div class="border-b border-border/60 pb-2 text-xs">
+            <p class="text-muted-foreground">Cliente: <strong class="text-foreground">${sale.client ?? 'Consumidor Final'}</strong></p>
+            <p class="text-muted-foreground">Pago: <strong class="text-foreground">${sale.paymentMethod}</strong></p>
+          </div>
+          <div class="max-h-[180px] overflow-y-auto pr-1 space-y-2">
+            ${sale.details.map(d => `
+              <div class="flex justify-between items-start text-xs border-b border-border/40 pb-2 last:border-b-0">
+                <div>
+                  <p class="font-medium text-foreground">${d.product.name}</p>
+                  <p class="text-[10px] text-muted-foreground">${d.quantity} u. x ${fmtVal(d.unitPrice)}</p>
+                </div>
+                <div class="text-right">
+                  <p class="font-semibold text-foreground">${fmtVal(d.quantity * d.unitPrice)}</p>
+                  ${d.discount > 0 ? `<p class="text-[10px] font-semibold text-red-500">Desc: -${fmtVal(d.discount)}</p>` : ''}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          <div class="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-1.5 text-xs">
+            <div class="flex justify-between text-muted-foreground">
+              <span>Subtotal Productos</span>
+              <span>${fmtVal(sale.details.reduce((s, d) => s + d.subtotal, 0))}</span>
+            </div>
+            ${sale.details.reduce((s, d) => s + d.discount, 0) > 0 ? `
+              <div class="space-y-1">
+                ${sale.details.reduce((s, d) => s + d.discount, 0) - sale.discount > 0 ? `
+                  <div class="flex justify-between text-red-500 font-medium">
+                    <span>Descuentos por Producto</span>
+                    <span>-${fmtVal(sale.details.reduce((s, d) => s + d.discount, 0) - sale.discount)}</span>
+                  </div>
+                ` : ''}
+                ${sale.discount > 0 ? `
+                  <div class="flex justify-between text-red-500 font-medium">
+                    <span>Descuento Global</span>
+                    <span>-${fmtVal(sale.discount)}</span>
+                  </div>
+                ` : ''}
+              </div>
+            ` : ''}
+            <div class="flex justify-between font-bold text-sm text-primary pt-1.5 border-t border-primary/25">
+              <span>Total Facturado</span>
+              <span>${fmtVal(sale.total)}</span>
+            </div>
+          </div>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Sí, completar',
+      cancelButtonText: 'Cancelar',
+      customClass: {
+        popup: 'rounded-3xl border border-border bg-card text-foreground font-sans shadow-2xl p-6 w-[480px]',
+        confirmButton: 'bg-gradient-to-r from-[#B18ACF] to-[#8B5CF6] text-white rounded-xl px-6 py-3 font-semibold text-sm hover:opacity-95 transition mr-2',
+        cancelButton: 'bg-secondary/10 hover:bg-secondary/20 border border-border text-foreground rounded-xl px-6 py-3 font-semibold text-sm transition ml-2',
+      },
+      buttonsStyling: false,
+    });
+
+    if (!isConfirmed) return;
 
     startTransition(async () => {
-      const result = await completePendingSale(saleId);
+      const result = await completePendingSale(sale.id);
       if (result.success) {
         successAlert('Venta Completada', 'Los productos fueron descontados del stock.');
+        router.refresh();
       } else {
         errorAlert('Error', (result as any).error ?? 'No se pudo completar la venta.');
       }
@@ -917,7 +1039,7 @@ export function SalesClient({
                             variant="ghost"
                             size="icon"
                             disabled={isPending}
-                            onClick={() => handleCompletar(sale.id)}
+                            onClick={() => handleCompletar(sale)}
                             className="h-8 w-8 text-emerald-600 hover:bg-emerald-500/10 rounded-lg"
                             title="Completar Venta"
                           >
@@ -974,7 +1096,7 @@ export function SalesClient({
                 <SaleDetailDialog sale={sale} />
                 <div className="flex gap-1.5">
                   {sale.status === 'PENDING' && (
-                    <Button variant="ghost" size="icon" onClick={() => handleCompletar(sale.id)} className="h-8 w-8 text-emerald-600">
+                    <Button variant="ghost" size="icon" onClick={() => handleCompletar(sale)} className="h-8 w-8 text-emerald-600">
                       <Check className="h-4 w-4" />
                     </Button>
                   )}

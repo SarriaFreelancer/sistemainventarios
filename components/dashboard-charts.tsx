@@ -73,12 +73,12 @@ export function DashboardCharts({
             <AreaChart data={salesByMonth} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#B18ACF" stopOpacity={0.4}/>
-                  <stop offset="95%" stopColor="#B18ACF" stopOpacity={0.0}/>
+                  <stop offset="5%" stopColor="#B18ACF" stopOpacity={0.9}/>
+                  <stop offset="95%" stopColor="#B18ACF" stopOpacity={0.15}/>
                 </linearGradient>
                 <linearGradient id="colorCost" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#E5A9B4" stopOpacity={0.4}/>
-                  <stop offset="95%" stopColor="#E5A9B4" stopOpacity={0.0}/>
+                  <stop offset="5%" stopColor="#E5A9B4" stopOpacity={0.9}/>
+                  <stop offset="95%" stopColor="#E5A9B4" stopOpacity={0.15}/>
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />

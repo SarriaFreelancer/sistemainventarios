@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { CategoriesClient } from '@/components/category-dialogs';
+import { getAuthSession } from '@/auth';
 
 export const metadata = {
   title: 'Categorías · Dulche Dorelle',
@@ -7,7 +8,11 @@ export const metadata = {
 };
 
 export default async function CategoriesPage() {
+  const session = await getAuthSession();
+  const companyId = session?.user?.companyId;
+  
   const categories = await prisma.category.findMany({
+    where: companyId ? { companyId } : {},
     orderBy: { name: 'asc' },
     include: { _count: { select: { products: true } } }
   });

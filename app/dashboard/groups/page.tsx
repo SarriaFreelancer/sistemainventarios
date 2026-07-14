@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { getSessionCompanyId } from '@/lib/session';
 import { GroupsClient } from '@/components/group-dialogs';
 
 export const metadata = {
@@ -7,9 +8,12 @@ export const metadata = {
 };
 
 export default async function GroupsPage() {
+  const companyId = await getSessionCompanyId();
+
   const groups = await prisma.productGroup.findMany({
+    ...(companyId ? { where: { companyId } } : {}),
     orderBy: { name: 'asc' },
-    include: { _count: { select: { products: true } } }
+    include: { _count: { select: { products: true } } },
   });
 
   const serialized = groups.map(g => ({
@@ -25,3 +29,5 @@ export default async function GroupsPage() {
     </div>
   );
 }
+
+

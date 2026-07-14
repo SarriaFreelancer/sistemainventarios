@@ -4,9 +4,53 @@ import Link from 'next/link';
 import { DashboardCharts } from '@/components/dashboard-charts';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
+import { redirect } from 'next/navigation';
+import { getAuthSession } from '../../auth';
+
 export const revalidate = 0; // Disable caching to keep data fresh
 
 export default async function DashboardHomePage() {
+  const session = await getAuthSession();
+  if (!session?.user) redirect('/auth/login');
+
+  // Verify module access
+  let allowedModules: any[] = [];
+  if (session.user.role === 'SUPERADMIN') {
+    allowedModules = await prisma.module.findMany({ where: { isActive: true }, orderBy: { createdAt: 'asc' } });
+  } else if (session.user.role === 'ADMIN') {
+    const companyModules = await prisma.companyModule.findMany({
+      where: { companyId: session.user.companyId || -1 },
+      include: { module: true },
+    });
+    allowedModules = companyModules.map(cm => cm.module).filter(m => m.isActive);
+  } else {
+    const roleModules = await prisma.roleModule.findMany({
+      where: { role: { name: session.user.role as any } },
+      include: { module: true },
+    });
+    const companyModules = await prisma.companyModule.findMany({
+      where: { companyId: session.user.companyId || -1 },
+      include: { module: true },
+    });
+    const companyModuleIds = new Set(companyModules.map(cm => cm.moduleId));
+    allowedModules = roleModules.filter(rm => companyModuleIds.has(rm.moduleId)).map(rm => rm.module).filter(m => m.isActive);
+  }
+
+  const hasDashboardAccess = session.user.role === 'SUPERADMIN' || allowedModules.some(m => m.href === '/dashboard' || m.name.toLowerCase() === 'dashboard');
+  
+  if (!hasDashboardAccess) {
+    if (allowedModules.length > 0) {
+      redirect(allowedModules[0].href || '/dashboard/sales');
+    } else {
+      // If no modules are assigned at all, stay on a blank layout or redirect out
+      redirect('/auth/login');
+    }
+  }
+
+  const companyFilter = session.user.role !== 'SUPERADMIN' && session.user.companyId 
+    ? { companyId: session.user.companyId } 
+    : {};
+
   // ── Queries ──
   const [
     productCount,
@@ -18,24 +62,27 @@ export default async function DashboardHomePage() {
     outOfStockProducts,
     lowStockProducts
   ] = await Promise.all([
-    prisma.product.count(),
-    prisma.category.count(),
-    prisma.supplier.count(),
-    prisma.sale.count(),
+    prisma.product.count({ where: companyFilter }),
+    prisma.category.count({ where: companyFilter }),
+    prisma.supplier.count({ where: companyFilter }),
+    prisma.sale.count({ where: companyFilter }),
     prisma.product.findMany({
+      where: companyFilter,
       include: { category: true }
     }),
     prisma.sale.findMany({
+      where: companyFilter,
       include: { user: true, details: true },
       orderBy: { createdAt: 'desc' },
       take: 5,
     }),
     prisma.product.findMany({
-      where: { quantityAvailable: 0 },
+      where: { ...companyFilter, quantityAvailable: 0 },
       take: 4,
     }),
     prisma.product.findMany({
       where: {
+        ...companyFilter,
         quantityAvailable: {
           gt: 0,
           lte: 10,
@@ -53,6 +100,7 @@ export default async function DashboardHomePage() {
   
   // Total historical revenue from sales
   const salesSummary = await prisma.sale.aggregate({
+    where: companyFilter,
     _sum: { total: true }
   });
   const totalHistoricalSales = Number(salesSummary._sum.total ?? 0);
@@ -69,7 +117,7 @@ export default async function DashboardHomePage() {
   sixMonthsAgo.setHours(0, 0, 0, 0);
 
   const historicalSales = await prisma.sale.findMany({
-    where: { createdAt: { gte: sixMonthsAgo } },
+    where: { ...companyFilter, createdAt: { gte: sixMonthsAgo } },
     include: {
       details: {
         include: { product: true }
@@ -118,6 +166,7 @@ export default async function DashboardHomePage() {
 
   // ── Chart 2: Top Products ──
   const topProductsRaw = await prisma.product.findMany({
+    where: companyFilter,
     orderBy: { soldQuantity: 'desc' },
     take: 5
   });
@@ -130,6 +179,7 @@ export default async function DashboardHomePage() {
 
   // ── Chart 3: Product Group Distribution ──
   const groupsWithProducts = await prisma.productGroup.findMany({
+    where: companyFilter,
     include: { _count: { select: { products: true } } }
   });
 
@@ -162,7 +212,7 @@ export default async function DashboardHomePage() {
               Supervisa el rendimiento comercial, existencias y actividades de auditoría en tiempo real.
             </p>
           </div>
-          <div className="flex items-center gap-3 bg-muted/30 border border-border/80 px-4 py-3 rounded-2xl">
+          <div className="flex items-center gap-3 bg-muted border border-border px-4 py-3 rounded-2xl">
             <Calendar className="h-5 w-5 text-primary" />
             <div className="text-left">
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Fecha de Sistema</p>

@@ -6,11 +6,53 @@
 
 :root {
     color-scheme: light;
+
+    /* ─── Design Tokens: Light Mode ─── */
+    --background:         oklch(1 0 0);
+    --foreground:         oklch(0.145 0 0);
+    --card:               oklch(1 0 0);
+    --card-foreground:    oklch(0.145 0 0);
+    --popover:            oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0 0);
+    --primary:            oklch(0.72 0.12 296);
+    --primary-foreground: oklch(1 0 0);
+    --secondary:          oklch(0.97 0.003 286);
+    --secondary-foreground: oklch(0.21 0.06 296);
+    --muted:              oklch(0.97 0.002 286);
+    --muted-foreground:   oklch(0.50 0.02 286);
+    --accent:             oklch(0.97 0.003 286);
+    --accent-foreground:  oklch(0.21 0.06 296);
+    --destructive:        oklch(0.60 0.18 25);
+    --border:             oklch(0.92 0.003 286);
+    --input:              oklch(0.92 0.003 286);
+    --ring:               oklch(0.72 0.12 296);
+    --radius:             0.75rem;
 }
 
 .dark {
     color-scheme: dark;
+
+    /* ─── Design Tokens: Dark Mode ─── */
+    --background:         oklch(0.145 0.01 286);
+    --foreground:         oklch(0.985 0.002 286);
+    --card:               oklch(0.175 0.015 286);
+    --card-foreground:    oklch(0.985 0.002 286);
+    --popover:            oklch(0.175 0.015 286);
+    --popover-foreground: oklch(0.985 0.002 286);
+    --primary:            oklch(0.75 0.14 296);
+    --primary-foreground: oklch(0.13 0.04 296);
+    --secondary:          oklch(0.22 0.025 286);
+    --secondary-foreground: oklch(0.985 0.002 286);
+    --muted:              oklch(0.22 0.025 286);
+    --muted-foreground:   oklch(0.62 0.02 286);
+    --accent:             oklch(0.27 0.03 296);
+    --accent-foreground:  oklch(0.985 0.002 286);
+    --destructive:        oklch(0.55 0.18 25);
+    --border:             oklch(0.27 0.025 286);
+    --input:              oklch(0.22 0.025 286);
+    --ring:               oklch(0.75 0.14 296);
 }
+
 
 html {
     scroll-behavior: smooth;
@@ -68,47 +110,79 @@ img, video {
 }
 
 /* ─── Glassmorphism Panel ─── */
+/* Ensure cards, popovers and inputs use the page background color (not transparent)
+   This maps the semantic "card" color to the page background so light/dark
+   themes keep these surfaces solid and consistent with the page. */
+:root {
+  --card: var(--background);
+  --popover: var(--background);
+  --input: var(--background);
+}
+
 .glass-panel {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(216, 193, 236, 0.4);
+  background-color: var(--card);
+  border: 1px solid var(--border);
 }
 
 .dark .glass-panel {
-    background: rgba(32, 25, 45, 0.85);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(58, 46, 80, 0.45);
+  background-color: var(--card);
+  border: 1px solid var(--border);
 }
 
 /* ─── Form elements: always solid background ─── */
 input,
 textarea,
 select {
-  background-color: hsl(var(--card));
-  color: hsl(var(--foreground));
-  border-color: hsl(var(--border));
+  background-color: var(--card);
+  color: var(--foreground);
+  border-color: var(--border);
 }
 
 input::placeholder,
 textarea::placeholder {
-  color: hsl(var(--muted-foreground) / 0.5);
+  color: var(--muted-foreground);
+  opacity: 0.5;
 }
 
 /* Dropdown option elements in dark mode */
 .dark option {
-  background-color: hsl(var(--card));
-  color: hsl(var(--foreground));
+  background-color: var(--card);
+  color: var(--foreground);
 }
 
 /* ─── Dialog / Modal solid backgrounds ─── */
-[data-slot="dialog-content"],
 [data-slot="dialog-overlay"] {
-  background-color: hsl(var(--card));
+  background-color: rgba(0, 0, 0, 0.65) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
-[data-slot="dialog-overlay"] {
-  background-color: rgba(0, 0, 0, 0.45) !important;
-  backdrop-filter: blur(4px);
+[data-slot="dialog-content"] {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35) !important;
+}
+
+[data-slot="dialog-footer"] {
+  background-color: var(--muted) !important;
+  color: var(--foreground) !important;
+}
+
+/* ─── Sheet / Drawer solid backgrounds ─── */
+[data-slot="sheet-content"],
+[data-slot="drawer-content"] {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
+/* ─── Popover / Dropdown solid backgrounds ─── */
+[data-slot="popover-content"],
+[role="dialog"],
+[role="listbox"],
+[role="menu"] {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
 }
 
 /* ─── Dark mode: reduce harsh borders ─── */
@@ -127,32 +201,32 @@ textarea::placeholder {
   border-radius: 24px !important;
   padding: 2rem !important;
   font-family: 'Inter', sans-serif !important;
-  background-color: hsl(var(--card)) !important;
-  color: hsl(var(--foreground)) !important;
+  background-color: var(--card) !important;
+  color: var(--foreground) !important;
   box-shadow: 0 25px 60px rgba(0, 0, 0, 0.25) !important;
 }
 
 .swal2-title {
-  color: hsl(var(--foreground)) !important;
+  color: var(--foreground) !important;
 }
 
 .swal2-html-container {
-  color: hsl(var(--muted-foreground)) !important;
+  color: var(--muted-foreground) !important;
 }
 
 .swal2-input,
 .swal2-textarea,
 .swal2-select {
-  background-color: hsl(var(--card)) !important;
-  color: hsl(var(--foreground)) !important;
-  border-color: hsl(var(--border)) !important;
+  background-color: var(--card) !important;
+  color: var(--foreground) !important;
+  border-color: var(--border) !important;
   border-radius: 12px !important;
 }
 
 .swal2-input:focus,
 .swal2-textarea:focus {
-  border-color: hsl(var(--primary)) !important;
-  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.15) !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px rgba(177, 138, 207, 0.2) !important;
 }
 
 @layer base {

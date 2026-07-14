@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, CustomerStatus, OpportunityStage } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -10,52 +10,120 @@ async function main() {
   await prisma.auditLog.deleteMany();
   await prisma.saleDetail.deleteMany();
   await prisma.sale.deleteMany();
+  await prisma.opportunity.deleteMany();
+  await prisma.customer.deleteMany();
   await prisma.product.deleteMany();
   await prisma.productGroup.deleteMany();
   await prisma.category.deleteMany();
   await prisma.supplier.deleteMany();
-  await prisma.role.deleteMany();
+  await prisma.roleModule.deleteMany();
+  await prisma.companyModule.deleteMany();
+  await prisma.module.deleteMany();
   await prisma.user.deleteMany();
+  await prisma.role.deleteMany();
+  await prisma.company.deleteMany();
 
-  // Create roles (including SUPERADMIN)
-  await prisma.role.createMany({
-    data: [
-      { name: 'ADMIN' },
-      { name: 'SUPERADMIN' },
-      { name: 'USER' },
-    ],
+  // Create roles
+  const adminRole = await prisma.role.create({ data: { name: 'ADMIN' } });
+  const superAdminRole = await prisma.role.create({ data: { name: 'SUPERADMIN' } });
+  const userRole = await prisma.role.create({ data: { name: 'USER' } });
+
+  // Create sample companies
+  const mainCompany = await prisma.company.create({
+    data: {
+      name: 'Dulche Dorelle S.A.S.',
+      address: 'Calle 95 #14-60',
+      city: 'Bogotá',
+      country: 'Colombia',
+      status: 'ACTIVE',
+    },
   });
 
-  // Fetch role IDs for linking
-  const adminRole = await prisma.role.findUnique({ where: { name: 'ADMIN' } });
-  const superAdminRole = await prisma.role.findUnique({ where: { name: 'SUPERADMIN' } });
+  const partnerCompany = await prisma.company.create({
+    data: {
+      name: 'Glitz Beauty SAS',
+      address: 'Carrera 15 #82-23',
+      city: 'Medellín',
+      country: 'Colombia',
+      status: 'ACTIVE',
+    },
+  });
 
-  // Create admin user
+  // Create admin user scoped to the main company
   const adminUser = await prisma.user.create({
     data: {
       name: 'Admin Dulche Dorelle',
       email: 'admin@dulchedorelle.com',
       password: passwordHash,
-      roleId: adminRole?.id,
+      roleId: adminRole.id,
+      companyId: mainCompany.id,
     },
   });
 
-  // Create super‑admin user
+  // Create super‑admin user without company scope
   const superAdminUser = await prisma.user.create({
     data: {
       name: 'Super Admin',
       email: 'superadmin@dulchedorelle.com',
       password: passwordHash,
-      roleId: superAdminRole?.id,
+      roleId: superAdminRole.id,
     },
   });
+
+  // Create a sample company-scoped user
+  await prisma.user.create({
+    data: {
+      name: 'Laura Ortiz',
+      email: 'laura@glitzbeauty.co',
+      password: passwordHash,
+      roleId: adminRole.id,
+      companyId: partnerCompany.id,
+    },
+  });
+
+  // Create Modules (Dynamic Menu)
+  const systemModules = [
+    { name: 'Dashboard', href: '/dashboard', icon: 'LayoutDashboard', description: 'Resumen del negocio y métricas clave' },
+    { name: 'Productos', href: '/dashboard/products', icon: 'Boxes', description: 'Gestiona el catálogo y stock' },
+    { name: 'Grupos', href: '/dashboard/groups', icon: 'Folder', description: 'Agrupa productos por colecciones' },
+    { name: 'Categorías', href: '/dashboard/categories', icon: 'Tags', description: 'Organiza productos por categoría' },
+    { name: 'Proveedores', href: '/dashboard/suppliers', icon: 'Factory', description: 'Gestiona proveedores y contactos' },
+    { name: 'Ventas', href: '/dashboard/sales', icon: 'ShoppingCart', description: 'Registra y revisa transacciones' },
+    { name: 'CRM', href: '/dashboard/crm', icon: 'Users', description: 'Gestiona clientes y relaciones comerciales' },
+    { name: 'Usuarios', href: '/dashboard/users', icon: 'Users', description: 'Administra cuentas, roles y permisos de usuario' },
+    { name: 'Empresas', href: '/dashboard/companies', icon: 'Folder', description: 'Gestiona las empresas y sus usuarios' },
+    { name: 'Compras', href: '/dashboard/compras', icon: 'Truck', description: 'Supervisa órdenes de compra' },
+    { name: 'Finanzas', href: '/dashboard/finanzas', icon: 'DollarSign', description: 'Monitorea ingresos y gastos' },
+    { name: 'Reportes', href: '/dashboard/reportes', icon: 'FileText', description: 'Genera análisis e informes clave' },
+  ];
+
+  for (const mod of systemModules) {
+    const createdModule = await prisma.module.create({
+      data: {
+        name: mod.name,
+        href: mod.href,
+        icon: mod.icon,
+        description: mod.description,
+        isActive: true,
+      }
+    });
+
+    // Assign to SUPERADMIN and main company by default
+    await prisma.roleModule.create({
+      data: { roleId: superAdminRole.id, moduleId: createdModule.id }
+    });
+
+    await prisma.companyModule.create({
+      data: { companyId: mainCompany.id, moduleId: createdModule.id }
+    });
+  }
 
   // Create groups in database
   const groupNames = ['Maquillaje', 'Accesorios', 'Skincare', 'Capilar', 'Corporal', 'Perfumería', 'Otros'];
   const createdGroups: any[] = [];
   for (const name of groupNames) {
     const group = await prisma.productGroup.create({
-      data: { name, status: 'ACTIVE' }
+      data: { name, status: 'ACTIVE', companyId: mainCompany.id }
     });
     createdGroups.push(group);
   }
@@ -74,7 +142,13 @@ async function main() {
     { name: 'Brochas y Esponjas', description: 'Herramientas de aplicación profesional' },
     { name: 'Fragancias Premium', description: 'Perfumes exclusivos de alta fijación' },
   ];
-  await prisma.category.createMany({ data: categoryNames });
+  const createdCategories: any[] = [];
+  for (const c of categoryNames) {
+    const cat = await prisma.category.create({
+      data: { ...c, companyId: mainCompany.id }
+    });
+    createdCategories.push(cat);
+  }
 
   // Create suppliers
   const supplierNames = [
@@ -83,10 +157,47 @@ async function main() {
     { companyName: 'Esencias de París S.A.S.', contactName: 'Camille Dupont', phone: '3209876543', email: 'cdupont@esenciasparis.com', address: 'Carrera Diamante 89', city: 'Cali', country: 'Colombia' },
     { companyName: 'Accesorios Glitz & Glam', contactName: 'Valeria Gómez', phone: '3001234567', email: 'valeria@glitzglam.co', address: 'Diag. Cristal 12', city: 'Barranquilla', country: 'Colombia' },
   ];
-  await prisma.supplier.createMany({ data: supplierNames });
+  const createdSuppliers: any[] = [];
+  for (const s of supplierNames) {
+    const sup = await prisma.supplier.create({
+      data: { ...s, companyId: mainCompany.id }
+    });
+    createdSuppliers.push(sup);
+  }
 
-  const createdCategories = await prisma.category.findMany();
-  const createdSuppliers = await prisma.supplier.findMany();
+  const customerData = [
+    { name: 'Juliana Restrepo', email: 'juliana.restrepo@mail.com', phone: '3101234567', company: 'Restrepo Boutique', address: 'Calle 50 #12-34', city: 'Bogotá', status: CustomerStatus.ACTIVE },
+    { name: 'Camila Gómez', email: 'camila.gomez@mail.com', phone: '3150987654', company: 'Gómez Beauty', address: 'Carrera 10 #20-15', city: 'Medellín', status: CustomerStatus.ACTIVE },
+    { name: 'Mariana Mesa', email: 'mariana.mesa@mail.com', phone: '3123456789', company: 'Mesa Cosmetics', address: 'Av. 4 #16-72', city: 'Cali', status: CustomerStatus.PROSPECT },
+    { name: 'Lucía Pérez', email: 'lucia.perez@mail.com', phone: '3169876543', company: 'Pérez Estética', address: 'Calle 80 #22-10', city: 'Barranquilla', status: CustomerStatus.ACTIVE },
+    { name: 'Sofía Vergara', email: 'sofia.vergara@mail.com', phone: '3132468101', company: 'Vergara Spa', address: 'Av. 7 #35-50', city: 'Cartagena', status: CustomerStatus.PROSPECT },
+  ];
+
+  const createdCustomers: any[] = [];
+  for (const customer of customerData) {
+    const created = await prisma.customer.create({ data: { ...customer, companyId: mainCompany.id } });
+    createdCustomers.push(created);
+  }
+
+  const opportunities = [
+    { title: 'Nueva línea de maquillaje de temporada', customerIndex: 0, stage: OpportunityStage.QUALIFIED, estimatedValue: 950000, probability: 75 },
+    { title: 'Acuerdo de suministro mensual', customerIndex: 1, stage: OpportunityStage.CONTACTED, estimatedValue: 450000, probability: 40 },
+    { title: 'Capacitación para equipo de ventas', customerIndex: 2, stage: OpportunityStage.PROPOSAL, estimatedValue: 320000, probability: 55 },
+    { title: 'Renovación de contrato de cosmetics', customerIndex: 3, stage: OpportunityStage.NEW, estimatedValue: 220000, probability: 30 },
+  ];
+
+  for (const opportunity of opportunities) {
+    await prisma.opportunity.create({
+      data: {
+        title: opportunity.title,
+        customerId: createdCustomers[opportunity.customerIndex].id,
+        stage: opportunity.stage,
+        estimatedValue: opportunity.estimatedValue,
+        probability: opportunity.probability,
+        companyId: mainCompany.id,
+      },
+    });
+  }
 
   // Create products with group relation
   const productTemplates = [
@@ -119,11 +230,12 @@ async function main() {
         name: t.name,
         categoryId: category.id,
         supplierId: supplier.id,
-        quantityAvailable: i % 4 === 0 ? 0 : 25 + i * 2, // Make some out of stock
+        quantityAvailable: i % 4 === 0 ? 0 : 25 + i * 2,
         unitCost: t.cost,
         salePrice: t.price,
         soldQuantity: 10 + i * 3,
         productGroupId: getGroupIdByName(t.groupName),
+        companyId: mainCompany.id,
       },
     });
     createdProducts.push(p);
@@ -135,7 +247,6 @@ async function main() {
   const baseDate = new Date();
   
   for (let i = 1; i <= 24; i++) {
-    // Generate dates in the past (e.g. 1 to 6 months ago)
     const saleDate = new Date();
     saleDate.setMonth(baseDate.getMonth() - (i % 6));
     saleDate.setDate(1 + (i * 3) % 28);
@@ -144,7 +255,6 @@ async function main() {
     const client = i % 3 === 0 ? null : clientNames[i % clientNames.length];
     const paymentMethod = paymentMethods[i % paymentMethods.length];
     
-    // Pick 1-3 products
     const detailsData = [];
     let saleTotal = 0;
     const numItems = 1 + (i % 3);
@@ -178,6 +288,7 @@ async function main() {
         total: finalTotal,
         paymentMethod,
         status: 'COMPLETED',
+        companyId: mainCompany.id,
         createdAt: saleDate,
         updatedAt: saleDate,
         details: {
@@ -188,6 +299,7 @@ async function main() {
             subtotal: d.subtotal,
             discount: d.discount,
             total: d.total,
+            companyId: mainCompany.id,
             createdAt: saleDate,
             updatedAt: saleDate,
           }))
@@ -195,7 +307,6 @@ async function main() {
       }
     });
 
-    // Increment sold quantities on products
     for (const d of detailsData) {
       await prisma.product.update({
         where: { id: d.productId },
@@ -217,3 +328,4 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+

@@ -78,7 +78,7 @@ export async function generateInvoiceMedia(sale: InvoiceData, format: 'png' | 'j
 
   ctx.textAlign = 'right';
   ctx.font = 'bold 10px sans-serif';
-  ctx.fillStyle = sale.status === 'COMPLETADA' ? '#10B981' : '#EF4444';
+  ctx.fillStyle = sale.status === 'COMPLETED' ? '#10B981' : '#EF4444';
   ctx.fillText(sale.status.toUpperCase(), canvas.width - 45, 145);
 
   // Metadata Grid
@@ -179,26 +179,36 @@ export async function generateInvoiceMedia(sale: InvoiceData, format: 'png' | 'j
 
   const subtotal = sale.details.reduce((s, d) => s + d.subtotal, 0);
   const totalItemDiscounts = sale.details.reduce((s, d) => s + d.discount, 0);
+  const productDiscounts = totalItemDiscounts - sale.discount;
 
   ctx.fillText('SUBTOTAL DETALLES:', 600, y);
   ctx.fillStyle = '#17121F';
   ctx.fillText(subtotal.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }), canvas.width - 45, y);
 
-  if (totalItemDiscounts > 0) {
+  if (productDiscounts > 0) {
     y += 25;
     ctx.textAlign = 'right';
     ctx.fillStyle = '#726A7A';
-    ctx.fillText('DESCUENTOS APLICADOS:', 600, y);
+    ctx.fillText('DESCUENTOS PRODUCTOS:', 600, y);
     ctx.fillStyle = '#EF4444';
-    ctx.fillText(`-${totalItemDiscounts.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}`, canvas.width - 45, y);
+    ctx.fillText(`-${productDiscounts.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}`, canvas.width - 45, y);
+  }
+
+  if (sale.discount > 0) {
+    y += 25;
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#726A7A';
+    ctx.fillText('DESCUENTO GLOBAL:', 600, y);
+    ctx.fillStyle = '#EF4444';
+    ctx.fillText(`-${sale.discount.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}`, canvas.width - 45, y);
   }
 
   // Final Total Banner
   y += 35;
   ctx.fillStyle = '#FAF7FC';
-  ctx.fillRect(400, y - 20, 360, 45);
+  ctx.fillRect(400, y - 20, canvas.width - 440, 45);
   ctx.strokeStyle = '#B18ACF';
-  ctx.strokeRect(400, y - 20, 360, 45);
+  ctx.strokeRect(400, y - 20, canvas.width - 440, 45);
 
   ctx.textAlign = 'left';
   ctx.fillStyle = '#17121F';

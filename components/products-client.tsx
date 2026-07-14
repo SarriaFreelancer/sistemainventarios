@@ -139,51 +139,81 @@ export function ProductsClient({
       return;
     }
 
-    const { value: quantity, isConfirmed } = await brandAlert.fire({
+    const { value: resultValues, isConfirmed } = await brandAlert.fire({
       title: `Venta Rápida`,
       html: `
-        <p class="text-sm text-muted-foreground mb-3">Producto: <strong class="text-foreground">${product.name}</strong></p>
-        <p class="text-sm text-muted-foreground mb-4">Disponible: <strong class="text-primary">${product.quantityAvailable} unidades</strong> · Precio: <strong class="text-foreground">${product.salePrice.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}</strong></p>
-        <label class="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-2">Cantidad a vender</label>
+        <div class="text-left space-y-4 font-sans">
+          <div class="rounded-xl bg-muted/10 border border-border/60 p-3 text-xs space-y-1.5">
+            <p class="text-muted-foreground">Producto: <strong class="text-foreground">${product.name}</strong></p>
+            <p class="text-muted-foreground">Código: <strong class="text-foreground">${product.code}</strong></p>
+            <p class="text-muted-foreground">Precio Unitario: <strong class="text-foreground">${product.salePrice.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}</strong></p>
+            <p class="text-muted-foreground">Disponible: <strong class="text-primary">${product.quantityAvailable} unidades</strong></p>
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Cantidad a vender</label>
+            <input id="swal-qty" type="number" min="1" max="${product.quantityAvailable}" value="1"
+              class="flex h-11 w-full rounded-xl border border-border bg-card px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-4 focus:ring-primary/15 focus:border-primary transition" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Descuento total ($)</label>
+            <input id="swal-discount" type="number" min="0" value="0"
+              class="flex h-11 w-full rounded-xl border border-border bg-card px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-4 focus:ring-primary/15 focus:border-primary transition" />
+          </div>
+        </div>
       `,
-      input: 'number',
-      inputAttributes: {
-        min: '1',
-        max: String(product.quantityAvailable),
-        step: '1',
-        placeholder: '1',
-      },
       showCancelButton: true,
       confirmButtonText: 'Confirmar Venta',
       cancelButtonText: 'Cancelar',
-      inputValidator: (value) => {
-        const qty = parseInt(value, 10);
-        if (!value || isNaN(qty) || qty < 1) return 'Ingresa una cantidad válida.';
-        if (qty > product.quantityAvailable) return `Máximo disponible: ${product.quantityAvailable} u.`;
-        return null;
+      preConfirm: () => {
+        const qtyEl = document.getElementById('swal-qty') as HTMLInputElement;
+        const discEl = document.getElementById('swal-discount') as HTMLInputElement;
+        const qty = parseInt(qtyEl.value, 10);
+        const discount = parseFloat(discEl.value) || 0;
+
+        if (isNaN(qty) || qty < 1) {
+          brandAlert.showValidationMessage('Ingresa una cantidad válida.');
+          return false;
+        }
+        if (qty > product.quantityAvailable) {
+          brandAlert.showValidationMessage(`Máximo disponible: ${product.quantityAvailable} u.`);
+          return false;
+        }
+        if (isNaN(discount) || discount < 0) {
+          brandAlert.showValidationMessage('El descuento debe ser mayor o igual a 0.');
+          return false;
+        }
+        const subtotal = qty * product.salePrice;
+        if (discount > subtotal) {
+          brandAlert.showValidationMessage('El descuento no puede superar el subtotal.');
+          return false;
+        }
+
+        return { qty, discount };
       },
       customClass: {
         popup: 'rounded-3xl border border-border bg-card text-foreground font-sans shadow-2xl p-6',
-        input: 'flex h-12 w-full rounded-xl border border-border bg-card px-4 py-2 text-sm text-foreground text-center focus:outline-none focus:ring-4 focus:ring-primary/15 focus:border-primary transition mt-2 mb-2',
         confirmButton: 'bg-gradient-to-r from-[#B18ACF] to-[#8B5CF6] text-white rounded-xl px-6 py-3 font-semibold text-sm hover:opacity-95 transition mr-2',
         cancelButton: 'bg-secondary/10 hover:bg-secondary/20 border border-border text-foreground rounded-xl px-6 py-3 font-semibold text-sm transition ml-2',
       },
       buttonsStyling: false,
     });
 
-    if (!isConfirmed || !quantity) return;
+    if (!isConfirmed || !resultValues) return;
+
+    const { qty, discount } = resultValues;
 
     startTransition(async () => {
       const result = await quickSellProduct({
         productId: product.id,
-        quantity: parseInt(quantity, 10),
+        quantity: qty,
+        discount: discount,
         userId,
       });
 
       if (result.success) {
         successAlert(
           '¡Venta Registrada!',
-          `Venta #${result.saleNumber} completada por ${result.total?.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}`
+          `Venta #${result.saleNumber} completada por ${result.total?.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })} ${discount > 0 ? `(Descuento aplicado: ${discount.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })})` : ''}`
         );
       } else {
         errorAlert('Error en Venta', result.error ?? 'No fue posible registrar la venta.');

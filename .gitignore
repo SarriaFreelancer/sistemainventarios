@@ -1,1 +1,28 @@
-node_modules
+# Dependencias
+node_modules/
+
+# Variables de entorno
+.env
+.env.local
+.env.production
+
+# Next.js
+.next/
+out/
+
+# Editor
+.vscode/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-error.log*
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Prisma (solo si usas SQLite)
+# prisma/dev.db
+# prisma/dev.db-journal

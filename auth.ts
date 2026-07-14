@@ -17,15 +17,20 @@ export const authOptions: AuthOptions = {
       },
       async authorize(credentials) {
         const parsed = z.object({ email: z.string().email(), password: z.string().min(1) }).safeParse(credentials);
-        if (!parsed.success) return null;
+        if (!parsed.success) {
+          console.log('authorize: invalid payload', credentials);
+          return null;
+        }
 
         const user = await prisma.user.findUnique({ where: { email: parsed.data.email }, include: { role: true } });
+        console.log('authorize: found user', !!user, parsed.data.email);
         if (!user) return null;
 
         const valid = await bcrypt.compare(parsed.data.password, user.password);
+        console.log('authorize: password valid?', valid);
         if (!valid) return null;
 
-        return { id: user.id, name: user.name, email: user.email, image: user.image ?? null, role: user.role?.name };
+        return { id: user.id, name: user.name, email: user.email, image: user.image ?? null, role: user.role?.name, companyId: user.companyId };
       },
     }),
   ],
@@ -36,14 +41,16 @@ export const authOptions: AuthOptions = {
     async jwt({ token, user }: any) {
       if (user) {
         token.id = user.id;
-        token.role = user.role?.name;
+        token.role = user.role;
+        token.companyId = user.companyId;
       }
       return token;
     },
     async session({ session, token }: any) {
       if (session.user) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as string;
+        session.user.id = token.id;
+        session.user.role = token.role;
+        session.user.companyId = token.companyId;
       }
       return session;
     },

@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { SuppliersClient } from '@/components/supplier-dialogs';
+import { getAuthSession } from '@/auth';
 
 export const metadata = {
   title: 'Proveedores · Dulche Dorelle',
@@ -7,7 +8,11 @@ export const metadata = {
 };
 
 export default async function SuppliersPage() {
+  const session = await getAuthSession();
+  const companyId = session?.user?.companyId;
+
   const suppliers = await prisma.supplier.findMany({
+    where: companyId ? { companyId } : {},
     orderBy: { companyName: 'asc' },
     include: { _count: { select: { products: true } } }
   });

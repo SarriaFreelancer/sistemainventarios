@@ -102,9 +102,10 @@ export async function deleteProduct(id: string) {
 export async function quickSellProduct(data: {
   productId: string;
   quantity: number;
+  discount?: number;
   userId: string;
 }) {
-  const { productId, quantity, userId } = data;
+  const { productId, quantity, discount = 0, userId } = data;
 
   const product = await prisma.product.findUnique({ where: { id: productId } });
   if (!product) return { success: false, error: 'Producto no encontrado' };
@@ -120,19 +121,23 @@ export async function quickSellProduct(data: {
 
   const unitPrice = product.salePrice;
   const subtotal = unitPrice * quantity;
+  const total = Math.max(0, subtotal - discount);
 
   await prisma.$transaction([
     prisma.sale.create({
       data: {
         saleNumber,
         userId,
-        total: subtotal,
+        discount,
+        total,
         details: {
           create: [{
             productId,
             quantity,
             unitPrice,
             subtotal,
+            discount,
+            total,
           }]
         }
       }
@@ -149,5 +154,5 @@ export async function quickSellProduct(data: {
 
   revalidatePath('/dashboard/products');
   revalidatePath('/dashboard/sales');
-  return { success: true, saleNumber, total: subtotal };
+  return { success: true, saleNumber, total };
 }

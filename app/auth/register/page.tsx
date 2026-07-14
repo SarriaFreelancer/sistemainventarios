@@ -53,7 +53,7 @@ export default function RegisterPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top_left,_rgba(216,193,236,0.3),_transparent_40%),radial-gradient(circle_at_bottom_right,_rgba(177,138,207,0.25),_transparent_45%),linear-gradient(135deg,_var(--background)_0%,_var(--background)_100%)] px-6 py-10 transition-colors duration-500">
-      <div className="grid w-full max-w-5xl overflow-hidden rounded-[40px] border border-border/40 bg-card/65 shadow-[0_30px_100px_rgba(139,92,246,0.12)] backdrop-blur-xl lg:grid-cols-[1.05fr_0.95fr] transition-colors duration-500">
+      <div className="grid w-full max-w-5xl overflow-hidden rounded-[40px] border border-border bg-card shadow-2xl lg:grid-cols-[1.05fr_0.95fr] transition-colors duration-500">
         
         {/* Panel Izquierdo: Branding */}
         <div className="relative hidden lg:flex flex-col justify-between overflow-hidden bg-gradient-to-b from-[#1E152A] to-[#120D1A] p-12 text-white">

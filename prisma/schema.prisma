@@ -19,6 +19,7 @@ enum SaleStatus {
   PAID
   COMPLETED
   VOIDED
+  RETURNED
 }
 
 enum DiscountScope {
@@ -37,6 +38,37 @@ enum ProductStatus {
   OUT_OF_STOCK
 }
 
+enum CustomerStatus {
+  ACTIVE
+  INACTIVE
+  PROSPECT
+  WON
+}
+
+enum OpportunityStage {
+  NEW
+  CONTACTED
+  QUALIFIED
+  PROPOSAL
+  WON
+  LOST
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  SENT
+  RECEIVED
+  CANCELLED
+}
+
+enum ExpenseCategory {
+  MARKETING
+  SUPPLIES
+  UTILITIES
+  PAYROLL
+  OTHER
+}
+
 enum CategoryStatus {
   ACTIVE
   INACTIVE
@@ -47,167 +79,321 @@ enum SupplierStatus {
   INACTIVE
 }
 
+model Customer {
+  id            Int              @id @default(autoincrement())
+  name          String
+  email         String?          @unique
+  phone         String?
+  company       String?
+  address       String?
+  city          String?
+  country       String           @default("Colombia")
+  status        CustomerStatus   @default(ACTIVE)
+  companyId     Int?
+  tenantCompany Company?         @relation(fields: [companyId], references: [id])
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  opportunities Opportunity[]
+  contacts      Contact[]
+  activities    Activity[]
+  quotes        Quote[]
+
+  @@index([companyId])
+}
+
+model Opportunity {
+  id             Int              @id @default(autoincrement())
+  title          String
+  customerId     Int
+  stage          OpportunityStage @default(NEW)
+  estimatedValue Float            @default(0)
+  probability    Int              @default(0)
+  companyId      Int?
+  company        Company?         @relation(fields: [companyId], references: [id])
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  customer       Customer         @relation(fields: [customerId], references: [id])
+
+  @@index([companyId])
+  @@index([customerId])
+}
+
+model PurchaseOrder {
+  id               Int                 @id @default(autoincrement())
+  orderNumber      String              @unique
+  supplierId       Int
+  status           PurchaseOrderStatus @default(DRAFT)
+  total            Float               @default(0)
+  expectedDelivery DateTime?
+  companyId        Int?
+  company          Company?            @relation(fields: [companyId], references: [id])
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  supplier         Supplier            @relation(fields: [supplierId], references: [id])
+  lines            PurchaseOrderLine[]
+
+  @@index([companyId])
+  @@index([supplierId])
+}
+
+model PurchaseOrderLine {
+  id              Int           @id @default(autoincrement())
+  purchaseOrderId Int
+  productId       Int?
+  quantity        Int           @default(1)
+  unitPrice       Float         @default(0)
+  total           Float         @default(0)
+  companyId       Int?
+  company         Company?      @relation(fields: [companyId], references: [id])
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product         Product?      @relation(fields: [productId], references: [id])
+
+  @@index([companyId])
+  @@index([purchaseOrderId])
+  @@index([productId])
+}
+
+model Expense {
+  id          Int             @id @default(autoincrement())
+  description String
+  amount      Float
+  category    ExpenseCategory @default(OTHER)
+  date        DateTime        @default(now())
+  companyId   Int?
+  company     Company?        @relation(fields: [companyId], references: [id])
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([companyId])
+}
+
 model ProductGroup {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  status    String   @default("ACTIVE")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  status    String    @default("ACTIVE")
+  companyId Int?
+  company   Company?  @relation(fields: [companyId], references: [id])
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   products  Product[]
+
+  @@index([companyId])
 }
 
 model User {
-  id            String    @id @default(cuid())
+  id            Int          @id @default(autoincrement())
   name          String
-  email         String    @unique
+  email         String       @unique
   password      String
   image         String?
-  roleId       String?   // foreign key to Role
-  role         Role?     @relation(fields: [roleId], references: [id])
-  rememberMe    Boolean   @default(false)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  roleId        Int?
+  role          Role?        @relation(fields: [roleId], references: [id])
+  companyId     Int?
+  company       Company?     @relation(fields: [companyId], references: [id])
+  rememberMe    Boolean      @default(false)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
   auditLogs     AuditLog[]
   sales         Sale[]
-  voidedSales   Sale[]      @relation("VoidedSales")
+  voidedSales   Sale[]       @relation("VoidedSales")
+  activities    Activity[]
 
   @@index([email])
+  @@index([companyId])
 }
 
 model Role {
-  id          String   @id @default(cuid())
-  name        RoleName @unique
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id          Int              @id @default(autoincrement())
+  name        RoleName         @unique
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
   permissions RolePermission[]
+  modules     RoleModule[]
   users       User[]
 }
 
+model Company {
+  id                 Int                 @id @default(autoincrement())
+  name               String              @unique
+  address            String?
+  city               String?
+  country            String              @default("Colombia")
+  status             String              @default("ACTIVE")
+  themeConfig        Json?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  users              User[]
+  modules            CompanyModule[]
+  customers          Customer[]
+  opportunities      Opportunity[]
+  purchaseOrders     PurchaseOrder[]
+  purchaseOrderLines PurchaseOrderLine[]
+  expenses           Expense[]
+  productGroups      ProductGroup[]
+  categories         Category[]
+  suppliers          Supplier[]
+  products           Product[]
+  sales              Sale[]
+  saleDetails        SaleDetail[]
+  auditLogs          AuditLog[]
+  discounts          Discount[]
+  leads              Lead[]
+  contacts           Contact[]
+  activities         Activity[]
+  quotes             Quote[]
+
+  @@index([name])
+}
+
 model Category {
-  id          String         @id @default(cuid())
+  id          Int            @id @default(autoincrement())
   name        String         @unique
   description String?
   status      CategoryStatus @default(ACTIVE)
+  companyId   Int?
+  company     Company?       @relation(fields: [companyId], references: [id])
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
   products    Product[]
 
   @@index([name])
+  @@index([companyId])
 }
 
 model Supplier {
-  id          String         @id @default(cuid())
-  companyName String         @unique
-  contactName String
-  phone       String
-  email       String         @unique
-  address     String
-  city        String
-  country     String         @default("Colombia")
-  status      SupplierStatus @default(ACTIVE)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  products    Product[]
+  id             Int             @id @default(autoincrement())
+  companyName    String          @unique
+  contactName    String
+  phone          String
+  email          String          @unique
+  address        String
+  city           String
+  country        String          @default("Colombia")
+  status         SupplierStatus  @default(ACTIVE)
+  companyId      Int?
+  company        Company?        @relation(fields: [companyId], references: [id])
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  products       Product[]
+  purchaseOrders PurchaseOrder[]
 
   @@index([companyName])
+  @@index([companyId])
 }
 
 model Product {
-  id                  String        @id @default(cuid())
-  code                String        @unique
-  name                String
-  categoryId          String
-  supplierId          String
-  quantityAvailable   Int           @default(0)
-  unitCost            Float         @default(0)
-  salePrice           Float         @default(0)
-  soldQuantity        Int           @default(0)
-  status              ProductStatus @default(AVAILABLE)
-  productGroupId      String?
-  productGroup        ProductGroup? @relation(fields: [productGroupId], references: [id])
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
-  category            Category      @relation(fields: [categoryId], references: [id])
-  supplier            Supplier      @relation(fields: [supplierId], references: [id])
-  saleDetails         SaleDetail[]
+  id                 Int                 @id @default(autoincrement())
+  code               String              @unique
+  name               String
+  categoryId         Int
+  supplierId         Int
+  quantityAvailable  Int                 @default(0)
+  unitCost           Float               @default(0)
+  salePrice          Float               @default(0)
+  soldQuantity       Int                 @default(0)
+  status             ProductStatus       @default(AVAILABLE)
+  productGroupId     Int?
+  companyId          Int?
+  company            Company?            @relation(fields: [companyId], references: [id])
+  productGroup       ProductGroup?       @relation(fields: [productGroupId], references: [id])
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  category           Category            @relation(fields: [categoryId], references: [id])
+  supplier           Supplier            @relation(fields: [supplierId], references: [id])
+  saleDetails        SaleDetail[]
+  purchaseOrderLines PurchaseOrderLine[]
 
   @@index([name])
   @@index([categoryId])
   @@index([supplierId])
   @@index([productGroupId])
+  @@index([companyId])
 }
 
 model Sale {
-  id            String        @id @default(cuid())
-  saleNumber    String        @unique
-  userId        String
-  client        String?
-  discount      Float         @default(0)
-  total         Float         @default(0)
-  paymentMethod String        @default("EFECTIVO")
-  status        SaleStatus   @default(PENDING)
-  remarks       String?
-  voidedByUserId String?
+  id             Int          @id @default(autoincrement())
+  saleNumber     String       @unique
+  userId         Int
+  client         String?
+  discount       Float        @default(0)
+  total          Float        @default(0)
+  paymentMethod  String       @default("EFECTIVO")
+  status         SaleStatus   @default(PENDING)
+  remarks        String?
+  voidedByUserId Int?
+  companyId      Int?
+  company        Company?     @relation(fields: [companyId], references: [id])
   voidedByUser   User?        @relation("VoidedSales", fields: [voidedByUserId], references: [id])
   voidedAt       DateTime?
   voidedReason   String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  user          User          @relation(fields: [userId], references: [id])
-  details       SaleDetail[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  user           User         @relation(fields: [userId], references: [id])
+  details        SaleDetail[]
 
   @@index([userId])
   @@index([voidedByUserId])
+  @@index([companyId])
 }
 
 model SaleDetail {
-  id          String   @id @default(cuid())
-  saleId      String
-  productId   String
-  quantity    Int
-  unitPrice   Float
-  subtotal    Float
-  discount    Float    @default(0)
-  total       Float    @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  sale        Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  product     Product  @relation(fields: [productId], references: [id])
+  id        Int      @id @default(autoincrement())
+  saleId    Int
+  productId Int
+  quantity  Int
+  unitPrice Float
+  subtotal  Float
+  discount  Float    @default(0)
+  total     Float    @default(0)
+  companyId Int?
+  company   Company? @relation(fields: [companyId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sale      Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id])
 
   @@index([saleId])
   @@index([productId])
+  @@index([companyId])
 }
 
 model AuditLog {
-  id        String   @id @default(cuid())
-  userId    String?
+  id        Int      @id @default(autoincrement())
+  userId    Int?
   action    String
   entity    String
   details   String?  @db.Text
+  companyId Int?
+  company   Company? @relation(fields: [companyId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User?    @relation(fields: [userId], references: [id])
 
   @@index([entity])
   @@index([createdAt])
+  @@index([companyId])
 }
 
 model Discount {
-  id          String       @id @default(cuid())
-  name        String
-  type        DiscountType
-  value       Float
-  scope       DiscountScope
-  productId   String?      // for PRODUCT scope
-  productIds  Json?        // for PRODUCTS scope (array of product IDs)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id         Int           @id @default(autoincrement())
+  name       String
+  type       DiscountType
+  value      Float
+  scope      DiscountScope
+  productId  Int?
+  productIds Json?
+  companyId  Int?
+  company    Company?      @relation(fields: [companyId], references: [id])
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@index([companyId])
 }
 
 model InvoiceCounter {
-  id          Int      @id @default(autoincrement())
-  date        DateTime @unique
-  lastSeq     Int      @default(0)
+  id      Int      @id @default(autoincrement())
+  date    DateTime @unique
+  lastSeq Int      @default(0)
 }
 
 model Setting {
@@ -215,20 +401,119 @@ model Setting {
   value String
 }
 
-
-
 model Permission {
-  id          String   @id @default(cuid())
-  action      String
-  resource    String
-  roles       RolePermission[]
+  id       Int              @id @default(autoincrement())
+  action   String
+  resource String
+  roles    RolePermission[]
 }
 
 model RolePermission {
-  roleId       String
-  permissionId String
-  role         Role        @relation(fields: [roleId], references: [id])
-  permission   Permission  @relation(fields: [permissionId], references: [id])
+  roleId       Int
+  permissionId Int
+  role         Role       @relation(fields: [roleId], references: [id])
+  permission   Permission @relation(fields: [permissionId], references: [id])
 
   @@id([roleId, permissionId])
+}
+
+model Module {
+  id          Int             @id @default(autoincrement())
+  name        String          @unique
+  description String?
+  isActive    Boolean         @default(true)
+  icon        String?
+  href        String?
+  roles       RoleModule[]
+  companies   CompanyModule[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model RoleModule {
+  roleId   Int
+  moduleId Int
+  role     Role   @relation(fields: [roleId], references: [id])
+  module   Module @relation(fields: [moduleId], references: [id])
+
+  @@id([roleId, moduleId])
+}
+
+model CompanyModule {
+  companyId Int
+  moduleId  Int
+  company   Company @relation(fields: [companyId], references: [id])
+  module    Module  @relation(fields: [moduleId], references: [id])
+
+  @@id([companyId, moduleId])
+}
+
+model Lead {
+  id          Int      @id @default(autoincrement())
+  name        String
+  email       String?
+  phone       String?
+  companyName String?
+  source      String?
+  status      String   @default("NEW")
+  companyId   Int?
+  company     Company? @relation(fields: [companyId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([companyId])
+}
+
+model Contact {
+  id         Int      @id @default(autoincrement())
+  name       String
+  email      String?
+  phone      String?
+  position   String?
+  customerId Int
+  customer   Customer @relation(fields: [customerId], references: [id])
+  companyId  Int?
+  company    Company? @relation(fields: [companyId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([customerId])
+}
+
+model Activity {
+  id          Int       @id @default(autoincrement())
+  title       String
+  type        String    // CALL, EMAIL, MEETING
+  description String?   @db.Text
+  date        DateTime
+  userId      Int
+  user        User      @relation(fields: [userId], references: [id])
+  customerId  Int?
+  customer    Customer? @relation(fields: [customerId], references: [id])
+  companyId   Int?
+  company     Company?  @relation(fields: [companyId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([companyId])
+  @@index([userId])
+  @@index([customerId])
+}
+
+model Quote {
+  id          Int       @id @default(autoincrement())
+  quoteNumber String    @unique
+  customerId  Int
+  customer    Customer  @relation(fields: [customerId], references: [id])
+  total       Float     @default(0)
+  status      String    @default("DRAFT")
+  validUntil  DateTime?
+  companyId   Int?
+  company     Company?  @relation(fields: [companyId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([companyId])
+  @@index([customerId])
 }
