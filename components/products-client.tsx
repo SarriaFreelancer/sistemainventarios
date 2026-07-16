@@ -225,10 +225,20 @@ export function ProductsClient({
       });
 
       if (result.success) {
-        successAlert(
-          '¡Venta Pendiente Registrada!',
-          `Venta #${result.saleNumber} fue creada como pendiente en el módulo de ventas. Dirígete allí para completarla y seleccionar el método de pago.`
-        );
+        if (result.hasSalesModule) {
+          // Tiene módulo Ventas → venta PENDIENTE, debe ir a completarla
+          await successAlert(
+            '¡Venta Pendiente Registrada!',
+            `Venta #${result.saleNumber} creada como pendiente en el módulo de Ventas. Dirígete allí para seleccionar el método de pago y completarla.`
+          );
+        } else {
+          // Sin módulo Ventas → venta COMPLETADA automáticamente con stock descontado
+          await successAlert(
+            '¡Venta Completada!',
+            `Venta #${result.saleNumber} registrada y cobrada por ${result.total?.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}. El stock fue descontado automáticamente.`
+          );
+        }
+        window.location.reload();
       } else {
         errorAlert('Error en Venta', result.error ?? 'No fue posible registrar la venta.');
       }

@@ -235,13 +235,13 @@ function NewSaleDialog({ products, customers, userId, onSuccess }: { products: P
       });
 
       if (result.success) {
-        successAlert(
+        resetForm();
+        setOpen(false);
+        await successAlert(
           '¡Venta Registrada!',
           `Venta ${result.saleNumber} por ${result.total?.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}`
         );
-        resetForm();
-        setOpen(false);
-        router.refresh();
+        window.location.reload();
         onSuccess?.();
       } else {
         errorAlert('Error al Registrar', (result as any).error ?? 'No fue posible guardar la venta.');
@@ -257,7 +257,7 @@ function NewSaleDialog({ products, customers, userId, onSuccess }: { products: P
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="w-[95vw] max-w-6xl rounded-[32px] border-border/60 bg-card p-6 md:p-8 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+        <DialogContent className="w-[98vw] max-w-7xl rounded-[32px] border-border/60 bg-card p-6 md:p-10 shadow-2xl overflow-hidden flex flex-col max-h-[96vh]">
           <DialogHeader className="pb-4 border-b border-border/40 shrink-0">
             <DialogTitle className="text-2xl font-extrabold text-foreground flex items-center gap-3">
               <span className="w-2 h-7 bg-gradient-to-b from-[#B18ACF] to-[#8B5CF6] rounded-full" />
@@ -267,7 +267,7 @@ function NewSaleDialog({ products, customers, userId, onSuccess }: { products: P
           </DialogHeader>
 
           {/* Form Content Area: Two Column Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mt-5 overflow-hidden flex-1 min-h-0">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 mt-5 overflow-hidden flex-1 min-h-0">
             {/* Left Area (Product Search and Cart) */}
             <div className="lg:col-span-3 flex flex-col overflow-hidden h-full space-y-4">
               {/* Product Search */}
@@ -399,84 +399,88 @@ function NewSaleDialog({ products, customers, userId, onSuccess }: { products: P
             </div>
 
             {/* Right Area (Form Controls and Totals) */}
-            <div className="lg:col-span-2 flex flex-col justify-between h-full space-y-4 overflow-y-auto">
-              <div className="space-y-4">
-                {/* Cliente */}
-                <div className="space-y-1.5">
-                  <Label className={labelCls}>Asociar Cliente CRM (Opcional)</Label>
-                  <select
-                    value={customerId}
-                    onChange={e => {
-                      const val = e.target.value;
-                      setCustomerId(val);
-                      if (val) {
-                        const cust = customers.find(c => c.id === val);
-                        if (cust) setClient(cust.name);
-                      }
-                    }}
-                    className={selectCls}
-                  >
-                    <option value="">-- Cliente Rápido / Consumidor Final --</option>
-                    {customers.map(c => (
-                      <option key={c.id} value={c.id}>
-                        {c.code ? `[${c.code}] ` : ''}{c.name}
-                      </option>
-                    ))}
-                  </select>
+            <div className="lg:col-span-2 flex flex-col justify-between h-full space-y-4 overflow-y-auto pr-1">
+              <div className="space-y-3">
+                {/* Fila 1: CRM + Nombre cliente */}
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className={labelCls}>Asociar Cliente CRM (Opcional)</Label>
+                    <select
+                      value={customerId}
+                      onChange={e => {
+                        const val = e.target.value;
+                        setCustomerId(val);
+                        if (val) {
+                          const cust = customers.find(c => c.id === val);
+                          if (cust) setClient(cust.name);
+                        }
+                      }}
+                      className={selectCls}
+                    >
+                      <option value="">-- Cliente Rápido / Consumidor Final --</option>
+                      {customers.map(c => (
+                        <option key={c.id} value={c.id}>
+                          {c.code ? `[${c.code}] ` : ''}{c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className={labelCls}>Cliente (Nombre / Venta Rápida)</Label>
+                    <Input
+                      placeholder="Nombre del cliente..."
+                      value={client}
+                      onChange={e => setClient(e.target.value)}
+                      className={inputCls}
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label className={labelCls}>Cliente (Nombre / Venta Rápida)</Label>
-                  <Input
-                    placeholder="Nombre del cliente..."
-                    value={client}
-                    onChange={e => setClient(e.target.value)}
-                    className={inputCls}
-                  />
+                {/* Fila 2: Estado + Método de Pago en dos columnas */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className={labelCls}>Estado de Venta</Label>
+                    <select
+                      value={status}
+                      onChange={e => setStatus(e.target.value as any)}
+                      className={selectCls}
+                    >
+                      <option value="COMPLETED">Completada</option>
+                      <option value="PENDING">Pendiente</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className={labelCls}>Método de Pago</Label>
+                    <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className={selectCls}>
+                      {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                  </div>
                 </div>
 
-                {/* Estado */}
-                <div className="space-y-1.5">
-                  <Label className={labelCls}>Estado de Venta</Label>
-                  <select
-                    value={status}
-                    onChange={e => setStatus(e.target.value as any)}
-                    className={selectCls}
-                  >
-                    <option value="COMPLETED">Completada — Descuenta stock</option>
-                    <option value="PENDING">Pendiente — Solo reserva</option>
-                  </select>
-                </div>
+                {/* Fila 3: Descuento + Observaciones en dos columnas */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className={labelCls}>Descuento Global ($)</Label>
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      value={discount || ''}
+                      onChange={e => setDiscount(Number(e.target.value) || 0)}
+                      className={inputCls}
+                    />
+                  </div>
 
-                {/* Método de Pago */}
-                <div className="space-y-1.5">
-                  <Label className={labelCls}>Método de Pago</Label>
-                  <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className={selectCls}>
-                    {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
-                  </select>
-                </div>
-
-                {/* Descuento Global */}
-                <div className="space-y-1.5">
-                  <Label className={labelCls}>Descuento Global ($)</Label>
-                  <Input
-                    type="number"
-                    placeholder="0"
-                    value={discount || ''}
-                    onChange={e => setDiscount(Number(e.target.value) || 0)}
-                    className={inputCls}
-                  />
-                </div>
-
-                {/* Observaciones */}
-                <div className="space-y-1.5">
-                  <Label className={labelCls}>Observaciones</Label>
-                  <Input
-                    placeholder="Notas internas..."
-                    value={remarks}
-                    onChange={e => setRemarks(e.target.value)}
-                    className={inputCls}
-                  />
+                  <div className="space-y-1.5">
+                    <Label className={labelCls}>Observaciones</Label>
+                    <Input
+                      placeholder="Notas internas..."
+                      value={remarks}
+                      onChange={e => setRemarks(e.target.value)}
+                      className={inputCls}
+                    />
+                  </div>
                 </div>
 
                 {/* Tip: select items to apply discount */}
@@ -623,9 +627,9 @@ function CompleteSaleDialog({ sale, customers, userId, onSuccess }: {
       });
 
       if (result.success) {
-        successAlert('Venta Completada', 'La venta fue completada y se descontó el stock.');
         setOpen(false);
-        router.refresh();
+        await successAlert('Venta Completada', 'La venta fue completada y se descontó el stock.');
+        window.location.reload();
         onSuccess?.();
       } else {
         errorAlert('Error al Completar', (result as any).error ?? 'No fue posible completar la venta.');
@@ -646,7 +650,7 @@ function CompleteSaleDialog({ sale, customers, userId, onSuccess }: {
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="w-[95vw] max-w-5xl rounded-[32px] border-border/60 bg-card p-6 md:p-8 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+        <DialogContent className="w-[98vw] max-w-7xl rounded-[32px] border-border/60 bg-card p-6 md:p-10 shadow-2xl overflow-hidden flex flex-col max-h-[96vh]">
           <DialogHeader className="pb-4 border-b border-border/40 shrink-0">
             <DialogTitle className="text-2xl font-extrabold text-foreground flex items-center gap-3">
               <span className="w-2 h-7 bg-gradient-to-b from-[#B18ACF] to-[#8B5CF6] rounded-full" />
@@ -655,7 +659,7 @@ function CompleteSaleDialog({ sale, customers, userId, onSuccess }: {
             <p className="text-sm text-muted-foreground mt-1">Elige el método de pago y confirma los datos del cliente para finalizar la transacción.</p>
           </DialogHeader>
 
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mt-5 overflow-hidden flex-1 min-h-0">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 mt-5 overflow-hidden flex-1 min-h-0">
             {/* Detalle de Productos (Col span 3) */}
             <div className="lg:col-span-3 flex flex-col overflow-hidden h-full space-y-4">
               <Label className={labelCls}>Productos en esta Venta</Label>
@@ -690,8 +694,8 @@ function CompleteSaleDialog({ sale, customers, userId, onSuccess }: {
 
             {/* Ajustes de Pago y Cliente (Col span 2) */}
             <div className="lg:col-span-2 flex flex-col justify-between h-full space-y-4 overflow-y-auto pr-1">
-              <div className="space-y-4">
-                {/* Cliente CRM */}
+              <div className="space-y-3">
+                {/* Fila 1: CRM + Nombre cliente */}
                 <div className="space-y-1.5">
                   <Label className={labelCls}>Asociar Cliente CRM (Opcional)</Label>
                   <select
@@ -725,24 +729,25 @@ function CompleteSaleDialog({ sale, customers, userId, onSuccess }: {
                   />
                 </div>
 
-                {/* Método de Pago */}
-                <div className="space-y-1.5">
-                  <Label className={labelCls}>Método de Pago</Label>
-                  <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className={selectCls}>
-                    {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
-                  </select>
-                </div>
+                {/* Fila 2: Método de Pago + Descuento en dos columnas */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className={labelCls}>Método de Pago</Label>
+                    <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className={selectCls}>
+                      {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                  </div>
 
-                {/* Descuento Global */}
-                <div className="space-y-1.5">
-                  <Label className={labelCls}>Descuento Global ($)</Label>
-                  <Input
-                    type="number"
-                    placeholder="0"
-                    value={discount || ''}
-                    onChange={e => setDiscount(Number(e.target.value) || 0)}
-                    className={inputCls}
-                  />
+                  <div className="space-y-1.5">
+                    <Label className={labelCls}>Descuento Global ($)</Label>
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      value={discount || ''}
+                      onChange={e => setDiscount(Number(e.target.value) || 0)}
+                      className={inputCls}
+                    />
+                  </div>
                 </div>
 
                 {/* Observaciones */}
@@ -1059,8 +1064,8 @@ export function SalesClient({
       });
 
       if (result.success) {
-        successAlert('Venta Anulada', `La venta ${sale.saleNumber} fue anulada y se devolvió el stock.`);
-        router.refresh();
+        await successAlert('Venta Anulada', `La venta ${sale.saleNumber} fue anulada y se devolvió el stock.`);
+        window.location.reload();
       } else {
         errorAlert('Error', (result as any).error ?? 'No se pudo anular la venta.');
       }

@@ -208,6 +208,18 @@ export async function quickSellProduct(data: {
     const companyId = await getSessionCompanyId();
     if (!companyId) return { success: false, error: 'No autorizado o sin empresa' };
 
+    // Verificar si la empresa tiene el módulo de Ventas habilitado
+    const salesModule = await prisma.module.findUnique({ where: { name: 'Ventas' } });
+    const hasSalesModule = salesModule
+      ? !!(await prisma.companyModule.findFirst({
+          where: { companyId, moduleId: salesModule.id }
+        }))
+      : false;
+
+    // Si la empresa NO tiene el módulo Ventas: completar directamente + descontar stock
+    // Si la empresa SÍ tiene el módulo Ventas: dejar en PENDING sin descontar (el usuario completa en Ventas)
+    const saleStatus = hasSalesModule ? 'PENDING' : 'COMPLETED';
+
     const now = new Date();
     const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
     
@@ -245,7 +257,7 @@ export async function quickSellProduct(data: {
           discount,
           total,
           companyId,
-          status: 'PENDING',
+          status: saleStatus,
           details: {
             create: [{
               productId,
@@ -260,15 +272,39 @@ export async function quickSellProduct(data: {
         }
       });
 
+      // Si no tiene módulo Ventas: descontar stock inmediatamente
+      if (!hasSalesModule) {
+        const newQty = Math.max(0, product.quantityAvailable - quantity);
+        await tx.product.update({
+          where: { id: productId },
+          data: {
+            quantityAvailable: newQty,
+            soldQuantity: { increment: quantity },
+            status: newQty === 0 ? 'OUT_OF_STOCK' : 'AVAILABLE',
+          }
+        });
+      }
+
       return { saleNumber, total };
+    });
+
+    await logActivity({
+      module: 'PRODUCTS',
+      action: 'CREATE',
+      entity: 'Sale',
+      entityId: productId,
+      description: hasSalesModule
+        ? `Venta rápida "${result.saleNumber}" creada como PENDIENTE desde Productos. Requiere completarse en el módulo Ventas.`
+        : `Venta rápida "${result.saleNumber}" completada automáticamente desde Productos. Stock descontado.`,
     });
 
     revalidatePath('/dashboard/products');
     revalidatePath('/dashboard/sales');
     revalidatePath('/dashboard');
-    return { success: true, saleNumber: result.saleNumber, total: result.total };
+    return { success: true, saleNumber: result.saleNumber, total: result.total, hasSalesModule };
   } catch (error: any) {
     console.error('[QUICK_SELL]', error);
     return { success: false, error: error.message ?? 'Error al registrar la venta rápida' };
   }
 }
+

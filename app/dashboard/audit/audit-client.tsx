@@ -207,7 +207,7 @@ export function AuditClient({
                   <th className="px-6 py-4">Usuario</th>
                   <th className="px-6 py-4">Módulo</th>
                   <th className="px-6 py-4">Acción</th>
-                  <th className="px-6 py-4">Descripción</th>
+                  <th className="px-6 py-4 min-w-[240px]">Descripción</th>
                   <th className="px-6 py-4">Origen / Dispositivo</th>
                   <th className="px-6 py-4 text-right">Detalles</th>
                 </tr>
@@ -238,7 +238,7 @@ export function AuditClient({
                         {log.action}
                       </span>
                     </td>
-                    <td className="px-6 py-4 max-w-xs break-words text-foreground/90 font-medium">
+                    <td className="px-6 py-4 whitespace-normal min-w-[240px] max-w-sm text-foreground/90 font-medium leading-snug">
                       {log.description}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

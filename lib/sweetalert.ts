@@ -24,13 +24,12 @@ export const confirmAction = async (title: string, text: string, confirmText = '
   return result.isConfirmed;
 };
 
-export const successAlert = (title: string, text: string) => {
-  brandAlert.fire({
+export const successAlert = async (title: string, text: string) => {
+  await brandAlert.fire({
     title,
     text,
     icon: 'success',
-    timer: 2000,
-    showConfirmButton: false,
+    confirmButtonText: 'Aceptar',
   });
 };
 
