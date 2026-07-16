@@ -30,7 +30,14 @@ export const authOptions: AuthOptions = {
         console.log('authorize: password valid?', valid);
         if (!valid) return null;
 
-        return { id: user.id, name: user.name, email: user.email, image: user.image ?? null, role: user.role?.name, companyId: user.companyId };
+        return {
+          id: String(user.id),
+          name: user.name,
+          email: user.email,
+          image: user.image ?? null,
+          role: user.role?.name,
+          companyId: user.companyId ? String(user.companyId) : null
+        };
       },
     }),
   ],

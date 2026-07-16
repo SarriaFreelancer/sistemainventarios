@@ -1,9 +1,10 @@
 import { prisma } from '@/lib/prisma';
 import { getAuthSession } from '@/auth';
+import { getSessionCompanyId } from '@/lib/session';
 import { redirect } from 'next/navigation';
 
 export const metadata = {
-  title: 'Compras · Dulche Dorelle',
+  title: 'Compras · GNS',
   description: 'Gestión de órdenes de compra y proveedores.',
 };
 
@@ -11,11 +12,14 @@ export default async function ComprasPage() {
   const session = await getAuthSession();
   if (!session?.user?.id) redirect('/auth/login');
 
+  const companyId = await getSessionCompanyId();
+  const companyFilter = companyId ? { companyId } : {};
+
   const [supplierCount, purchaseOrderCount, recentOrders] = await Promise.all([
-    prisma.supplier.count(),
-    prisma.purchaseOrder.count(),
+    prisma.supplier.count({ where: companyFilter }),
+    prisma.purchaseOrder.count({ where: companyFilter }),
     prisma.purchaseOrder.findMany({
-      where: { status: 'SENT' },
+      where: { ...companyFilter, status: 'SENT' },
       include: { supplier: true },
       orderBy: { expectedDelivery: 'asc' },
       take: 5,

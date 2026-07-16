@@ -13,7 +13,7 @@ export default function HomePage() {
               Belleza que inspira, confianza que transforma.
             </div>
             <h1 className="text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl">
-              Sistema premium de inventario para Dulche Dorelle
+              GNS Gestión de Negocios SarriaTech
             </h1>
             <p className="mt-5 text-lg text-slate-600">
               Gestiona categorías, proveedores, productos y ventas con una experiencia elegante, rápida y preparada para crecer.

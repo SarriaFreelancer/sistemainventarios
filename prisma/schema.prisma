@@ -97,6 +97,8 @@ model Customer {
   contacts      Contact[]
   activities    Activity[]
   quotes        Quote[]
+  code          String?
+  sales         Sale[]
 
   @@index([companyId])
 }
@@ -169,14 +171,17 @@ model Expense {
 
 model ProductGroup {
   id        Int       @id @default(autoincrement())
-  name      String    @unique
+  name      String
+  code      String?
   status    String    @default("ACTIVE")
   companyId Int?
   company   Company?  @relation(fields: [companyId], references: [id])
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   products  Product[]
+  categories Category[]
 
+  @@unique([name, companyId])
   @@index([companyId])
 }
 
@@ -241,31 +246,36 @@ model Company {
   contacts           Contact[]
   activities         Activity[]
   quotes             Quote[]
+  invoiceCounters    InvoiceCounter[]
 
   @@index([name])
 }
 
 model Category {
-  id          Int            @id @default(autoincrement())
-  name        String         @unique
-  description String?
-  status      CategoryStatus @default(ACTIVE)
-  companyId   Int?
-  company     Company?       @relation(fields: [companyId], references: [id])
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  products    Product[]
+  id             Int            @id @default(autoincrement())
+  name           String
+  code           String?
+  description    String?
+  status         CategoryStatus @default(ACTIVE)
+  companyId      Int?
+  company        Company?       @relation(fields: [companyId], references: [id])
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  products       Product[]
+  productGroupId Int
+  productGroup   ProductGroup   @relation(fields: [productGroupId], references: [id])
 
-  @@index([name])
+  @@unique([name, companyId])
   @@index([companyId])
+  @@index([productGroupId])
 }
 
 model Supplier {
   id             Int             @id @default(autoincrement())
-  companyName    String          @unique
+  companyName    String
   contactName    String
   phone          String
-  email          String          @unique
+  email          String
   address        String
   city           String
   country        String          @default("Colombia")
@@ -276,14 +286,16 @@ model Supplier {
   updatedAt      DateTime        @updatedAt
   products       Product[]
   purchaseOrders PurchaseOrder[]
+  code           String?
 
-  @@index([companyName])
+  @@unique([companyName, companyId])
+  @@unique([email, companyId])
   @@index([companyId])
 }
 
 model Product {
   id                 Int                 @id @default(autoincrement())
-  code               String              @unique
+  code               String
   name               String
   categoryId         Int
   supplierId         Int
@@ -303,6 +315,7 @@ model Product {
   saleDetails        SaleDetail[]
   purchaseOrderLines PurchaseOrderLine[]
 
+  @@unique([code, companyId])
   @@index([name])
   @@index([categoryId])
   @@index([supplierId])
@@ -312,7 +325,7 @@ model Product {
 
 model Sale {
   id             Int          @id @default(autoincrement())
-  saleNumber     String       @unique
+  saleNumber     String
   userId         Int
   client         String?
   discount       Float        @default(0)
@@ -330,10 +343,14 @@ model Sale {
   updatedAt      DateTime     @updatedAt
   user           User         @relation(fields: [userId], references: [id])
   details        SaleDetail[]
+  customerId     Int?
+  customer       Customer?    @relation(fields: [customerId], references: [id])
 
+  @@unique([saleNumber, companyId])
   @@index([userId])
   @@index([voidedByUserId])
   @@index([companyId])
+  @@index([customerId])
 }
 
 model SaleDetail {
@@ -391,9 +408,14 @@ model Discount {
 }
 
 model InvoiceCounter {
-  id      Int      @id @default(autoincrement())
-  date    DateTime @unique
-  lastSeq Int      @default(0)
+  id        Int      @id @default(autoincrement())
+  companyId Int
+  company   Company  @relation(fields: [companyId], references: [id])
+  date      DateTime
+  lastSeq   Int      @default(0)
+
+  @@unique([companyId, date])
+  @@index([companyId])
 }
 
 model Setting {

@@ -9,8 +9,8 @@ export async function GET(request: Request) {
       return new Response(JSON.stringify({ error: 'No autorizado' }), { status: 401 });
     }
 
-    const { companyId, role } = session.user as { companyId?: number; role?: string };
-    const companyFilter = role === 'SUPERADMIN' || !companyId ? {} : { companyId };
+    const { companyId, role } = session.user as { companyId?: string; role?: string };
+    const companyFilter = role === 'SUPERADMIN' || !companyId ? {} : { companyId: Number(companyId) };
 
     const { searchParams } = new URL(request.url);
     const categoryId = searchParams.get('categoryId');

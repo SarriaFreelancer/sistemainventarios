@@ -14,11 +14,12 @@ interface ModuleConfig {
   description: string | null;
 }
 
-export function DashboardShell({ children, session, modules, themeConfig }: { 
+export function DashboardShell({ children, session, modules, themeConfig, companyName }: { 
   children: React.ReactNode; 
   session: { user?: { name?: string | null; email?: string | null; role?: string; companyId?: string | null } | null };
   modules?: ModuleConfig[];
   themeConfig?: { primaryColor?: string; mode?: string } | null;
+  companyName?: string;
 }) {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -44,8 +45,11 @@ export function DashboardShell({ children, session, modules, themeConfig }: {
     return <div className="min-h-screen bg-[#17121F]" />;
   }
 
+  const isSuperAdmin = session?.user?.role === 'SUPERADMIN';
+  const roleThemeClass = isSuperAdmin ? 'theme-superadmin' : '';
+
   return (
-    <div className="h-screen w-screen flex flex-col bg-background text-foreground transition-colors duration-500 font-sans overflow-hidden">
+    <div className={cn("h-screen w-screen flex flex-col bg-background text-foreground transition-colors duration-500 font-sans overflow-hidden", roleThemeClass)}>
       {themeConfig?.primaryColor && (
         <style dangerouslySetInnerHTML={{ __html: `
           :root {
@@ -55,8 +59,8 @@ export function DashboardShell({ children, session, modules, themeConfig }: {
           .dark {
             --primary: ${themeConfig.primaryColor};
             --ring: ${themeConfig.primaryColor};
-            --background: color-mix(in srgb, ${themeConfig.primaryColor} 6%, #09090b);
-            --card: color-mix(in srgb, ${themeConfig.primaryColor} 12%, #141417);
+            --background: #09090b;
+            --card: #141417;
           }
         `}} />
       )}
@@ -69,8 +73,8 @@ export function DashboardShell({ children, session, modules, themeConfig }: {
               <LucideIcons.Sparkles size={18} />
             </div>
             <div>
-              <p className="text-sm font-bold tracking-[0.25em] uppercase text-foreground">Dulche Dorelle</p>
-              <p className="text-[10px] font-bold tracking-wider text-primary uppercase">Maison Business</p>
+              <p className="text-sm font-bold tracking-[0.25em] uppercase text-foreground">GNS SARRIA</p>
+              <p className="text-[10px] font-bold tracking-wider text-primary uppercase">Gestión de Negocios</p>
             </div>
           </div>
           
@@ -100,7 +104,7 @@ export function DashboardShell({ children, session, modules, themeConfig }: {
           {/* User profile footer info */}
           <div className="mt-auto border border-border/80 bg-muted/20 p-4 rounded-2xl flex flex-col gap-1">
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Sesión Activa</p>
-            <p className="text-sm font-bold text-foreground truncate">{session.user?.name ?? 'Usuario Dulche'}</p>
+            <p className="text-sm font-bold text-foreground truncate">{session.user?.name ?? 'Usuario GNS'}</p>
             <p className="text-xs text-muted-foreground truncate">{session.user?.email ?? ''}</p>
           </div>
         </aside>
@@ -118,7 +122,9 @@ export function DashboardShell({ children, session, modules, themeConfig }: {
                 <LucideIcons.Menu size={18} />
               </button>
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Panel de Control</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  {companyName ? `Empresa: ${companyName}` : 'Panel de Control'}
+                </p>
                 <h2 className="text-base font-bold text-foreground">ERP Administrador</h2>
               </div>
             </div>
@@ -171,7 +177,7 @@ export function DashboardShell({ children, session, modules, themeConfig }: {
                   <LucideIcons.Sparkles size={16} />
                 </div>
                 <span className="font-display-lg text-sm tracking-[0.2em] font-semibold text-foreground">
-                  DULCHE
+                  GNS SARRIA
                 </span>
               </div>
               <button
@@ -208,7 +214,7 @@ export function DashboardShell({ children, session, modules, themeConfig }: {
 
             <div className="border border-border/80 bg-muted/20 p-4 rounded-xl mt-auto">
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Usuario</p>
-              <p className="text-sm font-bold text-foreground truncate">{session.user?.name ?? 'Usuario Dulche'}</p>
+              <p className="text-sm font-bold text-foreground truncate">{session.user?.name ?? 'Usuario GNS'}</p>
             </div>
           </div>
         </div>

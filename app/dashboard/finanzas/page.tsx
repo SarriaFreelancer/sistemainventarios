@@ -1,9 +1,10 @@
 import { prisma } from '@/lib/prisma';
 import { getAuthSession } from '@/auth';
+import { getSessionCompanyId } from '@/lib/session';
 import { redirect } from 'next/navigation';
 
 export const metadata = {
-  title: 'Finanzas · Dulche Dorelle',
+  title: 'Finanzas · GNS',
   description: 'Vista previa del estado financiero y contable.',
 };
 
@@ -11,10 +12,23 @@ export default async function FinanzasPage() {
   const session = await getAuthSession();
   if (!session?.user?.id) redirect('/auth/login');
 
+  const companyId = await getSessionCompanyId();
+  const companyFilter = companyId ? { companyId } : {};
+
   const [expenseSummary, salesSummary, recentExpenses] = await Promise.all([
-    prisma.expense.aggregate({ _sum: { amount: true } }),
-    prisma.sale.aggregate({ _sum: { total: true } }),
-    prisma.expense.findMany({ orderBy: { date: 'desc' }, take: 5 }),
+    prisma.expense.aggregate({
+      where: companyFilter,
+      _sum: { amount: true }
+    }),
+    prisma.sale.aggregate({
+      where: companyFilter,
+      _sum: { total: true }
+    }),
+    prisma.expense.findMany({
+      where: companyFilter,
+      orderBy: { date: 'desc' },
+      take: 5
+    }),
   ]);
 
   const totalExpenses = Number(expenseSummary._sum.amount ?? 0);

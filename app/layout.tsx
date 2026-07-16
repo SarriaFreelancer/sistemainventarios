@@ -6,8 +6,8 @@ import { Toaster } from 'sonner';
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: 'DULCHE DORELLE | Inventory Management',
-  description: 'Sistema de inventario premium para Dulche Dorelle',
+  title: 'GNS | Gestión de Negocios SarriaTech',
+  description: 'GNS - Gestión de Negocios SarriaTech',
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

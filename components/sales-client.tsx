@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useMemo } from "react";
+import { useState, useTransition, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createSale, voidSale, completePendingSale } from "@/app/actions/sales-actions";
 import { Button } from "@/components/ui/button";
@@ -45,6 +45,7 @@ interface Sale {
   id: string;
   saleNumber: string;
   client: string | null;
+  customerId: string | null;
   discount: number;
   total: number;
   paymentMethod: string;
@@ -74,7 +75,7 @@ const inputCls = "bg-card border border-border focus:border-primary focus:ring-4
 const selectCls = "flex h-10 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all duration-300";
 const labelCls = "text-[10px] font-bold uppercase tracking-wider text-muted-foreground";
 
-function NewSaleDialog({ products, userId, onSuccess }: { products: Product[]; userId: string; onSuccess?: () => void }) {
+function NewSaleDialog({ products, customers, userId, onSuccess }: { products: Product[]; customers: { id: string; name: string; code: string }[]; userId: string; onSuccess?: () => void }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -83,6 +84,7 @@ function NewSaleDialog({ products, userId, onSuccess }: { products: Product[]; u
   const [discountValue, setDiscountValue] = useState(0);
   const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('fixed');
   const [client, setClient] = useState('');
+  const [customerId, setCustomerId] = useState('');
   const [discount, setDiscount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState('EFECTIVO');
   const [remarks, setRemarks] = useState('');
@@ -145,6 +147,7 @@ function NewSaleDialog({ products, userId, onSuccess }: { products: Product[]; u
   const resetForm = () => {
     setCart([]);
     setClient('');
+    setCustomerId('');
     setDiscount(0);
     setPaymentMethod('EFECTIVO');
     setRemarks('');
@@ -218,6 +221,7 @@ function NewSaleDialog({ products, userId, onSuccess }: { products: Product[]; u
       const result = await createSale({
         userId,
         client: client || undefined,
+        customerId: customerId ? Number(customerId) : undefined,
         discount,
         paymentMethod,
         remarks: remarks || undefined,
@@ -399,7 +403,30 @@ function NewSaleDialog({ products, userId, onSuccess }: { products: Product[]; u
               <div className="space-y-4">
                 {/* Cliente */}
                 <div className="space-y-1.5">
-                  <Label className={labelCls}>Cliente</Label>
+                  <Label className={labelCls}>Asociar Cliente CRM (Opcional)</Label>
+                  <select
+                    value={customerId}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setCustomerId(val);
+                      if (val) {
+                        const cust = customers.find(c => c.id === val);
+                        if (cust) setClient(cust.name);
+                      }
+                    }}
+                    className={selectCls}
+                  >
+                    <option value="">-- Cliente Rápido / Consumidor Final --</option>
+                    {customers.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.code ? `[${c.code}] ` : ''}{c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className={labelCls}>Cliente (Nombre / Venta Rápida)</Label>
                   <Input
                     placeholder="Nombre del cliente..."
                     value={client}
@@ -559,6 +586,212 @@ function NewSaleDialog({ products, userId, onSuccess }: { products: Product[]; u
               >
                 Aplicar
               </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+function CompleteSaleDialog({ sale, customers, userId, onSuccess }: {
+  sale: Sale;
+  customers: { id: string; name: string; code: string }[];
+  userId: string;
+  onSuccess?: () => void;
+}) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [client, setClient] = useState(sale.client ?? '');
+  const [customerId, setCustomerId] = useState(sale.customerId ? String(sale.customerId) : '');
+  const [discount, setDiscount] = useState(sale.discount ?? 0);
+  const [paymentMethod, setPaymentMethod] = useState(sale.paymentMethod ?? 'EFECTIVO');
+  const [remarks, setRemarks] = useState(sale.remarks ?? '');
+  const [isPending, startTransition] = useTransition();
+
+  const subtotal = sale.details.reduce((s, d) => s + d.subtotal, 0);
+  const total = Math.max(0, subtotal - discount - sale.details.reduce((s, d) => s + d.discount, 0));
+
+  const handleCompletarAction = async () => {
+    startTransition(async () => {
+      const result = await completePendingSale(sale.id, {
+        paymentMethod,
+        client: client || null,
+        customerId: customerId ? Number(customerId) : null,
+        remarks: remarks || null,
+        discount: discount,
+      });
+
+      if (result.success) {
+        successAlert('Venta Completada', 'La venta fue completada y se descontó el stock.');
+        setOpen(false);
+        router.refresh();
+        onSuccess?.();
+      } else {
+        errorAlert('Error al Completar', (result as any).error ?? 'No fue posible completar la venta.');
+      }
+    });
+  };
+
+  return (
+    <>
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setOpen(true)}
+        className="h-8 w-8 text-emerald-600 hover:bg-emerald-500/10 rounded-lg"
+        title="Completar Venta"
+      >
+        <Check className="h-4 w-4" />
+      </Button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="w-[95vw] max-w-5xl rounded-[32px] border-border/60 bg-card p-6 md:p-8 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+          <DialogHeader className="pb-4 border-b border-border/40 shrink-0">
+            <DialogTitle className="text-2xl font-extrabold text-foreground flex items-center gap-3">
+              <span className="w-2 h-7 bg-gradient-to-b from-[#B18ACF] to-[#8B5CF6] rounded-full" />
+              Completar Venta Pendiente ({sale.saleNumber})
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground mt-1">Elige el método de pago y confirma los datos del cliente para finalizar la transacción.</p>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mt-5 overflow-hidden flex-1 min-h-0">
+            {/* Detalle de Productos (Col span 3) */}
+            <div className="lg:col-span-3 flex flex-col overflow-hidden h-full space-y-4">
+              <Label className={labelCls}>Productos en esta Venta</Label>
+              
+              <div className="grid grid-cols-[1fr_6rem_5rem_5rem] gap-x-2 px-2 shrink-0">
+                <span className={labelCls}>Producto</span>
+                <span className={`${labelCls} text-center`}>Cantidad</span>
+                <span className={`${labelCls} text-center`}>Precio Unitario</span>
+                <span className={`${labelCls} text-right`}>Subtotal</span>
+              </div>
+
+              <div className="flex-1 overflow-y-auto border border-border/60 rounded-2xl p-3 bg-muted/5 min-h-[200px] max-h-[320px]">
+                <div className="space-y-2">
+                  {sale.details.map(item => (
+                    <div key={item.id} className="grid grid-cols-[1fr_6rem_5rem_5rem] gap-x-2 items-center p-2.5 rounded-xl bg-card border border-border/40">
+                      <div>
+                        <p className="text-xs font-semibold text-foreground truncate">{item.product.name}</p>
+                        <p className="text-[10px] text-muted-foreground">{item.product.code}</p>
+                      </div>
+                      <p className="text-xs font-bold text-foreground text-center">{item.quantity} u.</p>
+                      <p className="text-xs text-muted-foreground text-center">
+                        {item.unitPrice.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
+                      </p>
+                      <p className="text-xs font-extrabold text-primary text-right whitespace-nowrap">
+                        {item.total.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Ajustes de Pago y Cliente (Col span 2) */}
+            <div className="lg:col-span-2 flex flex-col justify-between h-full space-y-4 overflow-y-auto pr-1">
+              <div className="space-y-4">
+                {/* Cliente CRM */}
+                <div className="space-y-1.5">
+                  <Label className={labelCls}>Asociar Cliente CRM (Opcional)</Label>
+                  <select
+                    value={customerId}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setCustomerId(val);
+                      if (val) {
+                        const cust = customers.find(c => c.id === val);
+                        if (cust) setClient(cust.name);
+                      }
+                    }}
+                    className={selectCls}
+                  >
+                    <option value="">-- Cliente Rápido / Consumidor Final --</option>
+                    {customers.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.code ? `[${c.code}] ` : ''}{c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className={labelCls}>Cliente (Nombre / Venta Rápida)</Label>
+                  <Input
+                    placeholder="Nombre del cliente..."
+                    value={client}
+                    onChange={e => setClient(e.target.value)}
+                    className={inputCls}
+                  />
+                </div>
+
+                {/* Método de Pago */}
+                <div className="space-y-1.5">
+                  <Label className={labelCls}>Método de Pago</Label>
+                  <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className={selectCls}>
+                    {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </div>
+
+                {/* Descuento Global */}
+                <div className="space-y-1.5">
+                  <Label className={labelCls}>Descuento Global ($)</Label>
+                  <Input
+                    type="number"
+                    placeholder="0"
+                    value={discount || ''}
+                    onChange={e => setDiscount(Number(e.target.value) || 0)}
+                    className={inputCls}
+                  />
+                </div>
+
+                {/* Observaciones */}
+                <div className="space-y-1.5">
+                  <Label className={labelCls}>Observaciones</Label>
+                  <Input
+                    placeholder="Notas internas..."
+                    value={remarks}
+                    onChange={e => setRemarks(e.target.value)}
+                    className={inputCls}
+                  />
+                </div>
+              </div>
+
+              {/* Resumen Final y Botones */}
+              <div className="space-y-3 pt-2">
+                <div className="rounded-2xl bg-primary/5 border border-primary/20 p-4 space-y-2 text-sm">
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Subtotal</span>
+                    <span className="font-medium">{subtotal.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}</span>
+                  </div>
+                  {(discount > 0 || sale.details.reduce((s, d) => s + d.discount, 0) > 0) && (
+                    <div className="flex justify-between text-red-500 font-semibold">
+                      <span>Descuentos aplicados</span>
+                      <span>−{(discount + sale.details.reduce((s, d) => s + d.discount, 0)).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}</span>
+                    </div>
+                  )}
+                  <div className="border-t border-primary/20 pt-2 flex justify-between font-bold">
+                    <span className="text-base">Total</span>
+                    <span className="text-primary text-xl font-black">
+                      {total.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1 h-11 rounded-xl">
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleCompletarAction}
+                    disabled={isPending}
+                    className="flex-1 h-11 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-700 text-white"
+                  >
+                    {isPending ? 'Guardando...' : '✓ Completar Venta'}
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </DialogContent>
@@ -759,10 +992,12 @@ function exportSalesToExcel(sales: Sale[]) {
 export function SalesClient({
   initialSales,
   products,
+  customers,
   userId,
 }: {
   initialSales: Sale[];
   products: Product[];
+  customers: { id: string; name: string; code: string }[];
   userId: string;
 }) {
   const router = useRouter();
@@ -770,6 +1005,13 @@ export function SalesClient({
   const [filterStatus, setFilterStatus] = useState('');
   const [filterPayment, setFilterPayment] = useState('');
   const [isPending, startTransition] = useTransition();
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 25;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filterStatus, filterPayment]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -779,6 +1021,13 @@ export function SalesClient({
       (!filterPayment || s.paymentMethod === filterPayment)
     );
   }, [initialSales, search, filterStatus, filterPayment]);
+
+  const paginatedSales = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, currentPage]);
+
+  const totalPages = Math.ceil(filtered.length / pageSize);
 
   const totalSales = filtered.reduce((s, v) => v.status === 'COMPLETED' ? s + v.total : s, 0);
   const totalQuantity = filtered.length;
@@ -818,83 +1067,7 @@ export function SalesClient({
     });
   };
 
-  const handleCompletar = async (sale: Sale) => {
-    const fmtVal = (n: number) => n.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
 
-    const { isConfirmed } = await brandAlert.fire({
-      title: '¿Completar Venta?',
-      html: `
-        <div class="text-left space-y-4 font-sans text-sm">
-          <p class="text-xs text-muted-foreground">Esta venta pasará a estado completada y se descontarán los productos del stock. Por favor, confirma los detalles:</p>
-          <div class="border-b border-border/60 pb-2 text-xs">
-            <p class="text-muted-foreground">Cliente: <strong class="text-foreground">${sale.client ?? 'Consumidor Final'}</strong></p>
-            <p class="text-muted-foreground">Pago: <strong class="text-foreground">${sale.paymentMethod}</strong></p>
-          </div>
-          <div class="max-h-[180px] overflow-y-auto pr-1 space-y-2">
-            ${sale.details.map(d => `
-              <div class="flex justify-between items-start text-xs border-b border-border/40 pb-2 last:border-b-0">
-                <div>
-                  <p class="font-medium text-foreground">${d.product.name}</p>
-                  <p class="text-[10px] text-muted-foreground">${d.quantity} u. x ${fmtVal(d.unitPrice)}</p>
-                </div>
-                <div class="text-right">
-                  <p class="font-semibold text-foreground">${fmtVal(d.quantity * d.unitPrice)}</p>
-                  ${d.discount > 0 ? `<p class="text-[10px] font-semibold text-red-500">Desc: -${fmtVal(d.discount)}</p>` : ''}
-                </div>
-              </div>
-            `).join('')}
-          </div>
-          <div class="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-1.5 text-xs">
-            <div class="flex justify-between text-muted-foreground">
-              <span>Subtotal Productos</span>
-              <span>${fmtVal(sale.details.reduce((s, d) => s + d.subtotal, 0))}</span>
-            </div>
-            ${sale.details.reduce((s, d) => s + d.discount, 0) > 0 ? `
-              <div class="space-y-1">
-                ${sale.details.reduce((s, d) => s + d.discount, 0) - sale.discount > 0 ? `
-                  <div class="flex justify-between text-red-500 font-medium">
-                    <span>Descuentos por Producto</span>
-                    <span>-${fmtVal(sale.details.reduce((s, d) => s + d.discount, 0) - sale.discount)}</span>
-                  </div>
-                ` : ''}
-                ${sale.discount > 0 ? `
-                  <div class="flex justify-between text-red-500 font-medium">
-                    <span>Descuento Global</span>
-                    <span>-${fmtVal(sale.discount)}</span>
-                  </div>
-                ` : ''}
-              </div>
-            ` : ''}
-            <div class="flex justify-between font-bold text-sm text-primary pt-1.5 border-t border-primary/25">
-              <span>Total Facturado</span>
-              <span>${fmtVal(sale.total)}</span>
-            </div>
-          </div>
-        </div>
-      `,
-      showCancelButton: true,
-      confirmButtonText: 'Sí, completar',
-      cancelButtonText: 'Cancelar',
-      customClass: {
-        popup: 'rounded-3xl border border-border bg-card text-foreground font-sans shadow-2xl p-6 w-[480px]',
-        confirmButton: 'bg-gradient-to-r from-[#B18ACF] to-[#8B5CF6] text-white rounded-xl px-6 py-3 font-semibold text-sm hover:opacity-95 transition mr-2',
-        cancelButton: 'bg-secondary/10 hover:bg-secondary/20 border border-border text-foreground rounded-xl px-6 py-3 font-semibold text-sm transition ml-2',
-      },
-      buttonsStyling: false,
-    });
-
-    if (!isConfirmed) return;
-
-    startTransition(async () => {
-      const result = await completePendingSale(sale.id);
-      if (result.success) {
-        successAlert('Venta Completada', 'Los productos fueron descontados del stock.');
-        router.refresh();
-      } else {
-        errorAlert('Error', (result as any).error ?? 'No se pudo completar la venta.');
-      }
-    });
-  };
 
   const fmt = (n: number) => n.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
   const fmtDate = (d: string) => new Date(d).toLocaleDateString('es-CO', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -911,7 +1084,7 @@ export function SalesClient({
           </div>
           <div>
             <h1 className="text-2xl font-extrabold text-foreground">Ventas</h1>
-            <p className="text-sm text-muted-foreground">Registra y monitorea todas las ventas de Dulche Dorelle.</p>
+            <p className="text-sm text-muted-foreground">Registra y monitorea todas las ventas de tu negocio.</p>
           </div>
         </div>
         <div className="relative z-10 flex gap-2">
@@ -924,7 +1097,7 @@ export function SalesClient({
             <FileDown className="h-4 w-4" />
             Exportar Excel
           </Button>
-          <NewSaleDialog products={products} userId={userId} />
+          <NewSaleDialog products={products} customers={customers} userId={userId} />
         </div>
       </div>
 
@@ -995,7 +1168,7 @@ export function SalesClient({
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
-                {filtered.map((sale) => (
+                {paginatedSales.map((sale) => (
                   <tr key={sale.id} className="group hover:bg-primary/5 transition-colors duration-200">
                     <td className="px-4 py-3.5">
                       <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-primary/10 text-primary border border-primary/10">
@@ -1035,16 +1208,7 @@ export function SalesClient({
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-1.5">
                         {sale.status === 'PENDING' && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            disabled={isPending}
-                            onClick={() => handleCompletar(sale)}
-                            className="h-8 w-8 text-emerald-600 hover:bg-emerald-500/10 rounded-lg"
-                            title="Completar Venta"
-                          >
-                            <Check className="h-4 w-4" />
-                          </Button>
+                          <CompleteSaleDialog sale={sale} customers={customers} userId={userId} />
                         )}
                         {sale.status !== 'VOIDED' && (
                           <Button
@@ -1069,47 +1233,89 @@ export function SalesClient({
 
         {/* Mobile Cards */}
         <div className="md:hidden divide-y divide-border/40">
-          {filtered.map((sale) => (
-            <div key={sale.id} className="p-5 space-y-3 hover:bg-primary/5 transition-colors">
-              <div className="flex items-start justify-between">
-                <div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/10">
-                    {sale.saleNumber}
-                  </span>
-                  <p className="text-xs text-muted-foreground mt-1">{fmtDate(sale.createdAt)}</p>
-                  <p className="text-sm font-semibold text-foreground mt-0.5">{sale.client ?? 'Consumidor final'}</p>
+          {filtered.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground">No hay ventas.</div>
+          ) : (
+            paginatedSales.map((sale) => (
+              <div key={sale.id} className="p-5 space-y-3 hover:bg-primary/5 transition-colors">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/10">
+                      {sale.saleNumber}
+                    </span>
+                    <p className="text-xs text-muted-foreground mt-1">{fmtDate(sale.createdAt)}</p>
+                    <p className="text-sm font-semibold text-foreground mt-0.5">{sale.client ?? 'Consumidor final'}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-black text-primary">{fmt(sale.total)}</p>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                      sale.status === 'COMPLETED'
+                        ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
+                        : sale.status === 'VOIDED'
+                        ? 'bg-red-500/10 text-red-500 border-red-500/20'
+                        : 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20'
+                    }`}>
+                      {sale.status}
+                    </span>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-lg font-black text-primary">{fmt(sale.total)}</p>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                    sale.status === 'COMPLETED'
-                      ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
-                      : sale.status === 'VOIDED'
-                      ? 'bg-red-500/10 text-red-500 border-red-500/20'
-                      : 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20'
-                  }`}>
-                    {sale.status}
-                  </span>
+                <div className="flex items-center justify-between">
+                  <SaleDetailDialog sale={sale} />
+                  <div className="flex gap-1.5">
+                    {sale.status === 'PENDING' && (
+                      <CompleteSaleDialog sale={sale} customers={customers} userId={userId} />
+                    )}
+                    {sale.status !== 'VOIDED' && (
+                      <Button variant="ghost" size="icon" onClick={() => handleAnular(sale)} className="h-8 w-8 text-red-500">
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center justify-between">
-                <SaleDetailDialog sale={sale} />
-                <div className="flex gap-1.5">
-                  {sale.status === 'PENDING' && (
-                    <Button variant="ghost" size="icon" onClick={() => handleCompletar(sale)} className="h-8 w-8 text-emerald-600">
-                      <Check className="h-4 w-4" />
-                    </Button>
-                  )}
-                  {sale.status !== 'VOIDED' && (
-                    <Button variant="ghost" size="icon" onClick={() => handleAnular(sale)} className="h-8 w-8 text-red-500">
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="px-6 py-4 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-4 bg-muted/5 shrink-0">
+            <p className="text-xs text-muted-foreground font-medium">
+              Mostrando {((currentPage - 1) * pageSize) + 1} - {Math.min(currentPage * pageSize, filtered.length)} de {filtered.length} registros
+            </p>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                className="h-8 rounded-lg px-2.5 text-xs"
+              >
+                Anterior
+              </Button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                <Button
+                  key={p}
+                  variant={currentPage === p ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setCurrentPage(p)}
+                  className={`h-8 w-8 rounded-lg text-xs p-0 font-bold ${currentPage === p ? 'bg-primary text-primary-foreground' : ''}`}
+                >
+                  {p}
+                </Button>
+              ))}
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                className="h-8 rounded-lg px-2.5 text-xs"
+              >
+                Siguiente
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -3,159 +3,206 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import { withTenantWhere, withTenantData } from '@/lib/tenant-db';
+import { getSessionCompanyId } from '@/lib/session';
 
 const saleSchema = z.object({
-  userId: z.string().min(1),
-  client: z.string().optional(),
+  userId: z.coerce.number().min(1),
+  client: z.string().optional().nullable(),
+  customerId: z.coerce.number().nullable().optional(),
   discount: z.coerce.number().min(0).default(0),
   paymentMethod: z.string().default('EFECTIVO'),
-  remarks: z.string().optional(),
+  remarks: z.string().optional().nullable(),
   status: z.enum(['PENDING', 'COMPLETED', 'VOIDED']).default('COMPLETED'),
   items: z.array(z.object({
-    productId: z.string(),
+    productId: z.coerce.number(),
     quantity: z.coerce.number().min(1),
     unitPrice: z.coerce.number().min(0),
-    discount: z.coerce.number().min(0).default(0), // Row-level discount
+    discount: z.coerce.number().min(0).default(0),
   })).min(1, 'Debes agregar al menos un producto'),
 });
 
-function generateSaleNumber(count: number): string {
-  const now = new Date();
-  const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-  return `VEN-${dateStr}-${String(count + 1).padStart(4, '0')}`;
-}
-
 export async function createSale(data: {
-  userId: string;
-  client?: string;
+  userId: any;
+  client?: string | null;
+  customerId?: any;
   discount?: number;
   paymentMethod?: string;
-  remarks?: string;
+  remarks?: string | null;
   status?: 'PENDING' | 'COMPLETED';
-  items: { productId: string; quantity: number; unitPrice: number; discount: number }[];
+  items: { productId: any; quantity: number; unitPrice: number; discount: number }[];
 }) {
-  const parsed = saleSchema.safeParse(data);
-  if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' };
-  }
-
-  const { userId, client, discount = 0, paymentMethod = 'EFECTIVO', remarks, status = 'COMPLETED', items } = parsed.data;
-
-  // If status is COMPLETED, validate stock for all items
-  if (status === 'COMPLETED') {
-    for (const item of items) {
-      const product = await prisma.product.findUnique({ where: { id: item.productId } });
-      if (!product) return { success: false, error: `Producto no encontrado` };
-      if (product.quantityAvailable < item.quantity) {
-        return {
-          success: false,
-          error: `Stock insuficiente para "${product.name}". Disponible: ${product.quantityAvailable} u.`
-        };
-      }
-    }
-  }
-
-  const count = await prisma.sale.count();
-  const saleNumber = generateSaleNumber(count);
-
-  // Calculate totals
-  const subtotalBeforeDiscount = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
-  
-  // Distribute global discount proportionally if provided, or sum item-level discounts
-  let finalItems = items.map(item => {
-    const rowSubtotal = item.quantity * item.unitPrice;
-    let rowDiscount = item.discount;
-
-    if (discount > 0 && subtotalBeforeDiscount > 0) {
-      // Add proportional global discount to any item-level discount
-      const propDiscount = Math.round(discount * (rowSubtotal / subtotalBeforeDiscount));
-      rowDiscount += propDiscount;
+  try {
+    const parsed = saleSchema.safeParse(data);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' };
     }
 
-    const rowTotal = Math.max(0, rowSubtotal - rowDiscount);
-    return {
-      ...item,
-      subtotal: rowSubtotal,
-      discount: rowDiscount,
-      total: rowTotal,
-    };
-  });
+    const { userId, client, customerId, discount = 0, paymentMethod = 'EFECTIVO', remarks, status = 'COMPLETED', items } = parsed.data;
 
-  const total = finalItems.reduce((sum, item) => sum + item.total, 0);
+    // Aislamiento Tenant: Obtener companyId
+    const companyId = await getSessionCompanyId();
+    if (!companyId) {
+      return { success: false, error: 'No autorizado o empresa no válida' };
+    }
 
-  const saleDetailData = finalItems.map(item => ({
-    productId: item.productId,
-    quantity: item.quantity,
-    unitPrice: item.unitPrice,
-    subtotal: item.subtotal,
-    discount: item.discount,
-    total: item.total,
-  }));
-
-  // Perform transaction
-  await prisma.$transaction(async (tx) => {
-    // Create Sale
-    const createdSale = await tx.sale.create({
-      data: {
-        saleNumber,
-        userId,
-        client: client || null,
-        discount,
-        total,
-        paymentMethod,
-        status,
-        remarks: remarks || null,
-        details: { create: saleDetailData }
-      }
-    });
-
-    // If status is COMPLETED, update inventory
+    // Si el estado es COMPLETED, validar stock para todos los productos en el tenant actual
     if (status === 'COMPLETED') {
       for (const item of items) {
-        const product = await tx.product.findUnique({ where: { id: item.productId } });
-        if (product) {
-          const newQty = Math.max(0, product.quantityAvailable - item.quantity);
-          await tx.product.update({
-            where: { id: item.productId },
-            data: {
-              quantityAvailable: newQty,
-              soldQuantity: { increment: item.quantity },
-              status: newQty === 0 ? 'OUT_OF_STOCK' : 'AVAILABLE',
-            }
-          });
+        const whereProduct = await withTenantWhere({ id: item.productId });
+        const product = await prisma.product.findFirst({ where: whereProduct });
+        if (!product) return { success: false, error: `Producto no encontrado o no autorizado` };
+        if (product.quantityAvailable < item.quantity) {
+          return {
+            success: false,
+            error: `Stock insuficiente para "${product.name}". Disponible: ${product.quantityAvailable} u.`
+          };
         }
       }
     }
-  });
 
-  revalidatePath('/dashboard/sales');
-  revalidatePath('/dashboard/products');
-  revalidatePath('/dashboard');
+    // Calcular totales
+    const subtotalBeforeDiscount = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+    
+    // Distribuir descuento global de forma proporcional o sumar los de fila
+    let finalItems = items.map(item => {
+      const rowSubtotal = item.quantity * item.unitPrice;
+      let rowDiscount = item.discount;
 
-  return { success: true, saleNumber, total };
+      if (discount > 0 && subtotalBeforeDiscount > 0) {
+        const propDiscount = Math.round(discount * (rowSubtotal / subtotalBeforeDiscount));
+        rowDiscount += propDiscount;
+      }
+
+      const rowTotal = Math.max(0, rowSubtotal - rowDiscount);
+      return {
+        ...item,
+        subtotal: rowSubtotal,
+        discount: rowDiscount,
+        total: rowTotal,
+      };
+    });
+
+    const total = finalItems.reduce((sum, item) => sum + item.total, 0);
+
+    const saleDetailData = finalItems.map(item => ({
+      productId: item.productId,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      subtotal: item.subtotal,
+      discount: item.discount,
+      total: item.total,
+      companyId, // Asignar tenant
+    }));
+
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+
+    // Ejecutar transaccionalidad segura de consecutivos y actualización de inventario
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Consecutivo seguro por empresa y fecha
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const counter = await tx.invoiceCounter.upsert({
+        where: {
+          companyId_date: {
+            companyId,
+            date: startOfDay,
+          }
+        },
+        update: {
+          lastSeq: { increment: 1 }
+        },
+        create: {
+          companyId,
+          date: startOfDay,
+          lastSeq: 1,
+        }
+      });
+
+      const saleNumber = `VEN-${dateStr}-${String(counter.lastSeq).padStart(4, '0')}`;
+
+      // 2. Crear Venta
+      const createdSale = await tx.sale.create({
+        data: {
+          saleNumber,
+          userId,
+          client: client || null,
+          customerId: customerId || null,
+          discount,
+          total,
+          paymentMethod,
+          status,
+          remarks: remarks || null,
+          companyId,
+          details: { create: saleDetailData }
+        }
+      });
+
+      // 3. Si se completó, reducir existencias
+      if (status === 'COMPLETED') {
+        for (const item of items) {
+          const product = await tx.product.findFirst({
+            where: { id: item.productId, companyId }
+          });
+          if (product) {
+            const newQty = Math.max(0, product.quantityAvailable - item.quantity);
+            await tx.product.update({
+              where: { id: item.productId },
+              data: {
+                quantityAvailable: newQty,
+                soldQuantity: { increment: item.quantity },
+                status: newQty === 0 ? 'OUT_OF_STOCK' : 'AVAILABLE',
+              }
+            });
+          }
+        }
+      }
+
+      return { saleNumber, total };
+    });
+
+    revalidatePath('/dashboard/sales');
+    revalidatePath('/dashboard/products');
+    revalidatePath('/dashboard');
+
+    return { success: true, saleNumber: result.saleNumber, total: result.total };
+  } catch (error: any) {
+    console.error('[CREATE_SALE]', error);
+    return { success: false, error: error.message ?? 'Error al registrar la venta' };
+  }
 }
 
-export async function completePendingSale(saleId: string) {
-  if (!saleId) return { success: false, error: 'ID inválido' };
+export async function completePendingSale(saleIdInput: any, updateData?: {
+  paymentMethod?: string;
+  client?: string | null;
+  customerId?: number | null;
+  remarks?: string | null;
+  discount?: number;
+}) {
+  const saleId = Number(saleIdInput);
+  if (isNaN(saleId)) return { success: false, error: 'ID inválido' };
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      const sale = await tx.sale.findUnique({
-        where: { id: saleId },
+      const companyId = await getSessionCompanyId();
+      if (!companyId) throw new Error('No autorizado o sin empresa');
+
+      const sale = await tx.sale.findFirst({
+        where: { id: saleId, companyId },
         include: { details: { include: { product: true } } }
       });
 
-      if (!sale) throw new Error('Venta no encontrada');
+      if (!sale) throw new Error('Venta no encontrada o no autorizada');
       if (sale.status !== 'PENDING') throw new Error('La venta no está pendiente');
 
-      // Validate stock
+      // Validar existencias
       for (const detail of sale.details) {
         if (detail.product.quantityAvailable < detail.quantity) {
           throw new Error(`Stock insuficiente para "${detail.product.name}". Disponible: ${detail.product.quantityAvailable} u.`);
         }
       }
 
-      // Update products stock
+      // Descontar inventario
       for (const detail of sale.details) {
         const newQty = Math.max(0, detail.product.quantityAvailable - detail.quantity);
         await tx.product.update({
@@ -168,13 +215,30 @@ export async function completePendingSale(saleId: string) {
         });
       }
 
-      // Update sale status
+      // Recalcular total si el descuento cambió
+      let total = sale.total;
+      if (updateData && updateData.discount !== undefined) {
+        const subtotal = sale.details.reduce((s, d) => s + d.subtotal, 0);
+        total = Math.max(0, subtotal - updateData.discount);
+      }
+
+      // Actualizar estado de la venta y datos finales
       await tx.sale.update({
         where: { id: saleId },
-        data: { status: 'COMPLETED' }
+        data: {
+          status: 'COMPLETED',
+          ...(updateData ? {
+            paymentMethod: updateData.paymentMethod,
+            client: updateData.client,
+            customerId: updateData.customerId,
+            remarks: updateData.remarks,
+            discount: updateData.discount,
+            total,
+          } : {})
+        }
       });
 
-      return { success: true, error: null };
+      return { success: true };
     });
 
     revalidatePath('/dashboard/sales');
@@ -186,26 +250,32 @@ export async function completePendingSale(saleId: string) {
 }
 
 export async function voidSale(data: {
-  saleId: string;
-  voidedByUserId: string;
+  saleId: any;
+  voidedByUserId: any;
   reason: string;
 }) {
-  const { saleId, voidedByUserId, reason } = data;
-  if (!saleId || !voidedByUserId || !reason) {
+  const saleId = Number(data.saleId);
+  const voidedByUserId = Number(data.voidedByUserId);
+  const { reason } = data;
+
+  if (isNaN(saleId) || isNaN(voidedByUserId) || !reason) {
     return { success: false, error: 'Todos los campos son obligatorios para anular la venta' };
   }
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      const sale = await tx.sale.findUnique({
-        where: { id: saleId },
+      const companyId = await getSessionCompanyId();
+      if (!companyId) throw new Error('No autorizado o sin empresa');
+
+      const sale = await tx.sale.findFirst({
+        where: { id: saleId, companyId },
         include: { details: { include: { product: true } } }
       });
 
-      if (!sale) throw new Error('Venta no encontrada');
+      if (!sale) throw new Error('Venta no encontrada o no autorizada');
       if (sale.status === 'VOIDED') throw new Error('La venta ya está anulada');
 
-      // If it was completed, restore the stock
+      // Si estaba completada, devolver existencias
       if (sale.status === 'COMPLETED') {
         for (const detail of sale.details) {
           const newQty = detail.product.quantityAvailable + detail.quantity;
@@ -221,7 +291,7 @@ export async function voidSale(data: {
         }
       }
 
-      // Update status and register void details
+      // Marcar como anulada
       await tx.sale.update({
         where: { id: saleId },
         data: {
@@ -243,22 +313,28 @@ export async function voidSale(data: {
   }
 }
 
-export async function deleteSale(id: string) {
-  if (!id) return { success: false };
+export async function deleteSale(idInput: any) {
+  const id = Number(idInput);
+  if (isNaN(id)) return { success: false, error: 'ID inválido' };
 
   try {
-    const sale = await prisma.sale.findUnique({
-      where: { id },
+    const companyId = await getSessionCompanyId();
+    if (!companyId) return { success: false, error: 'No autorizado o sin empresa' };
+
+    const sale = await prisma.sale.findFirst({
+      where: { id, companyId },
       include: { details: true }
     });
 
-    if (!sale) return { success: false, error: 'Venta no encontrada' };
+    if (!sale) return { success: false, error: 'Venta no encontrada o no autorizada' };
 
     await prisma.$transaction(async (tx) => {
-      // If it was completed, restore stock
+      // Devolver stock si estaba completada
       if (sale.status === 'COMPLETED') {
         for (const detail of sale.details) {
-          const product = await tx.product.findUnique({ where: { id: detail.productId } });
+          const product = await tx.product.findFirst({
+            where: { id: detail.productId, companyId }
+          });
           if (product) {
             await tx.product.update({
               where: { id: detail.productId },
@@ -271,7 +347,7 @@ export async function deleteSale(id: string) {
           }
         }
       }
-      // Delete the sale (onDelete Cascade deletes details)
+      // Borrar venta (Details se borran por cascade en Prisma)
       await tx.sale.delete({ where: { id } });
     });
 
@@ -288,7 +364,10 @@ export async function getSalesReport(filters: {
   endDate?: Date;
 }) {
   const { startDate, endDate } = filters;
-  const where: any = {};
+  const companyId = await getSessionCompanyId();
+  if (!companyId) throw new Error('No autorizado o sin empresa');
+
+  const where: any = { companyId };
   if (startDate && endDate) {
     where.createdAt = { gte: startDate, lte: endDate };
   }

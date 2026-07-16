@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Users, Plus, Pencil, Trash2 } from "lucide-react";
+import { Users, Plus, Pencil, Trash2, Search } from "lucide-react";
 import { confirmAction, errorAlert, successAlert } from "@/lib/sweetalert";
 import { createUser, updateUser, deleteUser } from "@/app/actions/user-actions";
 
@@ -215,9 +215,21 @@ export function DeleteUserButton({ id, name }: { id: number; name: string }) {
 }
 
 export function UsersClient({ users, roles, companies }: { users: User[]; roles: Role[]; companies: Company[] }) {
+  const [search, setSearch] = useState("");
   const activeUsers = users.length;
   const companyScoped = users.filter((user) => !!user.company).length;
   const globalUsers = users.length - companyScoped;
+
+  const filteredUsers = useMemo(() => {
+    const q = search.toLowerCase();
+    if (!q) return users;
+    return users.filter(u => 
+      u.name.toLowerCase().includes(q) ||
+      u.email.toLowerCase().includes(q) ||
+      (u.role?.name ?? '').toLowerCase().includes(q) ||
+      (u.company?.name ?? '').toLowerCase().includes(q)
+    );
+  }, [users, search]);
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -251,19 +263,31 @@ export function UsersClient({ users, roles, companies }: { users: User[]; roles:
         ))}
       </div>
 
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
+        <input
+          type="text"
+          placeholder="Buscar por nombre, correo, rol o empresa..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="flex h-11 w-full rounded-xl border border-border/80 bg-card pl-10 pr-4 py-2 text-sm text-foreground focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all placeholder:text-muted-foreground/50"
+        />
+      </div>
+
       <div className="rounded-[24px] bg-card border border-border shadow-sm overflow-hidden">
         <div className="px-6 py-5 border-b border-border/60 flex items-center justify-between">
           <h2 className="text-base font-extrabold text-foreground">Listado de usuarios</h2>
-          <span className="text-xs text-muted-foreground font-medium">{users.length} registros</span>
+          <span className="text-xs text-muted-foreground font-medium">{filteredUsers.length} registros</span>
         </div>
 
-        {users.length === 0 ? (
+        {filteredUsers.length === 0 ? (
           <div className="text-center py-16 px-6">
             <div className="mx-auto w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
               <Users className="h-8 w-8 text-primary/50" />
             </div>
-            <p className="text-foreground font-semibold">No hay usuarios registrados</p>
-            <p className="text-muted-foreground text-sm mt-1">Agrega nuevos usuarios con el botón superior.</p>
+            <p className="text-foreground font-semibold">No se encontraron usuarios</p>
+            <p className="text-muted-foreground text-sm mt-1">Prueba con otro término de búsqueda o crea uno nuevo.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -278,7 +302,7 @@ export function UsersClient({ users, roles, companies }: { users: User[]; roles:
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
-                {users.map((user) => (
+                {filteredUsers.map((user) => (
                   <tr key={user.id} className="group hover:bg-primary/5 transition-colors duration-200">
                     <td className="px-6 py-4">
                       <p className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors">{user.name}</p>

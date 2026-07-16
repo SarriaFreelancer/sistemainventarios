@@ -7,8 +7,10 @@ import { CrmCustomerTable } from '@/components/crm/crm-customer-table';
 import { CrmKanban } from '@/components/crm/crm-kanban';
 import { CrmPageHeader } from '@/components/crm/crm-page-header';
 
+import { getSessionCompanyId } from '@/lib/session';
+
 export const metadata = {
-  title: 'CRM · Dulche Dorelle',
+  title: 'CRM · GNS',
   description: 'Gestión de clientes y oportunidades comerciales.',
 };
 
@@ -64,12 +66,13 @@ export default async function CrmPage() {
   const session = await getAuthSession();
   if (!session?.user?.id) redirect('/auth/login');
 
-  const companyId = session.user.companyId ?? undefined;
+  const companyId = await getSessionCompanyId();
+  const companyFilter = companyId ? { companyId } : {};
 
   // ── Parallel data fetching ──────────────────────────────────────────────────
   const [customers, opportunities, pipelineAgg] = await Promise.all([
     prisma.customer.findMany({
-      where: { companyId },
+      where: companyFilter,
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
@@ -82,7 +85,7 @@ export default async function CrmPage() {
       },
     }),
     prisma.opportunity.findMany({
-      where: { companyId },
+      where: companyFilter,
       orderBy: { createdAt: 'desc' },
       include: {
         customer: { select: { name: true } },
@@ -90,7 +93,7 @@ export default async function CrmPage() {
     }),
     prisma.opportunity.aggregate({
       where: {
-        companyId,
+        ...companyFilter,
         stage: {
           notIn: [OpportunityStage.LOST],
         },
@@ -109,7 +112,7 @@ export default async function CrmPage() {
 
   // ── Serialize for client components ──────────────────────────────────────
   const customerRows = customers.map((c) => ({
-    id: c.id,
+    id: String(c.id),
     name: c.name,
     email: c.email,
     phone: c.phone,
@@ -118,10 +121,10 @@ export default async function CrmPage() {
     status: c.status as CustomerStatus,
   }));
 
-  const customerOptions = customers.map((c) => ({ id: c.id, name: c.name }));
+  const customerOptions = customers.map((c) => ({ id: String(c.id), name: c.name }));
 
   const opportunityCards = opportunities.map((o) => ({
-    id: o.id,
+    id: String(o.id),
     title: o.title,
     customerName: o.customer.name,
     estimatedValue: Number(o.estimatedValue),

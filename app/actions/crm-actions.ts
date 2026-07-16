@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { getAuthSession } from '@/auth';
+import { getSessionCompanyId } from '@/lib/session';
 import { CustomerStatus, OpportunityStage } from '@prisma/client';
 
 // ─── Schemas ─────────────────────────────────────────────────────────────────
@@ -20,7 +21,7 @@ const customerSchema = z.object({
 
 const opportunitySchema = z.object({
   title: z.string().min(2, 'El título es obligatorio'),
-  customerId: z.string().min(1, 'El cliente es obligatorio'),
+  customerId: z.coerce.number().min(1, 'El cliente es obligatorio'),
   stage: z.nativeEnum(OpportunityStage).default(OpportunityStage.NEW),
   estimatedValue: z.coerce.number().min(0).default(0),
   probability: z.coerce.number().min(0).max(100).default(0),
@@ -31,6 +32,8 @@ const opportunitySchema = z.object({
 export async function createCustomer(formData: FormData) {
   const session = await getAuthSession();
   if (!session?.user?.id) return { success: false, error: 'No autenticado' };
+
+  const companyId = await getSessionCompanyId();
 
   const raw = {
     name: formData.get('name'),
@@ -57,7 +60,7 @@ export async function createCustomer(formData: FormData) {
         address: parsed.data.address || null,
         city: parsed.data.city || null,
         status: parsed.data.status,
-        companyId: session.user.companyId ?? null,
+        companyId: companyId ?? null,
       },
     });
 
@@ -76,8 +79,10 @@ export async function updateCustomer(formData: FormData) {
   const session = await getAuthSession();
   if (!session?.user?.id) return { success: false, error: 'No autenticado' };
 
-  const id = String(formData.get('id') ?? '');
-  if (!id) return { success: false, error: 'ID inválido' };
+  const companyId = await getSessionCompanyId();
+
+  const id = Number(formData.get('id') ?? -1);
+  if (!id || id === -1) return { success: false, error: 'ID inválido' };
 
   const raw = {
     name: formData.get('name'),
@@ -96,7 +101,10 @@ export async function updateCustomer(formData: FormData) {
 
   try {
     await prisma.customer.update({
-      where: { id, companyId: session.user.companyId ?? undefined },
+      where: {
+        id,
+        ...(companyId ? { companyId } : {}),
+      },
       data: {
         name: parsed.data.name,
         email: parsed.data.email || null,
@@ -124,9 +132,14 @@ export async function deleteCustomer(id: string) {
   if (!session?.user?.id) return { success: false, error: 'No autenticado' };
   if (!id) return { success: false, error: 'ID inválido' };
 
+  const companyId = await getSessionCompanyId();
+
   try {
     await prisma.customer.delete({
-      where: { id, companyId: session.user.companyId ?? undefined },
+      where: {
+        id: Number(id),
+        ...(companyId ? { companyId } : {}),
+      },
     });
     revalidatePath('/dashboard/crm');
     return { success: true };
@@ -141,6 +154,8 @@ export async function deleteCustomer(id: string) {
 export async function createOpportunity(formData: FormData) {
   const session = await getAuthSession();
   if (!session?.user?.id) return { success: false, error: 'No autenticado' };
+
+  const companyId = await getSessionCompanyId();
 
   const raw = {
     title: formData.get('title'),
@@ -163,7 +178,7 @@ export async function createOpportunity(formData: FormData) {
         stage: parsed.data.stage,
         estimatedValue: parsed.data.estimatedValue,
         probability: parsed.data.probability,
-        companyId: session.user.companyId ?? null,
+        companyId: companyId ?? null,
       },
     });
 
@@ -180,6 +195,8 @@ export async function updateOpportunityStage(id: string, stage: string) {
   if (!session?.user?.id) return { success: false, error: 'No autenticado' };
   if (!id) return { success: false, error: 'ID inválido' };
 
+  const companyId = await getSessionCompanyId();
+
   const validStages = Object.values(OpportunityStage);
   if (!validStages.includes(stage as OpportunityStage)) {
     return { success: false, error: 'Etapa inválida' };
@@ -187,7 +204,10 @@ export async function updateOpportunityStage(id: string, stage: string) {
 
   try {
     await prisma.opportunity.update({
-      where: { id, companyId: session.user.companyId ?? undefined },
+      where: {
+        id: Number(id),
+        ...(companyId ? { companyId } : {}),
+      },
       data: { stage: stage as OpportunityStage },
     });
     revalidatePath('/dashboard/crm');
@@ -203,9 +223,14 @@ export async function deleteOpportunity(id: string) {
   if (!session?.user?.id) return { success: false, error: 'No autenticado' };
   if (!id) return { success: false, error: 'ID inválido' };
 
+  const companyId = await getSessionCompanyId();
+
   try {
     await prisma.opportunity.delete({
-      where: { id, companyId: session.user.companyId ?? undefined },
+      where: {
+        id: Number(id),
+        ...(companyId ? { companyId } : {}),
+      },
     });
     revalidatePath('/dashboard/crm');
     return { success: true };

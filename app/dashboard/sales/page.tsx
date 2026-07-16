@@ -1,10 +1,11 @@
 import { prisma } from '@/lib/prisma';
 import { getAuthSession } from '@/auth';
+import { getSessionCompanyId } from '@/lib/session';
 import { SalesClient } from '@/components/sales-client';
 import { redirect } from 'next/navigation';
 
 export const metadata = {
-  title: 'Ventas · Dulche Dorelle',
+  title: 'Ventas · GNS',
   description: 'Registra y gestiona las ventas del inventario.',
 };
 
@@ -12,8 +13,12 @@ export default async function SalesPage() {
   const session = await getAuthSession();
   if (!session?.user?.id) redirect('/auth/login');
 
-  const [sales, products] = await Promise.all([
+  const companyId = await getSessionCompanyId();
+  const whereTenant = companyId ? { companyId } : {};
+
+  const [sales, products, customers] = await Promise.all([
     prisma.sale.findMany({
+      where: whereTenant,
       include: {
         user: { select: { name: true } },
         details: {
@@ -23,28 +28,34 @@ export default async function SalesPage() {
       orderBy: { createdAt: 'desc' },
     }),
     prisma.product.findMany({
+      where: whereTenant,
+      orderBy: { name: 'asc' },
+    }),
+    prisma.customer.findMany({
+      where: whereTenant,
       orderBy: { name: 'asc' },
     }),
   ]);
 
   // Serialize safely
   const serializedSales = sales.map((s) => ({
-    id: s.id,
+    id: String(s.id),
     saleNumber: s.saleNumber,
     client: s.client,
+    customerId: s.customerId ? String(s.customerId) : null,
     discount: Number(s.discount),
     total: Number(s.total),
     paymentMethod: s.paymentMethod,
     status: s.status,
     remarks: s.remarks,
-    voidedByUserId: s.voidedByUserId,
+    voidedByUserId: s.voidedByUserId ? String(s.voidedByUserId) : null,
     voidedAt: s.voidedAt ? s.voidedAt.toISOString() : null,
     voidedReason: s.voidedReason,
     createdAt: s.createdAt.toISOString(),
     user: { name: s.user?.name ?? null },
     details: s.details.map(d => ({
-      id: d.id,
-      productId: d.productId,
+      id: String(d.id),
+      productId: String(d.productId),
       quantity: d.quantity,
       unitPrice: Number(d.unitPrice),
       subtotal: Number(d.subtotal),
@@ -55,11 +66,17 @@ export default async function SalesPage() {
   }));
 
   const serializedProducts = products.map((p) => ({
-    id: p.id,
+    id: String(p.id),
     code: p.code,
     name: p.name,
     salePrice: Number(p.salePrice),
     quantityAvailable: p.quantityAvailable,
+  }));
+
+  const serializedCustomers = customers.map((c) => ({
+    id: String(c.id),
+    name: c.name,
+    code: c.code ?? '',
   }));
 
   return (
@@ -67,7 +84,8 @@ export default async function SalesPage() {
       <SalesClient
         initialSales={serializedSales}
         products={serializedProducts}
-        userId={session.user.id}
+        customers={serializedCustomers}
+        userId={String(session.user.id)}
       />
     </div>
   );

@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     }
 
     // Generate JWT
-    const token = generateJwt({ userId: user.id, role: user.role?.name ?? 'USER' });
+    const token = generateJwt({ userId: String(user.id), role: user.role?.name ?? 'USER' });
 
     // Return token and basic user info
     return NextResponse.json({

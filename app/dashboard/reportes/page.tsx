@@ -9,9 +9,10 @@ import {
 import { ReportDownloadButton } from '@/components/reports/report-download-button';
 import { prisma } from '@/lib/prisma';
 import { getAuthSession } from '@/auth';
+import { getSessionCompanyId } from '@/lib/session';
 
 export const metadata = {
-  title: 'Reportes · Dulche Dorelle',
+  title: 'Reportes · GNS Gestión de Negocios SarriaTech',
   description: 'Informes de ventas, inventario y rendimiento.',
 };
 
@@ -117,8 +118,9 @@ const REPORTS: ReportCard[] = [
 /* ─── Page ──────────────────────────────────────────────────── */
 export default async function ReportesPage() {
   const session = await getAuthSession();
-  const companyFilter = session?.user?.role !== 'SUPERADMIN' && session?.user?.companyId 
-    ? { companyId: session.user.companyId } 
+  const companyId = await getSessionCompanyId();
+  const companyFilter = session?.user?.role !== 'SUPERADMIN' && companyId 
+    ? { companyId } 
     : {};
 
   const [categories, suppliers, groups] = await Promise.all([

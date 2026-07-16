@@ -58,7 +58,7 @@ export default function LoginPage() {
       });
 
       if (result?.ok) {
-        successAlert('Acceso Autorizado', 'Bienvenido de nuevo a Dulche Dorelle');
+        successAlert('Acceso Autorizado', 'Bienvenido de nuevo a GNS');
         router.push('/dashboard');
         return;
       }
@@ -74,7 +74,7 @@ export default function LoginPage() {
       title: 'Recuperar Contraseña',
       text: 'Introduce tu dirección de correo electrónico y te enviaremos las instrucciones.',
       input: 'email',
-      inputPlaceholder: 'tu-correo@dulchedorelle.com',
+      inputPlaceholder: 'tu-correo@sarriatech.com',
       showCancelButton: true,
       confirmButtonText: 'Enviar instrucciones',
       cancelButtonText: 'Cancelar',
@@ -110,22 +110,22 @@ export default function LoginPage() {
               <Sparkles size={20} className="animate-pulse" />
             </div>
             <span className="font-display-lg text-xl tracking-[0.2em] font-semibold text-transparent bg-clip-text bg-gradient-to-r from-white to-[#D8C1EC]">
-              DULCHE DORELLE
+              GNS SARRIA
             </span>
           </div>
 
           <div className="relative z-10 my-auto space-y-6">
-            <p className="text-xs font-bold tracking-[0.3em] uppercase text-[#E5A9B4]">Maison de Beauté</p>
+            <p className="text-xs font-bold tracking-[0.3em] uppercase text-[#E5A9B4]">Gestión de Negocios</p>
             <h1 className="text-4xl font-semibold leading-tight tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-[#F5C2C9] to-[#D8C1EC]">
-              Gestiona tu imperio de belleza con elegancia y distinción
+              Gestiona tu negocio con elegancia y distinción
             </h1>
             <p className="max-w-md text-sm leading-relaxed text-slate-300">
-              Bienvenido al sistema ERP exclusivo de Dulche Dorelle. Organiza existencias, registra transacciones comerciales y supervisa estadísticas de rendimiento en una interfaz sofisticada diseñada para marcas de alta cosmética y accesorios.
+              Bienvenido al sistema ERP de GNS Gestión de Negocios SarriaTech. Organiza existencias, registra transacciones comerciales y supervisa estadísticas de rendimiento en una interfaz sofisticada.
             </p>
           </div>
 
           <div className="relative z-10 flex items-center justify-between border-t border-white/10 pt-6 text-xs text-slate-400">
-            <span>© 2026 Dulche Dorelle S.A.</span>
+            <span>© 2026 GNS SarriaTech</span>
             <span>Premium Business System</span>
           </div>
         </div>
@@ -139,7 +139,7 @@ export default function LoginPage() {
                 <Sparkles size={16} />
               </div>
               <span className="font-display-lg text-sm tracking-[0.2em] font-semibold text-foreground">
-                DULCHE DORELLE
+                GNS SARRIA
               </span>
             </div>
             
@@ -162,7 +162,7 @@ export default function LoginPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="ejemplo@dulchedorelle.com"
+                  placeholder="ejemplo@negocio.com"
                   autoComplete="email"
                   {...register('email')}
                   className="pl-12 border-border/80 bg-card/40 focus:bg-card focus:border-primary"

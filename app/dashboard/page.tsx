@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
 import { redirect } from 'next/navigation';
 import { getAuthSession } from '../../auth';
+import { getSessionCompanyId } from '@/lib/session';
 
 export const revalidate = 0; // Disable caching to keep data fresh
 
@@ -15,11 +16,13 @@ export default async function DashboardHomePage() {
 
   // Verify module access
   let allowedModules: any[] = [];
+  const tenantId = await getSessionCompanyId() || -1;
+
   if (session.user.role === 'SUPERADMIN') {
     allowedModules = await prisma.module.findMany({ where: { isActive: true }, orderBy: { createdAt: 'asc' } });
   } else if (session.user.role === 'ADMIN') {
     const companyModules = await prisma.companyModule.findMany({
-      where: { companyId: session.user.companyId || -1 },
+      where: { companyId: tenantId },
       include: { module: true },
     });
     allowedModules = companyModules.map(cm => cm.module).filter(m => m.isActive);
@@ -29,7 +32,7 @@ export default async function DashboardHomePage() {
       include: { module: true },
     });
     const companyModules = await prisma.companyModule.findMany({
-      where: { companyId: session.user.companyId || -1 },
+      where: { companyId: tenantId },
       include: { module: true },
     });
     const companyModuleIds = new Set(companyModules.map(cm => cm.moduleId));
@@ -47,9 +50,8 @@ export default async function DashboardHomePage() {
     }
   }
 
-  const companyFilter = session.user.role !== 'SUPERADMIN' && session.user.companyId 
-    ? { companyId: session.user.companyId } 
-    : {};
+  const companyId = await getSessionCompanyId();
+  const companyFilter = companyId ? { companyId } : {};
 
   // ── Queries ──
   const [
@@ -203,7 +205,7 @@ export default async function DashboardHomePage() {
           <div className="space-y-1">
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-semibold text-primary uppercase tracking-wider">
               <Sparkles className="h-3 w-3 animate-pulse text-primary" />
-              Maison Dulche Dorelle
+              GNS Gestión de Negocios
             </div>
             <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
               Bienvenido al Sistema de Gestión

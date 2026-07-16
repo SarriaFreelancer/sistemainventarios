@@ -10,7 +10,7 @@ export async function GET() {
     }
 
     const { companyId, role } = session.user as { companyId?: string; role?: string };
-    const whereClause = role === 'SUPERADMIN' || !companyId ? {} : { companyId };
+    const whereClause = role === 'SUPERADMIN' || !companyId ? {} : { companyId: Number(companyId) };
 
     const suppliers = await prisma.supplier.findMany({
       where: whereClause,

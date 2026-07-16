@@ -123,7 +123,7 @@ async function main() {
   const createdGroups: any[] = [];
   for (const name of groupNames) {
     const group = await prisma.productGroup.create({
-      data: { name, status: 'ACTIVE', companyId: mainCompany.id }
+      data: { name, status: 'ACTIVE', companyId: mainCompany.id, code: `GRP-${name.substring(0, 3).toUpperCase()}` }
     });
     createdGroups.push(group);
   }
@@ -134,18 +134,25 @@ async function main() {
 
   // Create categories inspired by premium cosmetics
   const categoryNames = [
-    { name: 'Labiales Matte', description: 'Labiales líquidos y en barra de larga duración' },
-    { name: 'Paletas de Sombras', description: 'Sombras ultra pigmentadas satinadas y mate' },
-    { name: 'Bases y Correctores', description: 'Fórmulas hidratantes de alta cobertura' },
-    { name: 'Sérums Faciales', description: 'Tratamientos concentrados antiedad e hidratación' },
-    { name: 'Limpieza Facial', description: 'Aguas micelares, geles limpiadores y tónicos' },
-    { name: 'Brochas y Esponjas', description: 'Herramientas de aplicación profesional' },
-    { name: 'Fragancias Premium', description: 'Perfumes exclusivos de alta fijación' },
+    { name: 'Labiales Matte', description: 'Labiales líquidos y en barra de larga duración', groupName: 'Maquillaje' },
+    { name: 'Paletas de Sombras', description: 'Sombras ultra pigmentadas satinadas y mate', groupName: 'Maquillaje' },
+    { name: 'Bases y Correctores', description: 'Fórmulas hidratantes de alta cobertura', groupName: 'Maquillaje' },
+    { name: 'Sérums Faciales', description: 'Tratamientos concentrados antiedad e hidratación', groupName: 'Skincare' },
+    { name: 'Limpieza Facial', description: 'Aguas micelares, geles limpiadores y tónicos', groupName: 'Skincare' },
+    { name: 'Brochas y Esponjas', description: 'Herramientas de aplicación profesional', groupName: 'Accesorios' },
+    { name: 'Fragancias Premium', description: 'Perfumes exclusivos de alta fijación', groupName: 'Perfumería' },
   ];
   const createdCategories: any[] = [];
   for (const c of categoryNames) {
+    const groupId = getGroupIdByName(c.groupName);
     const cat = await prisma.category.create({
-      data: { ...c, companyId: mainCompany.id }
+      data: {
+        name: c.name,
+        description: c.description,
+        companyId: mainCompany.id,
+        productGroupId: groupId!,
+        code: `CAT-${c.name.substring(0, 3).toUpperCase()}`,
+      }
     });
     createdCategories.push(cat);
   }

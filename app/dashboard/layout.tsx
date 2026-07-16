@@ -10,12 +10,14 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   let allowedModules: any[] = [];
   let companyTheme: any = null;
   
+  let companyName = '';
   if (session.user.companyId) {
     const company = await prisma.company.findUnique({
-      where: { id: session.user.companyId },
-      select: { themeConfig: true }
+      where: { id: Number(session.user.companyId) },
+      select: { name: true, themeConfig: true }
     });
     companyTheme = company?.themeConfig;
+    companyName = company?.name || '';
   }
   
   if (session.user.role === 'SUPERADMIN') {
@@ -26,7 +28,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   } else if (session.user.role === 'ADMIN') {
     // ADMIN sees all modules assigned to their company
     const companyModules = await prisma.companyModule.findMany({
-      where: { companyId: session.user.companyId || -1 },
+      where: { companyId: Number(session.user.companyId) || -1 },
       include: { module: true },
     });
     allowedModules = companyModules.map(cm => cm.module).filter(m => m.isActive);
@@ -38,7 +40,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     });
     
     const companyModules = await prisma.companyModule.findMany({
-      where: { companyId: session.user.companyId || -1 },
+      where: { companyId: Number(session.user.companyId) || -1 },
       include: { module: true },
     });
     
@@ -52,7 +54,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   }
 
   return (
-    <DashboardShell session={session} modules={allowedModules} themeConfig={companyTheme}>
+    <DashboardShell session={session} modules={allowedModules} themeConfig={companyTheme} companyName={companyName}>
       {children}
     </DashboardShell>
   );

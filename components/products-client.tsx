@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useMemo } from "react";
+import { useState, useTransition, useMemo, useEffect } from "react";
 import { deleteProduct, quickSellProduct } from "@/app/actions/product-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,6 +59,13 @@ export function ProductsClient({
   const [showFilters, setShowFilters] = useState(false);
   const [isPending, startTransition] = useTransition();
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 25;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filterCategory, filterSupplier, filterStatus, filterGroup, sortField, sortDir]);
+
   const filteredProducts = useMemo(() => {
     let list = [...initialProducts];
     const q = search.toLowerCase();
@@ -94,6 +101,13 @@ export function ProductsClient({
 
     return list;
   }, [initialProducts, search, filterCategory, filterSupplier, filterStatus, filterGroup, sortField, sortDir]);
+
+  const paginatedProducts = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredProducts.slice(start, start + pageSize);
+  }, [filteredProducts, currentPage]);
+
+  const totalPages = Math.ceil(filteredProducts.length / pageSize);
 
   const totalStock = filteredProducts.reduce((s, p) => s + p.quantityAvailable, 0);
   const totalValue = filteredProducts.reduce((s, p) => s + p.salePrice * p.quantityAvailable, 0);
@@ -212,8 +226,8 @@ export function ProductsClient({
 
       if (result.success) {
         successAlert(
-          '¡Venta Registrada!',
-          `Venta #${result.saleNumber} completada por ${result.total?.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })} ${discount > 0 ? `(Descuento aplicado: ${discount.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })})` : ''}`
+          '¡Venta Pendiente Registrada!',
+          `Venta #${result.saleNumber} fue creada como pendiente en el módulo de ventas. Dirígete allí para completarla y seleccionar el método de pago.`
         );
       } else {
         errorAlert('Error en Venta', result.error ?? 'No fue posible registrar la venta.');
@@ -342,7 +356,7 @@ export function ProductsClient({
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
-                {filteredProducts.map((product) => {
+                {paginatedProducts.map((product) => {
                   const isOut = product.quantityAvailable === 0;
                   return (
                     <tr key={product.id} className="group hover:bg-primary/5 transition-colors duration-200">
@@ -427,7 +441,7 @@ export function ProductsClient({
           {filteredProducts.length === 0 ? (
             <div className="text-center py-10 text-muted-foreground">No hay productos.</div>
           ) : (
-            filteredProducts.map(product => {
+            paginatedProducts.map(product => {
               const isOut = product.quantityAvailable === 0;
               return (
                 <div key={product.id} className="p-5 space-y-3 hover:bg-primary/5 transition-colors">
@@ -477,6 +491,46 @@ export function ProductsClient({
             })
           )}
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="px-6 py-4 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-4 bg-muted/5 shrink-0">
+            <p className="text-xs text-muted-foreground font-medium">
+              Mostrando {((currentPage - 1) * pageSize) + 1} - {Math.min(currentPage * pageSize, filteredProducts.length)} de {filteredProducts.length} registros
+            </p>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                className="h-8 rounded-lg px-2.5 text-xs"
+              >
+                Anterior
+              </Button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                <Button
+                  key={p}
+                  variant={currentPage === p ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setCurrentPage(p)}
+                  className={`h-8 w-8 rounded-lg text-xs p-0 font-bold ${currentPage === p ? 'bg-primary text-primary-foreground' : ''}`}
+                >
+                  {p}
+                </Button>
+              ))}
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                className="h-8 rounded-lg px-2.5 text-xs"
+              >
+                Siguiente
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -53,6 +53,22 @@
     --ring:               oklch(0.75 0.14 296);
 }
 
+.theme-superadmin {
+    --primary:            oklch(0.60 0.22 25); /* Rojo */
+    --primary-foreground: oklch(1 0 0); /* Blanco */
+    --ring:               oklch(0.60 0.22 25);
+}
+
+.theme-superadmin.dark,
+.dark .theme-superadmin {
+    --primary:            oklch(0.65 0.25 25); /* Rojo */
+    --primary-foreground: oklch(0.98 0 0); /* Blanco */
+    --background:         oklch(0.10 0.005 286); /* Negro azulado */
+    --card:               oklch(0.13 0.008 286);
+    --ring:               oklch(0.65 0.25 25);
+}
+
+
 
 html {
     scroll-behavior: smooth;

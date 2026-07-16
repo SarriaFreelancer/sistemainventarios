@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useMemo } from "react";
 import { createGroup, updateGroup, deleteGroup } from "@/app/actions/group-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,12 +11,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Pencil, Plus, Folder, Trash2, CheckCircle2, XCircle } from "lucide-react";
+import { Pencil, Plus, Folder, Trash2, CheckCircle2, XCircle, Search } from "lucide-react";
 import { confirmAction, successAlert, errorAlert } from "@/lib/sweetalert";
 
 interface ProductGroup {
   id: string;
   name: string;
+  code: string | null;
   status: string;
   _count?: { products: number };
 }
@@ -57,6 +58,10 @@ export function CreateGroupDialog() {
             </DialogTitle>
           </DialogHeader>
           <form action={handleAction} className="space-y-5 mt-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="group-code" className={labelCls}>Código del Grupo</Label>
+              <Input id="group-code" name="code" placeholder="Ej. GRP-MAQ" className={inputCls} required />
+            </div>
             <div className="space-y-1.5">
               <Label htmlFor="group-name" className={labelCls}>Nombre del Grupo</Label>
               <Input id="group-name" name="name" placeholder="Ej. Skin Care Premium" className={inputCls} required />
@@ -119,6 +124,10 @@ export function EditGroupDialog({ group }: { group: ProductGroup }) {
           <form action={handleAction} className="space-y-5 mt-2">
             <input type="hidden" name="id" value={group.id} />
             <div className="space-y-1.5">
+              <Label htmlFor={`edit-group-code-${group.id}`} className={labelCls}>Código del Grupo</Label>
+              <Input id={`edit-group-code-${group.id}`} name="code" defaultValue={group.code ?? ""} className={inputCls} required />
+            </div>
+            <div className="space-y-1.5">
               <Label htmlFor={`edit-group-name-${group.id}`} className={labelCls}>Nombre del Grupo</Label>
               <Input id={`edit-group-name-${group.id}`} name="name" defaultValue={group.name} className={inputCls} required />
             </div>
@@ -148,7 +157,7 @@ export function DeleteGroupButton({ id, name }: { id: string; name: string }) {
   const handleDelete = async () => {
     const confirmed = await confirmAction(
       '¿Eliminar Grupo?',
-      `Se eliminará el grupo "${name}". Si hay productos asociados, primero deberás reasignarlos.`,
+      `Se eliminará el grupo "${name}". Si hay categorías o productos asociados, primero deberás reasignarlos.`,
       'Sí, eliminar',
       'Cancelar'
     );
@@ -180,8 +189,33 @@ export function DeleteGroupButton({ id, name }: { id: string; name: string }) {
 }
 
 export function GroupsClient({ groups }: { groups: ProductGroup[] }) {
+  const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
   const active = groups.filter(g => g.status === 'ACTIVE').length;
   const inactive = groups.filter(g => g.status === 'INACTIVE').length;
+
+  const filteredGroups = useMemo(() => {
+    const q = search.toLowerCase();
+    if (!q) return groups;
+    return groups.filter(g =>
+      g.name.toLowerCase().includes(q) ||
+      (g.code ?? '').toLowerCase().includes(q)
+    );
+  }, [groups, search]);
+
+  const paginatedGroups = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredGroups.slice(start, start + pageSize);
+  }, [filteredGroups, currentPage]);
+
+  const totalPages = Math.ceil(filteredGroups.length / pageSize);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+    setCurrentPage(1);
+  };
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -217,68 +251,128 @@ export function GroupsClient({ groups }: { groups: ProductGroup[] }) {
         ))}
       </div>
 
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
+        <input
+          type="text"
+          placeholder="Buscar por código o nombre del grupo..."
+          value={search}
+          onChange={handleSearchChange}
+          className="flex h-11 w-full rounded-xl border border-border/80 bg-card pl-10 pr-4 py-2 text-sm text-foreground focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all placeholder:text-muted-foreground/50"
+        />
+      </div>
+
       {/* Table */}
       <div className="rounded-[24px] bg-card border border-border shadow-sm overflow-hidden">
         <div className="px-6 py-5 border-b border-border/60 flex items-center justify-between">
           <h2 className="text-base font-extrabold text-foreground">Listado de Grupos</h2>
-          <span className="text-xs text-muted-foreground font-medium">{groups.length} registros</span>
+          <span className="text-xs text-muted-foreground font-medium">{filteredGroups.length} registros</span>
         </div>
 
-        {groups.length === 0 ? (
+        {filteredGroups.length === 0 ? (
           <div className="text-center py-16 px-6">
             <div className="mx-auto w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
               <Folder className="h-8 w-8 text-primary/50" />
             </div>
-            <p className="text-foreground font-semibold">No hay grupos registrados</p>
-            <p className="text-muted-foreground text-sm mt-1">Crea tu primer grupo con el botón de arriba.</p>
+            <p className="text-foreground font-semibold">No se encontraron grupos</p>
+            <p className="text-muted-foreground text-sm mt-1">Crea tu primer grupo o ajusta el filtro de búsqueda.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-muted/20 border-b border-border/60">
-                  <th className="text-left text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-6 py-3">Nombre</th>
-                  <th className="text-left text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-4 py-3">Productos Asociados</th>
-                  <th className="text-center text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-4 py-3">Estado</th>
-                  <th className="text-center text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-6 py-3">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/40">
-                {groups.map((group) => (
-                  <tr key={group.id} className="group hover:bg-primary/5 transition-colors duration-200">
-                    <td className="px-6 py-4">
-                      <p className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors">
-                        {group.name}
-                      </p>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className="text-sm text-muted-foreground font-medium">
-                        {group._count?.products ?? 0} productos
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 text-center">
-                      {group.status === 'ACTIVE' ? (
-                        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-                          <CheckCircle2 className="h-3 w-3" />
-                          Activo
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full bg-secondary/20 text-muted-foreground border border-border">
-                          <XCircle className="h-3 w-3" />
-                          Inactivo
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-center gap-1">
-                        <EditGroupDialog group={group} />
-                        <DeleteGroupButton id={group.id} name={group.name} />
-                      </div>
-                    </td>
+          <div className="flex flex-col">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-muted/20 border-b border-border/60">
+                    <th className="text-left text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-6 py-3 font-semibold">Código</th>
+                    <th className="text-left text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-4 py-3">Nombre</th>
+                    <th className="text-left text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-4 py-3">Productos Asociados</th>
+                    <th className="text-center text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-4 py-3">Estado</th>
+                    <th className="text-center text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-6 py-3">Acciones</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-border/40">
+                  {paginatedGroups.map((group) => (
+                    <tr key={group.id} className="group hover:bg-primary/5 transition-colors duration-200">
+                      <td className="px-6 py-4">
+                        <span className="font-mono text-xs font-bold text-muted-foreground bg-muted border border-border/80 px-2 py-1 rounded">
+                          {group.code || '—'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <p className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors">
+                          {group.name}
+                        </p>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className="text-sm text-muted-foreground font-medium">
+                          {group._count?.products ?? 0} productos
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        {group.status === 'ACTIVE' ? (
+                          <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                            <CheckCircle2 className="h-3 w-3" />
+                            Activo
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full bg-secondary/20 text-muted-foreground border border-border">
+                            <XCircle className="h-3 w-3" />
+                            Inactivo
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-center gap-1">
+                          <EditGroupDialog group={group} />
+                          <DeleteGroupButton id={group.id} name={group.name} />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="px-6 py-4 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-4 bg-muted/5 shrink-0">
+                <p className="text-xs text-muted-foreground font-medium">
+                  Mostrando {((currentPage - 1) * pageSize) + 1} - {Math.min(currentPage * pageSize, filteredGroups.length)} de {filteredGroups.length} registros
+                </p>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    className="h-8 rounded-lg px-2.5 text-xs"
+                  >
+                    Anterior
+                  </Button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                    <Button
+                      key={p}
+                      variant={currentPage === p ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setCurrentPage(p)}
+                      className={`h-8 w-8 rounded-lg text-xs p-0 font-bold ${currentPage === p ? 'bg-primary text-primary-foreground' : ''}`}
+                    >
+                      {p}
+                    </Button>
+                  ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    className="h-8 rounded-lg px-2.5 text-xs"
+                  >
+                    Siguiente
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

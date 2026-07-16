@@ -1,15 +1,14 @@
 import { prisma } from '@/lib/prisma';
 import { SuppliersClient } from '@/components/supplier-dialogs';
-import { getAuthSession } from '@/auth';
+import { getSessionCompanyId } from '@/lib/session';
 
 export const metadata = {
-  title: 'Proveedores · Dulche Dorelle',
+  title: 'Proveedores · GNS',
   description: 'Organiza las marcas y proveedores de productos.',
 };
 
 export default async function SuppliersPage() {
-  const session = await getAuthSession();
-  const companyId = session?.user?.companyId;
+  const companyId = await getSessionCompanyId();
 
   const suppliers = await prisma.supplier.findMany({
     where: companyId ? { companyId } : {},
@@ -18,7 +17,7 @@ export default async function SuppliersPage() {
   });
 
   const serialized = suppliers.map(s => ({
-    id: s.id,
+    id: String(s.id),
     companyName: s.companyName,
     contactName: s.contactName,
     phone: s.phone,
@@ -27,6 +26,7 @@ export default async function SuppliersPage() {
     city: s.city,
     country: s.country,
     status: s.status,
+    code: s.code ?? '',
     _count: { products: s._count.products },
   }));
 

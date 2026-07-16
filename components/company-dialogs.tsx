@@ -30,6 +30,20 @@ const inputCls = "bg-background/50 border-border/80 focus:border-primary focus:r
 const selectCls = "flex h-11 w-full rounded-xl border border-border/80 bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all duration-300";
 const labelCls = "text-[10px] font-bold uppercase tracking-wider text-muted-foreground";
 
+const POPULAR_COUNTRIES = [
+  "Colombia", "México", "España", "Argentina", "Chile", "Perú", "Ecuador", "Venezuela", 
+  "Bolivia", "Uruguay", "Paraguay", "Costa Rica", "Panamá", "Guatemala", "Honduras", 
+  "El Salvador", "República Dominicana", "Estados Unidos"
+];
+
+const POPULAR_CITIES = [
+  "Bogotá", "Medellín", "Cali", "Barranquilla", "Cartagena", "Bucaramanga", "Pereira", 
+  "Manizales", "Cúcuta", "Ibagué", "Santa Marta", "Ciudad de México", "Guadalajara", 
+  "Monterrey", "Puebla", "Tijuana", "León", "Madrid", "Barcelona", "Valencia", "Sevilla", 
+  "Zaragoza", "Málaga", "Buenos Aires", "Santiago", "Lima", "Quito", "Guayaquil", 
+  "Caracas", "Montevideo", "Asunción"
+];
+
 export function CreateCompanyDialog({ modules }: { modules: Module[] }) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -69,7 +83,7 @@ export function CreateCompanyDialog({ modules }: { modules: Module[] }) {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="company-country" className={labelCls}>País</Label>
-                <Input id="company-country" name="country" defaultValue="Colombia" className={inputCls} required />
+                <Input id="company-country" name="country" defaultValue="Colombia" list="countries-list" className={inputCls} required />
               </div>
               <div className="space-y-1.5 sm:col-span-2">
                 <Label htmlFor="company-address" className={labelCls}>Dirección</Label>
@@ -77,7 +91,7 @@ export function CreateCompanyDialog({ modules }: { modules: Module[] }) {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="company-city" className={labelCls}>Ciudad</Label>
-                <Input id="company-city" name="city" placeholder="Bogotá" className={inputCls} />
+                <Input id="company-city" name="city" placeholder="Bogotá" list="cities-list" className={inputCls} />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="company-status" className={labelCls}>Estado</Label>
@@ -170,7 +184,7 @@ export function EditCompanyDialog({ company, modules }: { company: Company; modu
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor={`edit-company-country-${company.id}`} className={labelCls}>País</Label>
-                <Input id={`edit-company-country-${company.id}`} name="country" defaultValue={company.country} className={inputCls} required />
+                <Input id={`edit-company-country-${company.id}`} name="country" defaultValue={company.country} list="countries-list" className={inputCls} required />
               </div>
               <div className="space-y-1.5 sm:col-span-2">
                 <Label htmlFor={`edit-company-address-${company.id}`} className={labelCls}>Dirección</Label>
@@ -178,7 +192,7 @@ export function EditCompanyDialog({ company, modules }: { company: Company; modu
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor={`edit-company-city-${company.id}`} className={labelCls}>Ciudad</Label>
-                <Input id={`edit-company-city-${company.id}`} name="city" defaultValue={company.city ?? ''} className={inputCls} />
+                <Input id={`edit-company-city-${company.id}`} name="city" defaultValue={company.city ?? ''} list="cities-list" className={inputCls} />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor={`edit-company-status-${company.id}`} className={labelCls}>Estado</Label>
@@ -370,6 +384,14 @@ export function CompaniesClient({ companies, modules }: { companies: Company[]; 
           </div>
         )}
       </div>
+
+      <datalist id="countries-list">
+        {POPULAR_COUNTRIES.map(c => <option key={c} value={c} />)}
+      </datalist>
+
+      <datalist id="cities-list">
+        {POPULAR_CITIES.map(c => <option key={c} value={c} />)}
+      </datalist>
     </div>
   );
 }

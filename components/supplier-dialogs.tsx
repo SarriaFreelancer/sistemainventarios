@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useMemo, useEffect } from "react";
 import { updateSupplier, createSupplier, deleteSupplier } from "@/app/actions/supplier-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Pencil, Plus, Factory, Trash2, CheckCircle2, XCircle, Mail, Phone, MapPin, Globe } from "lucide-react";
+import { Pencil, Plus, Factory, Trash2, CheckCircle2, XCircle, Mail, Phone, MapPin, Globe, Search } from "lucide-react";
 import { confirmAction, successAlert, errorAlert } from "@/lib/sweetalert";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { COLOMBIAN_CITIES } from "@/lib/colombian-cities";
@@ -19,6 +19,7 @@ import { COLOMBIAN_CITIES } from "@/lib/colombian-cities";
 interface Supplier {
   id: string;
   companyName: string;
+  code: string | null;
   contactName: string;
   phone: string;
   email: string;
@@ -40,13 +41,16 @@ export function CreateSupplierDialog() {
   const [isPending, startTransition] = useTransition();
 
   async function handleAction(formData: FormData) {
-    // Append the state city because SearchableSelect uses a hidden field or value
     formData.set('city', city);
     startTransition(async () => {
-      await createSupplier(formData);
-      successAlert('Proveedor Creado', 'El nuevo proveedor fue registrado exitosamente.');
-      setOpen(false);
-      setCity("Bogotá");
+      const result = await createSupplier(formData);
+      if (result.success) {
+        successAlert('Proveedor Creado', 'El nuevo proveedor fue registrado exitosamente.');
+        setOpen(false);
+        setCity("Bogotá");
+      } else {
+        errorAlert('Error al Crear', result.error ?? 'No fue posible registrar el proveedor.');
+      }
     });
   }
 
@@ -67,6 +71,10 @@ export function CreateSupplierDialog() {
           </DialogHeader>
           <form action={handleAction} className="space-y-5 mt-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="sup-code" className={labelCls}>Código o NIT de Empresa</Label>
+                <Input id="sup-code" name="code" placeholder="Ej. 900.123.456-1 o PROV-LOR" className={inputCls} required />
+              </div>
               <div className="space-y-1.5">
                 <Label htmlFor="sup-company" className={labelCls}>Nombre de la Empresa</Label>
                 <Input id="sup-company" name="companyName" placeholder="Ej. L'Oréal S.A." className={inputCls} required />
@@ -131,9 +139,13 @@ export function EditSupplierDialog({ supplier }: { supplier: Supplier }) {
   async function handleAction(formData: FormData) {
     formData.set('city', city);
     startTransition(async () => {
-      await updateSupplier(formData);
-      successAlert('Proveedor Actualizado', 'Los cambios se guardaron correctamente.');
-      setOpen(false);
+      const result = await updateSupplier(formData);
+      if (result.success) {
+        successAlert('Proveedor Actualizado', 'Los cambios se guardaron correctamente.');
+        setOpen(false);
+      } else {
+        errorAlert('Error al Actualizar', result.error ?? 'No fue posible guardar los cambios.');
+      }
     });
   }
 
@@ -159,6 +171,10 @@ export function EditSupplierDialog({ supplier }: { supplier: Supplier }) {
           <form action={handleAction} className="space-y-5 mt-2">
             <input type="hidden" name="id" value={supplier.id} />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor={`edit-sup-code-${supplier.id}`} className={labelCls}>Código o NIT de Empresa</Label>
+                <Input id={`edit-sup-code-${supplier.id}`} name="code" defaultValue={supplier.code ?? ""} placeholder="Ej. 900.123.456-1 o PROV-LOR" className={inputCls} required />
+              </div>
               <div className="space-y-1.5">
                 <Label htmlFor={`edit-sup-company-${supplier.id}`} className={labelCls}>Nombre de la Empresa</Label>
                 <Input id={`edit-sup-company-${supplier.id}`} name="companyName" defaultValue={supplier.companyName} className={inputCls} required />
@@ -230,8 +246,12 @@ export function DeleteSupplierButton({ id, name }: { id: string; name: string })
       try {
         const formData = new FormData();
         formData.append('id', id);
-        await deleteSupplier(formData);
-        successAlert('Proveedor Eliminado', `"${name}" fue removido del sistema.`);
+        const result = await deleteSupplier(formData);
+        if (result.success) {
+          successAlert('Proveedor Eliminado', `"${name}" fue removido del sistema.`);
+        } else {
+          errorAlert('Error al Eliminar', result.error ?? 'No fue posible eliminar el proveedor.');
+        }
       } catch {
         errorAlert('Error al Eliminar', 'No fue posible eliminar el proveedor. Puede tener productos asociados.');
       }
@@ -254,8 +274,35 @@ export function DeleteSupplierButton({ id, name }: { id: string; name: string })
 
 // ── Full Page Component ────────────────────────────────────────
 export function SuppliersClient({ suppliers }: { suppliers: Supplier[] }) {
+  const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
   const active = suppliers.filter(s => s.status === 'ACTIVE').length;
   const inactive = suppliers.filter(s => s.status === 'INACTIVE').length;
+
+  const filteredSuppliers = useMemo(() => {
+    const q = search.toLowerCase();
+    if (!q) return suppliers;
+    return suppliers.filter(s =>
+      s.companyName.toLowerCase().includes(q) ||
+      (s.code ?? '').toLowerCase().includes(q) ||
+      s.contactName.toLowerCase().includes(q) ||
+      s.city.toLowerCase().includes(q)
+    );
+  }, [suppliers, search]);
+
+  const paginatedSuppliers = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredSuppliers.slice(start, start + pageSize);
+  }, [filteredSuppliers, currentPage]);
+
+  const totalPages = Math.ceil(filteredSuppliers.length / pageSize);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+    setCurrentPage(1);
+  };
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -268,7 +315,7 @@ export function SuppliersClient({ suppliers }: { suppliers: Supplier[] }) {
           </div>
           <div>
             <h1 className="text-2xl font-extrabold text-foreground">Proveedores</h1>
-            <p className="text-sm text-muted-foreground">Administra la lista de marcas y proveedores de Dulche Dorelle.</p>
+            <p className="text-sm text-muted-foreground">Administra la lista de marcas y proveedores de tu inventario.</p>
           </div>
         </div>
         <div className="relative z-10">
@@ -291,100 +338,160 @@ export function SuppliersClient({ suppliers }: { suppliers: Supplier[] }) {
         ))}
       </div>
 
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
+        <input
+          type="text"
+          placeholder="Buscar por código, empresa, contacto o ciudad..."
+          value={search}
+          onChange={handleSearchChange}
+          className="flex h-11 w-full rounded-xl border border-border/80 bg-card pl-10 pr-4 py-2 text-sm text-foreground focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all placeholder:text-muted-foreground/50"
+        />
+      </div>
+
       {/* Table */}
       <div className="rounded-[24px] bg-card border border-border shadow-sm overflow-hidden">
         <div className="px-6 py-5 border-b border-border/60 flex items-center justify-between">
           <h2 className="text-base font-extrabold text-foreground">Listado de proveedores</h2>
-          <span className="text-xs text-muted-foreground font-medium">{suppliers.length} registros</span>
+          <span className="text-xs text-muted-foreground font-medium">{filteredSuppliers.length} registros</span>
         </div>
 
-        {suppliers.length === 0 ? (
+        {filteredSuppliers.length === 0 ? (
           <div className="text-center py-16 px-6">
             <div className="mx-auto w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
               <Factory className="h-8 w-8 text-primary/50" />
             </div>
-            <p className="text-foreground font-semibold">No hay proveedores registrados</p>
-            <p className="text-muted-foreground text-sm mt-1">Registra tu primer proveedor con el botón de arriba.</p>
+            <p className="text-foreground font-semibold">No se encontraron proveedores</p>
+            <p className="text-muted-foreground text-sm mt-1">Registra tu primer proveedor o ajusta el filtro de búsqueda.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-muted/20 border-b border-border/60">
-                  <th className="text-left text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-6 py-3">Empresa</th>
-                  <th className="text-left text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-4 py-3 hidden md:table-cell">Contacto</th>
-                  <th className="text-left text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-4 py-3 hidden lg:table-cell">Correo</th>
-                  <th className="text-left text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-4 py-3 hidden lg:table-cell">País / Ciudad</th>
-                  <th className="text-left text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-4 py-3 hidden xl:table-cell">Productos</th>
-                  <th className="text-center text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-4 py-3">Estado</th>
-                  <th className="text-center text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-6 py-3">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/40">
-                {suppliers.map((supplier) => (
-                  <tr key={supplier.id} className="group hover:bg-primary/5 transition-colors duration-200">
-                    <td className="px-6 py-4">
-                      <p className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors">
-                        {supplier.companyName}
-                      </p>
-                      <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground md:hidden">
-                        <Phone className="h-3 w-3" />
-                        {supplier.phone}
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 hidden md:table-cell">
-                      <p className="text-sm font-medium text-foreground">{supplier.contactName}</p>
-                      <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                        <Phone className="h-3 w-3" />
-                        {supplier.phone}
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 hidden lg:table-cell">
-                      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                        <Mail className="h-3.5 w-3.5 text-muted-foreground/40 flex-shrink-0" />
-                        <span className="truncate max-w-[180px]">{supplier.email}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 hidden lg:table-cell">
-                      <div className="flex flex-col text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Globe className="h-3 w-3 text-muted-foreground/50 shrink-0" />
-                          {supplier.country}
-                        </span>
-                        <span className="flex items-center gap-1 mt-0.5 font-semibold text-foreground/80">
-                          <MapPin className="h-3 w-3 text-muted-foreground/50 shrink-0" />
-                          {supplier.city}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 hidden xl:table-cell">
-                      <span className="text-sm text-muted-foreground font-medium">
-                        {supplier._count?.products ?? 0} asignados
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 text-center">
-                      {supplier.status === 'ACTIVE' ? (
-                        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-                          <CheckCircle2 className="h-3 w-3" />
-                          Activo
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full bg-secondary/20 text-muted-foreground border border-border">
-                          <XCircle className="h-3 w-3" />
-                          Inactivo
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center justify-center gap-1">
-                        <EditSupplierDialog supplier={supplier} />
-                        <DeleteSupplierButton id={supplier.id} name={supplier.companyName} />
-                      </div>
-                    </td>
+          <div className="flex flex-col">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-muted/20 border-b border-border/60">
+                    <th className="text-left text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-6 py-3">Código</th>
+                    <th className="text-left text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-4 py-3">Empresa</th>
+                    <th className="text-left text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-4 py-3 hidden md:table-cell">Contacto</th>
+                    <th className="text-left text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-4 py-3 hidden lg:table-cell">Correo</th>
+                    <th className="text-left text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-4 py-3 hidden lg:table-cell">País / Ciudad</th>
+                    <th className="text-left text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-4 py-3 hidden xl:table-cell">Productos</th>
+                    <th className="text-center text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-4 py-3">Estado</th>
+                    <th className="text-center text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-6 py-3">Acciones</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-border/40">
+                  {paginatedSuppliers.map((supplier) => (
+                    <tr key={supplier.id} className="group hover:bg-primary/5 transition-colors duration-200">
+                      <td className="px-6 py-4">
+                        <span className="font-mono text-xs font-bold text-muted-foreground bg-muted border border-border/80 px-2 py-1 rounded">
+                          {supplier.code || '—'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <p className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors">
+                          {supplier.companyName}
+                        </p>
+                        <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground md:hidden">
+                          <Phone className="h-3 w-3" />
+                          {supplier.phone}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 hidden md:table-cell">
+                        <p className="text-sm font-medium text-foreground">{supplier.contactName}</p>
+                        <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                          <Phone className="h-3 w-3" />
+                          {supplier.phone}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 hidden lg:table-cell">
+                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <Mail className="h-3.5 w-3.5 text-muted-foreground/40 flex-shrink-0" />
+                          <span className="truncate max-w-[180px]">{supplier.email}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 hidden lg:table-cell">
+                        <div className="flex flex-col text-sm text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Globe className="h-3 w-3 text-muted-foreground/50 shrink-0" />
+                            {supplier.country}
+                          </span>
+                          <span className="flex items-center gap-1 mt-0.5 font-semibold text-foreground/80">
+                            <MapPin className="h-3 w-3 text-muted-foreground/50 shrink-0" />
+                            {supplier.city}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 hidden xl:table-cell">
+                        <span className="text-sm text-muted-foreground font-medium">
+                          {supplier._count?.products ?? 0} asignados
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        {supplier.status === 'ACTIVE' ? (
+                          <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                            <CheckCircle2 className="h-3 w-3" />
+                            Activo
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full bg-secondary/20 text-muted-foreground border border-border">
+                            <XCircle className="h-3 w-3" />
+                            Inactivo
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-center gap-1">
+                          <EditSupplierDialog supplier={supplier} />
+                          <DeleteSupplierButton id={supplier.id} name={supplier.companyName} />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="px-6 py-4 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-4 bg-muted/5 shrink-0">
+                <p className="text-xs text-muted-foreground font-medium">
+                  Mostrando {((currentPage - 1) * pageSize) + 1} - {Math.min(currentPage * pageSize, filteredSuppliers.length)} de {filteredSuppliers.length} registros
+                </p>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    className="h-8 rounded-lg px-2.5 text-xs"
+                  >
+                    Anterior
+                  </Button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                    <Button
+                      key={p}
+                      variant={currentPage === p ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setCurrentPage(p)}
+                      className={`h-8 w-8 rounded-lg text-xs p-0 font-bold ${currentPage === p ? 'bg-primary text-primary-foreground' : ''}`}
+                    >
+                      {p}
+                    </Button>
+                  ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    className="h-8 rounded-lg px-2.5 text-xs"
+                  >
+                    Siguiente
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

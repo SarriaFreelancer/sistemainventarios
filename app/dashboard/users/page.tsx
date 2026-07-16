@@ -1,10 +1,11 @@
 import { prisma } from '@/lib/prisma';
 import { getAuthSession } from '@/auth';
+import { getSessionCompanyId } from '@/lib/session';
 import { UsersClient } from '@/components/user-dialogs';
 import { redirect } from 'next/navigation';
 
 export const metadata = {
-  title: 'Usuarios · Dulche Dorelle',
+  title: 'Usuarios · GNS',
   description: 'Administra los usuarios y roles del sistema.',
 };
 
@@ -14,7 +15,7 @@ export default async function UsersPage() {
   if (session.user.role !== 'SUPERADMIN' && session.user.role !== 'ADMIN') redirect('/dashboard');
 
   const isAdmin = session.user.role === 'ADMIN';
-  const companyId = session.user.companyId;
+  const companyId = await getSessionCompanyId();
 
   const [users, roles, companies] = await Promise.all([
     prisma.user.findMany({

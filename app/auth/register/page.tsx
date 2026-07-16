@@ -67,22 +67,22 @@ export default function RegisterPage() {
               <Sparkles size={20} className="animate-pulse" />
             </div>
             <span className="font-display-lg text-xl tracking-[0.2em] font-semibold text-transparent bg-clip-text bg-gradient-to-r from-white to-[#D8C1EC]">
-              DULCHE DORELLE
+              GNS SARRIA
             </span>
           </div>
 
           <div className="relative z-10 my-auto space-y-6">
-            <p className="text-xs font-bold tracking-[0.3em] uppercase text-[#E5A9B4]">Maison de Beauté</p>
+            <p className="text-xs font-bold tracking-[0.3em] uppercase text-[#E5A9B4]">Gestión de Negocios</p>
             <h1 className="text-4xl font-semibold leading-tight tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-[#F5C2C9] to-[#D8C1EC]">
               Únete a nuestra exclusiva red de administración
             </h1>
             <p className="max-w-md text-sm leading-relaxed text-slate-300">
-              Crea tu perfil corporativo de Dulche Dorelle y accede a la suite integrada de administración de inventarios, facturación rápida, y reportes de rentabilidad.
+              Crea tu perfil corporativo de GNS y accede a la suite integrada de administración de inventarios, facturación rápida, y reportes de rentabilidad.
             </p>
           </div>
 
           <div className="relative z-10 flex items-center justify-between border-t border-white/10 pt-6 text-xs text-slate-400">
-            <span>© 2026 Dulche Dorelle S.A.</span>
+            <span>© 2026 GNS SarriaTech</span>
             <span>Premium Business System</span>
           </div>
         </div>
@@ -131,7 +131,7 @@ export default function RegisterPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="nombre@dulchedorelle.com"
+                  placeholder="nombre@negocio.com"
                   {...register('email')}
                   className="pl-12 border-border/80 bg-card/40 focus:bg-card focus:border-primary"
                 />
