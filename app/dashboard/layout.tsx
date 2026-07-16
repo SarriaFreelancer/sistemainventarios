@@ -7,6 +7,49 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   const session = await getAuthSession();
   if (!session?.user) redirect('/auth/login');
 
+  // Auto-inicialización no destructiva de nuevos módulos SaaS
+  const requiredModules = [
+    { name: 'Auditoría', href: '/dashboard/audit', icon: 'ShieldAlert', description: 'Trazabilidad y registro de actividad' },
+    { name: 'Configuración', href: '/dashboard/settings', icon: 'Settings', description: 'Ajustes generales, seguridad e integraciones' },
+    { name: 'Analíticas', href: '/dashboard/analytics', icon: 'BarChart3', description: 'Métricas SaaS, actividad de usuarios y módulos' }
+  ];
+
+  for (const mod of requiredModules) {
+    const existing = await prisma.module.findUnique({ where: { name: mod.name } });
+    if (!existing) {
+      const created = await prisma.module.create({
+        data: {
+          name: mod.name,
+          href: mod.href,
+          icon: mod.icon,
+          description: mod.description,
+          isActive: true
+        }
+      });
+      
+      const superRole = await prisma.role.findUnique({ where: { name: 'SUPERADMIN' } });
+      if (superRole) {
+        await prisma.roleModule.create({
+          data: { roleId: superRole.id, moduleId: created.id }
+        }).catch(() => {});
+      }
+
+      const adminRoleObj = await prisma.role.findUnique({ where: { name: 'ADMIN' } });
+      if (adminRoleObj) {
+        await prisma.roleModule.create({
+          data: { roleId: adminRoleObj.id, moduleId: created.id }
+        }).catch(() => {});
+      }
+
+      const companies = await prisma.company.findMany({ select: { id: true } });
+      for (const comp of companies) {
+        await prisma.companyModule.create({
+          data: { companyId: comp.id, moduleId: created.id }
+        }).catch(() => {});
+      }
+    }
+  }
+
   let allowedModules: any[] = [];
   let companyTheme: any = null;
   

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
+import { logActivity } from '@/lib/audit';
 
 const userCreateSchema = z.object({
   name: z.string().min(2, 'El nombre completo es obligatorio'),
@@ -41,18 +42,27 @@ export async function createUser(formData: FormData) {
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 10);
 
-  await prisma.user.create({
-    data: {
-      name: parsed.data.name,
-      email: parsed.data.email,
-      password: passwordHash,
-      roleId: parsed.data.roleId,
-      companyId: parsed.data.companyId || undefined,
-    },
-  });
+    const newUser = await prisma.user.create({
+      data: {
+        name: parsed.data.name,
+        email: parsed.data.email,
+        password: passwordHash,
+        roleId: parsed.data.roleId,
+        companyId: parsed.data.companyId || undefined,
+      },
+    });
 
-  revalidatePath('/dashboard/users');
-  return { success: true };
+    await logActivity({
+      module: 'USERS',
+      action: 'CREATE',
+      entity: 'User',
+      entityId: newUser.id,
+      description: `Creó al usuario "${newUser.name}" (Email: ${newUser.email})`,
+      newValues: newUser
+    });
+
+    revalidatePath('/dashboard/users');
+    return { success: true };
 }
 
 export async function updateUser(formData: FormData) {
@@ -82,10 +92,23 @@ export async function updateUser(formData: FormData) {
   }
 
   try {
-    await prisma.user.update({
+    const userBefore = await prisma.user.findUnique({ where: { id } });
+
+    const updated = await prisma.user.update({
       where: { id },
       data,
     });
+
+    await logActivity({
+      module: 'USERS',
+      action: 'UPDATE',
+      entity: 'User',
+      entityId: id,
+      description: `Actualizó los datos del usuario "${updated.name}" (Email: ${updated.email})`,
+      oldValues: userBefore,
+      newValues: updated
+    });
+
     revalidatePath('/dashboard/users');
     return { success: true };
   } catch (error: any) {
@@ -100,7 +123,20 @@ export async function deleteUser(formData: FormData) {
   const id = Number(formData.get('id'));
   if (!id || isNaN(id)) return { success: false, error: 'ID inválida' };
 
+  const userBefore = await prisma.user.findUnique({ where: { id } });
+  if (!userBefore) return { success: false, error: 'Usuario no encontrado' };
+
   await prisma.user.delete({ where: { id } });
+
+  await logActivity({
+    module: 'USERS',
+    action: 'DELETE',
+    entity: 'User',
+    entityId: id,
+    description: `Eliminó al usuario "${userBefore.name}" (Email: ${userBefore.email})`,
+    oldValues: userBefore
+  });
+
   revalidatePath('/dashboard/users');
   return { success: true };
 }

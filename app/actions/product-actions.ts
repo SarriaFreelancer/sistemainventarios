@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { withTenantWhere, withTenantData } from '@/lib/tenant-db';
 import { getSessionCompanyId } from '@/lib/session';
 import { ProductStatus } from '@prisma/client';
+import { logActivity } from '@/lib/audit';
 
 const productSchema = z.object({
   code: z.string().min(2, 'El código es obligatorio'),
@@ -58,7 +59,16 @@ export async function createProduct(formData: FormData) {
       productGroupId: parsed.data.productGroupId || null,
     });
 
-    await prisma.product.create({ data });
+    const newProduct = await prisma.product.create({ data });
+
+    await logActivity({
+      module: 'PRODUCTS',
+      action: 'CREATE',
+      entity: 'Product',
+      entityId: newProduct.id,
+      description: `Creó el producto "${newProduct.name}" (Código: ${newProduct.code})`,
+      newValues: newProduct
+    });
 
     revalidatePath('/dashboard/products');
     return { success: true };
@@ -106,7 +116,7 @@ export async function updateProduct(formData: FormData) {
     const quantity = parsed.data.quantityAvailable;
     const status = quantity === 0 ? ProductStatus.OUT_OF_STOCK : ProductStatus.AVAILABLE;
 
-    await prisma.product.update({
+    const updated = await prisma.product.update({
       where: { id },
       data: {
         code: parsed.data.code,
@@ -119,6 +129,16 @@ export async function updateProduct(formData: FormData) {
         status,
         productGroupId: parsed.data.productGroupId || null,
       },
+    });
+
+    await logActivity({
+      module: 'PRODUCTS',
+      action: 'UPDATE',
+      entity: 'Product',
+      entityId: id,
+      description: `Actualizó el producto "${updated.name}" (Código: ${updated.code})`,
+      oldValues: product, // Obtenido en la línea 93
+      newValues: updated
     });
 
     revalidatePath('/dashboard/products');
@@ -145,6 +165,16 @@ export async function deleteProduct(idInput: any) {
     }
 
     await prisma.product.delete({ where: { id } });
+
+    await logActivity({
+      module: 'PRODUCTS',
+      action: 'DELETE',
+      entity: 'Product',
+      entityId: id,
+      description: `Eliminó el producto "${product.name}" (Código: ${product.code})`,
+      oldValues: product
+    });
+
     revalidatePath('/dashboard/products');
     return { success: true };
   } catch (error: any) {

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { withTenantWhere, withTenantData } from '@/lib/tenant-db';
+import { logActivity } from '@/lib/audit';
 
 const supplierSchema = z.object({
   companyName: z.string().min(2, 'El nombre es obligatorio'),
@@ -61,7 +62,17 @@ export async function createSupplier(formData: FormData) {
       code: parsed.data.code,
     });
 
-    await prisma.supplier.create({ data });
+    const newSupplier = await prisma.supplier.create({ data });
+
+    await logActivity({
+      module: 'SUPPLIERS',
+      action: 'CREATE',
+      entity: 'Supplier',
+      entityId: newSupplier.id,
+      description: `Creó el proveedor "${newSupplier.companyName}" (NIT/Código: ${newSupplier.code})`,
+      newValues: newSupplier
+    });
+
     revalidatePath('/dashboard/suppliers');
     return { success: true };
   } catch (error: any) {
@@ -118,7 +129,7 @@ export async function updateSupplier(formData: FormData) {
       return { success: false, error: 'Ya existe otro proveedor con este correo electrónico' };
     }
 
-    await prisma.supplier.update({
+    const updated = await prisma.supplier.update({
       where: { id },
       data: {
         companyName: parsed.data.companyName,
@@ -131,6 +142,16 @@ export async function updateSupplier(formData: FormData) {
         status: parsed.data.status,
         code: parsed.data.code,
       },
+    });
+
+    await logActivity({
+      module: 'SUPPLIERS',
+      action: 'UPDATE',
+      entity: 'Supplier',
+      entityId: id,
+      description: `Actualizó el proveedor "${updated.companyName}" (NIT/Código: ${updated.code})`,
+      oldValues: sup, // Obtenido en la línea 96
+      newValues: updated
     });
 
     revalidatePath('/dashboard/suppliers');
@@ -163,6 +184,16 @@ export async function deleteSupplier(formData: FormData) {
     }
 
     await prisma.supplier.delete({ where: { id } });
+
+    await logActivity({
+      module: 'SUPPLIERS',
+      action: 'DELETE',
+      entity: 'Supplier',
+      entityId: id,
+      description: `Eliminó el proveedor "${sup.companyName}" (NIT/Código: ${sup.code})`,
+      oldValues: sup
+    });
+
     revalidatePath('/dashboard/suppliers');
     return { success: true };
   } catch (error: any) {

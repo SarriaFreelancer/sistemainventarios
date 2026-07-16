@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { withTenantWhere, withTenantData } from '@/lib/tenant-db';
+import { logActivity } from '@/lib/audit';
 
 const groupSchema = z.object({
   name: z.string().min(2, 'El nombre es obligatorio'),
@@ -35,7 +36,17 @@ export async function createGroup(formData: FormData) {
       code: parsed.data.code,
     });
 
-    await prisma.productGroup.create({ data });
+    const newGroup = await prisma.productGroup.create({ data });
+
+    await logActivity({
+      module: 'GROUPS',
+      action: 'CREATE',
+      entity: 'ProductGroup',
+      entityId: newGroup.id,
+      description: `Creó el grupo de productos "${newGroup.name}" (Código: ${newGroup.code})`,
+      newValues: newGroup
+    });
+
     revalidatePath('/dashboard/groups');
     revalidatePath('/dashboard/products');
     return { success: true };
@@ -79,13 +90,23 @@ export async function updateGroup(formData: FormData) {
       return { success: false, error: 'Ya existe otro grupo con ese nombre' };
     }
 
-    await prisma.productGroup.update({
+    const updated = await prisma.productGroup.update({
       where: { id },
       data: {
         name: parsed.data.name,
         status: parsed.data.status,
         code: parsed.data.code,
       },
+    });
+
+    await logActivity({
+      module: 'GROUPS',
+      action: 'UPDATE',
+      entity: 'ProductGroup',
+      entityId: id,
+      description: `Actualizó el grupo de productos "${updated.name}" (Código: ${updated.code})`,
+      oldValues: group, // Obtenido en la línea 67
+      newValues: updated
     });
 
     revalidatePath('/dashboard/groups');
@@ -128,6 +149,16 @@ export async function deleteGroup(formData: FormData) {
     }
 
     await prisma.productGroup.delete({ where: { id } });
+
+    await logActivity({
+      module: 'GROUPS',
+      action: 'DELETE',
+      entity: 'ProductGroup',
+      entityId: id,
+      description: `Eliminó el grupo de productos "${group.name}" (Código: ${group.code})`,
+      oldValues: group
+    });
+
     revalidatePath('/dashboard/groups');
     revalidatePath('/dashboard/products');
     return { success: true };

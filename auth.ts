@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth/next';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { prisma } from './lib/prisma';
+import { logLoginAttempt } from './lib/audit';
 
 export const authOptions: AuthOptions = {
   session: { strategy: 'jwt' },
@@ -24,11 +25,32 @@ export const authOptions: AuthOptions = {
 
         const user = await prisma.user.findUnique({ where: { email: parsed.data.email }, include: { role: true } });
         console.log('authorize: found user', !!user, parsed.data.email);
-        if (!user) return null;
+        if (!user) {
+          await logLoginAttempt({
+            email: parsed.data.email,
+            status: "FAILED",
+            reason: "USER_NOT_FOUND"
+          });
+          return null;
+        }
 
         const valid = await bcrypt.compare(parsed.data.password, user.password);
         console.log('authorize: password valid?', valid);
-        if (!valid) return null;
+        if (!valid) {
+          await logLoginAttempt({
+            userId: user.id,
+            email: parsed.data.email,
+            status: "FAILED",
+            reason: "WRONG_PASSWORD"
+          });
+          return null;
+        }
+
+        await logLoginAttempt({
+          userId: user.id,
+          email: parsed.data.email,
+          status: "SUCCESS"
+        });
 
         return {
           id: String(user.id),

@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { withTenantWhere, withTenantData } from '@/lib/tenant-db';
 import { getSessionCompanyId } from '@/lib/session';
+import { logActivity } from '@/lib/audit';
 
 const saleSchema = z.object({
   userId: z.coerce.number().min(1),
@@ -158,7 +159,16 @@ export async function createSale(data: {
         }
       }
 
-      return { saleNumber, total };
+      return { id: createdSale.id, saleNumber, total, sale: createdSale };
+    });
+
+    await logActivity({
+      module: 'SALES',
+      action: 'CREATE',
+      entity: 'Sale',
+      entityId: result.id,
+      description: `Registró la venta "${result.saleNumber}" en estado ${status} (Total: $${result.total.toLocaleString()})`,
+      newValues: result.sale
     });
 
     revalidatePath('/dashboard/sales');
@@ -223,7 +233,7 @@ export async function completePendingSale(saleIdInput: any, updateData?: {
       }
 
       // Actualizar estado de la venta y datos finales
-      await tx.sale.update({
+      const updated = await tx.sale.update({
         where: { id: saleId },
         data: {
           status: 'COMPLETED',
@@ -238,12 +248,22 @@ export async function completePendingSale(saleIdInput: any, updateData?: {
         }
       });
 
-      return { success: true };
+      return { oldValues: sale, newValues: updated };
+    });
+
+    await logActivity({
+      module: 'SALES',
+      action: 'UPDATE',
+      entity: 'Sale',
+      entityId: saleId,
+      description: `Completó y cobró la venta pendiente "${result.newValues.saleNumber}" (Total final: $${result.newValues.total.toLocaleString()})`,
+      oldValues: result.oldValues,
+      newValues: result.newValues
     });
 
     revalidatePath('/dashboard/sales');
     revalidatePath('/dashboard/products');
-    return result;
+    return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message ?? 'Error al completar la venta' };
   }
@@ -292,7 +312,7 @@ export async function voidSale(data: {
       }
 
       // Marcar como anulada
-      await tx.sale.update({
+      const updated = await tx.sale.update({
         where: { id: saleId },
         data: {
           status: 'VOIDED',
@@ -302,12 +322,22 @@ export async function voidSale(data: {
         }
       });
 
-      return { success: true };
+      return { oldValues: sale, newValues: updated };
+    });
+
+    await logActivity({
+      module: 'SALES',
+      action: 'VOID',
+      entity: 'Sale',
+      entityId: saleId,
+      description: `Anuló la venta "${result.newValues.saleNumber}". Motivo: ${reason}`,
+      oldValues: result.oldValues,
+      newValues: result.newValues
     });
 
     revalidatePath('/dashboard/sales');
     revalidatePath('/dashboard/products');
-    return result;
+    return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message ?? 'Error al anular la venta' };
   }

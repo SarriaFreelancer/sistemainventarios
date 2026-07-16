@@ -16,13 +16,14 @@ interface ModuleConfig {
 
 export function DashboardShell({ children, session, modules, themeConfig, companyName }: { 
   children: React.ReactNode; 
-  session: { user?: { name?: string | null; email?: string | null; role?: string; companyId?: string | null } | null };
+  session: { user?: { id?: string | number; name?: string | null; email?: string | null; role?: string; companyId?: string | null; image?: string | null } | null };
   modules?: ModuleConfig[];
   themeConfig?: { primaryColor?: string; mode?: string } | null;
   companyName?: string;
 }) {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [mounted, setMounted] = useState(false);
 
@@ -139,21 +140,77 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                 {theme === 'dark' ? <LucideIcons.Sun size={16} className="text-primary" /> : <LucideIcons.Moon size={16} className="text-primary" />}
               </button>
 
-              {/* Logout Button */}
-              <button
-                onClick={async () => {
-                  const { confirmAction } = await import('@/lib/sweetalert');
-                  const confirmed = await confirmAction('¿Cerrar Sesión?', '¿Estás seguro que deseas salir del sistema?', 'Sí, salir', 'Cancelar');
-                  if (confirmed) {
-                    const { signOut } = await import('next-auth/react');
-                    await signOut({ callbackUrl: '/auth/login' });
-                  }
-                }}
-                className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-rose-500 hover:text-white hover:border-rose-500 transition-all active:scale-95 shadow-sm"
-              >
-                <LucideIcons.LogOut size={16} />
-                <span className="hidden sm:inline">Salir</span>
-              </button>
+              {/* User Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                  className="flex items-center gap-2.5 rounded-xl border border-border bg-card p-1.5 pr-3 text-foreground hover:bg-muted transition-all active:scale-95 shadow-sm"
+                >
+                  <div className="w-8 h-8 rounded-full overflow-hidden border border-primary/20">
+                    <img 
+                      src={session.user?.image || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80"} 
+                      alt="Avatar" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="hidden md:flex flex-col text-left">
+                    <span className="text-xs font-bold leading-none text-foreground">{session.user?.name || "Usuario"}</span>
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase mt-0.5">{session.user?.role || "Colaborador"}</span>
+                  </div>
+                  <LucideIcons.ChevronDown size={14} className={`text-muted-foreground transition duration-300 ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {isProfileDropdownOpen && (
+                  <>
+                    {/* Backdrop para cerrar al hacer click fuera */}
+                    <div className="fixed inset-0 z-10" onClick={() => setIsProfileDropdownOpen(false)} />
+                    
+                    {/* Dropdown Menu */}
+                    <div className="absolute right-0 top-11 z-20 mt-2 w-56 origin-top-right rounded-2xl border border-border bg-card p-2.5 shadow-xl animate-in fade-in slide-in-from-top-3 duration-200">
+                      <div className="px-3.5 py-2 border-b border-border/60 mb-2">
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase">Sesión activa</p>
+                        <p className="text-xs font-semibold text-foreground truncate mt-0.5">{session.user?.email || ""}</p>
+                      </div>
+                      
+                      <Link
+                        href="/dashboard/profile"
+                        onClick={() => setIsProfileDropdownOpen(false)}
+                        className="flex w-full items-center gap-2.5 rounded-xl px-3.5 py-2 text-sm font-semibold text-foreground hover:bg-primary/10 hover:text-primary transition"
+                      >
+                        <LucideIcons.User size={16} />
+                        Mi Perfil
+                      </Link>
+                      
+                      <Link
+                        href="/dashboard/profile"
+                        onClick={() => setIsProfileDropdownOpen(false)}
+                        className="flex w-full items-center gap-2.5 rounded-xl px-3.5 py-2 text-sm font-semibold text-foreground hover:bg-primary/10 hover:text-primary transition"
+                      >
+                        <LucideIcons.Key size={16} />
+                        Seguridad
+                      </Link>
+
+                      <div className="border-t border-border/60 my-2" />
+
+                      <button
+                        onClick={async () => {
+                          setIsProfileDropdownOpen(false);
+                          const { confirmAction } = await import('@/lib/sweetalert');
+                          const confirmed = await confirmAction('¿Cerrar Sesión?', '¿Estás seguro que deseas salir del sistema?', 'Sí, salir', 'Cancelar');
+                          if (confirmed) {
+                            const { signOut } = await import('next-auth/react');
+                            await signOut({ callbackUrl: '/auth/login' });
+                          }
+                        }}
+                        className="flex w-full items-center gap-2.5 rounded-xl px-3.5 py-2 text-sm font-semibold text-rose-500 hover:bg-rose-500/10 transition"
+                      >
+                        <LucideIcons.LogOut size={16} />
+                        Cerrar Sesión
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </header>
 

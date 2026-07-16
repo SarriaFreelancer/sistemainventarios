@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { withTenantWhere, withTenantData } from '@/lib/tenant-db';
+import { logActivity } from '@/lib/audit';
 
 const categorySchema = z.object({
   name: z.string().min(2, 'El nombre es obligatorio'),
@@ -41,7 +42,17 @@ export async function createCategory(formData: FormData) {
       code: parsed.data.code,
     });
 
-    await prisma.category.create({ data });
+    const newCategory = await prisma.category.create({ data });
+
+    await logActivity({
+      module: 'CATEGORIES',
+      action: 'CREATE',
+      entity: 'Category',
+      entityId: newCategory.id,
+      description: `Creó la categoría "${newCategory.name}" (Código: ${newCategory.code})`,
+      newValues: newCategory
+    });
+
     revalidatePath('/dashboard/categories');
     return { success: true };
   } catch (error: any) {
@@ -86,7 +97,7 @@ export async function updateCategory(formData: FormData) {
       return { success: false, error: 'Ya existe otra categoría con ese nombre' };
     }
 
-    await prisma.category.update({
+    const updated = await prisma.category.update({
       where: { id },
       data: {
         name: parsed.data.name,
@@ -95,6 +106,16 @@ export async function updateCategory(formData: FormData) {
         productGroupId: parsed.data.productGroupId,
         code: parsed.data.code,
       },
+    });
+
+    await logActivity({
+      module: 'CATEGORIES',
+      action: 'UPDATE',
+      entity: 'Category',
+      entityId: id,
+      description: `Actualizó la categoría "${updated.name}" (Código: ${updated.code})`,
+      oldValues: cat, // Obtenido en la línea 74
+      newValues: updated
     });
 
     revalidatePath('/dashboard/categories');
@@ -127,6 +148,16 @@ export async function deleteCategory(formData: FormData) {
     }
 
     await prisma.category.delete({ where: { id } });
+
+    await logActivity({
+      module: 'CATEGORIES',
+      action: 'DELETE',
+      entity: 'Category',
+      entityId: id,
+      description: `Eliminó la categoría "${cat.name}" (Código: ${cat.code})`,
+      oldValues: cat
+    });
+
     revalidatePath('/dashboard/categories');
     return { success: true };
   } catch (error: any) {

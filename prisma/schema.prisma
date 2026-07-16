@@ -184,24 +184,28 @@ model ProductGroup {
   @@unique([name, companyId])
   @@index([companyId])
 }
-
 model User {
-  id            Int          @id @default(autoincrement())
-  name          String
-  email         String       @unique
-  password      String
-  image         String?
-  roleId        Int?
-  role          Role?        @relation(fields: [roleId], references: [id])
-  companyId     Int?
-  company       Company?     @relation(fields: [companyId], references: [id])
-  rememberMe    Boolean      @default(false)
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  auditLogs     AuditLog[]
-  sales         Sale[]
-  voidedSales   Sale[]       @relation("VoidedSales")
-  activities    Activity[]
+  id              Int            @id @default(autoincrement())
+  name            String
+  email           String         @unique
+  password        String
+  image           String?
+  roleId          Int?
+  role            Role?          @relation(fields: [roleId], references: [id])
+  companyId       Int?
+  company         Company?       @relation(fields: [companyId], references: [id])
+  position        String?        // Cargo o puesto (e.g., "Vendedor", "Gerente")
+  preferences     Json?          // Preferencias de UI/tema (e.g., {"theme": "dark"})
+  lastLogin       DateTime?      // Fecha/hora del último inicio de sesión
+  rememberMe      Boolean        @default(false)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  auditLogs       AuditLog[]
+  loginHistories  LoginHistory[]
+  sessions        UserSession[]
+  sales           Sale[]
+  voidedSales     Sale[]         @relation("VoidedSales")
+  activities      Activity[]
 
   @@index([email])
   @@index([companyId])
@@ -216,7 +220,6 @@ model Role {
   modules     RoleModule[]
   users       User[]
 }
-
 model Company {
   id                 Int                 @id @default(autoincrement())
   name               String              @unique
@@ -225,6 +228,7 @@ model Company {
   country            String              @default("Colombia")
   status             String              @default("ACTIVE")
   themeConfig        Json?
+  setting            CompanySetting?
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
   users              User[]
@@ -241,6 +245,8 @@ model Company {
   sales              Sale[]
   saleDetails        SaleDetail[]
   auditLogs          AuditLog[]
+  loginHistories     LoginHistory[]
+  sessions           UserSession[]
   discounts          Discount[]
   leads              Lead[]
   contacts           Contact[]
@@ -373,22 +379,33 @@ model SaleDetail {
   @@index([productId])
   @@index([companyId])
 }
-
 model AuditLog {
-  id        Int      @id @default(autoincrement())
-  userId    Int?
-  action    String
-  entity    String
-  details   String?  @db.Text
-  companyId Int?
-  company   Company? @relation(fields: [companyId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User?    @relation(fields: [userId], references: [id])
+  id              Int      @id @default(autoincrement())
+  companyId       Int?
+  company         Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userId          Int?
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  module          String   // e.g., "PRODUCTS", "SALES", "USERS", "COMPANY"
+  action          String   // e.g., "CREATE", "UPDATE", "DELETE", "VOID", "EXPORT"
+  entity          String   // e.g., "Product", "Sale", "Category"
+  entityId        Int?
+  description     String   @db.Text
+  oldValues       Json?    // Valores antes del cambio (para updates)
+  newValues       Json?    // Valores después del cambio
+  ip              String?
+  browser         String?
+  operatingSystem String?
+  device          String?
+  country         String?
+  city            String?
+  sessionId       String?
+  createdAt       DateTime @default(now())
 
-  @@index([entity])
-  @@index([createdAt])
   @@index([companyId])
+  @@index([userId])
+  @@index([module])
+  @@index([action])
+  @@index([createdAt])
 }
 
 model Discount {
@@ -522,7 +539,6 @@ model Activity {
   @@index([userId])
   @@index([customerId])
 }
-
 model Quote {
   id          Int       @id @default(autoincrement())
   quoteNumber String    @unique
@@ -538,4 +554,74 @@ model Quote {
 
   @@index([companyId])
   @@index([customerId])
+}
+
+model LoginHistory {
+  id              Int      @id @default(autoincrement())
+  userId          Int?
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  email           String   // Email ingresado
+  companyId       Int?
+  company         Company? @relation(fields: [companyId], references: [id])
+  ip              String?
+  browser         String?
+  operatingSystem String?
+  device          String?
+  country         String?
+  city            String?
+  status          String   // "SUCCESS", "FAILED"
+  reason          String?  // e.g., "WRONG_PASSWORD"
+  createdAt       DateTime @default(now())
+
+  @@index([companyId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model UserSession {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyId       Int?
+  company         Company? @relation(fields: [companyId], references: [id])
+  token           String   @unique
+  ip              String?
+  browser         String?
+  operatingSystem String?
+  expiresAt       DateTime
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+}
+
+model CompanySetting {
+  id                    Int      @id @default(autoincrement())
+  companyId             Int      @unique
+  company               Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  nit                   String?
+  phone                 String?
+  website               String?
+  socialMedia           Json?    // Redes sociales (Facebook, Instagram, etc.)
+  currency              String   @default("COP")
+  timezone              String   @default("America/Bogota")
+  dateFormat            String   @default("YYYY-MM-DD")
+  currencyFormat        String   @default("es-CO")
+  allowNegativeStock    Boolean  @default(false)
+  automaticCode         Boolean  @default(true)
+  decimals              Int      @default(0)
+  defaultIva            Float    @default(19.0)
+  invoicePrefix         String   @default("VEN")
+  invoiceConsecutive    Int      @default(1)
+  purchasePrefix        String   @default("COM")
+  purchaseConsecutive   Int      @default(1)
+  passwordMinLength     Int      @default(6)
+  maxLoginAttempts      Int      @default(5)
+  sessionTimeoutMinutes Int      @default(60)
+  enable2FA             Boolean  @default(false)
+  smtpHost              String?
+  smtpPort              Int?
+  smtpUser              String?
+  smtpPass              String?
+  backupFrequency       String   @default("DAILY") // MANUAL, DAILY, WEEKLY
+  updatedAt             DateTime @updatedAt
 }
