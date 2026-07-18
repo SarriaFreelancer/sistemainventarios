@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { getCompanySettings } from "@/app/actions/settings-actions";
 import { SettingsClient } from "./settings-client";
 
+import { getServers } from "@/app/actions/server-actions";
+
 export const metadata = {
   title: "Configuración del Sistema - GNS SarriaTech",
   description: "Ajustes de localización, inventario, facturación y seguridad.",
@@ -17,7 +19,9 @@ export default async function SettingsPage() {
     redirect("/dashboard");
   }
 
+  const isSuperAdmin = session.user.role === "SUPERADMIN";
   const result = await getCompanySettings();
+  const servers = isSuperAdmin ? await getServers() : [];
 
   return (
     <div className="flex-1 space-y-6">
@@ -28,8 +32,12 @@ export default async function SettingsPage() {
         </p>
       </div>
 
-      {result.success && result.settings ? (
-        <SettingsClient initialSettings={result.settings} />
+      {(result.success && result.settings) || isSuperAdmin ? (
+        <SettingsClient 
+          initialSettings={result.settings || {} as any} 
+          role={session.user.role}
+          initialServers={servers}
+        />
       ) : (
         <div className="rounded-2xl border border-destructive/20 bg-destructive/10 p-6 text-destructive">
           <p className="font-semibold">Error al cargar configuración</p>

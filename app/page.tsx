@@ -4,13 +4,13 @@ import {
   ArrowRight, Sparkles, Check, ShieldCheck, TrendingUp,
   BarChart3, Zap, Globe, Lock, Award, Play
 } from 'lucide-react';
-import { prisma } from '@/lib/prisma';
+import { platformDb } from '@/lib/db-manager';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function HomePage() {
-  const dbModules = await prisma.module.findMany({
+  const dbModules = await platformDb.module.findMany({
     where: { isActive: true },
     orderBy: { createdAt: 'asc' }
   });

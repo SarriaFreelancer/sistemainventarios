@@ -5,6 +5,8 @@ import * as LucideIcons from "lucide-react";
 import { updateCompanySettings } from "@/app/actions/settings-actions";
 import { successAlert, errorAlert } from "@/lib/sweetalert";
 import { useRouter } from "next/navigation";
+import { ServersManager } from "./servers-manager";
+import { MigrationsManager } from "./migrations-manager";
 
 interface CompanySetting {
   id: number;
@@ -39,12 +41,15 @@ interface CompanySetting {
 
 interface SettingsClientProps {
   initialSettings: CompanySetting;
+  role?: string;
+  initialServers?: any[];
 }
 
-export function SettingsClient({ initialSettings }: SettingsClientProps) {
+export function SettingsClient({ initialSettings, role, initialServers = [] }: SettingsClientProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"company" | "inventory" | "security" | "integrations" | "invoice">("company");
+  const [activeTab, setActiveTab] = useState<"company" | "inventory" | "security" | "integrations" | "invoice" | "servers" | "databases" | "migrations">("company");
   const [saving, setSaving] = useState(false);
+  const isSuperAdmin = role === "SUPERADMIN";
 
   // Estados locales para los campos
   const [nit, setNit] = useState(initialSettings.nit || "");
@@ -215,10 +220,68 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
           <LucideIcons.Receipt size={16} />
           Facturación Personalizada
         </button>
+
+        {isSuperAdmin && (
+          <>
+            <div className="pt-4 pb-1">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-4">Gestión de Infraestructura</span>
+            </div>
+            <button
+              onClick={() => setActiveTab("servers")}
+              className={`flex w-full items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                activeTab === "servers" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
+              }`}
+            >
+              <LucideIcons.Server size={16} />
+              Servidores
+            </button>
+            <button
+              onClick={() => setActiveTab("databases")}
+              className={`flex w-full items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                activeTab === "databases" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
+              }`}
+            >
+              <LucideIcons.Database size={16} />
+              Bases de Datos
+            </button>
+            <button
+              onClick={() => setActiveTab("migrations")}
+              className={`flex w-full items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                activeTab === "migrations" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
+              }`}
+            >
+              <LucideIcons.ArrowRightLeft size={16} />
+              Migraciones
+            </button>
+          </>
+        )}
       </div>
 
       {/* ── Contenedor del Formulario ── */}
-      <form onSubmit={handleSubmit} className="lg:col-span-3 bg-card rounded-2xl border border-border p-6 shadow-sm space-y-6">
+      <div className="lg:col-span-3">
+        {activeTab === "servers" && isSuperAdmin && (
+          <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
+            <ServersManager servers={initialServers} />
+          </div>
+        )}
+
+        {activeTab === "databases" && isSuperAdmin && (
+          <div className="bg-card rounded-2xl border border-border p-6 shadow-sm flex flex-col items-center justify-center py-20">
+            <LucideIcons.Database size={48} className="text-muted-foreground mb-4" />
+            <h3 className="font-bold text-lg">Bases de Datos y Mapeo</h3>
+            <p className="text-sm text-muted-foreground">Próximamente: Panel de administración de Shared/Dedicated DBs</p>
+          </div>
+        )}
+
+        {activeTab === "migrations" && isSuperAdmin && (
+          <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
+            <MigrationsManager servers={initialServers} />
+          </div>
+        )}
+
+      {/* Renderizamos el form solo para tabs no-infraestructura */}
+      {["company", "inventory", "security", "integrations", "invoice"].includes(activeTab) && (
+      <form onSubmit={handleSubmit} className="bg-card rounded-2xl border border-border p-6 shadow-sm space-y-6">
         
         {/* PESTAÑA: DATOS DE EMPRESA */}
         {activeTab === "company" && (
@@ -707,6 +770,8 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
           </button>
         </div>
       </form>
+      )}
+      </div>
     </div>
   );
 }

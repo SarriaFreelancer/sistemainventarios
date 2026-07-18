@@ -1,0 +1,252 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../node_modules/@prisma-platform/client"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("PLATFORM_DATABASE_URL")
+}
+
+enum DatabaseEngine {
+  MYSQL
+  POSTGRESQL
+  SQLSERVER
+}
+
+enum DatabaseType {
+  SHARED
+  DEDICATED
+}
+
+enum RoleName {
+  ADMIN
+  SUPERADMIN
+  USER
+}
+
+model Server {
+  id          String   @id @default(cuid())
+  name        String
+  engine      DatabaseEngine
+  host        String
+  port        Int
+  username    String
+  password    String // cifrada
+  ssl         Boolean  @default(false)
+  active      Boolean  @default(true)
+
+  companies   Company[]
+}
+
+model Company {
+  id            String   @id @default(cuid())
+  name          String   @unique
+  planId        String?
+
+  serverId      String
+  server        Server   @relation(fields: [serverId], references: [id])
+
+  databaseName  String
+  databaseType  DatabaseType // SHARED | DEDICATED
+
+  currentVersion String?
+  active         Boolean @default(true)
+
+  // Legacy fields
+  address            String?
+  city               String?
+  country            String              @default("Colombia")
+  status             String              @default("ACTIVE")
+  themeConfig        Json?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  users              User[]
+  modules            CompanyModule[]
+  setting            CompanySetting?
+  auditLogs          AuditLog[]
+  loginHistories     LoginHistory[]
+  sessions           UserSession[]
+}
+
+model User {
+  id              Int            @id @default(autoincrement())
+  name            String
+  email           String         @unique
+  password        String
+  image           String?
+  roleId          Int?
+  role            Role?          @relation(fields: [roleId], references: [id])
+  companyId       String?
+  company         Company?       @relation(fields: [companyId], references: [id])
+  position        String?
+  preferences     Json?
+  lastLogin       DateTime?
+  rememberMe      Boolean        @default(false)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  auditLogs       AuditLog[]
+  loginHistories  LoginHistory[]
+  sessions        UserSession[]
+
+  @@index([email])
+  @@index([companyId])
+}
+
+model Role {
+  id          Int              @id @default(autoincrement())
+  name        RoleName         @unique
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  permissions RolePermission[]
+  modules     RoleModule[]
+  users       User[]
+}
+
+model AuditLog {
+  id              Int      @id @default(autoincrement())
+  companyId       String?
+  company         Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userId          Int?
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  module          String
+  action          String
+  entity          String
+  entityId        Int?
+  description     String   @db.Text
+  oldValues       Json?
+  newValues       Json?
+  ip              String?
+  browser         String?
+  operatingSystem String?
+  device          String?
+  country         String?
+  city            String?
+  sessionId       String?
+  createdAt       DateTime @default(now())
+
+  @@index([companyId])
+  @@index([userId])
+}
+
+model Setting {
+  key   String @id
+  value String
+}
+
+model Permission {
+  id       Int              @id @default(autoincrement())
+  action   String
+  resource String
+  roles    RolePermission[]
+}
+
+model RolePermission {
+  roleId       Int
+  permissionId Int
+  role         Role       @relation(fields: [roleId], references: [id])
+  permission   Permission @relation(fields: [permissionId], references: [id])
+
+  @@id([roleId, permissionId])
+}
+
+model Module {
+  id          Int             @id @default(autoincrement())
+  name        String          @unique
+  description String?
+  isActive    Boolean         @default(true)
+  icon        String?
+  href        String?
+  roles       RoleModule[]
+  companies   CompanyModule[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model RoleModule {
+  roleId   Int
+  moduleId Int
+  role     Role   @relation(fields: [roleId], references: [id])
+  module   Module @relation(fields: [moduleId], references: [id])
+
+  @@id([roleId, moduleId])
+}
+
+model CompanyModule {
+  companyId String
+  moduleId  Int
+  company   Company @relation(fields: [companyId], references: [id])
+  module    Module  @relation(fields: [moduleId], references: [id])
+
+  @@id([companyId, moduleId])
+}
+
+model LoginHistory {
+  id              Int      @id @default(autoincrement())
+  userId          Int?
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  email           String
+  companyId       String?
+  company         Company? @relation(fields: [companyId], references: [id])
+  ip              String?
+  browser         String?
+  operatingSystem String?
+  device          String?
+  country         String?
+  city            String?
+  status          String
+  reason          String?
+  createdAt       DateTime @default(now())
+
+  @@index([companyId])
+}
+
+model UserSession {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyId       String?
+  company         Company? @relation(fields: [companyId], references: [id])
+  token           String   @unique
+  ip              String?
+  browser         String?
+  operatingSystem String?
+  expiresAt       DateTime
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+}
+
+model CompanySetting {
+  id                    Int      @id @default(autoincrement())
+  companyId             String   @unique
+  company               Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  nit                   String?
+  phone                 String?
+  website               String?
+  socialMedia           Json?
+  invoiceConfig         Json?
+  currency              String   @default("COP")
+  timezone              String   @default("America/Bogota")
+  dateFormat            String   @default("YYYY-MM-DD")
+  currencyFormat        String   @default("es-CO")
+  allowNegativeStock    Boolean  @default(false)
+  automaticCode         Boolean  @default(true)
+  decimals              Int      @default(0)
+  defaultIva            Float    @default(19.0)
+  invoicePrefix         String   @default("VEN")
+  invoiceConsecutive    Int      @default(1)
+  purchasePrefix        String   @default("COM")
+  purchaseConsecutive   Int      @default(1)
+  passwordMinLength     Int      @default(6)
+  maxLoginAttempts      Int      @default(5)
+  sessionTimeoutMinutes Int      @default(60)
+  enable2FA             Boolean  @default(false)
+  smtpHost              String?
+  smtpPort              Int?
+  smtpUser              String?
+  smtpPass              String?
+  backupFrequency       String   @default("DAILY")
+  updatedAt             DateTime @updatedAt
+}

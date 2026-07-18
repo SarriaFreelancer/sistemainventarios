@@ -240,7 +240,6 @@ export function ProductsClient({
             `Venta #${result.saleNumber} registrada y cobrada por ${result.total?.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}. El stock fue descontado automáticamente.`
           );
         }
-        router.refresh();
       } else {
         errorAlert('Error en Venta', result.error ?? 'No fue posible registrar la venta.');
       }

@@ -9,7 +9,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "prisma:generate": "prisma generate",
+    "prisma:generate": "prisma generate --schema=prisma/platform/schema.prisma && prisma generate --schema=prisma/tenant/schema.prisma",
+    "prisma:deploy:platform": "prisma migrate deploy --schema=prisma/platform/schema.prisma",
+    "prisma:deploy:tenant": "prisma migrate deploy --schema=prisma/tenant/schema.prisma",
+    "prisma:migrate:platform": "prisma migrate dev --schema=prisma/platform/schema.prisma",
+    "prisma:migrate:tenant": "prisma migrate dev --schema=prisma/tenant/schema.prisma",
     "db:seed": "prisma db seed"
   },
   "prisma": {

@@ -20,16 +20,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, ShoppingBag, PieChart as PieIcon, BarChart3, AlertCircle } from 'lucide-react';
 
 const COLORS = [
-  '#3B82F6', // Azul Vivo
-  '#10B981', // Esmeralda
-  '#FF6B6B', // Coral Vivo
-  '#EC4899', // Rosa
-  '#8B5CF6', // Violeta
-  '#06B6D4', // Cian
-  '#EF4444', // Rojo Vivo
-  '#84CC16', // Lima
-  '#6366F1', // Índigo
-  '#F43F5E'  // Fucsia
+  '#DC2626', // Red 600
+  '#EF4444', // Red 500
+  '#F87171', // Red 400
+  '#0F172A', // Slate 900
+  '#1E293B', // Slate 800
+  '#334155', // Slate 700
+  '#64748B', // Slate 500
+  '#94A3B8', // Slate 400
+  '#B91C1C', // Red 700
+  '#7F1D1D'  // Red 900
 ];
 
 interface SalesByMonth {
@@ -84,12 +84,12 @@ export function DashboardCharts({
             <AreaChart data={salesByMonth} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10B981" stopOpacity={0.4}/>
-                  <stop offset="95%" stopColor="#10B981" stopOpacity={0.02}/>
+                  <stop offset="5%" stopColor="#EF4444" stopOpacity={0.6}/>
+                  <stop offset="95%" stopColor="#EF4444" stopOpacity={0.02}/>
                 </linearGradient>
                 <linearGradient id="colorCost" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#EF4444" stopOpacity={0.4}/>
-                  <stop offset="95%" stopColor="#EF4444" stopOpacity={0.02}/>
+                  <stop offset="5%" stopColor="#1E293B" stopOpacity={0.4}/>
+                  <stop offset="95%" stopColor="#1E293B" stopOpacity={0.02}/>
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
@@ -105,8 +105,8 @@ export function DashboardCharts({
                 }}
               />
               <Legend verticalAlign="top" height={36} iconType="circle" />
-              <Area type="monotone" name="Ingresos" dataKey="revenue" stroke="#10B981" strokeWidth={2.5} fillOpacity={1} fill="url(#colorRevenue)" />
-              <Area type="monotone" name="Costos" dataKey="cost" stroke="#EF4444" strokeWidth={2.5} fillOpacity={1} fill="url(#colorCost)" />
+              <Area type="monotone" name="Ingresos" dataKey="revenue" stroke="#EF4444" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+              <Area type="monotone" name="Costos" dataKey="cost" stroke="#1E293B" strokeWidth={2.5} fillOpacity={1} fill="url(#colorCost)" />
             </AreaChart>
           </ResponsiveContainer>
         </CardContent>

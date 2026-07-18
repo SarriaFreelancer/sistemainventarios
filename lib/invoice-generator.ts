@@ -249,8 +249,7 @@ export async function generateInvoiceMedia(sale: InvoiceData, format: 'png' | 'j
   ctx.fillStyle = '#726A7A';
 
   const subtotal = sale.details.reduce((s, d) => s + d.subtotal, 0);
-  const totalItemDiscounts = sale.details.reduce((s, d) => s + d.discount, 0);
-  const productDiscounts = totalItemDiscounts - sale.discount;
+  const productDiscounts = sale.details.reduce((s, d) => s + d.discount, 0);
 
   ctx.fillText('SUBTOTAL DETALLES:', 600, yCursor);
   ctx.fillStyle = '#17121F';

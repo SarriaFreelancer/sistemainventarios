@@ -875,12 +875,12 @@ function SaleDetailDialog({ sale, invoiceConfig }: { sale: Sale; invoiceConfig?:
                 <span className="text-muted-foreground">Subtotal Productos</span>
                 <span className="font-semibold text-foreground">{fmt(sale.details.reduce((s, d) => s + d.subtotal, 0))}</span>
               </div>
-              {sale.details.reduce((s, d) => s + d.discount, 0) > 0 && (
+              {(sale.details.reduce((s, d) => s + d.discount, 0) > 0 || sale.discount > 0) && (
                 <div className="space-y-1">
-                  {sale.details.reduce((s, d) => s + d.discount, 0) - sale.discount > 0 && (
+                  {sale.details.reduce((s, d) => s + d.discount, 0) > 0 && (
                     <div className="flex justify-between text-red-500">
                       <span>Descuentos por Producto</span>
-                      <span>-{fmt(sale.details.reduce((s, d) => s + d.discount, 0) - sale.discount)}</span>
+                      <span>-{fmt(sale.details.reduce((s, d) => s + d.discount, 0))}</span>
                     </div>
                   )}
                   {sale.discount > 0 && (

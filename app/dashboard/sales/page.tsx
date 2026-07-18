@@ -20,6 +20,7 @@ export default async function SalesPage() {
     prisma.sale.findMany({
       where: whereTenant,
       include: {
+        company: { select: { name: true } },
         user: { select: { name: true } },
         details: {
           include: { product: { select: { name: true, code: true } } }
@@ -53,6 +54,7 @@ export default async function SalesPage() {
     voidedReason: s.voidedReason,
     createdAt: s.createdAt.toISOString(),
     user: { name: s.user?.name ?? null },
+    company: s.company ? { name: s.company.name } : undefined,
     details: s.details.map(d => ({
       id: String(d.id),
       productId: String(d.productId),
