@@ -42,16 +42,16 @@ interface AnalyticsClientProps {
 
 // Paleta de colores para gráficos
 const CHART_COLORS = [
-  "#3B82F6", // Azul Vivo
-  "#10B981", // Esmeralda
-  "#FF6B6B", // Coral Vivo
-  "#EC4899", // Rosa
-  "#8B5CF6", // Violeta
-  "#06B6D4", // Cian
-  "#EF4444", // Rojo Vivo
-  "#84CC16", // Lima
-  "#6366F1", // Índigo
-  "#F43F5E"  // Fucsia
+  "#0055FF", // Azul Fuerte
+  "#00C853", // Verde Fuerte
+  "#FF1744", // Coral Fuerte
+  "#FF007F", // Rosa Fuerte
+  "#7C00FF", // Violeta Fuerte
+  "#00E5FF", // Cian Fuerte
+  "#D50000", // Rojo Fuerte
+  "#AEEA00", // Lima Fuerte
+  "#3D5AFE", // Índigo Fuerte
+  "#F50057"  // Fucsia Fuerte
 ];
 
 // Formateador de moneda COP

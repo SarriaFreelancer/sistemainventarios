@@ -6,10 +6,7 @@ import { signIn } from 'next-auth/react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Eye, EyeOff, Sparkles, Mail, Lock, Check } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Eye, EyeOff, Sparkles, Mail, Lock, Check, ShieldCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { successAlert, errorAlert, brandAlert } from '@/lib/sweetalert';
 
@@ -25,9 +22,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      rememberMe: false
-    }
+    defaultValues: { rememberMe: false }
   });
 
   useEffect(() => {
@@ -36,13 +31,12 @@ export default function LoginPage() {
       const data = await response.json();
       setCsrfToken(data.csrfToken ?? '');
     }
-
     loadCsrf();
   }, []);
 
   const onSubmit = async (values: z.infer<typeof loginSchema>) => {
     if (!csrfToken) {
-      errorAlert('Error de Autenticación', 'No se pudo obtener el token de seguridad. Recarga la página e intenta de nuevo.');
+      errorAlert('Error de Autenticación', 'No se pudo obtener el token de seguridad.');
       return;
     }
 
@@ -61,8 +55,7 @@ export default function LoginPage() {
         router.push('/dashboard');
         return;
       }
-
-      errorAlert('Error de Autenticación', result?.error ? 'Credenciales incorrectas. Inténtalo de nuevo.' : 'No fue posible iniciar sesión.');
+      errorAlert('Error de Autenticación', result?.error ? 'Credenciales incorrectas.' : 'No fue posible iniciar sesión.');
     } catch (err) {
       errorAlert('Error de Conexión', 'Ocurrió un problema al comunicarse con el servidor.');
     }
@@ -71,199 +64,221 @@ export default function LoginPage() {
   const handleRecoverPassword = async () => {
     const { value: email } = await brandAlert.fire({
       title: 'Recuperar Contraseña',
-      text: 'Introduce tu dirección de correo electrónico y te enviaremos las instrucciones.',
+      text: 'Introduce tu correo y te enviaremos instrucciones.',
       input: 'email',
-      inputPlaceholder: 'tu-correo@sarriatech.com',
+      inputPlaceholder: 'tu-correo@empresa.com',
       showCancelButton: true,
-      confirmButtonText: 'Enviar instrucciones',
+      confirmButtonText: 'Enviar',
       cancelButtonText: 'Cancelar',
       customClass: {
-        popup: 'rounded-3xl border border-border bg-card text-foreground font-sans shadow-2xl p-6',
-        input: 'flex h-12 w-full rounded-xl border border-border bg-card px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-4 focus:ring-primary/15 focus:border-primary transition mt-4 mb-2',
-        confirmButton: 'bg-primary text-primary-foreground rounded-xl px-6 py-3 font-semibold text-sm hover:opacity-95 transition mr-2',
-        cancelButton: 'bg-secondary/10 hover:bg-secondary/20 border border-border text-foreground rounded-xl px-6 py-3 font-semibold text-sm transition ml-2',
+        popup: 'rounded-2xl border border-gray-100 shadow-2xl p-6 bg-white',
+        input: 'flex h-12 w-full rounded-xl border border-gray-200 px-4 py-2 mt-4 text-sm focus:ring-4 focus:ring-red-100 focus:border-red-500 transition',
+        confirmButton: 'bg-red-600 text-white rounded-xl px-6 py-2.5 font-bold text-sm transition',
+        cancelButton: 'bg-gray-100 text-gray-600 rounded-xl px-6 py-2.5 font-bold text-sm transition ml-2',
       },
       buttonsStyling: false,
     });
-
     if (email) {
-      successAlert('Enlace Enviado', `Hemos enviado las instrucciones a ${email}`);
+      successAlert('Enlace Enviado', `Instrucciones enviadas a ${email}`);
     }
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top_left,_rgba(185,28,28,0.08),_transparent_40%),radial-gradient(circle_at_bottom_right,_rgba(197,160,89,0.08),_transparent_45%),linear-gradient(135deg,_var(--background)_0%,_var(--background)_100%)] px-6 py-10 transition-colors duration-500">
-      <div className="grid w-full max-w-5xl overflow-hidden rounded-[40px] border border-border bg-card shadow-2xl lg:grid-cols-[1.05fr_0.95fr] transition-colors duration-500">
+    <main className="flex min-h-screen items-center justify-center relative overflow-hidden bg-slate-50">
+      
+      {/* ─── ESTILOS Y ANIMACIONES ─── */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        * { font-family: 'Inter', sans-serif; }
+
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes floatBlob {
+          0%, 100% { transform: translateY(0) scale(1); }
+          50% { transform: translateY(-30px) scale(1.05); }
+        }
         
-        {/* Panel Izquierdo: Branding & Visuals */}
-        <div className="relative hidden lg:flex flex-col justify-between overflow-hidden bg-gradient-to-b from-[#1c1112] to-[#0a0506] p-12 text-white">
-          {/* Abstract Satin Glow Shapes */}
-          <div className="absolute -left-20 -top-20 h-80 w-80 rounded-full bg-[#b91c1c]/10 blur-[100px]" />
-          <div className="absolute -right-20 -bottom-20 h-80 w-80 rounded-full bg-[#C5A059]/10 blur-[100px]" />
-          
-          {/* Floating gold sparkle sparkles */}
-          <div className="absolute inset-0 opacity-5 bg-[radial-gradient(#C5A059_1px,transparent_1px)] [background-size:24px_24px]" />
+        .anim-up { animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+        
+        .glass-card {
+          background: rgba(255, 255, 255, 0.95);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.8);
+          box-shadow: 0 40px 80px -20px rgba(15, 23, 42, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+        }
 
-          <div className="relative z-10 flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-primary to-[#C5A059] shadow-md shadow-red-900/30 text-white">
-              <Sparkles size={20} className="text-amber-100" />
-            </div>
-            <span className="font-display-lg text-xl tracking-[0.2em] font-semibold text-transparent bg-clip-text bg-gradient-to-r from-white to-[#C5A059]">
-              GNS SARRIATECH
-            </span>
-          </div>
+        .input-premium {
+          background: #f8fafc;
+          border: 1.5px solid #e2e8f0;
+          color: #0f172a;
+          transition: all 0.3s ease;
+        }
+        .input-premium:focus {
+          background: #ffffff;
+          border-color: #ef4444;
+          box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15);
+          outline: none;
+        }
 
-          <div className="relative z-10 my-auto space-y-6">
-            <p className="text-xs font-bold tracking-[0.3em] uppercase text-[#C5A059]">Gestión de Negocios</p>
-            <h1 className="text-4xl font-semibold leading-tight tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-[#C5A059]">
-              Control total e inteligente para su organización
-            </h1>
-            <p className="max-w-md text-sm leading-relaxed text-slate-400">
-              Bienvenido al sistema ERP corporativo de GNS SarriaTech. Supervise existencias, administre canales de facturación y analice tendencias comerciales desde una única plataforma unificada.
-            </p>
+        .btn-premium {
+          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+          box-shadow: 0 10px 25px rgba(220,38,38,0.3);
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .btn-premium:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 15px 35px rgba(220,38,38,0.45);
+        }
+        .btn-premium:active { transform: translateY(0); }
 
-            {/* Simulación visual de dashboard sutil en el branding panel */}
-            <div className="border border-white/10 rounded-2xl bg-white/5 p-4.5 space-y-3.5 backdrop-blur-sm max-w-sm mt-4">
-              <div className="flex items-center justify-between text-xs border-b border-white/5 pb-2">
-                <span className="text-slate-400 font-bold uppercase tracking-wider">Desempeño Mensual</span>
-                <span className="text-emerald-400 font-bold">+24.5%</span>
-              </div>
-              <div className="flex items-end justify-between gap-1.5 h-16 pt-2">
-                <div className="w-full bg-white/10 h-8 rounded" />
-                <div className="w-full bg-white/10 h-10 rounded" />
-                <div className="w-full bg-white/10 h-14 rounded" />
-                <div className="w-full bg-gradient-to-t from-primary to-[#C5A059] h-16 rounded shadow-md shadow-red-500/20" />
-              </div>
-            </div>
-          </div>
+        .custom-checkbox {
+          appearance: none;
+          width: 18px; height: 18px;
+          border: 2px solid #cbd5e1;
+          border-radius: 6px;
+          background: #fff;
+          position: relative;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .custom-checkbox:checked {
+          background: #dc2626; border-color: #dc2626;
+        }
+        .custom-checkbox:checked::after {
+          content: ''; position: absolute;
+          left: 5px; top: 2px;
+          width: 5px; height: 10px;
+          border: solid white;
+          border-width: 0 2px 2px 0;
+          transform: rotate(45deg);
+        }
+      `}} />
 
-          <div className="relative z-10 flex items-center justify-between border-t border-white/10 pt-6 text-xs text-slate-500">
-            <span>© 2026 GNS SarriaTech</span>
-            <span>Premium Business System</span>
-          </div>
+      {/* ─── FONDOS MODERNOS ─── */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+        <div style={{ position: 'absolute', top: '-10%', left: '-5%', width: '600px', height: '600px', background: 'radial-gradient(circle, rgba(239, 68, 68, 0.08) 0%, transparent 60%)', borderRadius: '50%', animation: 'floatBlob 12s ease-in-out infinite' }} />
+        <div style={{ position: 'absolute', bottom: '-15%', right: '-10%', width: '700px', height: '700px', background: 'radial-gradient(circle, rgba(15, 23, 42, 0.06) 0%, transparent 60%)', borderRadius: '50%', animation: 'floatBlob 15s ease-in-out infinite reverse' }} />
+        {/* Grid pattern sutil */}
+        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(15,23,42,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(15,23,42,0.03) 1px, transparent 1px)', backgroundSize: '40px 40px', opacity: 0.8 }} />
+      </div>
+
+      <Link href="/" className="absolute top-8 left-8 z-20 flex items-center gap-2 group anim-up">
+        <div className="w-10 h-10 rounded-xl bg-white border border-gray-200 shadow-sm flex items-center justify-center group-hover:scale-105 transition-transform">
+          <Sparkles size={18} className="text-red-600" />
         </div>
+        <div>
+          <div className="font-black text-sm text-slate-800 tracking-wider">GNS <span className="text-red-600">SARRIATECH</span></div>
+          <div className="text-[9px] font-bold text-slate-400 tracking-[0.1em] uppercase">Volver al inicio</div>
+        </div>
+      </Link>
 
-        {/* Panel Derecho: Formulario */}
-        <div className="flex flex-col justify-center p-8 sm:p-12 md:p-16">
-          <div className="mb-8">
-            {/* Small mobile branding header */}
-            <div className="lg:hidden flex items-center gap-2 mb-6">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-tr from-primary to-[#C5A059] text-white">
-                <Sparkles size={16} />
-              </div>
-              <span className="font-display-lg text-sm tracking-[0.2em] font-semibold text-foreground">
-                GNS SARRIATECH
-              </span>
+      {/* ─── TARJETA DE LOGIN CENTRADA ─── */}
+      <div className="z-10 w-full max-w-[440px] px-6">
+        <div className="glass-card rounded-[32px] p-10 anim-up delay-1 relative">
+          
+          {/* Header */}
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-slate-900 text-white shadow-xl mb-6 shadow-slate-900/20 ring-4 ring-white">
+              <Lock size={24} />
             </div>
-            
-            <h2 className="text-3xl font-bold tracking-tight text-foreground">
-              Iniciar Sesión
-            </h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Introduce tus credenciales corporativas para acceder al panel.
-            </p>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight">Bienvenido</h1>
+            <p className="text-sm text-slate-500 font-medium mt-2">Ingrese a su panel corporativo</p>
           </div>
 
-          <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
-            {/* Campo Correo */}
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-xs font-bold tracking-wider uppercase text-muted-foreground">
-                Correo Electrónico
-              </Label>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            {/* Input Email */}
+            <div className="space-y-1.5 anim-up delay-2">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-widest ml-1">Correo Electrónico</label>
               <div className="relative flex items-center">
-                <Mail className="absolute left-4 h-5 w-5 text-muted-foreground/45" />
-                <Input
-                  id="email"
+                <Mail className="absolute left-4 h-4 w-4 text-slate-400" />
+                <input
                   type="email"
-                  placeholder="nombre@empresa.com"
-                  autoComplete="email"
+                  placeholder="ejemplo@empresa.com"
                   {...register('email')}
-                  className="pl-12 border-border/80 bg-card/40 focus:bg-card focus:border-primary"
+                  className="input-premium w-full h-12 rounded-xl pl-11 pr-4 text-sm font-medium"
                 />
               </div>
               {errors.email && (
-                <p className="text-xs text-rose-500 font-semibold mt-1">
-                  {errors.email.message}
+                <p className="text-xs text-red-500 font-bold ml-1 flex items-center gap-1 mt-1">
+                  <span className="w-1 h-1 bg-red-500 rounded-full" /> {errors.email.message}
                 </p>
               )}
             </div>
 
-            {/* Campo Contraseña */}
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label htmlFor="password" className="text-xs font-bold tracking-wider uppercase text-muted-foreground">
-                  Contraseña
-                </Label>
+            {/* Input Password */}
+            <div className="space-y-1.5 anim-up delay-3">
+              <div className="flex items-center justify-between ml-1">
+                <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">Contraseña</label>
+                <button
+                  type="button"
+                  onClick={handleRecoverPassword}
+                  className="text-[11px] font-bold text-red-600 hover:text-red-700 transition-colors"
+                >
+                  ¿Olvidaste tu contraseña?
+                </button>
               </div>
               <div className="relative flex items-center">
-                <Lock className="absolute left-4 h-5 w-5 text-muted-foreground/45" />
-                <Input
-                  id="password"
+                <Lock className="absolute left-4 h-4 w-4 text-slate-400" />
+                <input
                   type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••••••"
-                  autoComplete="current-password"
                   {...register('password')}
-                  className="pl-12 pr-12 border-border/80 bg-card/40 focus:bg-card focus:border-primary"
+                  className="input-premium w-full h-12 rounded-xl pl-11 pr-12 text-sm font-medium"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 text-muted-foreground/50 hover:text-foreground transition-colors"
+                  className="absolute right-4 text-slate-400 hover:text-slate-700 transition-colors"
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
               {errors.password && (
-                <p className="text-xs text-rose-500 font-semibold mt-1">
-                  {errors.password.message}
+                <p className="text-xs text-red-500 font-bold ml-1 flex items-center gap-1 mt-1">
+                  <span className="w-1 h-1 bg-red-500 rounded-full" /> {errors.password.message}
                 </p>
               )}
             </div>
 
-            {/* Recordarme y Recuperar Contraseña */}
-            <div className="flex items-center justify-between text-xs sm:text-sm">
-              <label className="flex items-center gap-2 cursor-pointer select-none text-muted-foreground">
-                <div className="relative flex items-center">
-                  <input
-                    type="checkbox"
-                    id="rememberMe"
-                    {...register('rememberMe')}
-                    className="peer sr-only"
-                  />
-                  <div className="h-5 w-5 rounded-lg border border-border bg-card/40 transition peer-checked:bg-primary peer-checked:border-primary flex items-center justify-center" />
-                  <Check className="absolute h-3 w-3 text-white dark:text-slate-900 opacity-0 peer-checked:opacity-100 transition-opacity" />
-                </div>
-                <span>Recordarme</span>
+            {/* Remember Me */}
+            <div className="flex items-center gap-3 pt-2 anim-up delay-3">
+              <input type="checkbox" id="remember" {...register('rememberMe')} className="custom-checkbox" />
+              <label htmlFor="remember" className="text-sm font-semibold text-slate-600 cursor-pointer select-none">
+                Mantener sesión iniciada
               </label>
-              
-              <button
-                type="button"
-                onClick={handleRecoverPassword}
-                className="font-medium text-primary hover:underline transition"
-              >
-                ¿Olvidaste tu contraseña?
-              </button>
             </div>
 
-            {/* Botón de Ingreso */}
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full mt-2 py-6 text-sm font-semibold rounded-xl bg-gradient-to-r from-primary to-[#C5A059] text-white hover:opacity-95 transition shadow-lg shadow-red-500/10 active:scale-[0.98]"
-            >
-              {isSubmitting ? 'Verificando...' : 'Acceder al Sistema'}
-            </Button>
+            {/* Submit */}
+            <div className="pt-4 anim-up delay-3">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="btn-premium w-full h-14 rounded-xl text-white font-black text-sm flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Ingresando...
+                  </>
+                ) : (
+                  'Acceder a la plataforma'
+                )}
+              </button>
+            </div>
           </form>
 
-          {/* Footer Móvil / Registro Link */}
-          <div className="mt-8 text-center text-sm text-muted-foreground">
-            ¿No tienes cuenta corporativa?{' '}
-            <Link href="/auth/register" className="font-semibold text-primary hover:underline transition">
-              Regístrate ahora
-            </Link>
+          {/* Footer Card */}
+          <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-center gap-2 text-xs font-bold text-slate-500 anim-up delay-3">
+            <ShieldCheck size={14} className="text-green-500" />
+            Conexión encriptada AES-256
           </div>
-        </div>
 
+        </div>
       </div>
     </main>
   );

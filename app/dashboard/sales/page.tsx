@@ -83,6 +83,15 @@ export default async function SalesPage() {
     ? await prisma.companySetting.findUnique({ where: { companyId } }) 
     : await prisma.companySetting.findFirst();
 
+  const company = companyId
+    ? await prisma.company.findUnique({ where: { id: companyId } })
+    : null;
+
+  const defaultInvoiceConfig = settings?.invoiceConfig ? JSON.parse(JSON.stringify(settings.invoiceConfig)) : {};
+  if (!defaultInvoiceConfig.companyName) {
+    defaultInvoiceConfig.companyName = company?.name || 'Mi Empresa';
+  }
+
   return (
     <div className="p-4 sm:p-6">
       <SalesClient
@@ -90,7 +99,7 @@ export default async function SalesPage() {
         products={serializedProducts}
         customers={serializedCustomers}
         userId={String(session.user.id)}
-        invoiceConfig={settings?.invoiceConfig ? JSON.parse(JSON.stringify(settings.invoiceConfig)) : null}
+        invoiceConfig={defaultInvoiceConfig}
       />
     </div>
   );

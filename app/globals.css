@@ -103,21 +103,25 @@ img, video {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #C5A059;
+    background: var(--primary);
     border-radius: 10px;
-    transition: background 0.2s;
+    transition: opacity 0.2s;
+    opacity: 0.8;
 }
 
 .dark ::-webkit-scrollbar-thumb {
-    background: #851c1c;
+    background: var(--primary);
+    opacity: 0.8;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #b91c1c;
+    background: var(--primary);
+    opacity: 1;
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-    background: #C5A059;
+    background: var(--primary);
+    opacity: 1;
 }
 
 /* ─── Focus Ring Utility ─── */

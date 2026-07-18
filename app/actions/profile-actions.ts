@@ -5,6 +5,8 @@ import { getAuthSession } from "@/auth";
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { logActivity } from "@/lib/audit";
+import fs from "fs";
+import path from "path";
 
 export async function updateProfile(data: {
   name: string;
@@ -98,5 +100,43 @@ export async function updatePassword(data: {
   } catch (error: any) {
     console.error("[UPDATE_PASSWORD]", error);
     return { success: false, error: error.message || "Error al cambiar la contraseña" };
+  }
+}
+
+export async function uploadProfileImage(base64Data: string) {
+  try {
+    const session = await getAuthSession();
+    if (!session?.user?.id) return { success: false, error: "No autenticado" };
+    
+    // Check base64 pattern and get extension
+    const matches = base64Data.match(/^data:image\/([a-zA-Z]+);base64,(.+)$/);
+    if (!matches || matches.length !== 3) {
+      return { success: false, error: "Formato de imagen inválido" };
+    }
+    
+    const extension = matches[1] === 'jpeg' ? 'jpg' : matches[1];
+    const imageBuffer = Buffer.from(matches[2], 'base64');
+    
+    // Verify it's a safe extension
+    if (!['png', 'jpg', 'jpeg', 'webp'].includes(extension)) {
+      return { success: false, error: "Solo se permiten PNG, JPG o WEBP" };
+    }
+
+    const fileName = `user-${session.user.id}-${Date.now()}.${extension}`;
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'users');
+    
+    // Ensure dir exists
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    
+    const filePath = path.join(uploadDir, fileName);
+    await fs.promises.writeFile(filePath, imageBuffer);
+    
+    const publicUrl = `/uploads/users/${fileName}`;
+    return { success: true, url: publicUrl };
+  } catch (error: any) {
+    console.error("[UPLOAD_PROFILE_IMAGE]", error);
+    return { success: false, error: "No se pudo subir la imagen" };
   }
 }

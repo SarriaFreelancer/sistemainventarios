@@ -11,6 +11,7 @@ import {
   Search, SlidersHorizontal, ChevronUp, ChevronDown, ChevronsUpDown, Folder
 } from "lucide-react";
 import { confirmAction, successAlert, errorAlert, brandAlert } from "@/lib/sweetalert";
+import { useRouter } from "next/navigation";
 
 interface Category { id: string; name: string; }
 interface Supplier { id: string; companyName: string; }
@@ -49,6 +50,7 @@ export function ProductsClient({
   groups: ProductGroup[];
   userId: string;
 }) {
+  const router = useRouter();
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterSupplier, setFilterSupplier] = useState('');
@@ -238,7 +240,7 @@ export function ProductsClient({
             `Venta #${result.saleNumber} registrada y cobrada por ${result.total?.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}. El stock fue descontado automáticamente.`
           );
         }
-        window.location.reload();
+        router.refresh();
       } else {
         errorAlert('Error en Venta', result.error ?? 'No fue posible registrar la venta.');
       }

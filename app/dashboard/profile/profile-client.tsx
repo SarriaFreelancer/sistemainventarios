@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import * as LucideIcons from "lucide-react";
-import { updateProfile, updatePassword } from "@/app/actions/profile-actions";
+import { updateProfile, updatePassword, uploadProfileImage } from "@/app/actions/profile-actions";
 import { successAlert, errorAlert } from "@/lib/sweetalert";
 import { useRouter } from "next/navigation";
 
@@ -38,7 +38,11 @@ export function ProfileClient({ user }: ProfileClientProps) {
   const [name, setName] = useState(user.name);
   const [position, setPosition] = useState(user.position || "");
   const [image, setImage] = useState(user.image || PRESET_AVATARS[0]);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewImage, setPreviewImage] = useState(user.image || PRESET_AVATARS[0]);
   const [theme, setTheme] = useState<"light" | "dark">(user.preferences?.theme || "light");
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Contraseñas
   const [currentPass, setCurrentPass] = useState("");
@@ -56,15 +60,43 @@ export function ProfileClient({ user }: ProfileClientProps) {
     }
 
     setSavingProfile(true);
+    let finalImageUrl = image;
+
+    if (selectedFile) {
+      try {
+        const base64Data = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(selectedFile);
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = error => reject(error);
+        });
+
+        const uploadResult = await uploadProfileImage(base64Data);
+        if (uploadResult.success && uploadResult.url) {
+          finalImageUrl = uploadResult.url;
+          setImage(finalImageUrl);
+        } else {
+          errorAlert("Error al subir foto", uploadResult.error || "Hubo un problema al subir tu foto");
+          setSavingProfile(false);
+          return;
+        }
+      } catch (err) {
+        errorAlert("Error al procesar foto", "No se pudo leer el archivo seleccionado.");
+        setSavingProfile(false);
+        return;
+      }
+    }
+
     const result = await updateProfile({
       name,
       position,
-      image,
+      image: finalImageUrl,
       preferences: { theme }
     });
     setSavingProfile(false);
 
     if (result.success) {
+      setSelectedFile(null);
       successAlert("Perfil actualizado", "Tus datos han sido guardados correctamente.");
       router.refresh();
     } else {
@@ -109,9 +141,9 @@ export function ProfileClient({ user }: ProfileClientProps) {
         
         {/* Avatar e Información Principal */}
         <div className="space-y-4 w-full flex flex-col items-center">
-          <div className="relative group w-28 h-28 rounded-full overflow-hidden border-4 border-primary/20 shadow-md">
+          <div className="relative group w-28 h-28 rounded-full overflow-hidden border-4 border-primary/20 shadow-md bg-muted">
             <img
-              src={image}
+              src={previewImage}
               alt="Avatar de perfil"
               className="w-full h-full object-cover transition duration-300 group-hover:scale-105"
             />
@@ -198,9 +230,13 @@ export function ProfileClient({ user }: ProfileClientProps) {
                   <button
                     key={i}
                     type="button"
-                    onClick={() => setImage(url)}
+                    onClick={() => {
+                      setImage(url);
+                      setPreviewImage(url);
+                      setSelectedFile(null);
+                    }}
                     className={`w-12 h-12 rounded-full overflow-hidden border-2 transition ${
-                      image === url ? "border-primary scale-110 shadow-md" : "border-transparent opacity-75 hover:opacity-100"
+                      image === url && !selectedFile ? "border-primary scale-110 shadow-md" : "border-transparent opacity-75 hover:opacity-100"
                     }`}
                   >
                     <img src={url} alt={`Avatar ${i}`} className="w-full h-full object-cover" />
@@ -209,13 +245,54 @@ export function ProfileClient({ user }: ProfileClientProps) {
               </div>
             </div>
 
+            {/* Subir Foto Local */}
+            <div className="space-y-1.5 pt-2">
+              <label className="text-xs font-bold text-muted-foreground uppercase">Subir Foto Desde Tu Equipo</label>
+              <div className="flex items-center gap-3">
+                <input 
+                  type="file" 
+                  accept="image/png, image/jpeg, image/webp" 
+                  ref={fileInputRef}
+                  className="hidden" 
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      if (file.size > 2 * 1024 * 1024) {
+                        errorAlert("Archivo muy grande", "La imagen no debe superar los 2MB.");
+                        return;
+                      }
+                      setSelectedFile(file);
+                      setPreviewImage(URL.createObjectURL(file));
+                    }
+                  }} 
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="bg-secondary/10 hover:bg-secondary/20 border border-border text-foreground font-semibold px-4 py-2 rounded-xl text-sm transition flex items-center gap-2"
+                >
+                  <LucideIcons.Upload size={16} />
+                  Seleccionar Archivo
+                </button>
+                {selectedFile && (
+                  <span className="text-xs text-primary font-medium truncate max-w-[150px]">
+                    {selectedFile.name}
+                  </span>
+                )}
+              </div>
+            </div>
+
             {/* Enlace a Foto Externa */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-muted-foreground uppercase">O ingresa un enlace de imagen externo (URL)</label>
+            <div className="space-y-1.5 pt-2 border-t border-border/40 mt-4">
+              <label className="text-xs font-bold text-muted-foreground uppercase">O ingresa un enlace (URL)</label>
               <input
                 type="url"
-                value={image}
-                onChange={(e) => setImage(e.target.value)}
+                value={!selectedFile ? image : ""}
+                onChange={(e) => {
+                  setImage(e.target.value);
+                  setPreviewImage(e.target.value);
+                  setSelectedFile(null);
+                }}
                 className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition font-mono text-xs"
                 placeholder="https://tudominio.com/tu-foto.jpg"
               />

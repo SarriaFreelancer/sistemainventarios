@@ -229,7 +229,8 @@ export async function completePendingSale(saleIdInput: any, updateData?: {
       let total = sale.total;
       if (updateData && updateData.discount !== undefined) {
         const subtotal = sale.details.reduce((s, d) => s + d.subtotal, 0);
-        total = Math.max(0, subtotal - updateData.discount);
+        const itemDiscounts = sale.details.reduce((s, d) => s + d.discount, 0);
+        total = Math.max(0, subtotal - itemDiscounts - updateData.discount);
       }
 
       // Actualizar estado de la venta y datos finales

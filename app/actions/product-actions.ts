@@ -264,8 +264,8 @@ export async function quickSellProduct(data: {
               quantity,
               unitPrice,
               subtotal,
-              discount,
-              total,
+              discount: 0,
+              total: subtotal,
               companyId,
             }]
           }
