@@ -14,7 +14,7 @@
     --card-foreground:    oklch(0.145 0 0);
     --popover:            oklch(1 0 0);
     --popover-foreground: oklch(0.145 0 0);
-    --primary:            oklch(0.72 0.12 296);
+    --primary:            oklch(0.55 0.22 25);
     --primary-foreground: oklch(1 0 0);
     --secondary:          oklch(0.97 0.003 286);
     --secondary-foreground: oklch(0.21 0.06 296);
@@ -25,7 +25,7 @@
     --destructive:        oklch(0.60 0.18 25);
     --border:             oklch(0.92 0.003 286);
     --input:              oklch(0.92 0.003 286);
-    --ring:               oklch(0.72 0.12 296);
+    --ring:               oklch(0.55 0.22 25);
     --radius:             0.75rem;
 }
 
@@ -39,7 +39,7 @@
     --card-foreground:    oklch(0.985 0.002 286);
     --popover:            oklch(0.175 0.015 286);
     --popover-foreground: oklch(0.985 0.002 286);
-    --primary:            oklch(0.75 0.14 296);
+    --primary:            oklch(0.65 0.25 25);
     --primary-foreground: oklch(0.13 0.04 296);
     --secondary:          oklch(0.22 0.025 286);
     --secondary-foreground: oklch(0.985 0.002 286);
@@ -50,7 +50,7 @@
     --destructive:        oklch(0.55 0.18 25);
     --border:             oklch(0.27 0.025 286);
     --input:              oklch(0.22 0.025 286);
-    --ring:               oklch(0.75 0.14 296);
+    --ring:               oklch(0.65 0.25 25);
 }
 
 .theme-superadmin {
@@ -90,6 +90,8 @@ img, video {
     height: auto;
 }
 
+
+
 /* ─── Custom Scrollbar ─── */
 ::-webkit-scrollbar {
     width: 6px;
@@ -101,28 +103,28 @@ img, video {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #D8C1EC;
+    background: #C5A059;
     border-radius: 10px;
     transition: background 0.2s;
 }
 
 .dark ::-webkit-scrollbar-thumb {
-    background: #3A2E50;
+    background: #851c1c;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #B18ACF;
+    background: #b91c1c;
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-    background: #D8C1EC;
+    background: #C5A059;
 }
 
 /* ─── Focus Ring Utility ─── */
 .focus-ring:focus-within {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(177, 138, 207, 0.25);
-    border-color: #B18ACF;
+    box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.25);
+    border-color: #b91c1c;
 }
 
 /* ─── Glassmorphism Panel ─── */

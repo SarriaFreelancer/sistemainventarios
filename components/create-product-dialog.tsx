@@ -55,10 +55,10 @@ export function CreateProductDialog({ categories, suppliers, groups }: CreatePro
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[600px] rounded-[32px] border-border/60 bg-card p-8 shadow-2xl shadow-violet-500/10">
+        <DialogContent className="sm:max-w-[600px] rounded-[32px] border-border/60 bg-card p-8 shadow-2xl shadow-primary/10">
           <DialogHeader>
             <DialogTitle className="text-xl font-extrabold text-foreground flex items-center gap-2">
-              <span className="w-2 h-6 bg-gradient-to-b from-[#B18ACF] to-[#8B5CF6] rounded-full" />
+              <span className="w-2 h-6 bg-gradient-to-b from-primary to-[#C5A059] rounded-full" />
               Registrar Producto
             </DialogTitle>
           </DialogHeader>

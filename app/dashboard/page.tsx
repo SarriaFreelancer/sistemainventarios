@@ -199,7 +199,7 @@ export default async function DashboardHomePage() {
     <div className="max-w-7xl mx-auto space-y-6">
 
       {/* ── Header Premium ── */}
-      <div className="p-8 rounded-[32px] bg-card border border-border shadow-md shadow-violet-500/5 relative overflow-hidden transition-colors duration-500">
+      <div className="p-8 rounded-[32px] bg-card border border-border shadow-md shadow-primary/5 relative overflow-hidden transition-colors duration-500">
         <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-[100px]" />
         <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="space-y-1">

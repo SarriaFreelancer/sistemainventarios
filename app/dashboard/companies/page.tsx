@@ -4,7 +4,7 @@ import { CompaniesClient } from '@/components/company-dialogs';
 import { redirect } from 'next/navigation';
 
 export const metadata = {
-  title: 'Empresas · Dulche Dorelle',
+  title: 'Empresas · GNS SarriaTech',
   description: 'Gestiona las empresas y los usuarios asociados.',
 };
 

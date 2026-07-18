@@ -52,36 +52,36 @@ export default function RegisterPage() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top_left,_rgba(216,193,236,0.3),_transparent_40%),radial-gradient(circle_at_bottom_right,_rgba(177,138,207,0.25),_transparent_45%),linear-gradient(135deg,_var(--background)_0%,_var(--background)_100%)] px-6 py-10 transition-colors duration-500">
+    <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top_left,_rgba(185,28,28,0.08),_transparent_40%),radial-gradient(circle_at_bottom_right,_rgba(197,160,89,0.08),_transparent_45%),linear-gradient(135deg,_var(--background)_0%,_var(--background)_100%)] px-6 py-10 transition-colors duration-500">
       <div className="grid w-full max-w-5xl overflow-hidden rounded-[40px] border border-border bg-card shadow-2xl lg:grid-cols-[1.05fr_0.95fr] transition-colors duration-500">
         
         {/* Panel Izquierdo: Branding */}
-        <div className="relative hidden lg:flex flex-col justify-between overflow-hidden bg-gradient-to-b from-[#1E152A] to-[#120D1A] p-12 text-white">
-          <div className="absolute -left-20 -top-20 h-80 w-80 rounded-full bg-[#8B5CF6]/20 blur-[100px]" />
-          <div className="absolute -right-20 -bottom-20 h-80 w-80 rounded-full bg-[#E5A9B4]/15 blur-[100px]" />
+        <div className="relative hidden lg:flex flex-col justify-between overflow-hidden bg-gradient-to-b from-[#1c1112] to-[#0a0506] p-12 text-white">
+          <div className="absolute -left-20 -top-20 h-80 w-80 rounded-full bg-[#b91c1c]/10 blur-[100px]" />
+          <div className="absolute -right-20 -bottom-20 h-80 w-80 rounded-full bg-[#C5A059]/10 blur-[100px]" />
           
-          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#d4af37_1px,transparent_1px)] [background-size:24px_24px]" />
+          <div className="absolute inset-0 opacity-5 bg-[radial-gradient(#C5A059_1px,transparent_1px)] [background-size:24px_24px]" />
 
           <div className="relative z-10 flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-[#B18ACF] to-[#E5A9B4] text-white">
-              <Sparkles size={20} className="animate-pulse" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-primary to-[#C5A059] shadow-md shadow-red-900/30 text-white">
+              <Sparkles size={20} className="text-amber-100" />
             </div>
-            <span className="font-display-lg text-xl tracking-[0.2em] font-semibold text-transparent bg-clip-text bg-gradient-to-r from-white to-[#D8C1EC]">
-              GNS SARRIA
+            <span className="font-display-lg text-xl tracking-[0.2em] font-semibold text-transparent bg-clip-text bg-gradient-to-r from-white to-[#C5A059]">
+              GNS SARRIATECH
             </span>
           </div>
 
           <div className="relative z-10 my-auto space-y-6">
-            <p className="text-xs font-bold tracking-[0.3em] uppercase text-[#E5A9B4]">Gestión de Negocios</p>
-            <h1 className="text-4xl font-semibold leading-tight tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-[#F5C2C9] to-[#D8C1EC]">
-              Únete a nuestra exclusiva red de administración
+            <p className="text-xs font-bold tracking-[0.3em] uppercase text-[#C5A059]">Gestión de Negocios</p>
+            <h1 className="text-4xl font-semibold leading-tight tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-[#C5A059]">
+              Inicie la digitalización de sus operaciones hoy
             </h1>
-            <p className="max-w-md text-sm leading-relaxed text-slate-300">
-              Crea tu perfil corporativo de GNS y accede a la suite integrada de administración de inventarios, facturación rápida, y reportes de rentabilidad.
+            <p className="max-w-md text-sm leading-relaxed text-slate-400">
+              Crea tu perfil corporativo en GNS y accede a la suite integrada de control de existencias, facturación rápida, y analíticas de rentabilidad.
             </p>
           </div>
 
-          <div className="relative z-10 flex items-center justify-between border-t border-white/10 pt-6 text-xs text-slate-400">
+          <div className="relative z-10 flex items-center justify-between border-t border-white/10 pt-6 text-xs text-slate-500">
             <span>© 2026 GNS SarriaTech</span>
             <span>Premium Business System</span>
           </div>
@@ -90,6 +90,16 @@ export default function RegisterPage() {
         {/* Panel Derecho: Formulario */}
         <div className="flex flex-col justify-center p-8 sm:p-12">
           <div className="mb-6">
+            {/* Small mobile branding header */}
+            <div className="lg:hidden flex items-center gap-2 mb-6">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-tr from-primary to-[#C5A059] text-white">
+                <Sparkles size={16} />
+              </div>
+              <span className="font-display-lg text-sm tracking-[0.2em] font-semibold text-foreground">
+                GNS SARRIATECH
+              </span>
+            </div>
+            
             <h2 className="text-3xl font-bold tracking-tight text-foreground">
               Crear Cuenta
             </h2>
@@ -131,7 +141,7 @@ export default function RegisterPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="nombre@negocio.com"
+                  placeholder="nombre@empresa.com"
                   {...register('email')}
                   className="pl-12 border-border/80 bg-card/40 focus:bg-card focus:border-primary"
                 />
@@ -205,7 +215,7 @@ export default function RegisterPage() {
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="w-full mt-4 py-6 text-sm font-semibold rounded-xl bg-gradient-to-r from-[#B18ACF] to-[#8B5CF6] text-white hover:opacity-95 transition shadow-lg shadow-violet-500/20 active:scale-[0.98]"
+              className="w-full mt-4 py-6 text-sm font-semibold rounded-xl bg-gradient-to-r from-primary to-[#C5A059] text-white hover:opacity-95 transition shadow-lg shadow-red-500/10 active:scale-[0.98]"
             >
               {isSubmitting ? 'Registrando...' : 'Crear mi Cuenta'}
             </Button>

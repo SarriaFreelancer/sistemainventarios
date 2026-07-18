@@ -5,7 +5,7 @@ export const brandAlert = Swal.mixin({
     popup: 'rounded-3xl border border-border bg-card text-foreground font-sans shadow-2xl p-6',
     title: 'text-xl font-bold text-foreground',
     htmlContainer: 'text-sm text-muted-foreground mt-2',
-    confirmButton: 'bg-gradient-to-r from-[#B18ACF] to-[#8B5CF6] text-white rounded-xl px-6 py-3 font-semibold text-sm hover:opacity-95 transition active:scale-95 shadow-md shadow-violet-500/20 mr-2',
+    confirmButton: 'bg-primary text-primary-foreground rounded-xl px-6 py-3 font-semibold text-sm hover:opacity-95 transition active:scale-95 shadow-md shadow-primary/20 mr-2',
     cancelButton: 'bg-secondary/10 hover:bg-secondary/20 border border-border text-foreground rounded-xl px-6 py-3 font-semibold text-sm transition active:scale-95 ml-2',
   },
   buttonsStyling: false,

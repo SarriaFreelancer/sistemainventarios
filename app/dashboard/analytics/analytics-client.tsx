@@ -42,14 +42,16 @@ interface AnalyticsClientProps {
 
 // Paleta de colores para gráficos
 const CHART_COLORS = [
-  "var(--primary-hsl, #8B5CF6)",
-  "#06B6D4",
-  "#10B981",
-  "#F59E0B",
-  "#EF4444",
-  "#EC4899",
-  "#6366F1",
-  "#84CC16",
+  "#3B82F6", // Azul Vivo
+  "#10B981", // Esmeralda
+  "#FF6B6B", // Coral Vivo
+  "#EC4899", // Rosa
+  "#8B5CF6", // Violeta
+  "#06B6D4", // Cian
+  "#EF4444", // Rojo Vivo
+  "#84CC16", // Lima
+  "#6366F1", // Índigo
+  "#F43F5E"  // Fucsia
 ];
 
 // Formateador de moneda COP
@@ -192,24 +194,24 @@ export function AnalyticsClient({ analytics, isSuperAdmin }: AnalyticsClientProp
               <AreaChart data={analytics.monthlySales}>
                 <defs>
                   <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                    <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis
                   dataKey="month"
-                  tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                 />
                 <YAxis
                   tickFormatter={(v) => `$${(v / 1000000).toFixed(1)}M`}
-                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                  tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
                 />
                 <Tooltip content={<SalesTooltip />} />
                 <Area
                   type="monotone"
                   dataKey="total"
-                  stroke="hsl(var(--primary))"
+                  stroke="var(--primary)"
                   strokeWidth={2.5}
                   fill="url(#salesGrad)"
                 />
@@ -257,8 +259,9 @@ export function AnalyticsClient({ analytics, isSuperAdmin }: AnalyticsClientProp
                     formatter={(v, name) => [`${v} eventos`, name]}
                     contentStyle={{
                       borderRadius: "12px",
-                      border: "1px solid hsl(var(--border))",
-                      background: "hsl(var(--card))",
+                      border: "1px solid var(--border)",
+                      background: "var(--card)",
+                      color: "var(--foreground)",
                       fontSize: 11,
                     }}
                   />
@@ -307,13 +310,13 @@ export function AnalyticsClient({ analytics, isSuperAdmin }: AnalyticsClientProp
 
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={hourlyData} barCategoryGap="20%">
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
               <XAxis
                 dataKey="hora"
-                tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }}
+                tick={{ fontSize: 9, fill: "var(--muted-foreground)" }}
                 interval={2}
               />
-              <YAxis tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} />
+              <YAxis tick={{ fontSize: 9, fill: "var(--muted-foreground)" }} />
               <Tooltip content={<HoursTooltip />} />
               <Bar dataKey="eventos" radius={[4, 4, 0, 0]} maxBarSize={18}>
                 {hourlyData.map((entry, i) => {
@@ -323,7 +326,7 @@ export function AnalyticsClient({ analytics, isSuperAdmin }: AnalyticsClientProp
                   return (
                     <Cell
                       key={i}
-                      fill={`hsl(var(--primary))`}
+                      fill="var(--primary)"
                       fillOpacity={opacity}
                     />
                   );

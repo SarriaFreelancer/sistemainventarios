@@ -43,7 +43,7 @@ interface SettingsClientProps {
 
 export function SettingsClient({ initialSettings }: SettingsClientProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"company" | "inventory" | "security" | "integrations">("company");
+  const [activeTab, setActiveTab] = useState<"company" | "inventory" | "security" | "integrations" | "invoice">("company");
   const [saving, setSaving] = useState(false);
 
   // Estados locales para los campos
@@ -78,6 +78,19 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
   const [smtpPass, setSmtpPass] = useState(initialSettings.smtpPass || "");
   const [backupFrequency, setBackupFrequency] = useState(initialSettings.backupFrequency);
 
+  // Facturación Personalizada
+  const initialInvoiceConfig = (initialSettings as any).invoiceConfig || {};
+  const [invoiceCompanyName, setInvoiceCompanyName] = useState(initialInvoiceConfig.companyName || "");
+  const [invoiceAddress, setInvoiceAddress] = useState(initialInvoiceConfig.address || "");
+  const [invoiceEmail, setInvoiceEmail] = useState(initialInvoiceConfig.email || "");
+  const [invoicePhone, setInvoicePhone] = useState(initialInvoiceConfig.phone || "");
+  const [invoiceNit, setInvoiceNit] = useState(initialInvoiceConfig.nit || "");
+  const [invoiceWebsite, setInvoiceWebsite] = useState(initialInvoiceConfig.website || "");
+  const [invoicePrimaryColor, setInvoicePrimaryColor] = useState(initialInvoiceConfig.primaryColor || "#b91c1c");
+  const [invoiceSecondaryColor, setInvoiceSecondaryColor] = useState(initialInvoiceConfig.secondaryColor || "#C5A059");
+  const [invoiceLogo, setInvoiceLogo] = useState(initialInvoiceConfig.logo || "");
+  const [invoiceFooterText, setInvoiceFooterText] = useState(initialInvoiceConfig.footerText || "Documento equivalente de venta generado de forma electrónica.");
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -106,7 +119,19 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
       smtpPort: smtpPort ? Number(smtpPort) : null,
       smtpUser,
       smtpPass,
-      backupFrequency
+      backupFrequency,
+      invoiceConfig: {
+        companyName: invoiceCompanyName,
+        address: invoiceAddress,
+        email: invoiceEmail,
+        phone: invoicePhone,
+        nit: invoiceNit,
+        website: invoiceWebsite,
+        primaryColor: invoicePrimaryColor,
+        secondaryColor: invoiceSecondaryColor,
+        logo: invoiceLogo,
+        footerText: invoiceFooterText
+      }
     });
 
     setSaving(false);
@@ -180,6 +205,15 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
         >
           <LucideIcons.SlidersHorizontal size={16} />
           Respaldos & SMTP
+        </button>
+        <button
+          onClick={() => setActiveTab("invoice")}
+          className={`flex w-full items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold transition ${
+            activeTab === "invoice" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
+          }`}
+        >
+          <LucideIcons.Receipt size={16} />
+          Facturación Personalizada
         </button>
       </div>
 
@@ -514,6 +548,148 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
                     placeholder="••••••••"
                   />
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* PESTAÑA: FACTURACIÓN PERSONALIZADA */}
+        {activeTab === "invoice" && (
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                <LucideIcons.Receipt size={18} className="text-primary" />
+                Personalización de Facturas
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1">Define la apariencia visual y la información legal que se reflejará en tus facturas en PDF e imágenes.</p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-muted-foreground uppercase">Nombre de la Empresa</label>
+                  <input
+                    type="text"
+                    value={invoiceCompanyName}
+                    onChange={(e) => setInvoiceCompanyName(e.target.value)}
+                    className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none"
+                    placeholder="Ej. GNS SarriaTech S.A.S."
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-muted-foreground uppercase">NIT de la Empresa</label>
+                  <input
+                    type="text"
+                    value={invoiceNit}
+                    onChange={(e) => setInvoiceNit(e.target.value)}
+                    className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none"
+                    placeholder="Ej. 900.123.456-7"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-muted-foreground uppercase">Dirección física</label>
+                  <input
+                    type="text"
+                    value={invoiceAddress}
+                    onChange={(e) => setInvoiceAddress(e.target.value)}
+                    className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none"
+                    placeholder="Ej. Calle 95 #14-60"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-muted-foreground uppercase">Teléfono de contacto</label>
+                  <input
+                    type="text"
+                    value={invoicePhone}
+                    onChange={(e) => setInvoicePhone(e.target.value)}
+                    className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none"
+                    placeholder="Ej. +57 312 444 5566"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-muted-foreground uppercase">Correo electrónico</label>
+                  <input
+                    type="email"
+                    value={invoiceEmail}
+                    onChange={(e) => setInvoiceEmail(e.target.value)}
+                    className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none"
+                    placeholder="Ej. contacto@empresa.com"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-muted-foreground uppercase">Sitio Web (Página web)</label>
+                  <input
+                    type="url"
+                    value={invoiceWebsite}
+                    onChange={(e) => setInvoiceWebsite(e.target.value)}
+                    className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none"
+                    placeholder="Ej. https://empresa.com"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-border/60 pt-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-muted-foreground uppercase">Color Principal (Encabezados)</label>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="color"
+                      value={invoicePrimaryColor}
+                      onChange={(e) => setInvoicePrimaryColor(e.target.value)}
+                      className="w-12 h-10 border border-border rounded-xl cursor-pointer bg-transparent"
+                    />
+                    <input
+                      type="text"
+                      value={invoicePrimaryColor}
+                      onChange={(e) => setInvoicePrimaryColor(e.target.value)}
+                      className="w-full bg-muted/40 border border-border rounded-xl px-3 py-2 text-xs focus:outline-none font-mono"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-muted-foreground uppercase">Color Secundario (Detalles)</label>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="color"
+                      value={invoiceSecondaryColor}
+                      onChange={(e) => setInvoiceSecondaryColor(e.target.value)}
+                      className="w-12 h-10 border border-border rounded-xl cursor-pointer bg-transparent"
+                    />
+                    <input
+                      type="text"
+                      value={invoiceSecondaryColor}
+                      onChange={(e) => setInvoiceSecondaryColor(e.target.value)}
+                      className="w-full bg-muted/40 border border-border rounded-xl px-3 py-2 text-xs focus:outline-none font-mono"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-muted-foreground uppercase">URL del Logotipo (Imagen)</label>
+                  <input
+                    type="text"
+                    value={invoiceLogo}
+                    onChange={(e) => setInvoiceLogo(e.target.value)}
+                    className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none"
+                    placeholder="Ej. https://empresa.com/logo.png"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5 border-t border-border/60 pt-4">
+                <label className="text-xs font-bold text-muted-foreground uppercase">Texto al Pie de la Factura</label>
+                <textarea
+                  value={invoiceFooterText}
+                  onChange={(e) => setInvoiceFooterText(e.target.value)}
+                  rows={3}
+                  className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none"
+                  placeholder="Ej. Gracias por elegirnos. Este documento es un soporte equivalente de venta."
+                />
               </div>
             </div>
           </div>

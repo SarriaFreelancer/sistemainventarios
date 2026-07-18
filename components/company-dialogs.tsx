@@ -68,10 +68,10 @@ export function CreateCompanyDialog({ modules }: { modules: Module[] }) {
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[520px] rounded-[32px] border-border/60 bg-card p-8 shadow-2xl shadow-violet-500/10">
+        <DialogContent className="sm:max-w-[520px] rounded-[32px] border-border/60 bg-card p-8 shadow-2xl shadow-primary/10">
           <DialogHeader>
             <DialogTitle className="text-xl font-extrabold text-foreground flex items-center gap-2">
-              <span className="w-2 h-6 bg-gradient-to-b from-[#B18ACF] to-[#8B5CF6] rounded-full" />
+              <span className="w-2 h-6 bg-gradient-to-b from-primary to-[#C5A059] rounded-full" />
               Nueva Empresa
             </DialogTitle>
           </DialogHeader>
@@ -79,7 +79,7 @@ export function CreateCompanyDialog({ modules }: { modules: Module[] }) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="company-name" className={labelCls}>Nombre</Label>
-                <Input id="company-name" name="name" placeholder="Ej. Dulche Dorelle S.A.S." className={inputCls} required />
+                <Input id="company-name" name="name" placeholder="Ej. GNS SarriaTech S.A.S." className={inputCls} required />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="company-country" className={labelCls}>País</Label>
@@ -168,10 +168,10 @@ export function EditCompanyDialog({ company, modules }: { company: Company; modu
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[520px] rounded-[32px] border-border/60 bg-card p-8 shadow-2xl shadow-violet-500/10">
+        <DialogContent className="sm:max-w-[520px] rounded-[32px] border-border/60 bg-card p-8 shadow-2xl shadow-primary/10">
           <DialogHeader>
             <DialogTitle className="text-xl font-extrabold text-foreground flex items-center gap-2">
-              <span className="w-2 h-6 bg-gradient-to-b from-[#B18ACF] to-[#8B5CF6] rounded-full" />
+              <span className="w-2 h-6 bg-gradient-to-b from-primary to-[#C5A059] rounded-full" />
               Editar Empresa
             </DialogTitle>
           </DialogHeader>
@@ -285,10 +285,10 @@ export function CompaniesClient({ companies, modules }: { companies: Company[]; 
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between p-7 rounded-[32px] bg-card border border-border shadow-md shadow-violet-500/5 relative overflow-hidden">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between p-7 rounded-[32px] bg-card border border-border shadow-md shadow-primary/5 relative overflow-hidden">
         <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/10 blur-[60px]" />
         <div className="relative z-10 flex items-center gap-3">
-          <div className="p-2.5 bg-gradient-to-tr from-[#B18ACF] to-[#8B5CF6] rounded-2xl text-white shadow-lg shadow-violet-500/25">
+          <div className="p-2.5 bg-gradient-to-tr from-primary to-[#C5A059] rounded-2xl text-white shadow-lg shadow-primary/25">
             <Folder className="h-5 w-5" />
           </div>
           <div>

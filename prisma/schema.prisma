@@ -602,6 +602,7 @@ model CompanySetting {
   phone                 String?
   website               String?
   socialMedia           Json?    // Redes sociales (Facebook, Instagram, etc.)
+  invoiceConfig         Json?    // Parámetros de facturación personalizada (colores, logo, pie de página, etc.)
   currency              String   @default("COP")
   timezone              String   @default("America/Bogota")
   dateFormat            String   @default("YYYY-MM-DD")

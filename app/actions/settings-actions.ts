@@ -52,6 +52,7 @@ export async function updateCompanySettings(data: any) {
         phone: data.phone,
         website: data.website,
         socialMedia: data.socialMedia ? JSON.parse(JSON.stringify(data.socialMedia)) : undefined,
+        invoiceConfig: data.invoiceConfig ? JSON.parse(JSON.stringify(data.invoiceConfig)) : undefined,
         currency: data.currency,
         timezone: data.timezone,
         dateFormat: data.dateFormat,

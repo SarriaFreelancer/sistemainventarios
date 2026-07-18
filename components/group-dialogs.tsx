@@ -50,10 +50,10 @@ export function CreateGroupDialog() {
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[450px] rounded-[32px] border-border/60 bg-card p-8 shadow-2xl shadow-violet-500/10">
+        <DialogContent className="sm:max-w-[450px] rounded-[32px] border-border/60 bg-card p-8 shadow-2xl shadow-primary/10">
           <DialogHeader>
             <DialogTitle className="text-xl font-extrabold text-foreground flex items-center gap-2">
-              <span className="w-2 h-6 bg-gradient-to-b from-[#B18ACF] to-[#8B5CF6] rounded-full" />
+              <span className="w-2 h-6 bg-gradient-to-b from-primary to-[#C5A059] rounded-full" />
               Nuevo Grupo de Producto
             </DialogTitle>
           </DialogHeader>
@@ -114,10 +114,10 @@ export function EditGroupDialog({ group }: { group: ProductGroup }) {
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[450px] rounded-[32px] border-border/60 bg-card p-8 shadow-2xl shadow-violet-500/10">
+        <DialogContent className="sm:max-w-[450px] rounded-[32px] border-border/60 bg-card p-8 shadow-2xl shadow-primary/10">
           <DialogHeader>
             <DialogTitle className="text-xl font-extrabold text-foreground flex items-center gap-2">
-              <span className="w-2 h-6 bg-gradient-to-b from-[#B18ACF] to-[#8B5CF6] rounded-full" />
+              <span className="w-2 h-6 bg-gradient-to-b from-primary to-[#C5A059] rounded-full" />
               Editar Grupo
             </DialogTitle>
           </DialogHeader>
@@ -220,10 +220,10 @@ export function GroupsClient({ groups }: { groups: ProductGroup[] }) {
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-7 rounded-[32px] bg-card border border-border shadow-md shadow-violet-500/5 relative overflow-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-7 rounded-[32px] bg-card border border-border shadow-md shadow-primary/5 relative overflow-hidden">
         <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/10 blur-[60px]" />
         <div className="relative z-10 flex items-center gap-3">
-          <div className="p-2.5 bg-gradient-to-tr from-[#B18ACF] to-[#8B5CF6] rounded-2xl text-white shadow-lg shadow-violet-500/25">
+          <div className="p-2.5 bg-gradient-to-tr from-primary to-[#C5A059] rounded-2xl text-white shadow-lg shadow-primary/25">
             <Folder className="h-5 w-5" />
           </div>
           <div>

@@ -50,6 +50,23 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     }
   }
 
+  // Auto-inicialización de permisos del rol USER si están vacíos
+  const userRoleObj = await prisma.role.findUnique({ where: { name: 'USER' } });
+  if (userRoleObj) {
+    const assignedCount = await prisma.roleModule.count({ where: { roleId: userRoleObj.id } });
+    if (assignedCount === 0) {
+      const userModuleNames = ['Dashboard', 'Productos', 'Grupos', 'Categorías', 'Proveedores', 'Ventas', 'CRM', 'Compras', 'Finanzas', 'Reportes'];
+      const modulesToAssign = await prisma.module.findMany({
+        where: { name: { in: userModuleNames } }
+      });
+      for (const mod of modulesToAssign) {
+        await prisma.roleModule.create({
+          data: { roleId: userRoleObj.id, moduleId: mod.id }
+        }).catch(() => {});
+      }
+    }
+  }
+
   let allowedModules: any[] = [];
   let companyTheme: any = null;
   

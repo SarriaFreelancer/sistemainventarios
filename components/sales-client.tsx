@@ -209,7 +209,7 @@ function NewSaleDialog({ products, customers, userId, onSuccess }: { products: P
       cancelButtonText: 'Revisar',
       customClass: {
         popup: 'rounded-3xl border border-border bg-card text-foreground font-sans shadow-2xl p-6 w-[480px]',
-        confirmButton: 'bg-gradient-to-r from-[#B18ACF] to-[#8B5CF6] text-white rounded-xl px-6 py-3 font-semibold text-sm hover:opacity-95 transition mr-2',
+        confirmButton: 'bg-primary text-primary-foreground rounded-xl px-6 py-3 font-semibold text-sm hover:opacity-95 transition mr-2',
         cancelButton: 'bg-secondary/10 hover:bg-secondary/20 border border-border text-foreground rounded-xl px-6 py-3 font-semibold text-sm transition ml-2',
       },
       buttonsStyling: false,
@@ -260,7 +260,7 @@ function NewSaleDialog({ products, customers, userId, onSuccess }: { products: P
         <DialogContent className="w-[98vw] max-w-7xl rounded-[32px] border-border/60 bg-card p-6 md:p-10 shadow-2xl overflow-hidden flex flex-col max-h-[96vh]">
           <DialogHeader className="pb-4 border-b border-border/40 shrink-0">
             <DialogTitle className="text-2xl font-extrabold text-foreground flex items-center gap-3">
-              <span className="w-2 h-7 bg-gradient-to-b from-[#B18ACF] to-[#8B5CF6] rounded-full" />
+              <span className="w-2 h-7 bg-gradient-to-b from-primary to-[#C5A059] rounded-full" />
               Registrar Nueva Venta
             </DialogTitle>
             <p className="text-sm text-muted-foreground mt-1">Busca productos, ajusta cantidades y descuentos, luego confirma la venta.</p>
@@ -653,7 +653,7 @@ function CompleteSaleDialog({ sale, customers, userId, onSuccess }: {
         <DialogContent className="w-[98vw] max-w-7xl rounded-[32px] border-border/60 bg-card p-6 md:p-10 shadow-2xl overflow-hidden flex flex-col max-h-[96vh]">
           <DialogHeader className="pb-4 border-b border-border/40 shrink-0">
             <DialogTitle className="text-2xl font-extrabold text-foreground flex items-center gap-3">
-              <span className="w-2 h-7 bg-gradient-to-b from-[#B18ACF] to-[#8B5CF6] rounded-full" />
+              <span className="w-2 h-7 bg-gradient-to-b from-primary to-[#C5A059] rounded-full" />
               Completar Venta Pendiente ({sale.saleNumber})
             </DialogTitle>
             <p className="text-sm text-muted-foreground mt-1">Elige el método de pago y confirma los datos del cliente para finalizar la transacción.</p>
@@ -805,7 +805,7 @@ function CompleteSaleDialog({ sale, customers, userId, onSuccess }: {
   );
 }
 
-function SaleDetailDialog({ sale }: { sale: Sale }) {
+function SaleDetailDialog({ sale, invoiceConfig }: { sale: Sale; invoiceConfig?: any }) {
   const [open, setOpen] = useState(false);
   const fmtDate = (d: string) =>
     new Date(d).toLocaleDateString('es-CO', {
@@ -918,13 +918,13 @@ function SaleDetailDialog({ sale }: { sale: Sale }) {
 
             {/* Downloader buttons */}
             <div className="grid grid-cols-3 gap-2 pt-2">
-              <Button size="sm" variant="outline" className="text-[10px] h-9 gap-1" onClick={() => generateInvoiceMedia(sale, 'png')}>
+              <Button size="sm" variant="outline" className="text-[10px] h-9 gap-1" onClick={() => generateInvoiceMedia(sale, 'png', invoiceConfig)}>
                 <Download className="h-3.5 w-3.5" /> PNG
               </Button>
-              <Button size="sm" variant="outline" className="text-[10px] h-9 gap-1" onClick={() => generateInvoiceMedia(sale, 'jpeg')}>
+              <Button size="sm" variant="outline" className="text-[10px] h-9 gap-1" onClick={() => generateInvoiceMedia(sale, 'jpeg', invoiceConfig)}>
                 <Download className="h-3.5 w-3.5" /> JPG
               </Button>
-              <Button size="sm" className="text-[10px] h-9 gap-1" onClick={() => generateInvoiceMedia(sale, 'pdf')}>
+              <Button size="sm" className="text-[10px] h-9 gap-1" onClick={() => generateInvoiceMedia(sale, 'pdf', invoiceConfig)}>
                 <Download className="h-3.5 w-3.5" /> PDF
               </Button>
             </div>
@@ -982,7 +982,7 @@ function exportSalesToExcel(sales: Sale[]) {
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Ventas');
 
-  const fileName = `dulche_dorelle_ventas_${new Date().toISOString().split('T')[0]}.xlsx`;
+  const fileName = `gns_sarriatech_ventas_${new Date().toISOString().split('T')[0]}.xlsx`;
   XLSX.writeFile(wb, fileName);
 
   brandAlert.fire({
@@ -999,11 +999,13 @@ export function SalesClient({
   products,
   customers,
   userId,
+  invoiceConfig,
 }: {
   initialSales: Sale[];
   products: Product[];
   customers: { id: string; name: string; code: string }[];
   userId: string;
+  invoiceConfig?: any;
 }) {
   const router = useRouter();
   const [search, setSearch] = useState('');
@@ -1081,10 +1083,10 @@ export function SalesClient({
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* ── Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-7 rounded-[32px] bg-card border border-border shadow-md shadow-violet-500/5 relative overflow-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-7 rounded-[32px] bg-card border border-border shadow-md shadow-primary/5 relative overflow-hidden">
         <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/10 blur-[60px]" />
         <div className="relative z-10 flex items-center gap-3">
-          <div className="p-2.5 bg-gradient-to-tr from-[#B18ACF] to-[#8B5CF6] rounded-2xl text-white shadow-lg shadow-violet-500/25">
+          <div className="p-2.5 bg-gradient-to-tr from-primary to-[#C5A059] rounded-2xl text-white shadow-lg shadow-primary/25">
             <ShoppingBag className="h-5 w-5" />
           </div>
           <div>
@@ -1189,7 +1191,7 @@ export function SalesClient({
                     <td className="px-4 py-3.5">
                       <span className="text-xs text-muted-foreground">{sale.details.length} prod.</span>
                       <br />
-                      <SaleDetailDialog sale={sale} />
+                      <SaleDetailDialog sale={sale} invoiceConfig={invoiceConfig} />
                     </td>
                     <td className="px-4 py-3.5">
                       <span className="text-xs font-semibold px-2 py-1 rounded-lg bg-secondary/20 text-foreground">
@@ -1265,7 +1267,7 @@ export function SalesClient({
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
-                  <SaleDetailDialog sale={sale} />
+                  <SaleDetailDialog sale={sale} invoiceConfig={invoiceConfig} />
                   <div className="flex gap-1.5">
                     {sale.status === 'PENDING' && (
                       <CompleteSaleDialog sale={sale} customers={customers} userId={userId} />

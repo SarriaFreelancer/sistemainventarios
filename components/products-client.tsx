@@ -206,7 +206,7 @@ export function ProductsClient({
       },
       customClass: {
         popup: 'rounded-3xl border border-border bg-card text-foreground font-sans shadow-2xl p-6',
-        confirmButton: 'bg-gradient-to-r from-[#B18ACF] to-[#8B5CF6] text-white rounded-xl px-6 py-3 font-semibold text-sm hover:opacity-95 transition mr-2',
+        confirmButton: 'bg-primary text-primary-foreground rounded-xl px-6 py-3 font-semibold text-sm hover:opacity-95 transition mr-2',
         cancelButton: 'bg-secondary/10 hover:bg-secondary/20 border border-border text-foreground rounded-xl px-6 py-3 font-semibold text-sm transition ml-2',
       },
       buttonsStyling: false,
@@ -251,15 +251,15 @@ export function ProductsClient({
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* ── Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-7 rounded-[32px] bg-card border border-border shadow-md shadow-violet-500/5 relative overflow-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-7 rounded-[32px] bg-card border border-border shadow-md shadow-primary/5 relative overflow-hidden">
         <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/10 blur-[60px]" />
         <div className="relative z-10 flex items-center gap-3">
-          <div className="p-2.5 bg-gradient-to-tr from-[#B18ACF] to-[#8B5CF6] rounded-2xl text-white shadow-lg shadow-violet-500/25">
+          <div className="p-2.5 bg-gradient-to-tr from-primary to-[#C5A059] rounded-2xl text-white shadow-lg shadow-primary/25">
             <Package className="h-5 w-5" />
           </div>
           <div>
             <h1 className="text-2xl font-extrabold text-foreground">Productos</h1>
-            <p className="text-sm text-muted-foreground">Gestiona el catálogo de productos de Dulche Dorelle.</p>
+            <p className="text-sm text-muted-foreground">Gestiona el catálogo de productos de GNS SarriaTech.</p>
           </div>
         </div>
         <div className="relative z-10 flex gap-2">
@@ -421,7 +421,7 @@ export function ProductsClient({
                         <div className="flex items-center justify-center gap-1.5">
                           <button
                             onClick={() => handleQuickSell(product)}
-                            className="h-9 px-3 text-xs font-bold text-white bg-gradient-to-tr from-[#B18ACF] to-[#8B5CF6] hover:opacity-90 rounded-xl transition-all shadow-md shadow-violet-500/10 flex items-center gap-1"
+                            className="h-9 px-3 text-xs font-bold text-white bg-gradient-to-tr from-primary to-[#C5A059] hover:opacity-90 rounded-xl transition-all shadow-md shadow-primary/10 flex items-center gap-1"
                           >
                             <ShoppingCart className="h-3.5 w-3.5" />
                             Vender
@@ -481,7 +481,7 @@ export function ProductsClient({
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleQuickSell(product)}
-                        className="h-8 px-2.5 text-[10px] font-bold text-white bg-gradient-to-tr from-[#B18ACF] to-[#8B5CF6] rounded-lg shadow-sm"
+                        className="h-8 px-2.5 text-[10px] font-bold text-white bg-gradient-to-tr from-primary to-[#C5A059] rounded-lg shadow-sm"
                       >
                         Vender
                       </button>

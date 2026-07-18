@@ -108,13 +108,24 @@ async function main() {
       }
     });
 
-    // Assign to SUPERADMIN and main company by default
+    // Assign to SUPERADMIN, USER (if standard module), and all companies by default
     await prisma.roleModule.create({
       data: { roleId: superAdminRole.id, moduleId: createdModule.id }
     });
 
+    const userModules = ['Dashboard', 'Productos', 'Grupos', 'Categorías', 'Proveedores', 'Ventas', 'CRM', 'Compras', 'Finanzas', 'Reportes'];
+    if (userModules.includes(mod.name)) {
+      await prisma.roleModule.create({
+        data: { roleId: userRole.id, moduleId: createdModule.id }
+      }).catch(() => {});
+    }
+
     await prisma.companyModule.create({
       data: { companyId: mainCompany.id, moduleId: createdModule.id }
+    });
+
+    await prisma.companyModule.create({
+      data: { companyId: partnerCompany.id, moduleId: createdModule.id }
     });
   }
 

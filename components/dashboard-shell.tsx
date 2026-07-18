@@ -74,7 +74,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
               <LucideIcons.Sparkles size={18} />
             </div>
             <div>
-              <p className="text-sm font-bold tracking-[0.25em] uppercase text-foreground">GNS SARRIA</p>
+              <p className="text-sm font-bold tracking-[0.25em] uppercase text-foreground">GNS SARRIATECH</p>
               <p className="text-[10px] font-bold tracking-wider text-primary uppercase">Gestión de Negocios</p>
             </div>
           </div>
@@ -234,7 +234,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                   <LucideIcons.Sparkles size={16} />
                 </div>
                 <span className="font-display-lg text-sm tracking-[0.2em] font-semibold text-foreground">
-                  GNS SARRIA
+                  GNS SARRIATECH
                 </span>
               </div>
               <button
