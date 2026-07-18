@@ -40,15 +40,15 @@ model Server {
 }
 
 model Company {
-  id            String   @id @default(cuid())
+  id            Int      @id @default(autoincrement())
   name          String   @unique
   planId        String?
 
-  serverId      String
-  server        Server   @relation(fields: [serverId], references: [id])
+  serverId      String?
+  server        Server?   @relation(fields: [serverId], references: [id])
 
-  databaseName  String
-  databaseType  DatabaseType // SHARED | DEDICATED
+  databaseName  String?
+  databaseType  DatabaseType? // SHARED | DEDICATED
 
   currentVersion String?
   active         Boolean @default(true)
@@ -78,7 +78,7 @@ model User {
   image           String?
   roleId          Int?
   role            Role?          @relation(fields: [roleId], references: [id])
-  companyId       String?
+  companyId       Int?
   company         Company?       @relation(fields: [companyId], references: [id])
   position        String?
   preferences     Json?
@@ -106,7 +106,7 @@ model Role {
 
 model AuditLog {
   id              Int      @id @default(autoincrement())
-  companyId       String?
+  companyId       Int?
   company         Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   userId          Int?
   user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -174,7 +174,7 @@ model RoleModule {
 }
 
 model CompanyModule {
-  companyId String
+  companyId Int
   moduleId  Int
   company   Company @relation(fields: [companyId], references: [id])
   module    Module  @relation(fields: [moduleId], references: [id])
@@ -187,7 +187,7 @@ model LoginHistory {
   userId          Int?
   user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   email           String
-  companyId       String?
+  companyId       Int?
   company         Company? @relation(fields: [companyId], references: [id])
   ip              String?
   browser         String?
@@ -206,7 +206,7 @@ model UserSession {
   id              Int      @id @default(autoincrement())
   userId          Int
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  companyId       String?
+  companyId       Int?
   company         Company? @relation(fields: [companyId], references: [id])
   token           String   @unique
   ip              String?
@@ -220,7 +220,7 @@ model UserSession {
 
 model CompanySetting {
   id                    Int      @id @default(autoincrement())
-  companyId             String   @unique
+  companyId             Int      @unique
   company               Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   nit                   String?
   phone                 String?

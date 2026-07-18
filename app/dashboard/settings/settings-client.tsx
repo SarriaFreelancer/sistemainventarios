@@ -43,9 +43,10 @@ interface SettingsClientProps {
   initialSettings: CompanySetting;
   role?: string;
   initialServers?: any[];
+  dedicatedCompanies?: { id: number; name: string }[];
 }
 
-export function SettingsClient({ initialSettings, role, initialServers = [] }: SettingsClientProps) {
+export function SettingsClient({ initialSettings, role, initialServers = [], dedicatedCompanies = [] }: SettingsClientProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"company" | "inventory" | "security" | "integrations" | "invoice" | "servers" | "databases" | "migrations">("company");
   const [saving, setSaving] = useState(false);
@@ -149,19 +150,32 @@ export function SettingsClient({ initialSettings, role, initialServers = [] }: S
     }
   };
 
+  const [backupType, setBackupType] = useState<"shared" | "dedicated">("shared");
+  const [backupCompanyId, setBackupCompanyId] = useState<string>("");
+
   const triggerManualBackup = async () => {
     try {
       showToast("Iniciando generación de respaldo...", "info");
-      // Simular descarga de backup en formato SQL comprimido
-      const dummySql = `-- Respaldo de Base de Datos GNS SarriaTech\n-- Creado: ${new Date().toISOString()}\n\nCREATE DATABASE IF NOT EXISTS inventario_produccion;\nUSE inventario_produccion;\n`;
-      const blob = new Blob([dummySql], { type: "text/plain;charset=utf-8" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = `backup_gns_company_${initialSettings.companyId}_${new Date().toISOString().slice(0,10)}.sql`;
-      link.click();
-      successAlert("Respaldo completado", "El archivo de respaldo SQL fue generado y descargado con éxito.");
+      
+      let url = "/api/backup?type=auto";
+      if (role === "SUPERADMIN") {
+        if (backupType === "dedicated") {
+          if (!backupCompanyId) {
+            errorAlert("Atención", "Debes seleccionar una empresa para respaldar su base dedicada.");
+            return;
+          }
+          url = `/api/backup?type=dedicated&companyId=${backupCompanyId}`;
+        } else {
+          url = `/api/backup?type=shared`;
+        }
+      }
+      
+      // Trigger download
+      window.location.href = url;
+      
+      successAlert("Respaldo iniciado", "El archivo de respaldo SQL comenzará a descargarse en unos momentos.");
     } catch (e) {
-      errorAlert("Error de respaldo", "No se pudo compilar el respaldo de la base de datos.");
+      errorAlert("Error de respaldo", "No se pudo invocar el respaldo de la base de datos.");
     }
   };
 
@@ -550,14 +564,56 @@ export function SettingsClient({ initialSettings, role, initialServers = [] }: S
                     <option value="WEEKLY">Semanal (Automático)</option>
                   </select>
                 </div>
-                <button
-                  type="button"
-                  onClick={triggerManualBackup}
-                  className="bg-secondary/15 hover:bg-secondary/25 border border-border font-bold text-foreground px-5 py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 self-end h-[42px] transition active:scale-95 shadow-sm"
-                >
-                  <LucideIcons.DownloadCloud size={16} />
-                  Generar Respaldo Ahora
-                </button>
+                {role === 'SUPERADMIN' && (
+                  <div className="flex flex-col gap-2 bg-muted/20 p-3 rounded-xl border border-border mt-2 sm:mt-0 col-span-2 sm:col-span-1 text-xs">
+                    <p className="font-bold text-foreground">Selección de Base de Datos</p>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input 
+                        type="radio" 
+                        name="backupType" 
+                        value="shared" 
+                        checked={backupType === 'shared'} 
+                        onChange={() => setBackupType('shared')}
+                        className="text-primary focus:ring-primary"
+                      />
+                      <span className="text-muted-foreground font-medium">Base Compartida (Todos los inquilinos)</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input 
+                        type="radio" 
+                        name="backupType" 
+                        value="dedicated" 
+                        checked={backupType === 'dedicated'} 
+                        onChange={() => setBackupType('dedicated')}
+                        className="text-primary focus:ring-primary"
+                      />
+                      <span className="text-muted-foreground font-medium">Base Dedicada (Específica)</span>
+                    </label>
+                    {backupType === 'dedicated' && (
+                      <select
+                        value={backupCompanyId}
+                        onChange={(e) => setBackupCompanyId(e.target.value)}
+                        className="w-full bg-card border border-border rounded-md px-2 py-1.5 mt-1 focus:outline-none focus:ring-1 focus:ring-primary/50"
+                      >
+                        <option value="">-- Seleccionar Empresa --</option>
+                        {dedicatedCompanies.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex justify-end self-end col-span-2 sm:col-span-1 mt-3 sm:mt-0">
+                  <button
+                    type="button"
+                    onClick={triggerManualBackup}
+                    className="bg-secondary/15 hover:bg-secondary/25 border border-border font-bold text-foreground px-5 py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 h-[42px] transition active:scale-95 shadow-sm whitespace-nowrap"
+                  >
+                    <LucideIcons.DownloadCloud size={16} />
+                    Generar Respaldo Ahora
+                  </button>
+                </div>
               </div>
             </div>
 

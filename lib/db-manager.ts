@@ -46,7 +46,7 @@ export function encryptPassword(text: string): string {
 export async function getTenantDb(companyId: string): Promise<TenantClient> {
   // 1. Obtener la compañía y su servidor desde la Platform DB
   const company = await platformDb.company.findUnique({
-    where: { id: companyId },
+    where: { id: Number(companyId) },
     include: { server: true }
   });
 
@@ -55,6 +55,11 @@ export async function getTenantDb(companyId: string): Promise<TenantClient> {
   }
 
   const { server, databaseName } = company;
+  
+  if (!server) {
+    throw new Error(`La empresa ${companyId} no tiene un servidor asignado.`);
+  }
+
   const cacheKey = `${server.id}_${databaseName}`;
 
   // 2. Revisar caché
@@ -96,14 +101,14 @@ if (process.env.NODE_ENV !== 'production') globalForMonolith.monolithDb = monoli
  * Determina si la empresa ya fue migrada a la arquitectura Tenant o si sigue en el Monolito.
  */
 export async function getDatabaseClient(companyId: string | number) {
-  const cId = String(companyId);
+  const cId = Number(companyId);
   const company = await platformDb.company.findUnique({
     where: { id: cId }
   });
 
   // Si tiene serverId asignado, significa que ya fue migrada y utiliza un Tenant (Dedicated/Shared)
   if (company && company.serverId) {
-    return await getTenantDb(cId);
+    return await getTenantDb(String(cId));
   }
 
   // De lo contrario, retorna la conexión a la base de datos monolítica actual

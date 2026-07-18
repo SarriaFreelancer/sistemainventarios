@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import * as LucideIcons from "lucide-react";
 import { getCompaniesForMigration, migrateCompany } from "@/app/actions/migration-actions";
-import { successAlert, errorAlert } from "@/lib/sweetalert";
+import { successAlert, errorAlert, confirmAction } from "@/lib/sweetalert";
 import { useRouter } from "next/navigation";
 
 export function MigrationsManager({ servers }: { servers: any[] }) {
@@ -35,7 +35,13 @@ export function MigrationsManager({ servers }: { servers: any[] }) {
       return;
     }
 
-    if (!confirm('¿Estás seguro de iniciar la migración? Este proceso copiará los datos del monolito al nuevo tenant.')) return;
+    const confirmed = await confirmAction(
+      "Confirmar Migración",
+      "¿Estás seguro de iniciar la migración? Este proceso copiará los datos del monolito al nuevo tenant y actualizará el enrutamiento de la empresa.",
+      "Iniciar Migración",
+      "Cancelar"
+    );
+    if (!confirmed) return;
 
     setMigrating(true);
     const result = await migrateCompany(selectedCompany, selectedServer, databaseType, databaseType === 'DEDICATED' ? customDbName : undefined);

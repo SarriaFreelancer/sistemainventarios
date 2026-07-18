@@ -51,7 +51,7 @@ export async function migrateCompany(companyId: string, serverId: string, databa
 
     // 1. Obtener la empresa original desde Platform (o Monolito, pero ya la pasamos a Platform)
     const company = await platformDb.company.findUnique({
-      where: { id: String(companyId) }
+      where: { id: oldCompanyId }
     });
     if (!company) throw new Error("Empresa no encontrada");
 
@@ -106,19 +106,19 @@ export async function migrateCompany(companyId: string, serverId: string, databa
     // Para migrar sin perder IDs (autoincrementales), en MySQL se puede insertar el ID si el ORM lo permite (Prisma permite insert explicit IDs)
     
     if (customers.length > 0) {
-      await tenantDb.customer.createMany({ data: customers.map(c => ({...c, companyId: company.id})), skipDuplicates: true });
+      await tenantDb.customer.createMany({ data: customers.map(c => ({...c, companyId: String(company.id)})), skipDuplicates: true });
     }
     if (suppliers.length > 0) {
-      await tenantDb.supplier.createMany({ data: suppliers.map(s => ({...s, companyId: company.id})), skipDuplicates: true });
+      await tenantDb.supplier.createMany({ data: suppliers.map(s => ({...s, companyId: String(company.id)})), skipDuplicates: true });
     }
     if (productGroups.length > 0) {
-      await tenantDb.productGroup.createMany({ data: productGroups.map(pg => ({...pg, companyId: company.id})), skipDuplicates: true });
+      await tenantDb.productGroup.createMany({ data: productGroups.map(pg => ({...pg, companyId: String(company.id)})), skipDuplicates: true });
     }
 
     // Categorias y Productos
     const categories = await monolithDb.category.findMany({ where: { companyId: oldCompanyId } });
     if (categories.length > 0) {
-      await tenantDb.category.createMany({ data: categories.map(c => ({...c, companyId: company.id})), skipDuplicates: true });
+      await tenantDb.category.createMany({ data: categories.map(c => ({...c, companyId: String(company.id)})), skipDuplicates: true });
     }
 
     const products = await monolithDb.product.findMany({ where: { companyId: oldCompanyId } });
@@ -127,7 +127,7 @@ export async function migrateCompany(companyId: string, serverId: string, databa
       const cleanProducts = products.map((p: any) => {
         return {
           ...p,
-          companyId: company.id
+          companyId: String(company.id)
         }
       });
       await tenantDb.product.createMany({ data: cleanProducts, skipDuplicates: true });
@@ -136,12 +136,12 @@ export async function migrateCompany(companyId: string, serverId: string, databa
     // Ventas
     const sales = await monolithDb.sale.findMany({ where: { companyId: oldCompanyId } });
     if (sales.length > 0) {
-      await tenantDb.sale.createMany({ data: sales.map(s => ({...s, companyId: company.id})), skipDuplicates: true });
+      await tenantDb.sale.createMany({ data: sales.map(s => ({...s, companyId: String(company.id)})), skipDuplicates: true });
     }
 
     const saleDetails = await monolithDb.saleDetail.findMany({ where: { companyId: oldCompanyId } });
     if (saleDetails.length > 0) {
-      await tenantDb.saleDetail.createMany({ data: saleDetails.map(sd => ({...sd, companyId: company.id})), skipDuplicates: true });
+      await tenantDb.saleDetail.createMany({ data: saleDetails.map(sd => ({...sd, companyId: String(company.id)})), skipDuplicates: true });
     }
 
     // 6. Actualizar registro en Platform DB para apuntar a la nueva base de datos

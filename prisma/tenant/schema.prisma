@@ -107,7 +107,7 @@ model Opportunity {
   companyId      String?
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
-  customer       Customer         @relation(fields: [customerId], references: [id])
+  customer       Customer         @relation(fields: [customerId], references: [id], map: "fk_opportunity_customer")
 
   @@index([companyId])
   @@index([customerId])
@@ -123,7 +123,7 @@ model PurchaseOrder {
   companyId        String?
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @updatedAt
-  supplier         Supplier            @relation(fields: [supplierId], references: [id])
+  supplier         Supplier            @relation(fields: [supplierId], references: [id], map: "fk_po_supplier")
   lines            PurchaseOrderLine[]
 
   @@index([companyId])
@@ -138,8 +138,8 @@ model PurchaseOrderLine {
   unitPrice       Float         @default(0)
   total           Float         @default(0)
   companyId       String?
-  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
-  product         Product?      @relation(fields: [productId], references: [id])
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade, map: "fk_poline_po")
+  product         Product?      @relation(fields: [productId], references: [id], map: "fk_poline_product")
 
   @@index([companyId])
   @@index([purchaseOrderId])
@@ -185,7 +185,7 @@ model Category {
   updatedAt      DateTime       @updatedAt
   products       Product[]
   productGroupId Int
-  productGroup   ProductGroup   @relation(fields: [productGroupId], references: [id])
+  productGroup   ProductGroup   @relation(fields: [productGroupId], references: [id], map: "fk_cat_pgroup")
 
   @@unique([name, companyId])
   @@index([companyId])
@@ -228,12 +228,12 @@ model Product {
   productGroupId     Int?
   companyId          String?
   branchId           Int?
-  branch             Branch?             @relation(fields: [branchId], references: [id])
-  productGroup       ProductGroup?       @relation(fields: [productGroupId], references: [id])
+  branch             Branch?             @relation(fields: [branchId], references: [id], map: "fk_prod_branch")
+  productGroup       ProductGroup?       @relation(fields: [productGroupId], references: [id], map: "fk_prod_pgroup")
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
-  category           Category            @relation(fields: [categoryId], references: [id])
-  supplier           Supplier            @relation(fields: [supplierId], references: [id])
+  category           Category            @relation(fields: [categoryId], references: [id], map: "fk_prod_cat")
+  supplier           Supplier            @relation(fields: [supplierId], references: [id], map: "fk_prod_sup")
   saleDetails        SaleDetail[]
   purchaseOrderLines PurchaseOrderLine[]
 
@@ -243,6 +243,7 @@ model Product {
   @@index([supplierId])
   @@index([productGroupId])
   @@index([companyId])
+  @@index([branchId])
 }
 
 model Sale {
@@ -263,15 +264,16 @@ model Sale {
   updatedAt      DateTime     @updatedAt
   details        SaleDetail[]
   customerId     Int?
-  customer       Customer?    @relation(fields: [customerId], references: [id])
+  customer       Customer?    @relation(fields: [customerId], references: [id], map: "fk_sale_cust")
   branchId       Int?
-  branch         Branch?      @relation(fields: [branchId], references: [id])
+  branch         Branch?      @relation(fields: [branchId], references: [id], map: "fk_sale_branch")
 
   @@unique([saleNumber, companyId])
   @@index([userId])
   @@index([voidedByUserId])
   @@index([companyId])
   @@index([customerId])
+  @@index([branchId])
 }
 
 model SaleDetail {
@@ -286,8 +288,8 @@ model SaleDetail {
   companyId String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  sale      Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  product   Product  @relation(fields: [productId], references: [id])
+  sale      Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade, map: "fk_sdetail_sale")
+  product   Product  @relation(fields: [productId], references: [id], map: "fk_sdetail_prod")
 
   @@index([saleId])
   @@index([productId])
@@ -341,7 +343,7 @@ model Contact {
   phone      String?
   position   String?
   customerId Int
-  customer   Customer @relation(fields: [customerId], references: [id])
+  customer   Customer @relation(fields: [customerId], references: [id], map: "fk_acc_cust")
   companyId  String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -358,7 +360,7 @@ model Activity {
   date        DateTime
   userId      Int
   customerId  Int?
-  customer    Customer? @relation(fields: [customerId], references: [id])
+  customer    Customer? @relation(fields: [customerId], references: [id], map: "fk_inv_cust")
   companyId   String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -372,7 +374,7 @@ model Quote {
   id          Int       @id @default(autoincrement())
   quoteNumber String    @unique
   customerId  Int
-  customer    Customer  @relation(fields: [customerId], references: [id])
+  customer    Customer  @relation(fields: [customerId], references: [id], map: "fk_pay_cust")
   total       Float     @default(0)
   status      String    @default("DRAFT")
   validUntil  DateTime?

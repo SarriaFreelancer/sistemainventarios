@@ -13,7 +13,7 @@ export async function GET() {
     const db = await getDatabaseClient(companyId);
 
     // Ejecutar una consulta básica de prueba
-    const productsCount = await db.product.count({
+    const productsCount = await (db as any).product.count({
       where: { companyId }
     });
 

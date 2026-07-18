@@ -410,7 +410,7 @@ export default async function HomePage() {
             <div className="pricing-card">
               <div style={{ fontSize: 14, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Plan Básico</div>
               <div style={{ marginTop: 24, paddingBottom: 24, borderBottom: '1px solid #e2e8f0' }}>
-                <span style={{ fontSize: 48, fontWeight: 900, color: '#0f172a' }}>$99k</span>
+                <span style={{ fontSize: 48, fontWeight: 900, color: '#0f172a' }}>$49.999</span>
                 <span style={{ color: '#64748b', fontWeight: 600 }}>/mes</span>
               </div>
               <ul style={{ margin: '32px 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -434,7 +434,7 @@ export default async function HomePage() {
             <div className="pricing-card">
               <div style={{ fontSize: 14, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Plan Intermedio</div>
               <div style={{ marginTop: 24, paddingBottom: 24, borderBottom: '1px solid #e2e8f0' }}>
-                <span style={{ fontSize: 48, fontWeight: 900, color: '#0f172a' }}>$179k</span>
+                <span style={{ fontSize: 48, fontWeight: 900, color: '#0f172a' }}>$89.999</span>
                 <span style={{ color: '#64748b', fontWeight: 600 }}>/mes</span>
               </div>
               <ul style={{ margin: '32px 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -461,7 +461,7 @@ export default async function HomePage() {
               </div>
               <div style={{ fontSize: 14, fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Plan Premium</div>
               <div style={{ marginTop: 24, paddingBottom: 24, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                <span style={{ fontSize: 48, fontWeight: 900, color: '#ffffff' }}>$299k</span>
+                <span style={{ fontSize: 48, fontWeight: 900, color: '#ffffff' }}>$129.999</span>
                 <span style={{ color: '#94a3b8', fontWeight: 600 }}>/mes</span>
               </div>
               <ul style={{ margin: '32px 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 16 }}>

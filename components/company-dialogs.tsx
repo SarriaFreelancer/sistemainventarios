@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CheckCircle2, Plus, Pencil, Trash2, XCircle, Folder } from "lucide-react";
+import { CheckCircle2, Plus, Pencil, Trash2, XCircle, Folder, Search } from "lucide-react";
 import { confirmAction, errorAlert, successAlert } from "@/lib/sweetalert";
 import { createCompany, deleteCompany, updateCompany } from "@/app/actions/company-actions";
 
@@ -23,6 +23,7 @@ interface Company {
   status: string;
   themeConfig?: { primaryColor?: string; mode?: string } | null;
   modules: number[];
+  nit?: string;
   _count: { users: number };
 }
 
@@ -280,8 +281,18 @@ export function DeleteCompanyButton({ id, name }: { id: number; name: string }) 
 }
 
 export function CompaniesClient({ companies, modules }: { companies: Company[]; modules: Module[] }) {
+  const [searchTerm, setSearchTerm] = useState("");
+
   const active = companies.filter((company) => company.status === 'ACTIVE').length;
   const inactive = companies.filter((company) => company.status === 'INACTIVE').length;
+
+  const filteredCompanies = companies.filter(company => {
+    const term = searchTerm.toLowerCase();
+    const nameMatch = company.name.toLowerCase().includes(term);
+    const nitMatch = company.nit?.toLowerCase().includes(term);
+    const idMatch = String(company.id).includes(term); // Treated as "code"
+    return nameMatch || nitMatch || idMatch;
+  });
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -315,13 +326,26 @@ export function CompaniesClient({ companies, modules }: { companies: Company[]; 
         ))}
       </div>
 
+      <div className="relative">
+        <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+          <Search className="w-5 h-5 text-muted-foreground" />
+        </div>
+        <Input
+          type="text"
+          placeholder="Buscar empresa por nombre, NIT o código..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-12 h-12 bg-card border-border shadow-sm rounded-2xl w-full text-base focus:ring-primary/20"
+        />
+      </div>
+
       <div className="rounded-[24px] bg-card border border-border shadow-sm overflow-hidden">
         <div className="px-6 py-5 border-b border-border/60 flex items-center justify-between">
           <h2 className="text-base font-extrabold text-foreground">Listado de empresas</h2>
-          <span className="text-xs text-muted-foreground font-medium">{companies.length} registros</span>
+          <span className="text-xs text-muted-foreground font-medium">{filteredCompanies.length} registros</span>
         </div>
 
-        {companies.length === 0 ? (
+        {filteredCompanies.length === 0 ? (
           <div className="text-center py-16 px-6">
             <div className="mx-auto w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
               <Folder className="h-8 w-8 text-primary/50" />
@@ -343,11 +367,11 @@ export function CompaniesClient({ companies, modules }: { companies: Company[]; 
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
-                {companies.map((company) => (
+                {filteredCompanies.map((company) => (
                   <tr key={company.id} className="group hover:bg-primary/5 transition-colors duration-200">
                     <td className="px-6 py-4">
                       <p className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors">{company.name}</p>
-                      <p className="text-xs text-muted-foreground">{company.country}</p>
+                      <p className="text-xs text-muted-foreground">{company.country} {company.nit ? `• NIT: ${company.nit}` : ''}</p>
                     </td>
                     <td className="px-4 py-4 hidden md:table-cell">
                       <p className="text-sm text-muted-foreground truncate max-w-xs">{company.address ?? '—'}</p>

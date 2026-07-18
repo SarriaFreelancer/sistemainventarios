@@ -29,7 +29,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
 
   useEffect(() => {
     const stored = window.localStorage.getItem('theme') as 'dark' | 'light' | null;
-    const initialTheme = themeConfig?.mode ? (themeConfig.mode as 'dark' | 'light') : (stored ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+    const initialTheme = stored ?? (themeConfig?.mode ? (themeConfig.mode as 'dark' | 'light') : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
     setTheme(initialTheme);
     document.documentElement.classList.toggle('dark', initialTheme === 'dark');
     setMounted(true);

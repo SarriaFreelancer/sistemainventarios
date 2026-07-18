@@ -16,7 +16,8 @@ export default async function CompaniesPage() {
   const companies = await prisma.company.findMany({
     include: { 
       _count: { select: { users: true } },
-      modules: { select: { moduleId: true } }
+      modules: { select: { moduleId: true } },
+      setting: { select: { nit: true } }
     },
     orderBy: { name: 'asc' },
   });
@@ -35,6 +36,7 @@ export default async function CompaniesPage() {
     status: company.status,
     themeConfig: company.themeConfig ? JSON.parse(JSON.stringify(company.themeConfig)) : null,
     modules: company.modules.map((m) => m.moduleId),
+    nit: company.setting?.nit ?? '',
     _count: { users: company._count.users },
   }));
 
