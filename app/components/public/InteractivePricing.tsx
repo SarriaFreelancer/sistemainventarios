@@ -18,14 +18,14 @@ const PLANS = [
     name: "Plan Intermedio",
     price: 89999,
     features: ['Todo el Plan Básico', 'Facturación y Ventas', 'Gestión de Usuarios y Roles', 'Analítica de ingresos', 'Soporte por correo'],
-    recommended: false
+    recommended: true
   },
   {
     id: "premium",
     name: "Plan Premium",
     price: 129999,
     features: ['Todo el Plan Intermedio', 'Auditoría Inmutable', 'Módulo Financiero', 'Órdenes de Compra', 'CRM de clientes', 'Facturas Personalizadas', 'Soporte 24/7'],
-    recommended: true
+    recommended: false
   }
 ];
 
@@ -168,70 +168,94 @@ export function InteractivePricing() {
   };
 
   return (
-    <section id="planes" style={{ padding: '120px 24px', background: '#ffffff' }}>
-      <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+    <section id="planes" className="py-[120px] px-6 bg-white dark:bg-slate-900 transition-colors duration-300">
+      <div className="max-w-[1280px] mx-auto">
         
         {step === "SELECT_PLAN" && (
           <>
-            <style>{`
-              .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; align-items: center; }
-              @media (max-width: 1024px) {
-                .pricing-grid { grid-template-columns: 1fr; max-width: 500px; margin: 0 auto; }
-              }
-            `}</style>
-            <div style={{ textAlign: 'center', marginBottom: 80 }}>
-              <span style={{ display: 'inline-block', color: '#dc2626', fontSize: 14, fontWeight: 800, letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 16 }}>
-                Inversión Inteligente
+            <div className="text-center mb-[60px]">
+              <span className="inline-block text-red-600 dark:text-red-500 text-[13px] font-extrabold tracking-[0.15em] uppercase mb-4">
+                ELIGE EL PLAN PERFECTO PARA TU NEGOCIO
               </span>
-              <h2 style={{ fontSize: 48, fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-0.02em' }}>
-                Planes Escalables
+              <h2 className="text-[36px] font-black text-slate-900 dark:text-white m-0 tracking-tight">
+                Planes simples, poderosos y escalables
               </h2>
               {userSession && (
-                <div style={{ marginTop: 16, display: 'inline-block', background: '#fef2f2', color: '#dc2626', padding: '8px 16px', borderRadius: 999, fontWeight: 700, fontSize: 14 }}>
+                <div className="mt-6 inline-block bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 py-2 px-4 rounded-full font-bold text-[14px]">
                   Estás autenticado como {userSession.email}. Selecciona tu plan para pagar.
                 </div>
               )}
             </div>
 
-            <div className="pricing-grid">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-start mx-auto max-w-md md:max-w-4xl xl:max-w-none">
               {PLANS.map((plan) => (
-                <div key={plan.id} className={`pricing-card ${plan.recommended ? 'pricing-premium' : ''}`} style={{ position: 'relative' }}>
+                <div key={plan.id} className={`relative flex flex-col h-full bg-white dark:bg-slate-800 rounded-[20px] p-6 md:p-8 border ${plan.recommended ? 'border-amber-600 dark:border-amber-500 shadow-2xl scale-100 lg:scale-105' : 'border-slate-100 dark:border-slate-700 shadow-sm'}`}>
                   {plan.recommended && (
-                    <div style={{ position: 'absolute', top: 20, right: 20, background: '#ef4444', color: '#fff', fontSize: 12, fontWeight: 800, padding: '6px 12px', borderRadius: 999 }}>
-                      RECOMENDADO
+                    <div className="absolute top-0 left-0 right-0 bg-amber-600 dark:bg-amber-500 text-white text-[11px] font-extrabold py-1.5 text-center rounded-t-[18px] tracking-[0.1em]">
+                      MÁS POPULAR
                     </div>
                   )}
-                  <div style={{ fontSize: 14, fontWeight: 800, color: plan.recommended ? '#94a3b8' : '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                    {plan.name}
+                  
+                  <div className={`flex items-center gap-3 ${plan.recommended ? 'mt-6' : ''}`}>
+                    {plan.recommended ? (
+                      <LucideIcons.Star size={24} className="text-amber-600 dark:text-amber-500 fill-amber-600 dark:fill-amber-500" />
+                    ) : plan.name.includes("Premium") ? (
+                      <LucideIcons.Crown size={24} className="text-amber-600 dark:text-amber-500 fill-amber-600 dark:fill-amber-500" />
+                    ) : (
+                      <LucideIcons.Send size={24} className="text-red-600 dark:text-red-500 fill-red-600 dark:fill-red-500" />
+                    )}
+                    <div>
+                      <div className="text-[18px] font-black text-slate-900 dark:text-white uppercase">
+                        {plan.name.replace('Plan ', '')}
+                      </div>
+                      <div className="text-[12px] text-slate-500 dark:text-slate-400 font-medium">
+                        {plan.recommended ? 'Para negocios en crecimiento' : (plan.name.includes('Premium') ? 'Máximo control, sin límites' : 'Ideal para pequeños negocios')}
+                      </div>
+                    </div>
                   </div>
-                  <div style={{ marginTop: 24, paddingBottom: 24, borderBottom: `1px solid ${plan.recommended ? 'rgba(255,255,255,0.1)' : '#e2e8f0'}` }}>
-                    <span style={{ fontSize: 48, fontWeight: 900, color: plan.recommended ? '#ffffff' : '#0f172a' }}>
+
+                  <div className="my-6 pb-6 border-b border-slate-100 dark:border-slate-700 flex items-end gap-1">
+                    <span className="text-[36px] font-black text-slate-900 dark:text-white leading-none">
                       ${plan.price.toLocaleString("es-CO")}
                     </span>
-                    <span style={{ color: plan.recommended ? '#94a3b8' : '#64748b', fontWeight: 600 }}>/mes</span>
+                    <span className="text-slate-500 dark:text-slate-400 font-semibold text-[14px] pb-1">/mes</span>
                   </div>
-                  <ul style={{ margin: '32px 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  
+                  <div className="text-[12px] text-slate-500 dark:text-slate-400 font-medium mb-6 text-center">
+                    Facturado mensual
+                  </div>
+
+                  <ul className="m-0 p-0 list-none flex flex-col gap-3 flex-1 mb-8">
                     {plan.features.map((item, i) => (
-                      <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, color: plan.recommended ? '#e2e8f0' : '#475569', fontSize: 15, fontWeight: 500 }}>
-                        <div style={{ width: 24, height: 24, borderRadius: '50%', background: plan.recommended ? 'rgba(239, 68, 68, 0.2)' : '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <LucideIcons.Check size={14} color={plan.recommended ? '#fca5a5' : '#16a34a'} />
+                      <li key={i} className="flex items-start gap-3 text-slate-900 dark:text-slate-200 text-[13px] font-semibold">
+                        <div className="w-4 h-4 rounded-full bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center shrink-0 mt-[2px]">
+                          <LucideIcons.Check size={10} className="text-amber-600 dark:text-amber-500" strokeWidth={3} />
                         </div>
                         {item}
                       </li>
                     ))}
                   </ul>
+
                   {(() => {
                     const isCurrentPlan = userSession?.companyPlan === plan.id;
+                    const isSuspended = userSession?.companyStatus === 'SUSPENDED';
                     const currentPlanIndex = PLANS.findIndex(p => p.id === userSession?.companyPlan);
                     const thisPlanIndex = PLANS.findIndex(p => p.id === plan.id);
                     
-                    let btnLabel = `Seleccionar ${plan.name.replace('Plan ', '')}`;
+                    let btnLabel = `Comenzar Plan ${plan.name.replace('Plan ', '')}`;
                     let btnDisabled = false;
+                    let isSuspendedAction = false;
                     
                     if (userSession?.companyPlan) {
                       if (isCurrentPlan) {
-                        btnLabel = "Plan Actual";
-                        btnDisabled = true;
+                        if (isSuspended) {
+                          btnLabel = "Pagar Plan";
+                          btnDisabled = false;
+                          isSuspendedAction = true;
+                        } else {
+                          btnLabel = "Plan Actual";
+                          btnDisabled = true;
+                        }
                       } else if (thisPlanIndex < currentPlanIndex) {
                         btnLabel = "Bajar a este plan";
                       } else {
@@ -243,85 +267,101 @@ export function InteractivePricing() {
                       <button 
                         onClick={() => startCheckoutProcess(plan)}
                         disabled={btnDisabled}
-                        style={{ 
-                          width: '100%', padding: '16px', borderRadius: 14, 
-                          background: isCurrentPlan ? '#10b981' : (plan.recommended ? '#dc2626' : '#f1f5f9'), 
-                          color: isCurrentPlan ? '#ffffff' : (plan.recommended ? '#ffffff' : '#0f172a'), 
-                          fontWeight: 700, border: 'none', 
-                          cursor: btnDisabled ? 'not-allowed' : 'pointer', 
-                          transition: 'background 0.2s',
-                          opacity: btnDisabled ? 0.9 : 1
-                        }}
+                        className={`w-full py-3.5 rounded-lg font-bold text-[13px] transition-all duration-200 flex items-center justify-center gap-2 ${
+                          isCurrentPlan && !isSuspendedAction
+                            ? 'bg-emerald-500 text-white border-none cursor-not-allowed opacity-90' 
+                            : plan.recommended || isSuspendedAction
+                              ? 'bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white border-none shadow-md hover:shadow-lg' 
+                              : 'bg-white dark:bg-slate-800 text-red-600 dark:text-red-400 border border-red-600 dark:border-red-500 hover:bg-red-50 dark:hover:bg-red-950/30'
+                        } ${btnDisabled && !isCurrentPlan ? 'opacity-50 cursor-not-allowed hover:bg-transparent hover:scale-100 hover:shadow-none' : ''}`}
                       >
-                        {isCurrentPlan && <LucideIcons.CheckCircle size={16} style={{ display: 'inline', marginRight: 6, verticalAlign: '-3px' }} />}
+                        {isCurrentPlan && <LucideIcons.CheckCircle size={16} />}
                         {btnLabel}
                       </button>
                     );
                   })()}
                 </div>
               ))}
+              
+              {/* Promo Anual Card */}
+              <div className="flex flex-col h-full bg-white dark:bg-slate-800 rounded-[20px] p-6 md:p-8 border border-slate-200 dark:border-slate-700 justify-center items-center text-center">
+                <h3 className="text-[20px] font-black text-amber-600 dark:text-amber-500 mb-6 leading-snug">
+                  Ahorra más con<br/>nuestro plan anual
+                </h3>
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 rounded-full w-[120px] h-[120px] flex flex-col items-center justify-center text-amber-600 dark:text-amber-500 mb-6">
+                  <span className="text-[40px] font-black leading-none">2</span>
+                  <span className="text-[13px] font-extrabold tracking-wide">MESES</span>
+                  <span className="text-[13px] font-extrabold tracking-wide">GRATIS</span>
+                </div>
+                <p className="text-[13px] text-slate-600 dark:text-slate-400 font-semibold mb-8">
+                  Pago anual con<br/>descuento especial
+                </p>
+                <button className="w-full py-3.5 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-[13px] border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-2">
+                  Ver todos los planes anuales <LucideIcons.ArrowRight size={16} />
+                </button>
+              </div>
             </div>
           </>
         )}
 
         {step === "REGISTER" && selectedPlan && (
-          <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-xl max-w-xl mx-auto" style={{ border: '1px solid #e2e8f0', boxShadow: '0 20px 40px rgba(0,0,0,0.08)' }}>
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800 shadow-xl max-w-xl mx-auto shadow-[0_20px_40px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_40px_rgba(0,0,0,0.4)]">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-4">
-                <button onClick={() => setStep("SELECT_PLAN")} className="p-2 hover:bg-slate-100 rounded-full cursor-pointer border-none bg-transparent" style={{ cursor: 'pointer' }}>
+                <button onClick={() => setStep("SELECT_PLAN")} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full cursor-pointer border-none bg-transparent text-slate-500 dark:text-slate-400">
                   <LucideIcons.ArrowLeft size={20} />
                 </button>
-                <h3 className="text-2xl font-bold m-0 text-slate-900">
+                <h3 className="text-2xl font-bold m-0 text-slate-900 dark:text-white">
                   {authMode === "REGISTER" ? `Crea tu cuenta (${selectedPlan.name})` : "Iniciar Sesión"}
                 </h3>
               </div>
             </div>
 
-            <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '12px', padding: '4px', marginBottom: '24px' }}>
+            <div className="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-1 mb-6">
               <button 
                 onClick={() => setAuthMode("REGISTER")} 
-                style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: authMode === "REGISTER" ? '#fff' : 'transparent', fontWeight: 700, color: authMode === "REGISTER" ? '#0f172a' : '#64748b', cursor: 'pointer', boxShadow: authMode === "REGISTER" ? '0 2px 4px rgba(0,0,0,0.05)' : 'none' }}>
+                className={`flex-1 py-2.5 rounded-lg border-none font-bold text-sm cursor-pointer transition-all ${authMode === "REGISTER" ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'bg-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}>
                 Nueva Empresa
               </button>
               <button 
                 onClick={() => setAuthMode("LOGIN")} 
-                style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: authMode === "LOGIN" ? '#fff' : 'transparent', fontWeight: 700, color: authMode === "LOGIN" ? '#0f172a' : '#64748b', cursor: 'pointer', boxShadow: authMode === "LOGIN" ? '0 2px 4px rgba(0,0,0,0.05)' : 'none' }}>
+                className={`flex-1 py-2.5 rounded-lg border-none font-bold text-sm cursor-pointer transition-all ${authMode === "LOGIN" ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'bg-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}>
                 Ya tengo cuenta
               </button>
             </div>
             
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               
               {authMode === "REGISTER" && (
                 <>
                   <div>
-                    <label style={{ fontSize: '14px', fontWeight: 700, color: '#334155' }}>Nombre de la Empresa</label>
-                    <input type="text" required value={formData.companyName} onChange={e => setFormData({...formData, companyName: e.target.value})} style={{ width: '100%', marginTop: '4px', padding: '12px 16px', borderRadius: '12px', border: '1px solid #cbd5e1', outline: 'none' }} />
+                    <label className="text-[14px] font-bold text-slate-700 dark:text-slate-300">Nombre de la Empresa</label>
+                    <input type="text" required value={formData.companyName} onChange={e => setFormData({...formData, companyName: e.target.value})} className="w-full mt-1 px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-red-500/50" />
                   </div>
                   <div>
-                    <label style={{ fontSize: '14px', fontWeight: 700, color: '#334155' }}>Tu Nombre</label>
-                    <input type="text" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} style={{ width: '100%', marginTop: '4px', padding: '12px 16px', borderRadius: '12px', border: '1px solid #cbd5e1', outline: 'none' }} />
+                    <label className="text-[14px] font-bold text-slate-700 dark:text-slate-300">Tu Nombre</label>
+                    <input type="text" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full mt-1 px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-red-500/50" />
                   </div>
                 </>
               )}
 
               <div>
-                <label style={{ fontSize: '14px', fontWeight: 700, color: '#334155' }}>Correo Electrónico (Admin)</label>
-                <input type="email" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} style={{ width: '100%', marginTop: '4px', padding: '12px 16px', borderRadius: '12px', border: '1px solid #cbd5e1', outline: 'none' }} />
+                <label className="text-[14px] font-bold text-slate-700 dark:text-slate-300">Correo Electrónico (Admin)</label>
+                <input type="email" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full mt-1 px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-red-500/50" />
               </div>
               <div>
-                <label style={{ fontSize: '14px', fontWeight: 700, color: '#334155' }}>Contraseña</label>
-                <input type="password" required minLength={6} value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} style={{ width: '100%', marginTop: '4px', padding: '12px 16px', borderRadius: '12px', border: '1px solid #cbd5e1', outline: 'none' }} />
+                <label className="text-[14px] font-bold text-slate-700 dark:text-slate-300">Contraseña</label>
+                <input type="password" required minLength={6} value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="w-full mt-1 px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-red-500/50" />
               </div>
               
-              <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginTop: '16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '18px' }}>
-                  <span style={{ color: '#0f172a' }}>Total a Pagar Hoy:</span>
-                  <span style={{ color: '#dc2626' }}>${selectedPlan.price.toLocaleString("es-CO")} COP</span>
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700 mt-4">
+                <div className="flex justify-between font-extrabold text-lg">
+                  <span className="text-slate-900 dark:text-slate-200">Total a Pagar Hoy:</span>
+                  <span className="text-red-600 dark:text-red-500">${selectedPlan.price.toLocaleString("es-CO")} COP</span>
                 </div>
               </div>
 
-              <button type="submit" disabled={loading} style={{ width: '100%', padding: '16px', marginTop: '16px', borderRadius: '12px', background: '#dc2626', color: '#fff', fontWeight: 800, border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
+              <button type="submit" disabled={loading} className="w-full p-4 mt-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-extrabold border-none cursor-pointer flex justify-center items-center gap-2 disabled:opacity-70 transition-colors">
                 {loading ? <LucideIcons.Loader2 className="animate-spin" /> : (authMode === "REGISTER" ? "Registrarse y Proceder al Pago" : "Iniciar Sesión y Pagar")}
               </button>
             </form>
@@ -329,17 +369,17 @@ export function InteractivePricing() {
         )}
 
         {step === "CHECKOUT" && (
-          <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-xl max-w-xl mx-auto text-center" style={{ border: '1px solid #e2e8f0', boxShadow: '0 20px 40px rgba(0,0,0,0.08)' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
-              <LucideIcons.ShieldCheck size={64} color="#10b981" />
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800 shadow-xl max-w-xl mx-auto text-center shadow-[0_20px_40px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_40px_rgba(0,0,0,0.4)]">
+            <div className="flex justify-center mb-4">
+              <LucideIcons.ShieldCheck size={64} className="text-emerald-500" />
             </div>
-            <h3 style={{ fontSize: '24px', fontWeight: 900, marginBottom: '8px', color: '#0f172a' }}>
+            <h3 className="text-[24px] font-black mb-2 text-slate-900 dark:text-white">
               {userSession ? '¡Sesión Detectada!' : '¡Registro Completado!'}
             </h3>
-            <p style={{ color: '#475569', marginBottom: '32px' }}>Por favor, completa tu pago de forma segura a continuación para activar tu cuenta inmediatamente.</p>
+            <p className="text-slate-600 dark:text-slate-400 mb-8 font-medium">Por favor, completa tu pago de forma segura a continuación para activar tu cuenta inmediatamente.</p>
             
-            <div style={{ minHeight: '300px', border: '1px solid #e2e8f0', borderRadius: '16px', background: '#f8fafc', padding: '16px', position: 'relative' }}>
-              <div ref={boldContainerRef} style={{ width: '100%', display: 'flex', justifyContent: 'center', position: 'relative', zIndex: 10 }}></div>
+            <div className="min-h-[300px] border border-slate-200 dark:border-slate-700 rounded-2xl bg-slate-50 dark:bg-slate-800/50 p-4 relative">
+              <div ref={boldContainerRef} className="w-full flex justify-center relative z-10"></div>
             </div>
 
             <button 
@@ -347,19 +387,7 @@ export function InteractivePricing() {
                 setStep("SELECT_PLAN");
                 if (boldContainerRef.current) boldContainerRef.current.innerHTML = "";
               }}
-              style={{
-                marginTop: '24px',
-                padding: '12px 24px',
-                background: 'transparent',
-                color: '#64748b',
-                border: '1px solid #cbd5e1',
-                borderRadius: '8px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
-              onMouseOver={(e) => { e.currentTarget.style.color = '#0f172a'; e.currentTarget.style.borderColor = '#94a3b8'; }}
-              onMouseOut={(e) => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
+              className="mt-6 px-6 py-3 bg-transparent text-slate-500 dark:text-slate-400 border border-slate-300 dark:border-slate-700 rounded-lg font-semibold cursor-pointer transition-all hover:text-slate-900 dark:hover:text-white hover:border-slate-400 dark:hover:border-slate-500"
             >
               Volver a los planes
             </button>

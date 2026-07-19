@@ -78,7 +78,7 @@ export const authOptions: AuthOptions = {
     signIn: '/auth/login',
   },
   callbacks: {
-    async jwt({ token, user }: any) {
+    async jwt({ token, user, trigger, session }: any) {
       if (user) {
         token.id = user.id;
         token.role = user.role;
@@ -86,6 +86,28 @@ export const authOptions: AuthOptions = {
         token.companyStatus = user.companyStatus;
         token.companyPlan = user.companyPlan;
       }
+
+      if (trigger === 'update' && session) {
+        if (session.companyStatus) token.companyStatus = session.companyStatus;
+        if (session.companyPlan) token.companyPlan = session.companyPlan;
+      }
+
+      // Auto-heal session: If token says SUSPENDED, check DB to see if they just paid
+      if (token.companyStatus === 'SUSPENDED' && token.companyId) {
+        try {
+          const company = await prisma.company.findUnique({
+            where: { id: parseInt(token.companyId as string, 10) },
+            select: { status: true, planId: true }
+          });
+          if (company) {
+            token.companyStatus = company.status;
+            token.companyPlan = company.planId;
+          }
+        } catch (e) {
+          console.error("Error auto-healing session", e);
+        }
+      }
+
       return token;
     },
     async session({ session, token }: any) {

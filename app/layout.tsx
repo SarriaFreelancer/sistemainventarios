@@ -4,6 +4,7 @@ import './layout.css';
 import type { Metadata } from 'next';
 import { Toaster } from 'sonner';
 import { cn } from "@/lib/utils";
+import { ThemeProvider } from "@/components/theme-provider";
 
 export const metadata: Metadata = {
   title: 'GNS | Gestión de Negocios SarriaTech',
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="es" className={cn("font-sans")}>
+    <html lang="es" suppressHydrationWarning className={cn("font-sans")}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
@@ -25,9 +26,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           rel="stylesheet"
         />
       </head>
-      <body className="font-body-md bg-background text-foreground">
-        {children}
-        <Toaster richColors position="top-right" />
+      <body className="font-body-md bg-background text-foreground transition-colors duration-300">
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          {children}
+          <Toaster richColors position="top-right" />
+        </ThemeProvider>
       </body>
     </html>
   );
