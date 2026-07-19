@@ -38,6 +38,15 @@ enum ProductStatus {
   OUT_OF_STOCK
 }
 
+enum ProductType {
+  SALE
+  RAW_MATERIAL
+  FINISHED_GOOD
+  SUPPLY
+  SERVICE
+  FIXED_ASSET
+}
+
 enum CustomerStatus {
   ACTIVE
   INACTIVE
@@ -348,6 +357,7 @@ model Product {
   salePrice          Float               @default(0)
   soldQuantity       Int                 @default(0)
   status             ProductStatus       @default(AVAILABLE)
+  type               ProductType         @default(SALE)
   productGroupId     Int?
   companyId          Int?
   company            Company?            @relation(fields: [companyId], references: [id])

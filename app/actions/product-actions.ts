@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { withTenantWhere, withTenantData } from '@/lib/tenant-db';
 import { getSessionCompanyId } from '@/lib/session';
-import { ProductStatus } from '@prisma/client';
+import { ProductStatus, ProductType } from '@prisma/client';
 import { logActivity } from '@/lib/audit';
 
 const productSchema = z.object({
@@ -15,7 +15,8 @@ const productSchema = z.object({
   supplierId: z.coerce.number().min(1, 'El proveedor es obligatorio'),
   quantityAvailable: z.coerce.number().min(0),
   unitCost: z.coerce.number().min(0),
-  salePrice: z.coerce.number().min(0),
+  salePrice: z.coerce.number().min(0).default(0),
+  type: z.nativeEnum(ProductType).default(ProductType.SALE),
   productGroupId: z.coerce.number().nullable().optional(),
 });
 
@@ -28,7 +29,8 @@ export async function createProduct(formData: FormData) {
       supplierId: formData.get('supplierId'),
       quantityAvailable: formData.get('quantityAvailable'),
       unitCost: formData.get('unitCost'),
-      salePrice: formData.get('salePrice'),
+      salePrice: formData.get('salePrice') || '0',
+      type: formData.get('type') || 'SALE',
       productGroupId: formData.get('productGroupId') ? Number(formData.get('productGroupId')) : null,
     });
 
@@ -55,6 +57,7 @@ export async function createProduct(formData: FormData) {
       unitCost: parsed.data.unitCost,
       salePrice: parsed.data.salePrice,
       status,
+      type: parsed.data.type,
       soldQuantity: 0,
       productGroupId: parsed.data.productGroupId || null,
     });
@@ -90,7 +93,8 @@ export async function updateProduct(formData: FormData) {
       supplierId: formData.get('supplierId'),
       quantityAvailable: formData.get('quantityAvailable'),
       unitCost: formData.get('unitCost'),
-      salePrice: formData.get('salePrice'),
+      salePrice: formData.get('salePrice') || '0',
+      type: formData.get('type') || 'SALE',
       productGroupId: formData.get('productGroupId') ? Number(formData.get('productGroupId')) : null,
     });
 
@@ -116,6 +120,8 @@ export async function updateProduct(formData: FormData) {
     const quantity = parsed.data.quantityAvailable;
     const status = quantity === 0 ? ProductStatus.OUT_OF_STOCK : ProductStatus.AVAILABLE;
 
+    console.log('[DEBUG] updateProduct payload:', parsed.data);
+
     const updated = await prisma.product.update({
       where: { id },
       data: {
@@ -127,6 +133,7 @@ export async function updateProduct(formData: FormData) {
         unitCost: parsed.data.unitCost,
         salePrice: parsed.data.salePrice,
         status,
+        type: parsed.data.type,
         productGroupId: parsed.data.productGroupId || null,
       },
     });

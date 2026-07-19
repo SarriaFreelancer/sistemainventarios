@@ -48,6 +48,7 @@ export default async function ProductsPage() {
     salePrice: Number(p.salePrice),
     soldQuantity: p.soldQuantity,
     status: p.status,
+    type: p.type,
     productGroupId: p.productGroupId ? String(p.productGroupId) : null,
     category: p.category ? { id: String(p.category.id), name: p.category.name } : null,
     supplier: p.supplier ? { id: String(p.supplier.id), companyName: p.supplier.companyName } : null,

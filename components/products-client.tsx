@@ -28,6 +28,7 @@ interface Product {
   salePrice: number;
   soldQuantity: number;
   status: string;
+  type?: string;
   productGroupId: string | null;
   category: Category | null;
   supplier: { id: string; companyName: string } | null;
@@ -56,6 +57,7 @@ export function ProductsClient({
   const [filterSupplier, setFilterSupplier] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterGroup, setFilterGroup] = useState('');
+  const [filterType, setFilterType] = useState('ALL');
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [showFilters, setShowFilters] = useState(false);
@@ -66,7 +68,7 @@ export function ProductsClient({
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, filterCategory, filterSupplier, filterStatus, filterGroup, sortField, sortDir]);
+  }, [search, filterCategory, filterSupplier, filterStatus, filterGroup, filterType, sortField, sortDir]);
 
   const filteredProducts = useMemo(() => {
     let list = [...initialProducts];
@@ -80,6 +82,10 @@ export function ProductsClient({
     }
     if (filterCategory) list = list.filter(p => p.categoryId === filterCategory);
     if (filterSupplier) list = list.filter(p => p.supplierId === filterSupplier);
+    
+    if (filterType !== 'ALL') {
+      list = list.filter(p => (p.type || 'SALE') === filterType);
+    }
     
     // CORRECTION of status filtering logic checking real stock quantity:
     if (filterStatus) {
@@ -102,7 +108,7 @@ export function ProductsClient({
     });
 
     return list;
-  }, [initialProducts, search, filterCategory, filterSupplier, filterStatus, filterGroup, sortField, sortDir]);
+  }, [initialProducts, search, filterCategory, filterSupplier, filterStatus, filterGroup, filterType, sortField, sortDir]);
 
   const paginatedProducts = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
@@ -291,6 +297,31 @@ export function ProductsClient({
         ))}
       </div>
 
+      {/* ── Type Tabs ── */}
+      <div className="flex border-b border-border gap-4 overflow-x-auto scrollbar-hide">
+        <button onClick={() => setFilterType('ALL')} className={`pb-3 px-2 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${filterType === 'ALL' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'}`}>
+          Todos
+        </button>
+        <button onClick={() => setFilterType('SALE')} className={`pb-3 px-2 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${filterType === 'SALE' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'}`}>
+          Para Venta
+        </button>
+        <button onClick={() => setFilterType('FINISHED_GOOD')} className={`pb-3 px-2 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${filterType === 'FINISHED_GOOD' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'}`}>
+          Producto Terminado
+        </button>
+        <button onClick={() => setFilterType('SERVICE')} className={`pb-3 px-2 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${filterType === 'SERVICE' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'}`}>
+          Servicios
+        </button>
+        <button onClick={() => setFilterType('RAW_MATERIAL')} className={`pb-3 px-2 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${filterType === 'RAW_MATERIAL' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'}`}>
+          Materia Prima
+        </button>
+        <button onClick={() => setFilterType('SUPPLY')} className={`pb-3 px-2 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${filterType === 'SUPPLY' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'}`}>
+          Insumos
+        </button>
+        <button onClick={() => setFilterType('FIXED_ASSET')} className={`pb-3 px-2 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${filterType === 'FIXED_ASSET' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'}`}>
+          Activos Fijos
+        </button>
+      </div>
+
       {/* ── Search & Filters ── */}
       <div className="rounded-[24px] bg-card border border-border shadow-sm overflow-hidden">
         <div className="p-5 border-b border-border/60 flex flex-col sm:flex-row gap-3">
@@ -420,13 +451,19 @@ export function ProductsClient({
                       </td>
                       <td className="px-4 py-3.5">
                         <div className="flex items-center justify-center gap-1.5">
-                          <button
-                            onClick={() => handleQuickSell(product)}
-                            className="h-9 px-3 text-xs font-bold text-white bg-gradient-to-tr from-primary to-[#C5A059] hover:opacity-90 rounded-xl transition-all shadow-md shadow-primary/10 flex items-center gap-1"
-                          >
-                            <ShoppingCart className="h-3.5 w-3.5" />
-                            Vender
-                          </button>
+                          {['SALE', 'FINISHED_GOOD', 'SERVICE'].includes(product.type || 'SALE') ? (
+                            <button
+                              onClick={() => handleQuickSell(product)}
+                              className="h-9 px-3 text-xs font-bold text-white bg-gradient-to-tr from-primary to-[#C5A059] hover:opacity-90 rounded-xl transition-all shadow-md shadow-primary/10 flex items-center gap-1"
+                            >
+                              <ShoppingCart className="h-3.5 w-3.5" />
+                              Vender
+                            </button>
+                          ) : (
+                            <span className="inline-flex items-center h-9 text-xs font-medium text-muted-foreground px-3 bg-muted/30 rounded-xl">
+                              Uso interno
+                            </span>
+                          )}
                           <EditProductDialog product={product} categories={categories} suppliers={suppliers} groups={groups} />
                           <Button
                             variant="ghost"
@@ -479,13 +516,22 @@ export function ProductsClient({
                     ) : (
                       <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">Disponible</span>
                     )}
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleQuickSell(product)}
-                        className="h-8 px-2.5 text-[10px] font-bold text-white bg-gradient-to-tr from-primary to-[#C5A059] rounded-lg shadow-sm"
-                      >
-                        Vender
-                      </button>
+                    <div className="flex gap-2 justify-end">
+                      {['SALE', 'FINISHED_GOOD', 'SERVICE'].includes(product.type || 'SALE') ? (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleQuickSell(product)}
+                          className="h-8 text-xs font-semibold px-3"
+                          disabled={product.quantityAvailable === 0 || isPending}
+                        >
+                          Venta rápida
+                        </Button>
+                      ) : (
+                        <span className="inline-flex items-center h-8 text-xs font-medium text-muted-foreground px-3 bg-muted/30 rounded-md">
+                          Uso interno
+                        </span>
+                      )}
                       <EditProductDialog product={product} categories={categories} suppliers={suppliers} groups={groups} />
                       <Button
                         variant="ghost"

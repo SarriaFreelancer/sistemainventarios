@@ -31,6 +31,7 @@ const labelCls = "text-[10px] font-bold uppercase tracking-wider text-muted-fore
 export function CreateProductDialog({ categories, suppliers, groups }: CreateProductDialogProps) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [productType, setProductType] = useState('SALE');
 
   const handleAction = useCallback(async (formData: FormData) => {
     startTransition(async () => {
@@ -65,6 +66,17 @@ export function CreateProductDialog({ categories, suppliers, groups }: CreatePro
 
           <form action={handleAction} className="space-y-5 mt-2">
             <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="new-type" className={labelCls}>Tipo de Producto</Label>
+                <select id="new-type" name="type" className={selectCls} value={productType} onChange={(e) => setProductType(e.target.value)}>
+                  <option value="SALE">Producto para venta</option>
+                  <option value="RAW_MATERIAL">Materia prima</option>
+                  <option value="FINISHED_GOOD">Producto terminado</option>
+                  <option value="SUPPLY">Insumo</option>
+                  <option value="SERVICE">Servicio</option>
+                  <option value="FIXED_ASSET">Activo fijo</option>
+                </select>
+              </div>
               <div className="space-y-1.5">
                 <Label htmlFor="new-code" className={labelCls}>Código</Label>
                 <Input id="new-code" name="code" placeholder="Ej. LIP-001" className={inputCls} required />
@@ -106,10 +118,19 @@ export function CreateProductDialog({ categories, suppliers, groups }: CreatePro
                 <Label htmlFor="new-cost" className={labelCls}>Costo Unitario (COP)</Label>
                 <Input id="new-cost" name="unitCost" type="number" min="0" step="100" defaultValue="0" className={inputCls} />
               </div>
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label htmlFor="new-price" className={labelCls}>Precio de Venta (COP)</Label>
-                <Input id="new-price" name="salePrice" type="number" min="0" step="100" defaultValue="0" className={inputCls} />
-              </div>
+              
+              {['SALE', 'FINISHED_GOOD', 'SERVICE'].includes(productType) ? (
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="new-price" className={labelCls}>Precio de Venta (COP)</Label>
+                  <Input id="new-price" name="salePrice" type="number" min="0" step="100" defaultValue="0" className={inputCls} required />
+                </div>
+              ) : (
+                <div className="space-y-1.5 sm:col-span-2 pt-2">
+                  <div className="bg-muted/30 border border-border rounded-xl p-3 text-xs text-muted-foreground flex items-center gap-2">
+                    Este tipo de producto es de uso interno y no requiere un precio de venta para el público.
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3 pt-2">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useCallback } from "react";
+import { useState, useTransition, useCallback, useEffect } from "react";
 import { updateProduct } from "@/app/actions/product-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,7 @@ interface Product {
   unitCost: number;
   salePrice: number;
   productGroupId?: string | null;
+  type?: string;
 }
 
 interface EditProductDialogProps {
@@ -43,6 +44,13 @@ const labelCls = "text-[10px] font-bold uppercase tracking-wider text-muted-fore
 export function EditProductDialog({ product, categories, suppliers, groups }: EditProductDialogProps) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [productType, setProductType] = useState(product.type || 'SALE');
+
+  useEffect(() => {
+    if (open) {
+      setProductType(product.type || 'SALE');
+    }
+  }, [open, product.type]);
 
   const handleAction = useCallback(async (formData: FormData) => {
     startTransition(async () => {
@@ -79,6 +87,17 @@ export function EditProductDialog({ product, categories, suppliers, groups }: Ed
           <form action={handleAction} className="space-y-5 mt-2">
             <input type="hidden" name="id" value={product.id} />
             <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor={`edit-type-${product.id}`} className={labelCls}>Tipo de Producto</Label>
+                <select id={`edit-type-${product.id}`} name="type" className={selectCls} value={productType} onChange={(e) => setProductType(e.target.value)}>
+                  <option value="SALE">Producto para venta</option>
+                  <option value="RAW_MATERIAL">Materia prima</option>
+                  <option value="FINISHED_GOOD">Producto terminado</option>
+                  <option value="SUPPLY">Insumo</option>
+                  <option value="SERVICE">Servicio</option>
+                  <option value="FIXED_ASSET">Activo fijo</option>
+                </select>
+              </div>
               <div className="space-y-1.5">
                 <Label htmlFor={`edit-code-${product.id}`} className={labelCls}>Código</Label>
                 <Input id={`edit-code-${product.id}`} name="code" defaultValue={product.code} className={inputCls} required />
@@ -120,10 +139,19 @@ export function EditProductDialog({ product, categories, suppliers, groups }: Ed
                 <Label htmlFor={`edit-cost-${product.id}`} className={labelCls}>Costo Unitario (COP)</Label>
                 <Input id={`edit-cost-${product.id}`} name="unitCost" type="number" min="0" step="100" defaultValue={product.unitCost} className={inputCls} />
               </div>
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label htmlFor={`edit-price-${product.id}`} className={labelCls}>Precio de Venta (COP)</Label>
-                <Input id={`edit-price-${product.id}`} name="salePrice" type="number" min="0" step="100" defaultValue={product.salePrice} className={inputCls} />
-              </div>
+              
+              {['SALE', 'FINISHED_GOOD', 'SERVICE'].includes(productType) ? (
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor={`edit-price-${product.id}`} className={labelCls}>Precio de Venta (COP)</Label>
+                  <Input id={`edit-price-${product.id}`} name="salePrice" type="number" min="0" step="100" defaultValue={product.salePrice} className={inputCls} required />
+                </div>
+              ) : (
+                <div className="space-y-1.5 sm:col-span-2 pt-2">
+                  <div className="bg-muted/30 border border-border rounded-xl p-3 text-xs text-muted-foreground flex items-center gap-2">
+                    Este tipo de producto es de uso interno y no requiere un precio de venta para el público.
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3 pt-2">
