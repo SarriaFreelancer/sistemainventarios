@@ -39,6 +39,10 @@ export async function updateCompanySettings(data: any) {
       return { success: false, error: "No autorizado" };
     }
     
+    if (session.user.role !== 'ADMIN' && session.user.role !== 'SUPERADMIN') {
+      return { success: false, error: "Permisos insuficientes. Solo los administradores pueden cambiar estos ajustes." };
+    }
+    
     const companyId = Number(session.user.companyId);
     
     const settingsBefore = await prisma.companySetting.findUnique({

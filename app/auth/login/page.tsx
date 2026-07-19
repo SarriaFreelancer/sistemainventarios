@@ -18,34 +18,18 @@ const loginSchema = z.object({
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
-  const [csrfToken, setCsrfToken] = useState<string>('');
   const router = useRouter();
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: { rememberMe: false }
   });
 
-  useEffect(() => {
-    async function loadCsrf() {
-      const response = await fetch('/api/auth/csrf');
-      const data = await response.json();
-      setCsrfToken(data.csrfToken ?? '');
-    }
-    loadCsrf();
-  }, []);
-
   const onSubmit = async (values: z.infer<typeof loginSchema>) => {
-    if (!csrfToken) {
-      errorAlert('Error de Autenticación', 'No se pudo obtener el token de seguridad.');
-      return;
-    }
-
     try {
       const result = await signIn('credentials', {
         redirect: false,
         email: values.email,
         password: values.password,
-        csrfToken,
         callbackUrl: '/dashboard',
         remember: values.rememberMe,
       });
@@ -272,8 +256,16 @@ export default function LoginPage() {
             </div>
           </form>
 
+          {/* Register Link */}
+          <div className="mt-6 text-center text-sm font-medium text-slate-500 anim-up delay-3">
+            ¿No tienes una cuenta?{' '}
+            <Link href="/auth/register" className="text-red-600 hover:text-red-700 font-bold transition-colors">
+              Regístrate aquí
+            </Link>
+          </div>
+
           {/* Footer Card */}
-          <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-center gap-2 text-xs font-bold text-slate-500 anim-up delay-3">
+          <div className="mt-6 pt-6 border-t border-slate-100 flex items-center justify-center gap-2 text-xs font-bold text-slate-500 anim-up delay-3">
             <ShieldCheck size={14} className="text-green-500" />
             Conexión encriptada AES-256
           </div>

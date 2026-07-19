@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import { getAuthSession } from '@/auth';
 
 const companySchema = z.object({
   name: z.string().min(2, 'El nombre de la empresa es obligatorio'),
@@ -16,6 +17,11 @@ const companySchema = z.object({
 });
 
 export async function createCompany(formData: FormData) {
+  const session = await getAuthSession();
+  if (!session?.user || session.user.role !== 'SUPERADMIN') {
+    return { success: false, error: "Solo el superadmin puede crear empresas directamente" };
+  }
+
   const modulesIds = formData.getAll('modules').map(id => Number(id)).filter(id => !isNaN(id));
   const parsed = companySchema.safeParse({
     name: formData.get('name'),
@@ -60,7 +66,23 @@ export async function createCompany(formData: FormData) {
 }
 
 export async function updateCompany(formData: FormData) {
+  const session = await getAuthSession();
+  if (!session?.user) {
+    return { success: false, error: "No autorizado" };
+  }
+  
   const id = Number(formData.get('id'));
+
+  if (session.user.role === 'ADMIN') {
+    // Si es ADMIN, solo puede actualizar SU propia empresa
+    if (Number(session.user.companyId) !== id) {
+      return { success: false, error: "No tienes permiso para actualizar esta empresa" };
+    }
+  } else if (session.user.role !== 'SUPERADMIN') {
+    // Si no es ADMIN ni SUPERADMIN (ej. USER), no puede actualizar
+    return { success: false, error: "Solo el administrador o superadmin pueden cambiar los datos de la empresa" };
+  }
+
   const modulesIds = formData.getAll('modules').map(mid => Number(mid)).filter(mid => !isNaN(mid));
   const parsed = companySchema.safeParse({
     name: formData.get('name'),
@@ -107,6 +129,11 @@ export async function updateCompany(formData: FormData) {
 }
 
 export async function deleteCompany(formData: FormData) {
+  const session = await getAuthSession();
+  if (!session?.user || session.user.role !== 'SUPERADMIN') {
+    return { success: false, error: "Solo el superadmin puede eliminar empresas" };
+  }
+
   const id = Number(formData.get('id'));
   if (!id || isNaN(id)) return { success: false, error: 'ID inválida' };
 

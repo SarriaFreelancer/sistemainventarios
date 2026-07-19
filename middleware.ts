@@ -25,6 +25,24 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Si intenta acceder a una ruta protegida (dashboard, etc.)
+  if (request.nextUrl.pathname.startsWith('/dashboard')) {
+    const companyStatus = token.companyStatus as string | undefined;
+    const role = token.role as string | undefined;
+
+    if (companyStatus === "SUSPENDED" || companyStatus === "INACTIVE") {
+      const url = request.nextUrl.clone();
+      if (role === "ADMIN" || role === "SUPERADMIN") {
+        url.pathname = '/';
+        url.hash = '#planes';
+      } else {
+        url.pathname = '/auth/login';
+        url.searchParams.set('error', 'suspended');
+      }
+      return NextResponse.redirect(url);
+    }
+  }
+
   // Authenticated – continue to the requested page
   return NextResponse.next();
 }

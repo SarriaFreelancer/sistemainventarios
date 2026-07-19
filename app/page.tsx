@@ -5,11 +5,17 @@ import {
   BarChart3, Zap, Globe, Lock, Award, Play
 } from 'lucide-react';
 import { platformDb } from '@/lib/db-manager';
+import { InteractivePricing } from '@/app/components/public/InteractivePricing';
+
+import { getAuthSession } from '@/auth';
+import { LandingAuthNav } from '@/app/components/public/LandingAuthNav';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function HomePage() {
+  const session = await getAuthSession();
+  
   const dbModules = await platformDb.module.findMany({
     where: { isActive: true },
     orderBy: { createdAt: 'asc' }
@@ -94,6 +100,32 @@ export default async function HomePage() {
         .animate-float-delay { animation: float-reverse 7s ease-in-out infinite 1s; }
         
         .pulse-btn { animation: pulse-glow 2s infinite; }
+        
+        /* ─── RESPONSIVE GRIDS ─── */
+        .hero-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; position: relative; z-index: 1; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; text-align: center; }
+        .modules-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 24px; }
+        .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px; margin-bottom: 60px; }
+        .hero-stats { display: flex; gap: 16px; margin-bottom: 20px; }
+
+        @media (max-width: 1024px) {
+          .hero-grid { grid-template-columns: 1fr; text-align: center; gap: 40px; }
+          .hero-grid > div:first-child { display: flex; flex-direction: column; align-items: center; }
+          .hero-grid p { margin: 0 auto !important; }
+          .stats-grid { grid-template-columns: repeat(2, 1fr); }
+          .modules-grid { grid-template-columns: repeat(3, 1fr); }
+          .footer-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 768px) {
+          .modules-grid { grid-template-columns: repeat(2, 1fr); }
+          .hero-stats { flex-direction: column; }
+        }
+        @media (max-width: 640px) {
+          .stats-grid { grid-template-columns: 1fr; }
+          .modules-grid { grid-template-columns: 1fr; }
+          .footer-grid { grid-template-columns: 1fr; text-align: center; }
+          .hero-grid h1 { font-size: 42px !important; }
+        }
 
         /* Tarjetas de Módulos (Glassmorphism + Hover) */
         .module-card {
@@ -228,16 +260,7 @@ export default async function HomePage() {
           </nav>
 
           {/* CTA */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <Link href="/auth/login" style={{ fontSize: 14, fontWeight: 600, color: '#f8fafc', textDecoration: 'none' }}>
-              Iniciar Sesión
-            </Link>
-            <Link href="/auth/login?demo=true" style={{ textDecoration: 'none' }}>
-              <button className="btn-red" style={{ padding: '10px 20px', fontSize: 13, borderRadius: 10 }}>
-                Ver Demo
-              </button>
-            </Link>
-          </div>
+          <LandingAuthNav user={session?.user || null} />
         </div>
       </header>
 
@@ -249,7 +272,7 @@ export default async function HomePage() {
         <div style={{ position: 'absolute', top: '-10%', right: '-5%', width: 600, height: 600, background: 'radial-gradient(circle, rgba(220,38,38,0.04) 0%, rgba(255,255,255,0) 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', bottom: '-10%', left: '-5%', width: 500, height: 500, background: 'radial-gradient(circle, rgba(15,23,42,0.03) 0%, rgba(255,255,255,0) 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
         
-        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 60, alignItems: 'center', position: 'relative', zIndex: 1 }}>
+        <div className="hero-grid" style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px' }}>
           {/* Hero Content */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
             <div className="animate-fade-in">
@@ -269,12 +292,21 @@ export default async function HomePage() {
             </p>
 
             <div className="animate-fade-in-3" style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-              <Link href="/auth/login" style={{ textDecoration: 'none' }}>
-                <button className="btn-red" style={{ padding: '16px 36px', fontSize: 16 }}>
-                  Comenzar Ahora
-                  <ArrowRight size={18} />
-                </button>
-              </Link>
+              {session?.user ? (
+                <Link href={session.user.companyStatus === 'SUSPENDED' ? "/#planes" : "/dashboard"} style={{ textDecoration: 'none' }}>
+                  <button className="btn-red" style={{ padding: '16px 36px', fontSize: 16 }}>
+                    {session.user.companyStatus === 'SUSPENDED' ? 'Completar Pago' : 'Ir al Dashboard'}
+                    <ArrowRight size={18} />
+                  </button>
+                </Link>
+              ) : (
+                <Link href="/auth/login" style={{ textDecoration: 'none' }}>
+                  <button className="btn-red" style={{ padding: '16px 36px', fontSize: 16 }}>
+                    Comenzar Ahora
+                    <ArrowRight size={18} />
+                  </button>
+                </Link>
+              )}
               <Link href="#modulos" style={{ textDecoration: 'none' }}>
                 <button style={{ padding: '16px 36px', fontSize: 16, fontWeight: 700, color: '#0f172a', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -297,8 +329,8 @@ export default async function HomePage() {
                   <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#10b981' }} />
                 </div>
                 {/* App Content */}
-                <div style={{ padding: 24, height: 400, background: '#f8fafc' }}>
-                  <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
+                <div style={{ padding: 24, height: 'auto', minHeight: 400, background: '#f8fafc' }}>
+                  <div className="hero-stats">
                     <div style={{ flex: 1, background: '#fff', padding: 20, borderRadius: 16, border: '1px solid #e2e8f0' }}>
                       <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>Ventas del Día</div>
                       <div style={{ fontSize: 28, color: '#0f172a', fontWeight: 900, marginTop: 4 }}>$ 42M</div>
@@ -311,7 +343,7 @@ export default async function HomePage() {
                     </div>
                   </div>
                   
-                  <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e2e8f0', padding: 20, height: 200, display: 'flex', alignItems: 'flex-end', gap: 12 }}>
+                  <div className="hidden md:flex" style={{ background: '#fff', borderRadius: 16, border: '1px solid #e2e8f0', padding: 20, height: 200, alignItems: 'flex-end', gap: 12 }}>
                     {[40, 60, 45, 80, 55, 90, 75].map((h, i) => (
                       <div key={i} style={{ flex: 1, background: i === 5 ? '#dc2626' : '#e2e8f0', height: `${h}%`, borderRadius: 8, transition: 'height 1s ease' }} />
                     ))}
@@ -321,7 +353,7 @@ export default async function HomePage() {
             </div>
             
             {/* Flotante 1 */}
-            <div className="animate-float-delay" style={{ position: 'absolute', top: 40, left: -40, background: '#fff', padding: 16, borderRadius: 20, boxShadow: '0 20px 40px rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', gap: 16, border: '1px solid #e2e8f0' }}>
+            <div className="animate-float-delay hidden lg:flex" style={{ position: 'absolute', top: 40, left: -40, background: '#fff', padding: 16, borderRadius: 20, boxShadow: '0 20px 40px rgba(0,0,0,0.08)', alignItems: 'center', gap: 16, border: '1px solid #e2e8f0' }}>
               <div style={{ width: 48, height: 48, background: '#fef2f2', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Check size={24} color="#dc2626" />
               </div>
@@ -338,7 +370,7 @@ export default async function HomePage() {
           STATS — BANNER AZUL OSCURO
       ══════════════════════════════════════════ */}
       <section style={{ background: '#0f172a', padding: '60px 24px' }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 32, textAlign: 'center' }}>
+        <div className="stats-grid" style={{ maxWidth: 1280, margin: '0 auto' }}>
           {stats.map((s, i) => (
             <div key={i}>
               <div style={{ fontSize: 48, fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>{s.value}</div>
@@ -364,7 +396,7 @@ export default async function HomePage() {
             </h2>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 24 }}>
+          <div className="modules-grid">
             {modules.map((m, idx) => {
               const Icon = m.icon;
               const col = moduleColors[idx % moduleColors.length];
@@ -393,104 +425,14 @@ export default async function HomePage() {
       {/* ══════════════════════════════════════════
           PLANES RESTAURADOS A SU ORDEN Y CONTENIDO ORIGINAL
       ══════════════════════════════════════════ */}
-      <section id="planes" style={{ padding: '120px 24px', background: '#ffffff' }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 80 }}>
-            <span style={{ display: 'inline-block', color: '#dc2626', fontSize: 14, fontWeight: 800, letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 16 }}>
-              Inversión Inteligente
-            </span>
-            <h2 style={{ fontSize: 48, fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-0.02em' }}>
-              Planes Escalables
-            </h2>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 32, alignItems: 'center' }}>
-            
-            {/* Plan Básico */}
-            <div className="pricing-card">
-              <div style={{ fontSize: 14, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Plan Básico</div>
-              <div style={{ marginTop: 24, paddingBottom: 24, borderBottom: '1px solid #e2e8f0' }}>
-                <span style={{ fontSize: 48, fontWeight: 900, color: '#0f172a' }}>$49.999</span>
-                <span style={{ color: '#64748b', fontWeight: 600 }}>/mes</span>
-              </div>
-              <ul style={{ margin: '32px 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {['Dashboard de métricas', 'Catálogo de Productos', 'Gestión de Proveedores', 'Grupos y Categorías', 'Reportes de stock'].map((item, i) => (
-                  <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, color: '#475569', fontSize: 15, fontWeight: 500 }}>
-                    <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Check size={14} color="#16a34a" />
-                    </div>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <Link href="/auth/login" style={{ textDecoration: 'none' }}>
-                <button style={{ width: '100%', padding: '16px', borderRadius: 14, background: '#f1f5f9', color: '#0f172a', fontWeight: 700, border: 'none', cursor: 'pointer', transition: 'background 0.2s' }}>
-                  Seleccionar Básico
-                </button>
-              </Link>
-            </div>
-
-            {/* Plan Intermedio (Restaurado) */}
-            <div className="pricing-card">
-              <div style={{ fontSize: 14, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Plan Intermedio</div>
-              <div style={{ marginTop: 24, paddingBottom: 24, borderBottom: '1px solid #e2e8f0' }}>
-                <span style={{ fontSize: 48, fontWeight: 900, color: '#0f172a' }}>$89.999</span>
-                <span style={{ color: '#64748b', fontWeight: 600 }}>/mes</span>
-              </div>
-              <ul style={{ margin: '32px 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {['Todo el Plan Básico', 'Facturación y Ventas', 'Gestión de Usuarios y Roles', 'Analítica de ingresos', 'Soporte por correo'].map((item, i) => (
-                  <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, color: '#475569', fontSize: 15, fontWeight: 500 }}>
-                    <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Check size={14} color="#16a34a" />
-                    </div>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <Link href="/auth/login" style={{ textDecoration: 'none' }}>
-                <button style={{ width: '100%', padding: '16px', borderRadius: 14, background: '#f1f5f9', color: '#0f172a', fontWeight: 700, border: 'none', cursor: 'pointer', transition: 'background 0.2s' }}>
-                  Seleccionar Intermedio
-                </button>
-              </Link>
-            </div>
-
-            {/* Plan Premium */}
-            <div className="pricing-card pricing-premium">
-              <div style={{ position: 'absolute', top: 20, right: 20, background: '#ef4444', color: '#fff', fontSize: 12, fontWeight: 800, padding: '6px 12px', borderRadius: 999 }}>
-                RECOMENDADO
-              </div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Plan Premium</div>
-              <div style={{ marginTop: 24, paddingBottom: 24, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                <span style={{ fontSize: 48, fontWeight: 900, color: '#ffffff' }}>$129.999</span>
-                <span style={{ color: '#94a3b8', fontWeight: 600 }}>/mes</span>
-              </div>
-              <ul style={{ margin: '32px 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {['Todo el Plan Intermedio', 'Auditoría Inmutable', 'Módulo Financiero', 'Órdenes de Compra', 'CRM de clientes', 'Facturas Personalizadas', 'Soporte 24/7'].map((item, i) => (
-                  <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, color: '#e2e8f0', fontSize: 15, fontWeight: 500 }}>
-                    <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'rgba(239, 68, 68, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Check size={14} color="#fca5a5" />
-                    </div>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <Link href="/auth/login" style={{ textDecoration: 'none' }}>
-                <button className="btn-red" style={{ width: '100%', padding: '16px', borderRadius: 14, display: 'block', textAlign: 'center' }}>
-                  Comenzar Plan Premium
-                </button>
-              </Link>
-            </div>
-
-          </div>
-        </div>
-      </section>
+      <InteractivePricing />
 
       {/* ══════════════════════════════════════════
           FOOTER AZUL OSCURO
       ══════════════════════════════════════════ */}
       <footer id="contacto" style={{ background: '#020617', padding: '80px 24px 40px' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 40, marginBottom: 60 }}>
+          <div className="footer-grid">
             {/* Brand */}
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>

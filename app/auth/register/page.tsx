@@ -14,6 +14,7 @@ import { successAlert, errorAlert } from '@/lib/sweetalert';
 
 const registerSchema = z.object({
   name: z.string().min(2, 'El nombre completo es obligatorio (mínimo 2 letras)'),
+  companyName: z.string().min(2, 'El nombre de la empresa es obligatorio (mínimo 2 letras)'),
   email: z.string().email('Ingresa un correo electrónico corporativo válido'),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
   confirmPassword: z.string().min(6, 'Confirma tu contraseña'),
@@ -35,7 +36,7 @@ export default function RegisterPage() {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: values.name, email: values.email, password: values.password })
+        body: JSON.stringify({ name: values.name, companyName: values.companyName, email: values.email, password: values.password })
       });
       
       if (response.ok) {
@@ -127,6 +128,28 @@ export default function RegisterPage() {
               {errors.name && (
                 <p className="text-xs text-rose-500 font-semibold mt-1">
                   {errors.name.message}
+                </p>
+              )}
+            </div>
+
+            {/* Campo Nombre de Empresa */}
+            <div className="space-y-1">
+              <Label htmlFor="companyName" className="text-xs font-bold tracking-wider uppercase text-muted-foreground">
+                Nombre de la Empresa
+              </Label>
+              <div className="relative flex items-center">
+                <User className="absolute left-4 h-5 w-5 text-muted-foreground/45" />
+                <Input
+                  id="companyName"
+                  type="text"
+                  placeholder="Tu empresa"
+                  {...register('companyName')}
+                  className="pl-12 border-border/80 bg-card/40 focus:bg-card focus:border-primary"
+                />
+              </div>
+              {errors.companyName && (
+                <p className="text-xs text-rose-500 font-semibold mt-1">
+                  {errors.companyName.message}
                 </p>
               )}
             </div>

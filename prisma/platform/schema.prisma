@@ -29,71 +29,72 @@ enum RoleName {
 }
 
 model Server {
-  id          String   @id @default(cuid())
-  name        String
-  engine      DatabaseEngine
-  host        String
-  port        Int
-  username    String
-  password    String // cifrada
-  ssl         Boolean  @default(false)
-  active      Boolean  @default(true)
+  id       String         @id @default(cuid())
+  name     String
+  engine   DatabaseEngine
+  host     String
+  port     Int
+  username String
+  password String // cifrada
+  ssl      Boolean        @default(false)
+  active   Boolean        @default(true)
 
-  companies   Company[] @relation("ServerCompanies")
-  
-  ownerId     Int?
-  owner       Company?  @relation("CompanyServers", fields: [ownerId], references: [id])
+  companies Company[] @relation("ServerCompanies")
+
+  ownerId Int?
+  owner   Company? @relation("CompanyServers", fields: [ownerId], references: [id])
 }
 
 model Company {
-  id            Int      @id @default(autoincrement())
-  name          String   @unique
-  planId        String?
+  id     Int     @id @default(autoincrement())
+  name   String  @unique
+  planId String?
 
-  serverId      String?
-  server        Server?   @relation("ServerCompanies", fields: [serverId], references: [id])
-  ownedServers  Server[]  @relation("CompanyServers")
+  serverId     String?
+  server       Server?  @relation("ServerCompanies", fields: [serverId], references: [id])
+  ownedServers Server[] @relation("CompanyServers")
 
-  databaseName  String?
-  databaseType  DatabaseType? // SHARED | DEDICATED
+  databaseName String?
+  databaseType DatabaseType? // SHARED | DEDICATED
 
   currentVersion String?
   // Legacy fields
-  address            String?
-  city               String?
-  country            String              @default("Colombia")
-  status             String              @default("ACTIVE")
-  themeConfig        Json?
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
+  address        String?
+  city           String?
+  country        String   @default("Colombia")
+  status         String   @default("ACTIVE")
+  themeConfig    Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  users              User[]
-  modules            CompanyModule[]
-  setting            CompanySetting?
-  auditLogs          AuditLog[]
-  loginHistories     LoginHistory[]
-  sessions           UserSession[]
+  users                User[]
+  modules              CompanyModule[]
+  setting              CompanySetting?
+  auditLogs            AuditLog[]
+  loginHistories       LoginHistory[]
+  sessions             UserSession[]
+  subscriptionPayments SubscriptionPayment[]
 }
 
 model User {
-  id              Int            @id @default(autoincrement())
-  name            String
-  email           String         @unique
-  password        String
-  image           String?
-  roleId          Int?
-  role            Role?          @relation(fields: [roleId], references: [id])
-  companyId       Int?
-  company         Company?       @relation(fields: [companyId], references: [id])
-  position        String?
-  preferences     Json?
-  lastLogin       DateTime?
-  rememberMe      Boolean        @default(false)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  auditLogs       AuditLog[]
-  loginHistories  LoginHistory[]
-  sessions        UserSession[]
+  id             Int            @id @default(autoincrement())
+  name           String
+  email          String         @unique
+  password       String
+  image          String?
+  roleId         Int?
+  role           Role?          @relation(fields: [roleId], references: [id])
+  companyId      Int?
+  company        Company?       @relation(fields: [companyId], references: [id])
+  position       String?
+  preferences    Json?
+  lastLogin      DateTime?
+  rememberMe     Boolean        @default(false)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  auditLogs      AuditLog[]
+  loginHistories LoginHistory[]
+  sessions       UserSession[]
 
   @@index([email])
   @@index([companyId])
@@ -254,4 +255,20 @@ model CompanySetting {
   smtpPass              String?
   backupFrequency       String   @default("DAILY")
   updatedAt             DateTime @updatedAt
+}
+
+model SubscriptionPayment {
+  id                String   @id @default(cuid())
+  companyId         Int
+  company           Company  @relation(fields: [companyId], references: [id])
+  planId            String
+  amount            Float
+  currency          String   @default("COP")
+  boldReference     String   @unique
+  status            String   @default("PENDING")
+  boldTransactionId String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([companyId])
 }

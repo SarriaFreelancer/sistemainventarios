@@ -9,6 +9,10 @@ export const revalidate = 0;
 export default async function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const session = await getAuthSession();
   if (!session?.user) redirect('/auth/login');
+  
+  if (session.user.role !== 'SUPERADMIN' && session.user.companyStatus === 'SUSPENDED') {
+    redirect('/#planes');
+  }
 
   // Auto-inicialización no destructiva de nuevos módulos SaaS
   const requiredModules = [

@@ -37,16 +37,10 @@ export const authOptions: AuthOptions = {
           return null;
         }
 
-        // Check if company is suspended
+        // We no longer throw an error here, so suspended users can login to pay.
+        // But we still log the state.
         if (user.company && user.company.status === "SUSPENDED") {
-          console.log('authorize: company suspended', user.company.name);
-          await logLoginAttempt({
-            userId: user.id,
-            email: parsed.data.email,
-            status: "FAILED",
-            reason: "COMPANY_SUSPENDED"
-          });
-          throw new Error("Su cuenta ha sido suspendida por falta de pago o revisión administrativa.");
+          console.log('authorize: company suspended but allowing login for payment', user.company.name);
         }
 
         const valid = await bcrypt.compare(parsed.data.password, user.password);
@@ -73,7 +67,9 @@ export const authOptions: AuthOptions = {
           email: user.email,
           image: user.image ?? null,
           role: user.role?.name,
-          companyId: user.companyId ? String(user.companyId) : null
+          companyId: user.companyId ? String(user.companyId) : null,
+          companyStatus: user.company?.status || null,
+          companyPlan: user.company?.planId || null
         };
       },
     }),
@@ -87,6 +83,8 @@ export const authOptions: AuthOptions = {
         token.id = user.id;
         token.role = user.role;
         token.companyId = user.companyId;
+        token.companyStatus = user.companyStatus;
+        token.companyPlan = user.companyPlan;
       }
       return token;
     },
@@ -95,6 +93,8 @@ export const authOptions: AuthOptions = {
         session.user.id = token.id;
         session.user.role = token.role;
         session.user.companyId = token.companyId;
+        session.user.companyStatus = token.companyStatus;
+        session.user.companyPlan = token.companyPlan;
       }
       return session;
     },

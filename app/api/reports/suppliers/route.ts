@@ -2,6 +2,8 @@ import * as XLSX from 'xlsx';
 import { getAuthSession } from '@/auth';
 import { prisma } from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const session = await getAuthSession();
