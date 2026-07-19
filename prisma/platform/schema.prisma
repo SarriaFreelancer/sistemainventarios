@@ -12,6 +12,9 @@ enum DatabaseEngine {
   MYSQL
   POSTGRESQL
   SQLSERVER
+  ORACLE
+  AZURE_SQL
+  AWS_SQL
 }
 
 enum DatabaseType {
@@ -36,7 +39,10 @@ model Server {
   ssl         Boolean  @default(false)
   active      Boolean  @default(true)
 
-  companies   Company[]
+  companies   Company[] @relation("ServerCompanies")
+  
+  ownerId     Int?
+  owner       Company?  @relation("CompanyServers", fields: [ownerId], references: [id])
 }
 
 model Company {
@@ -45,14 +51,13 @@ model Company {
   planId        String?
 
   serverId      String?
-  server        Server?   @relation(fields: [serverId], references: [id])
+  server        Server?   @relation("ServerCompanies", fields: [serverId], references: [id])
+  ownedServers  Server[]  @relation("CompanyServers")
 
   databaseName  String?
   databaseType  DatabaseType? // SHARED | DEDICATED
 
   currentVersion String?
-  active         Boolean @default(true)
-
   // Legacy fields
   address            String?
   city               String?

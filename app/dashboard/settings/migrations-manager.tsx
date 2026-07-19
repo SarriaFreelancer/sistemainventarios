@@ -35,10 +35,21 @@ export function MigrationsManager({ servers }: { servers: any[] }) {
       return;
     }
 
+    const companyObj = companies.find((c) => c.id.toString() === selectedCompany.toString());
+    const isReMigration = companyObj?.serverId != null;
+
+    let confirmTitle = "Confirmar Migración";
+    let confirmText = "¿Estás seguro de iniciar la migración? Este proceso copiará los datos del monolito al nuevo tenant y actualizará el enrutamiento de la empresa.";
+    
+    if (isReMigration) {
+      confirmTitle = "⚠️ Confirmar RE-MIGRACIÓN";
+      confirmText = `Esta empresa ya está migrada en la base de datos "${companyObj.databaseName}". Proceder copiará los datos de su base actual hacia el nuevo servidor destino. Los datos originales quedarán huérfanos. ¿Deseas continuar?`;
+    }
+
     const confirmed = await confirmAction(
-      "Confirmar Migración",
-      "¿Estás seguro de iniciar la migración? Este proceso copiará los datos del monolito al nuevo tenant y actualizará el enrutamiento de la empresa.",
-      "Iniciar Migración",
+      confirmTitle,
+      confirmText,
+      isReMigration ? "Sí, Re-Migrar" : "Iniciar Migración",
       "Cancelar"
     );
     if (!confirmed) return;
@@ -79,7 +90,7 @@ export function MigrationsManager({ servers }: { servers: any[] }) {
           
           <form onSubmit={handleMigrate} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-muted-foreground">Empresa a Migrar (Pendientes)</label>
+              <label className="text-xs font-bold text-muted-foreground">Empresa a Migrar / Re-migrar</label>
               <select 
                 value={selectedCompany} 
                 onChange={e => setSelectedCompany(e.target.value)}
@@ -87,9 +98,16 @@ export function MigrationsManager({ servers }: { servers: any[] }) {
                 className="w-full bg-card border border-border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-primary"
               >
                 <option value="">Seleccione una empresa...</option>
-                {unmigratedCompanies.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
+                <optgroup label="Pendientes de Migrar (En Monolito)">
+                  {unmigratedCompanies.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Ya Migradas (Re-Migración)">
+                  {migratedCompanies.map(c => (
+                    <option key={c.id} value={c.id}>{c.name} - ({c.databaseName})</option>
+                  ))}
+                </optgroup>
               </select>
             </div>
 

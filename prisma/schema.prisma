@@ -220,9 +220,47 @@ model Role {
   modules     RoleModule[]
   users       User[]
 }
+enum DatabaseEngine {
+  MYSQL
+  POSTGRESQL
+  SQLSERVER
+}
+
+enum DatabaseType {
+  SHARED
+  DEDICATED
+}
+
+model Server {
+  id          String   @id @default(cuid())
+  name        String
+  engine      DatabaseEngine
+  host        String
+  port        Int
+  username    String
+  password    String // cifrada
+  ssl         Boolean  @default(false)
+  active      Boolean  @default(true)
+
+  companies   Company[] @relation("ServerCompanies")
+  
+  ownerId     Int?
+  owner       Company?  @relation("CompanyServers", fields: [ownerId], references: [id])
+}
+
 model Company {
   id                 Int                 @id @default(autoincrement())
   name               String              @unique
+  planId             String?
+
+  serverId           String?
+  server             Server?             @relation("ServerCompanies", fields: [serverId], references: [id])
+  ownedServers       Server[]            @relation("CompanyServers")
+
+  databaseName       String?
+  databaseType       DatabaseType? // SHARED | DEDICATED
+
+  currentVersion     String?
   address            String?
   city               String?
   country            String              @default("Colombia")

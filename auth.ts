@@ -23,7 +23,10 @@ export const authOptions: AuthOptions = {
           return null;
         }
 
-        const user = await prisma.user.findUnique({ where: { email: parsed.data.email }, include: { role: true } });
+        const user = await prisma.user.findUnique({ 
+          where: { email: parsed.data.email }, 
+          include: { role: true, company: true } 
+        });
         console.log('authorize: found user', !!user, parsed.data.email);
         if (!user) {
           await logLoginAttempt({
@@ -32,6 +35,18 @@ export const authOptions: AuthOptions = {
             reason: "USER_NOT_FOUND"
           });
           return null;
+        }
+
+        // Check if company is suspended
+        if (user.company && user.company.status === "SUSPENDED") {
+          console.log('authorize: company suspended', user.company.name);
+          await logLoginAttempt({
+            userId: user.id,
+            email: parsed.data.email,
+            status: "FAILED",
+            reason: "COMPANY_SUSPENDED"
+          });
+          throw new Error("Su cuenta ha sido suspendida por falta de pago o revisión administrativa.");
         }
 
         const valid = await bcrypt.compare(parsed.data.password, user.password);

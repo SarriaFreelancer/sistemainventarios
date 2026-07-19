@@ -7,6 +7,8 @@ import { successAlert, errorAlert } from "@/lib/sweetalert";
 import { useRouter } from "next/navigation";
 import { ServersManager } from "./servers-manager";
 import { MigrationsManager } from "./migrations-manager";
+import { DatabasesManager } from "./databases-manager";
+import { LicensesManager } from "./licenses-manager";
 
 interface CompanySetting {
   id: number;
@@ -44,11 +46,12 @@ interface SettingsClientProps {
   role?: string;
   initialServers?: any[];
   dedicatedCompanies?: { id: number; name: string }[];
+  canManageServers?: boolean;
 }
 
-export function SettingsClient({ initialSettings, role, initialServers = [], dedicatedCompanies = [] }: SettingsClientProps) {
+export function SettingsClient({ initialSettings, role, initialServers = [], dedicatedCompanies = [], canManageServers = false }: SettingsClientProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"company" | "inventory" | "security" | "integrations" | "invoice" | "servers" | "databases" | "migrations">("company");
+  const [activeTab, setActiveTab] = useState<"company" | "inventory" | "security" | "integrations" | "invoice" | "servers" | "databases" | "migrations" | "licenses">("company");
   const [saving, setSaving] = useState(false);
   const isSuperAdmin = role === "SUPERADMIN";
 
@@ -236,10 +239,19 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
         </button>
 
         {isSuperAdmin && (
+          <div className="pt-4 pb-1">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-4">Gestión de Infraestructura</span>
+          </div>
+        )}
+
+        {canManageServers && !isSuperAdmin && (
+          <div className="pt-4 pb-1">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-4">Recursos Propios</span>
+          </div>
+        )}
+
+        {canManageServers && (
           <>
-            <div className="pt-4 pb-1">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-4">Gestión de Infraestructura</span>
-            </div>
             <button
               onClick={() => setActiveTab("servers")}
               className={`flex w-full items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold transition ${
@@ -247,16 +259,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
               }`}
             >
               <LucideIcons.Server size={16} />
-              Servidores
-            </button>
-            <button
-              onClick={() => setActiveTab("databases")}
-              className={`flex w-full items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold transition ${
-                activeTab === "databases" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
-              }`}
-            >
-              <LucideIcons.Database size={16} />
-              Bases de Datos
+              {isSuperAdmin ? "Servidores (Tenants)" : "Servidores Propios"}
             </button>
             <button
               onClick={() => setActiveTab("migrations")}
@@ -269,27 +272,55 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
             </button>
           </>
         )}
+
+        {isSuperAdmin && (
+          <>
+            <button
+              onClick={() => setActiveTab("databases")}
+              className={`flex w-full items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                activeTab === "databases" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
+              }`}
+            >
+              <LucideIcons.Database size={16} />
+              Bases de Datos
+            </button>
+            <button
+              onClick={() => setActiveTab("licenses")}
+              className={`flex w-full items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                activeTab === "licenses" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
+              }`}
+            >
+              <LucideIcons.KeyRound size={16} />
+              Licencias y Suscripciones
+            </button>
+          </>
+        )}
       </div>
 
       {/* ── Contenedor del Formulario ── */}
       <div className="lg:col-span-3">
-        {activeTab === "servers" && isSuperAdmin && (
+        {activeTab === "servers" && canManageServers && (
           <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
             <ServersManager servers={initialServers} />
           </div>
         )}
 
         {activeTab === "databases" && isSuperAdmin && (
-          <div className="bg-card rounded-2xl border border-border p-6 shadow-sm flex flex-col items-center justify-center py-20">
-            <LucideIcons.Database size={48} className="text-muted-foreground mb-4" />
-            <h3 className="font-bold text-lg">Bases de Datos y Mapeo</h3>
-            <p className="text-sm text-muted-foreground">Próximamente: Panel de administración de Shared/Dedicated DBs</p>
+          <div className="bg-card rounded-2xl border border-border p-6 shadow-sm animate-in fade-in zoom-in-95">
+            <DatabasesManager allCompanies={dedicatedCompanies} servers={initialServers} />
           </div>
         )}
 
-        {activeTab === "migrations" && isSuperAdmin && (
+        {activeTab === "migrations" && canManageServers && (
           <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
             <MigrationsManager servers={initialServers} />
+          </div>
+        )}
+
+        {activeTab === "licenses" && isSuperAdmin && (
+          <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
+            {/* The initialServers logic isn't perfect, we need companies! Let's pass dedicatedCompanies for now, or we might need to fetch them. */}
+            <LicensesManager companies={dedicatedCompanies as any} />
           </div>
         )}
 

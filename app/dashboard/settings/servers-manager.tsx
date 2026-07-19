@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import * as LucideIcons from "lucide-react";
 import { createServer, updateServer, deleteServer } from "@/app/actions/server-actions";
-import { successAlert, errorAlert } from "@/lib/sweetalert";
+import { successAlert, errorAlert, confirmAction } from "@/lib/sweetalert";
 import { useRouter } from "next/navigation";
 
 export function ServersManager({ servers }: { servers: any[] }) {
@@ -15,11 +15,32 @@ export function ServersManager({ servers }: { servers: any[] }) {
   const [name, setName] = useState("");
   const [engine, setEngine] = useState("MYSQL");
   const [host, setHost] = useState("");
-  const [port, setPort] = useState("3306");
+  const [port, setPort] = useState<number | string>(3306);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [ssl, setSsl] = useState(false);
   const [active, setActive] = useState(true);
+
+  // Update default port based on engine
+  const handleEngineChange = (selectedEngine: string) => {
+    setEngine(selectedEngine);
+    switch (selectedEngine) {
+      case "MYSQL":
+      case "AWS_SQL":
+        setPort(3306);
+        break;
+      case "POSTGRESQL":
+        setPort(5432);
+        break;
+      case "SQLSERVER":
+      case "AZURE_SQL":
+        setPort(1433);
+        break;
+      case "ORACLE":
+        setPort(1521);
+        break;
+    }
+  };
   const [isSaving, setIsSaving] = useState(false);
 
   const openModal = (server: any = null) => {
@@ -79,7 +100,14 @@ export function ServersManager({ servers }: { servers: any[] }) {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('¿Estás seguro de que deseas eliminar este servidor?')) return;
+    const confirmed = await confirmAction(
+      "Eliminar Servidor",
+      "¿Estás seguro de que deseas eliminar este servidor? Esta acción no se puede deshacer.",
+      "Sí, Eliminar",
+      "Cancelar"
+    );
+    if (!confirmed) return;
+
     const result = await deleteServer(id);
     if (result.success) {
       successAlert("Eliminado", "Servidor eliminado.");
@@ -164,10 +192,14 @@ export function ServersManager({ servers }: { servers: any[] }) {
                 </div>
                 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-muted-foreground">Motor</label>
-                  <select value={engine} onChange={e=>setEngine(e.target.value)} className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-primary">
+                  <label className="text-xs font-bold text-muted-foreground">Motor de Base de Datos</label>
+                  <select value={engine} onChange={e=>handleEngineChange(e.target.value)} className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-primary">
                     <option value="MYSQL">MySQL</option>
                     <option value="POSTGRESQL">PostgreSQL</option>
+                    <option value="SQLSERVER">SQL Server</option>
+                    <option value="ORACLE">Oracle SQL</option>
+                    <option value="AZURE_SQL">Azure SQL</option>
+                    <option value="AWS_SQL">AWS RDS/Aurora</option>
                   </select>
                 </div>
                 
@@ -177,8 +209,10 @@ export function ServersManager({ servers }: { servers: any[] }) {
                 </div>
 
                 <div className="col-span-2 space-y-1.5">
-                  <label className="text-xs font-bold text-muted-foreground">Host (IP o Dominio)</label>
-                  <input type="text" value={host} onChange={e=>setHost(e.target.value)} required className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-primary" />
+                  <label className="text-xs font-bold text-muted-foreground">
+                    {engine === 'ORACLE' ? 'Host (IP / Dominio) o TNS/SID' : 'Host (IP o Dominio)'}
+                  </label>
+                  <input type="text" value={host} onChange={e=>setHost(e.target.value)} required placeholder={engine === 'ORACLE' ? 'Ej: localhost/ORCL' : 'Ej: 127.0.0.1'} className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-primary" />
                 </div>
 
                 <div className="space-y-1.5">

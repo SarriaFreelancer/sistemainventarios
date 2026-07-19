@@ -6,14 +6,23 @@ import { getAuthSession } from "@/auth";
 
 export async function getServers() {
   const session = await getAuthSession();
-  if (!session || session.user.role !== 'SUPERADMIN') {
+  if (!session || (session.user.role !== 'SUPERADMIN' && session.user.role !== 'ADMIN')) {
     throw new Error('No autorizado');
   }
 
+  const isSuperAdmin = session.user.role === 'SUPERADMIN';
+  
+  // Superadmin only sees global servers (ownerId = null). Admins only see their own servers.
+  const whereClause = isSuperAdmin ? { ownerId: null } : { ownerId: Number(session.user.companyId) };
+
   try {
     const servers = await platformDb.server.findMany({
+      where: whereClause,
       orderBy: { name: 'asc' },
       include: {
+        companies: {
+          select: { id: true, name: true, databaseName: true, databaseType: true }
+        },
         _count: {
           select: { companies: true }
         }
@@ -28,12 +37,15 @@ export async function getServers() {
 
 export async function createServer(data: any) {
   const session = await getAuthSession();
-  if (!session || session.user.role !== 'SUPERADMIN') {
+  if (!session || (session.user.role !== 'SUPERADMIN' && session.user.role !== 'ADMIN')) {
     return { success: false, error: 'No autorizado' };
   }
 
   try {
     const encryptedPassword = encryptPassword(data.password);
+    
+    // If it's an ADMIN, lock the ownerId to their companyId
+    const ownerId = session.user.role === 'ADMIN' ? Number(session.user.companyId) : null;
     
     await platformDb.server.create({
       data: {
@@ -45,6 +57,7 @@ export async function createServer(data: any) {
         password: encryptedPassword,
         ssl: Boolean(data.ssl),
         active: Boolean(data.active),
+        ownerId: ownerId,
       }
     });
 
