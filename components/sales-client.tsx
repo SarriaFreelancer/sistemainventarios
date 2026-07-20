@@ -17,7 +17,8 @@ import {
   TrendingUp, DollarSign, Receipt, Calendar, X, Package, Check, Download, AlertTriangle
 } from "lucide-react";
 import { confirmAction, successAlert, errorAlert, brandAlert } from "@/lib/sweetalert";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 import { generateInvoiceMedia } from "@/lib/invoice-generator";
 
 type ProductGroup = 'MAQUILLAJE' | 'ACCESORIOS' | 'SKINCARE' | 'CAPILAR' | 'CORPORAL' | 'PERFUMERIA' | 'OTROS';
@@ -956,34 +957,50 @@ function exportSalesToExcel(sales: Sale[]) {
     }))
   );
 
-  const ws = XLSX.utils.json_to_sheet(rows);
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Ventas');
 
-  // Freeze the first row
-  ws['!views'] = [{ state: 'frozen', ySplit: 1 }];
-
-  // Auto-fit column widths
-  const maxW = (colIdx: number) => {
-    let max = 10;
-    rows.forEach(r => {
-      const val = Object.values(r)[colIdx];
-      if (val != null) {
-        const len = String(val).length;
-        if (len > max) max = len;
-      }
+  if (rows.length > 0) {
+    const headers = Object.keys(rows[0]);
+    worksheet.addRow(headers);
+    
+    const headerRow = worksheet.getRow(1);
+    headerRow.eachCell((cell) => {
+      cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF334155" }
+      };
     });
-    return max + 3;
-  };
+    
+    worksheet.autoFilter = {
+      from: { row: 1, column: 1 },
+      to: { row: 1, column: headers.length }
+    };
 
-  ws['!cols'] = Object.keys(rows[0] || {}).map((_, idx) => ({ wch: maxW(idx) }));
+    rows.forEach(r => worksheet.addRow(Object.values(r)));
 
-  // Autofilter
-  ws['!autofilter'] = { ref: `A1:${String.fromCharCode(65 + Object.keys(rows[0] || {}).length - 1)}${rows.length + 1}` };
+    const maxW = (colIdx: number) => {
+      let max = 10;
+      rows.forEach(r => {
+        const val = Object.values(r)[colIdx];
+        if (val != null) {
+          const len = String(val).length;
+          if (len > max) max = len;
+        }
+      });
+      return max + 3;
+    };
 
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Ventas');
+    worksheet.columns.forEach((col, idx) => {
+      col.width = Math.max(15, maxW(idx));
+    });
+  }
 
   const fileName = `gns_sarriatech_ventas_${new Date().toISOString().split('T')[0]}.xlsx`;
-  XLSX.writeFile(wb, fileName);
+  const buffer = await workbook.xlsx.writeBuffer();
+  saveAs(new Blob([buffer]), fileName);
 
   brandAlert.fire({
     title: 'Exportación exitosa',

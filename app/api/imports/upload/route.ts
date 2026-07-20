@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,12 +31,31 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
     
-    const workbook = XLSX.read(buffer, { type: "buffer" });
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer);
+    const worksheet = workbook.worksheets[0];
     
-    // Parse as array of objects mapping headers to properties
-    const rows = XLSX.utils.sheet_to_json<any>(worksheet);
+    if (!worksheet) {
+      return NextResponse.json({ error: "El archivo no contiene hojas" }, { status: 400 });
+    }
+
+    const rows: any[] = [];
+    let headers: string[] = [];
+
+    worksheet.eachRow((row, rowNumber) => {
+      const values = row.values as any[];
+      if (rowNumber === 1) {
+        headers = values; // values is 1-indexed in exceljs
+      } else {
+        const rowData: any = {};
+        for (let i = 1; i < headers.length; i++) {
+          if (headers[i]) {
+            rowData[headers[i]] = values[i];
+          }
+        }
+        rows.push(rowData);
+      }
+    });
 
     if (rows.length === 0) {
       return NextResponse.json({ error: "El archivo está vacío" }, { status: 400 });

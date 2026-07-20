@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 
 const HEADERS: Record<string, string[]> = {
   groups: ["Código de Grupo", "Nombre", "Estado (ACTIVE o INACTIVE)"],
@@ -19,16 +19,44 @@ export async function GET(request: NextRequest) {
 
     const headers = HEADERS[type];
     
-    // Create worksheet with headers
-    const worksheet = XLSX.utils.aoa_to_sheet([headers]);
-    const workbook = XLSX.utils.book_new();
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Plantilla");
     
-    // Auto-size columns slightly
-    worksheet["!cols"] = headers.map(() => ({ wch: 25 }));
+    // Añadir encabezados
+    worksheet.addRow(headers);
     
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Plantilla");
+    // Estilizar solo las celdas utilizadas de la fila de encabezados
+    const headerRow = worksheet.getRow(1);
+    headerRow.eachCell((cell) => {
+      cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF334155" } // Slate 700
+      };
+    });
     
-    const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+    // Habilitar Autofiltros para la primera fila
+    worksheet.autoFilter = {
+      from: { row: 1, column: 1 },
+      to: { row: 1, column: headers.length }
+    };
+    
+    // Ajustar ancho de columnas y formato
+    worksheet.columns.forEach((col, index) => {
+      col.width = 25;
+      // El nombre del encabezado actual
+      const headerName = headers[index] || "";
+      // Si no es un campo de costo, precio o cantidad, forzar como Texto (@)
+      // Esto evita que Excel borre los ceros a la izquierda (ej. 003 -> 3)
+      if (!headerName.toLowerCase().includes("costo") && 
+          !headerName.toLowerCase().includes("precio") && 
+          !headerName.toLowerCase().includes("cantidad")) {
+        col.numFmt = '@';
+      }
+    });
+    
+    const buffer = await workbook.xlsx.writeBuffer();
 
     return new Response(buffer, {
       status: 200,

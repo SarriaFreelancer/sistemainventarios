@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { getAuthSession } from '@/auth';
 import { prisma } from '@/lib/prisma';
 
@@ -55,23 +55,36 @@ export async function GET(request: Request) {
       'Estado Stock': getStockStatus(p.quantityAvailable),
     }));
 
-    const workbook = XLSX.utils.book_new();
-    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Stock');
 
-    worksheet['!cols'] = [
-      { wch: 14 },  // Código
-      { wch: 35 },  // Nombre
-      { wch: 16 },  // Tipo
-      { wch: 20 },  // Grupo
-      { wch: 20 },  // Categoría
-      { wch: 14 },  // Stock Actual
-      { wch: 14 },  // Stock Mínimo
-      { wch: 14 },  // Estado Stock
-    ];
+    if (rows.length > 0) {
+      const headers = Object.keys(rows[0]);
+      worksheet.addRow(headers);
+      
+      const headerRow = worksheet.getRow(1);
+      headerRow.eachCell((cell) => {
+        cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FF334155" }
+        };
+      });
+      
+      worksheet.autoFilter = {
+        from: { row: 1, column: 1 },
+        to: { row: 1, column: headers.length }
+      };
 
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Stock');
+      rows.forEach(r => worksheet.addRow(Object.values(r)));
 
-    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+      worksheet.columns.forEach(col => {
+        col.width = 20;
+      });
+    }
+
+    const buffer = await workbook.xlsx.writeBuffer();
 
     return new Response(buffer, {
       status: 200,
