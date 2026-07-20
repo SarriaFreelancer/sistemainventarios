@@ -49,11 +49,14 @@ export async function createSale(data: {
 
     // Si el estado es COMPLETED, validar stock para todos los productos en el tenant actual
     if (status === 'COMPLETED') {
+      const settings = await prisma.companySetting.findUnique({ where: { companyId } });
+      const allowNegativeStock = settings?.allowNegativeStock ?? false;
+
       for (const item of items) {
         const whereProduct = await withTenantWhere({ id: item.productId });
         const product = await prisma.product.findFirst({ where: whereProduct });
         if (!product) return { success: false, error: `Producto no encontrado o no autorizado` };
-        if (product.quantityAvailable < item.quantity) {
+        if (!allowNegativeStock && product.quantityAvailable < item.quantity) {
           return {
             success: false,
             error: `Stock insuficiente para "${product.name}". Disponible: ${product.quantityAvailable} u.`
@@ -145,8 +148,14 @@ export async function createSale(data: {
           const product = await tx.product.findFirst({
             where: { id: item.productId, companyId }
           });
+          const settings = await prisma.companySetting.findUnique({ where: { companyId } });
+          const allowNegativeStock = settings?.allowNegativeStock ?? false;
+          
           if (product) {
-            const newQty = Math.max(0, product.quantityAvailable - item.quantity);
+            let newQty = product.quantityAvailable - item.quantity;
+            if (!allowNegativeStock && newQty < 0) {
+              newQty = 0;
+            }
             await tx.product.update({
               where: { id: item.productId },
               data: {
@@ -205,16 +214,22 @@ export async function completePendingSale(saleIdInput: any, updateData?: {
       if (!sale) throw new Error('Venta no encontrada o no autorizada');
       if (sale.status !== 'PENDING') throw new Error('La venta no está pendiente');
 
+      const settings = await tx.companySetting.findUnique({ where: { companyId } });
+      const allowNegativeStock = settings?.allowNegativeStock ?? false;
+
       // Validar existencias
       for (const detail of sale.details) {
-        if (detail.product.quantityAvailable < detail.quantity) {
+        if (!allowNegativeStock && detail.product.quantityAvailable < detail.quantity) {
           throw new Error(`Stock insuficiente para "${detail.product.name}". Disponible: ${detail.product.quantityAvailable} u.`);
         }
       }
 
       // Descontar inventario
       for (const detail of sale.details) {
-        const newQty = Math.max(0, detail.product.quantityAvailable - detail.quantity);
+        let newQty = detail.product.quantityAvailable - detail.quantity;
+        if (!allowNegativeStock && newQty < 0) {
+          newQty = 0;
+        }
         await tx.product.update({
           where: { id: detail.productId },
           data: {

@@ -14,7 +14,7 @@ import {
 import { Pencil } from "lucide-react";
 import { successAlert, errorAlert } from "@/lib/sweetalert";
 
-interface Category { id: string; name: string; }
+interface Category { id: string; name: string; productGroupId?: string; }
 interface Supplier { id: string; companyName: string; }
 interface ProductGroup { id: string; name: string; }
 interface Product {
@@ -45,6 +45,11 @@ export function EditProductDialog({ product, categories, suppliers, groups }: Ed
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [productType, setProductType] = useState(product.type || 'SALE');
+  const [selectedGroup, setSelectedGroup] = useState(product.productGroupId || '');
+
+  const filteredCategories = selectedGroup
+    ? categories.filter(c => c.productGroupId === selectedGroup)
+    : categories;
 
   useEffect(() => {
     if (open) {
@@ -107,9 +112,19 @@ export function EditProductDialog({ product, categories, suppliers, groups }: Ed
                 <Input id={`edit-name-${product.id}`} name="name" defaultValue={product.name} className={inputCls} required />
               </div>
               <div className="space-y-1.5">
+                <Label htmlFor={`edit-group-${product.id}`} className={labelCls}>Grupo de Producto</Label>
+                <select id={`edit-group-${product.id}`} name="productGroupId" value={selectedGroup} onChange={(e) => setSelectedGroup(e.target.value)} className={selectCls}>
+                  <option value="">Seleccione un grupo...</option>
+                  {groups.map((g) => (
+                    <option key={g.id} value={g.id}>{g.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
                 <Label htmlFor={`edit-cat-${product.id}`} className={labelCls}>Categoría</Label>
                 <select id={`edit-cat-${product.id}`} name="categoryId" defaultValue={product.categoryId} className={selectCls}>
-                  {categories.map((c) => (
+                  <option value="">Seleccione una categoría...</option>
+                  {filteredCategories.map((c) => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
@@ -117,17 +132,9 @@ export function EditProductDialog({ product, categories, suppliers, groups }: Ed
               <div className="space-y-1.5">
                 <Label htmlFor={`edit-sup-${product.id}`} className={labelCls}>Proveedor</Label>
                 <select id={`edit-sup-${product.id}`} name="supplierId" defaultValue={product.supplierId} className={selectCls}>
+                  <option value="">Seleccione proveedor...</option>
                   {suppliers.map((s) => (
                     <option key={s.id} value={s.id}>{s.companyName}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label htmlFor={`edit-group-${product.id}`} className={labelCls}>Grupo de Producto (Opcional)</Label>
-                <select id={`edit-group-${product.id}`} name="productGroupId" defaultValue={product.productGroupId ?? ''} className={selectCls}>
-                  <option value="">Ninguno</option>
-                  {groups.map((g) => (
-                    <option key={g.id} value={g.id}>{g.name}</option>
                   ))}
                 </select>
               </div>

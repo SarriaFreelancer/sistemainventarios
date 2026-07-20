@@ -14,6 +14,8 @@ const companySchema = z.object({
   themeColor: z.string().optional(),
   themeMode: z.string().optional(),
   modules: z.array(z.number()).optional(),
+  nit: z.string().optional(),
+  planId: z.string().optional(),
 });
 
 export async function createCompany(formData: FormData) {
@@ -32,9 +34,16 @@ export async function createCompany(formData: FormData) {
     themeColor: formData.get('themeColor') || undefined,
     themeMode: formData.get('themeMode') || undefined,
     modules: modulesIds.length > 0 ? modulesIds : undefined,
+    nit: formData.get('nit') || undefined,
+    planId: formData.get('planId') || undefined,
   });
 
   if (!parsed.success) return { success: false, error: 'Datos inválidos' };
+
+  if (parsed.data.nit) {
+    const existingNit = await prisma.companySetting.findFirst({ where: { nit: parsed.data.nit } });
+    if (existingNit) return { success: false, error: 'Ya existe una empresa con ese NIT/Código' };
+  }
 
   try {
     await prisma.company.create({
@@ -53,6 +62,12 @@ export async function createCompany(formData: FormData) {
             module: { connect: { id: moduleId } }
           }))
         } : undefined,
+        planId: parsed.data.planId,
+        setting: {
+          create: {
+            nit: parsed.data.nit
+          }
+        }
       },
     });
     revalidatePath('/dashboard/companies');
@@ -93,9 +108,21 @@ export async function updateCompany(formData: FormData) {
     themeColor: formData.get('themeColor') || undefined,
     themeMode: formData.get('themeMode') || undefined,
     modules: modulesIds,
+    nit: formData.get('nit') || undefined,
+    planId: formData.get('planId') || undefined,
   });
 
   if (!parsed.success || !id || isNaN(id)) return { success: false, error: 'Datos inválidos' };
+
+  if (parsed.data.nit) {
+    const existingNit = await prisma.companySetting.findFirst({
+      where: {
+        nit: parsed.data.nit,
+        companyId: { not: id }
+      }
+    });
+    if (existingNit) return { success: false, error: 'Ya existe otra empresa con ese NIT/Código' };
+  }
 
   try {
     await prisma.company.update({
@@ -115,6 +142,13 @@ export async function updateCompany(formData: FormData) {
           create: parsed.data.modules?.map((moduleId: number) => ({
              moduleId: moduleId 
           })) || []
+        },
+        planId: parsed.data.planId,
+        setting: {
+          upsert: {
+            create: { nit: parsed.data.nit },
+            update: { nit: parsed.data.nit }
+          }
         }
       },
     });

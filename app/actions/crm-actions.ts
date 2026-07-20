@@ -16,6 +16,7 @@ const customerSchema = z.object({
   company: z.string().optional().or(z.literal('')),
   address: z.string().optional().or(z.literal('')),
   city: z.string().optional().or(z.literal('')),
+  country: z.string().optional().or(z.literal('')),
   status: z.nativeEnum(CustomerStatus).default(CustomerStatus.ACTIVE),
 });
 
@@ -42,6 +43,7 @@ export async function createCustomer(formData: FormData) {
     company: (formData.get('company') as string) || undefined,
     address: (formData.get('address') as string) || undefined,
     city: (formData.get('city') as string) || undefined,
+    country: (formData.get('country') as string) || undefined,
     status: (formData.get('status') as CustomerStatus) || CustomerStatus.ACTIVE,
   };
 
@@ -59,6 +61,7 @@ export async function createCustomer(formData: FormData) {
         company: parsed.data.company || null,
         address: parsed.data.address || null,
         city: parsed.data.city || null,
+        country: parsed.data.country || 'Colombia',
         status: parsed.data.status,
         companyId: companyId ?? null,
       },
@@ -112,6 +115,7 @@ export async function updateCustomer(formData: FormData) {
         company: parsed.data.company || null,
         address: parsed.data.address || null,
         city: parsed.data.city || null,
+        country: parsed.data.country || 'Colombia',
         status: parsed.data.status,
       },
     });

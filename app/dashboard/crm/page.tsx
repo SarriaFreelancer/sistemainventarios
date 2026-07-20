@@ -81,6 +81,7 @@ export default async function CrmPage() {
         phone: true,
         company: true,
         city: true,
+        country: true,
         status: true,
       },
     }),
@@ -118,6 +119,7 @@ export default async function CrmPage() {
     phone: c.phone,
     company: c.company,
     city: c.city,
+    country: c.country,
     status: c.status as CustomerStatus,
   }));
 

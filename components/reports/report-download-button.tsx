@@ -20,10 +20,21 @@ type FiltersState = {
   categoryId: string;
   supplierId: string;
   productGroupId: string;
+  productType: string;
   startDate: string;
   endDate: string;
   status: string;
 };
+
+const PRODUCT_TYPES = [
+  { value: '', label: 'Todos los tipos' },
+  { value: 'SALE', label: 'Venta' },
+  { value: 'RAW_MATERIAL', label: 'Materia Prima' },
+  { value: 'FINISHED_GOOD', label: 'Producto Terminado' },
+  { value: 'SUPPLY', label: 'Insumo' },
+  { value: 'SERVICE', label: 'Servicio' },
+  { value: 'FIXED_ASSET', label: 'Activo Fijo' },
+];
 
 const SALE_STATUSES = [
   { value: '', label: 'Todos los estados' },
@@ -50,6 +61,7 @@ export function ReportDownloadButton({
     categoryId: '',
     supplierId: '',
     productGroupId: '',
+    productType: '',
     startDate: '',
     endDate: '',
     status: '',
@@ -63,6 +75,7 @@ export function ReportDownloadButton({
       if (filters.categoryId) params.set('categoryId', filters.categoryId);
       if (filters.supplierId) params.set('supplierId', filters.supplierId);
       if (filters.productGroupId) params.set('productGroupId', filters.productGroupId);
+      if (filters.productType) params.set('productType', filters.productType);
     }
     if (isSalesReport(reportType)) {
       if (filters.startDate) params.set('startDate', filters.startDate);
@@ -159,6 +172,19 @@ export function ReportDownloadButton({
               {isProductReport(reportType) && (
                 <>
                   <div>
+                    <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Tipo de Producto</label>
+                    <select
+                      value={filters.productType}
+                      onChange={set('productType')}
+                      className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    >
+                      {PRODUCT_TYPES.map(t => (
+                        <option key={t.value} value={t.value}>{t.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div>
                     <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Categoría</label>
                     <select
                       value={filters.categoryId}
@@ -251,7 +277,7 @@ export function ReportDownloadButton({
             {/* Footer buttons */}
             <div className="mt-6 flex items-center justify-between gap-3">
               <button
-                onClick={() => setFilters({ categoryId: '', supplierId: '', productGroupId: '', startDate: '', endDate: '', status: '' })}
+                onClick={() => setFilters({ categoryId: '', supplierId: '', productGroupId: '', productType: '', startDate: '', endDate: '', status: '' })}
                 className="rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-muted-foreground hover:bg-muted transition"
               >
                 Limpiar filtros

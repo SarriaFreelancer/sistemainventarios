@@ -9,6 +9,7 @@ import { ServersManager } from "./servers-manager";
 import { MigrationsManager } from "./migrations-manager";
 import { DatabasesManager } from "./databases-manager";
 import { LicensesManager } from "./licenses-manager";
+import { ImportsManager } from "./imports-manager";
 
 interface CompanySetting {
   id: number;
@@ -51,7 +52,7 @@ interface SettingsClientProps {
 
 export function SettingsClient({ initialSettings, role, initialServers = [], dedicatedCompanies = [], canManageServers = false }: SettingsClientProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"company" | "inventory" | "security" | "integrations" | "invoice" | "servers" | "databases" | "migrations" | "licenses">("company");
+  const [activeTab, setActiveTab] = useState<"company" | "inventory" | "security" | "integrations" | "invoice" | "imports" | "servers" | "databases" | "migrations" | "licenses">("company");
   const [saving, setSaving] = useState(false);
   const isSuperAdmin = role === "SUPERADMIN";
 
@@ -236,6 +237,15 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
         >
           <LucideIcons.Receipt size={16} />
           Facturación Personalizada
+        </button>
+        <button
+          onClick={() => setActiveTab("imports")}
+          className={`flex w-full items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold transition ${
+            activeTab === "imports" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
+          }`}
+        >
+          <LucideIcons.Upload size={16} />
+          Importación Masiva
         </button>
 
         {isSuperAdmin && (
@@ -843,6 +853,11 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
               </div>
             </div>
           </div>
+        )}
+
+        {/* PESTAÑA: IMPORTACIÓN MASIVA */}
+        {activeTab === "imports" && (
+          <ImportsManager />
         )}
 
         {/* ── Botón Guardar Flotante en el Pie ── */}

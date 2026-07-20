@@ -8,7 +8,7 @@ export const metadata = {
   description: "Dashboard de métricas SaaS, actividad de usuarios y uso de módulos.",
 };
 
-export default async function AnalyticsPage() {
+export default async function AnalyticsPage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
   const session = await getAuthSession();
   if (!session?.user) redirect("/auth/login");
 
@@ -16,7 +16,12 @@ export default async function AnalyticsPage() {
     redirect("/dashboard");
   }
 
-  const result = await getSystemAnalytics();
+  // @ts-ignore Next.js 15 searchParams is a Promise, Next.js 14 is sync. We await it to be safe for Next 15.
+  const sp = await searchParams;
+  const startDate = typeof sp?.start === 'string' ? sp.start : undefined;
+  const endDate = typeof sp?.end === 'string' ? sp.end : undefined;
+
+  const result = await getSystemAnalytics(startDate, endDate);
 
   return (
     <div className="flex-1 space-y-6">

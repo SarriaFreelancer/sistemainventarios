@@ -57,7 +57,7 @@ export function CreateGroupDialog() {
               Nuevo Grupo de Producto
             </DialogTitle>
           </DialogHeader>
-          <form action={handleAction} className="space-y-5 mt-2">
+          <form onSubmit={(e) => { e.preventDefault(); handleAction(new FormData(e.currentTarget)); }} className="space-y-5 mt-2">
             <div className="space-y-1.5">
               <Label htmlFor="group-code" className={labelCls}>Código del Grupo</Label>
               <Input id="group-code" name="code" placeholder="Ej. GRP-MAQ" className={inputCls} required />

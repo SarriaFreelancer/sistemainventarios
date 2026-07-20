@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { getAuthSession } from "@/auth";
 
-export async function getSystemAnalytics() {
+export async function getSystemAnalytics(startDateStr?: string, endDateStr?: string) {
   try {
     const session = await getAuthSession();
     if (!session?.user) return { success: false, error: "No autenticado" };
@@ -13,23 +13,24 @@ export async function getSystemAnalytics() {
     
     // Fechas clave
     const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const periodStart = startDateStr ? new Date(startDateStr + 'T00:00:00') : new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const periodEnd = endDateStr ? new Date(endDateStr + 'T23:59:59.999') : now;
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     
     // Filtro de empresa para ADMIN
     const tenantWhere = !isSuperAdmin ? { companyId } : {};
     
-    // 1. Usuarios conectados hoy (LoginHistory exitosos)
+    // 1. Usuarios conectados en el periodo (LoginHistory exitosos)
     const activeUsersToday = await prisma.loginHistory.groupBy({
       by: ["userId"],
       where: {
         status: "SUCCESS",
-        createdAt: { gte: startOfToday },
+        createdAt: { gte: periodStart, lte: periodEnd },
         ...tenantWhere
       }
     });
     
-    // 2. Usuarios activos esta semana
+    // 2. Usuarios activos esta semana (mantenemos esto igual o lo ajustamos, pero por ahora lo dejamos)
     const activeUsersWeek = await prisma.loginHistory.groupBy({
       by: ["userId"],
       where: {
@@ -39,25 +40,36 @@ export async function getSystemAnalytics() {
       }
     });
     
-    // 3. Intentos fallidos de login hoy
+    // 3. Intentos fallidos de login en el periodo
     const failedLoginsToday = await prisma.loginHistory.count({
       where: {
         status: "FAILED",
-        createdAt: { gte: startOfToday },
+        createdAt: { gte: periodStart, lte: periodEnd },
         ...tenantWhere
       }
     });
     
-    // 4. Conteo de acciones de auditoría (CRUD hoy)
+    // 4. Conteo de acciones de auditoría (CRUD en el periodo)
     const productsCreatedToday = await prisma.auditLog.count({
-      where: { module: "PRODUCTS", action: "CREATE", createdAt: { gte: startOfToday }, ...tenantWhere }
+      where: { module: "PRODUCTS", action: "CREATE", createdAt: { gte: periodStart, lte: periodEnd }, ...tenantWhere }
     });
     const productsUpdatedToday = await prisma.auditLog.count({
-      where: { module: "PRODUCTS", action: "UPDATE", createdAt: { gte: startOfToday }, ...tenantWhere }
+      where: { module: "PRODUCTS", action: "UPDATE", createdAt: { gte: periodStart, lte: periodEnd }, ...tenantWhere }
     });
-    const salesCreatedToday = await prisma.auditLog.count({
-      where: { module: "SALES", action: "CREATE", createdAt: { gte: startOfToday }, ...tenantWhere }
+    const salesCreatedToday = await prisma.sale.count({
+      where: { createdAt: { gte: periodStart, lte: periodEnd }, ...tenantWhere }
     });
+
+    // 4b. Ingresos generados en el periodo
+    const salesInPeriod = await prisma.sale.aggregate({
+      where: {
+        status: "COMPLETED",
+        createdAt: { gte: periodStart, lte: periodEnd },
+        ...tenantWhere
+      },
+      _sum: { total: true }
+    });
+    const revenueInPeriod = salesInPeriod._sum.total || 0;
     
     // 5. Ranking de Empresas más activas (últimos 30 días) - Solo para Superadmin
     let topCompanies: any[] = [];
@@ -134,7 +146,8 @@ export async function getSystemAnalytics() {
         crudStats: {
           productsCreated: productsCreatedToday,
           productsUpdated: productsUpdatedToday,
-          salesCreated: salesCreatedToday
+          salesCreated: salesCreatedToday,
+          revenue: revenueInPeriod
         },
         topCompanies,
         modules: modulesAnalytics,

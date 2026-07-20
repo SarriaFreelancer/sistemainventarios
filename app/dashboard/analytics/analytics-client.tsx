@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import * as LucideIcons from "lucide-react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import {
   BarChart,
   Bar,
@@ -28,6 +29,7 @@ interface AnalyticsData {
     productsCreated: number;
     productsUpdated: number;
     salesCreated: number;
+    revenue?: number;
   };
   topCompanies: { name: string; logsCount: number }[];
   modules: { name: string; count: number; percentage: number }[];
@@ -95,32 +97,53 @@ const HoursTooltip = ({ active, payload, label }: any) => {
 };
 
 export function AnalyticsClient({ analytics, isSuperAdmin }: AnalyticsClientProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+
+  const [startDate, setStartDate] = useState(searchParams.get("start") || "");
+  const [endDate, setEndDate] = useState(searchParams.get("end") || "");
+
+  const handleDateChange = () => {
+    const params = new URLSearchParams(searchParams);
+    if (startDate) params.set("start", startDate);
+    else params.delete("start");
+    
+    if (endDate) params.set("end", endDate);
+    else params.delete("end");
+
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
   // Preparar datos de horas para el heatmap
   const hourlyData = analytics.hours.map((count, i) => ({
     hora: i.toString().padStart(2, "0"),
     eventos: count,
   }));
 
+  const isFiltered = !!startDate || !!endDate;
+  const suffix = isFiltered ? "en el periodo" : "hoy";
+
   // Tarjetas de resumen superiores
   const summaryCards = [
     {
-      label: "Usuarios activos hoy",
-      value: analytics.usersToday,
-      icon: LucideIcons.UserCheck,
+      label: `Ingresos ${suffix}`,
+      value: formatCOP(analytics.crudStats.revenue || 0),
+      icon: LucideIcons.CircleDollarSign,
       color: "text-emerald-500",
       bg: "bg-emerald-500/10",
       border: "border-emerald-500/20",
     },
     {
-      label: "Activos esta semana",
-      value: analytics.usersWeek,
-      icon: LucideIcons.Users,
+      label: `Usuarios activos ${suffix}`,
+      value: analytics.usersToday,
+      icon: LucideIcons.UserCheck,
       color: "text-blue-500",
       bg: "bg-blue-500/10",
       border: "border-blue-500/20",
     },
     {
-      label: "Ventas hoy",
+      label: `Ventas ${suffix}`,
       value: analytics.crudStats.salesCreated,
       icon: LucideIcons.ShoppingCart,
       color: "text-primary",
@@ -128,7 +151,7 @@ export function AnalyticsClient({ analytics, isSuperAdmin }: AnalyticsClientProp
       border: "border-primary/20",
     },
     {
-      label: "Productos creados hoy",
+      label: `Productos creados ${suffix}`,
       value: analytics.crudStats.productsCreated,
       icon: LucideIcons.Boxes,
       color: "text-violet-500",
@@ -136,7 +159,7 @@ export function AnalyticsClient({ analytics, isSuperAdmin }: AnalyticsClientProp
       border: "border-violet-500/20",
     },
     {
-      label: "Ediciones hoy",
+      label: `Ediciones ${suffix}`,
       value: analytics.crudStats.productsUpdated,
       icon: LucideIcons.Pencil,
       color: "text-amber-500",
@@ -144,7 +167,7 @@ export function AnalyticsClient({ analytics, isSuperAdmin }: AnalyticsClientProp
       border: "border-amber-500/20",
     },
     {
-      label: "Intentos fallidos",
+      label: `Intentos fallidos ${suffix}`,
       value: analytics.failedLogins,
       icon: LucideIcons.ShieldOff,
       color: "text-rose-500",
@@ -155,6 +178,46 @@ export function AnalyticsClient({ analytics, isSuperAdmin }: AnalyticsClientProp
 
   return (
     <div className="space-y-6">
+      
+      {/* Filtros de Fecha */}
+      <div className="flex flex-col sm:flex-row items-center gap-3 bg-card p-4 rounded-2xl border border-border">
+        <div className="flex items-center gap-2">
+          <LucideIcons.Calendar className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-foreground">Rango de fechas:</span>
+        </div>
+        <input 
+          type="date" 
+          value={startDate} 
+          onChange={(e) => setStartDate(e.target.value)}
+          className="h-9 px-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+        />
+        <span className="text-muted-foreground text-sm">hasta</span>
+        <input 
+          type="date" 
+          value={endDate} 
+          onChange={(e) => setEndDate(e.target.value)}
+          className="h-9 px-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+        />
+        <button 
+          onClick={handleDateChange}
+          className="h-9 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition"
+        >
+          Filtrar
+        </button>
+        {isFiltered && (
+          <button 
+            onClick={() => {
+              setStartDate("");
+              setEndDate("");
+              router.push(pathname);
+            }}
+            className="h-9 px-4 rounded-lg bg-secondary/20 text-foreground text-sm font-semibold hover:bg-secondary/30 transition"
+          >
+            Limpiar
+          </button>
+        )}
+      </div>
+
       {/* ── Tarjetas Resumen Superiores ── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         {summaryCards.map((card) => (
@@ -191,31 +254,29 @@ export function AnalyticsClient({ analytics, isSuperAdmin }: AnalyticsClientProp
 
           {analytics.monthlySales.length > 0 ? (
             <ResponsiveContainer width="100%" height={240}>
-              <AreaChart data={analytics.monthlySales}>
-                <defs>
-                  <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <BarChart data={analytics.monthlySales}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis
                   dataKey="month"
                   tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                  axisLine={false}
+                  tickLine={false}
+                  padding={{ left: 10, right: 10 }}
                 />
                 <YAxis
                   tickFormatter={(v) => `$${(v / 1000000).toFixed(1)}M`}
                   tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+                  axisLine={false}
+                  tickLine={false}
                 />
-                <Tooltip content={<SalesTooltip />} />
-                <Area
-                  type="monotone"
+                <Tooltip content={<SalesTooltip />} cursor={{ fill: 'var(--muted)', opacity: 0.2 }} />
+                <Bar
                   dataKey="total"
-                  stroke="var(--primary)"
-                  strokeWidth={2.5}
-                  fill="url(#salesGrad)"
+                  fill="var(--primary)"
+                  radius={[6, 6, 0, 0]}
+                  barSize={40}
                 />
-              </AreaChart>
+              </BarChart>
             </ResponsiveContainer>
           ) : (
             <div className="h-[240px] flex items-center justify-center text-sm text-muted-foreground">

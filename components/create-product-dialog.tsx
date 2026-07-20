@@ -14,7 +14,7 @@ import {
 import { Plus } from "lucide-react";
 import { successAlert, errorAlert } from "@/lib/sweetalert";
 
-interface Category { id: string; name: string; }
+interface Category { id: string; name: string; productGroupId?: string; }
 interface Supplier { id: string; companyName: string; }
 interface ProductGroup { id: string; name: string; }
 
@@ -32,6 +32,11 @@ export function CreateProductDialog({ categories, suppliers, groups }: CreatePro
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [productType, setProductType] = useState('SALE');
+  const [selectedGroup, setSelectedGroup] = useState('');
+
+  const filteredCategories = selectedGroup
+    ? categories.filter(c => c.productGroupId === selectedGroup)
+    : categories;
 
   const handleAction = useCallback(async (formData: FormData) => {
     startTransition(async () => {
@@ -64,7 +69,7 @@ export function CreateProductDialog({ categories, suppliers, groups }: CreatePro
             </DialogTitle>
           </DialogHeader>
 
-          <form action={handleAction} className="space-y-5 mt-2">
+          <form onSubmit={(e) => { e.preventDefault(); handleAction(new FormData(e.currentTarget)); }} className="space-y-5 mt-2">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5 sm:col-span-2">
                 <Label htmlFor="new-type" className={labelCls}>Tipo de Producto</Label>
@@ -86,9 +91,19 @@ export function CreateProductDialog({ categories, suppliers, groups }: CreatePro
                 <Input id="new-name" name="name" placeholder="Nombre del producto" className={inputCls} required />
               </div>
               <div className="space-y-1.5">
+                <Label htmlFor="new-group" className={labelCls}>Grupo de Producto</Label>
+                <select id="new-group" name="productGroupId" className={selectCls} value={selectedGroup} onChange={(e) => setSelectedGroup(e.target.value)}>
+                  <option value="">Seleccione un grupo...</option>
+                  {groups.map((g) => (
+                    <option key={g.id} value={g.id}>{g.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
                 <Label htmlFor="new-categoryId" className={labelCls}>Categoría</Label>
                 <select id="new-categoryId" name="categoryId" className={selectCls}>
-                  {categories.map((c) => (
+                  <option value="">Seleccione una categoría...</option>
+                  {filteredCategories.map((c) => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
@@ -96,17 +111,9 @@ export function CreateProductDialog({ categories, suppliers, groups }: CreatePro
               <div className="space-y-1.5">
                 <Label htmlFor="new-supplierId" className={labelCls}>Proveedor</Label>
                 <select id="new-supplierId" name="supplierId" className={selectCls}>
+                  <option value="">Seleccione proveedor...</option>
                   {suppliers.map((s) => (
                     <option key={s.id} value={s.id}>{s.companyName}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label htmlFor="new-group" className={labelCls}>Grupo de Producto (Opcional)</Label>
-                <select id="new-group" name="productGroupId" className={selectCls}>
-                  <option value="">Ninguno</option>
-                  {groups.map((g) => (
-                    <option key={g.id} value={g.id}>{g.name}</option>
                   ))}
                 </select>
               </div>

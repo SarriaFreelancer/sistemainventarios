@@ -61,7 +61,7 @@ export function CreateCategoryDialog({ groups }: { groups: { id: string; name: s
               Nueva Categoría
             </DialogTitle>
           </DialogHeader>
-          <form action={handleAction} className="space-y-5 mt-2">
+          <form onSubmit={(e) => { e.preventDefault(); handleAction(new FormData(e.currentTarget)); }} className="space-y-5 mt-2">
             <div className="space-y-1.5">
               <Label htmlFor="cat-code" className={labelCls}>Código</Label>
               <Input id="cat-code" name="code" placeholder="Ej. CAT-LIP" className={inputCls} required />

@@ -50,6 +50,14 @@ export async function createSupplier(formData: FormData) {
       return { success: false, error: 'Ya existe un proveedor con este correo electrónico en tu empresa' };
     }
 
+    if (parsed.data.code) {
+      const whereCode = await withTenantWhere({ code: parsed.data.code });
+      const existingCode = await prisma.supplier.findFirst({ where: whereCode });
+      if (existingCode) {
+        return { success: false, error: 'Ya existe un proveedor con este NIT/Código en tu empresa' };
+      }
+    }
+
     const data = await withTenantData({
       companyName: parsed.data.companyName,
       contactName: parsed.data.contactName,
@@ -117,6 +125,17 @@ export async function updateSupplier(formData: FormData) {
     const existingName = await prisma.supplier.findFirst({ where: whereExistingName });
     if (existingName) {
       return { success: false, error: 'Ya existe otro proveedor con este nombre en tu empresa' };
+    }
+
+    if (parsed.data.code) {
+      const whereExistingCode = await withTenantWhere({
+        code: parsed.data.code,
+        id: { not: id }
+      });
+      const existingCode = await prisma.supplier.findFirst({ where: whereExistingCode });
+      if (existingCode) {
+        return { success: false, error: 'Ya existe otro proveedor con este NIT/Código en tu empresa' };
+      }
     }
 
     // Verificar duplicado de email

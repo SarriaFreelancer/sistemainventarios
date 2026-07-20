@@ -208,7 +208,10 @@ export async function quickSellProduct(data: {
     const whereProduct = await withTenantWhere({ id: productId });
     const product = await prisma.product.findFirst({ where: whereProduct });
     if (!product) return { success: false, error: 'Producto no encontrado o no autorizado' };
-    if (product.quantityAvailable < quantity) {
+    const settings = await prisma.companySetting.findUnique({ where: { companyId: product.companyId! } });
+    const allowNegativeStock = settings?.allowNegativeStock ?? false;
+
+    if (!allowNegativeStock && product.quantityAvailable < quantity) {
       return { success: false, error: `Stock insuficiente. Disponible: ${product.quantityAvailable} unidades.` };
     }
 
@@ -281,7 +284,13 @@ export async function quickSellProduct(data: {
 
       // Si no tiene módulo Ventas: descontar stock inmediatamente
       if (!hasSalesModule) {
-        const newQty = Math.max(0, product.quantityAvailable - quantity);
+        const settings = await prisma.companySetting.findUnique({ where: { companyId: product.companyId! } });
+        const allowNegativeStock = settings?.allowNegativeStock ?? false;
+        
+        let newQty = product.quantityAvailable - quantity;
+        if (!allowNegativeStock && newQty < 0) {
+          newQty = 0;
+        }
         await tx.product.update({
           where: { id: productId },
           data: {

@@ -16,12 +16,14 @@ export async function GET(request: Request) {
     const categoryId = searchParams.get('categoryId');
     const supplierId = searchParams.get('supplierId');
     const productGroupId = searchParams.get('productGroupId');
+    const productType = searchParams.get('productType');
 
     const whereClause = {
       ...companyFilter,
       ...(categoryId ? { categoryId: Number(categoryId) } : {}),
       ...(supplierId ? { supplierId: Number(supplierId) } : {}),
       ...(productGroupId ? { productGroupId: Number(productGroupId) } : {}),
+      ...(productType ? { type: productType as any } : {}),
     };
 
     const products = await prisma.product.findMany({
@@ -41,6 +43,7 @@ export async function GET(request: Request) {
       return {
         'Código': p.code,
         'Nombre': p.name,
+        'Tipo': p.type === 'SALE' ? 'Venta' : p.type === 'RAW_MATERIAL' ? 'Materia Prima' : p.type === 'FINISHED_GOOD' ? 'Producto Term.' : p.type === 'SUPPLY' ? 'Insumo' : p.type === 'SERVICE' ? 'Servicio' : 'Activo Fijo',
         'Categoría': p.category?.name ?? '—',
         'Proveedor': p.supplier?.companyName ?? '—',
         'Stock Disponible': p.quantityAvailable,
@@ -58,6 +61,7 @@ export async function GET(request: Request) {
     worksheet['!cols'] = [
       { wch: 14 },  // Código
       { wch: 35 },  // Nombre
+      { wch: 16 },  // Tipo
       { wch: 20 },  // Categoría
       { wch: 28 },  // Proveedor
       { wch: 18 },  // Stock Disponible

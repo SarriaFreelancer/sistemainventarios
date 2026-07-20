@@ -15,6 +15,7 @@ import { Pencil, Plus, Factory, Trash2, CheckCircle2, XCircle, Mail, Phone, MapP
 import { confirmAction, successAlert, errorAlert } from "@/lib/sweetalert";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { COLOMBIAN_CITIES } from "@/lib/colombian-cities";
+import { WORLD_COUNTRIES } from "@/lib/world-countries";
 
 interface Supplier {
   id: string;
@@ -38,16 +39,19 @@ const labelCls = "text-[10px] font-bold uppercase tracking-wider text-muted-fore
 export function CreateSupplierDialog() {
   const [open, setOpen] = useState(false);
   const [city, setCity] = useState("Bogotá");
+  const [country, setCountry] = useState("Colombia");
   const [isPending, startTransition] = useTransition();
 
   async function handleAction(formData: FormData) {
     formData.set('city', city);
+    formData.set('country', country);
     startTransition(async () => {
       const result = await createSupplier(formData);
       if (result.success) {
         successAlert('Proveedor Creado', 'El nuevo proveedor fue registrado exitosamente.');
         setOpen(false);
         setCity("Bogotá");
+        setCountry("Colombia");
       } else {
         errorAlert('Error al Crear', result.error ?? 'No fue posible registrar el proveedor.');
       }
@@ -69,7 +73,7 @@ export function CreateSupplierDialog() {
               Nuevo Proveedor
             </DialogTitle>
           </DialogHeader>
-          <form action={handleAction} className="space-y-5 mt-2">
+          <form onSubmit={(e) => { e.preventDefault(); handleAction(new FormData(e.currentTarget)); }} className="space-y-5 mt-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5 sm:col-span-2">
                 <Label htmlFor="sup-code" className={labelCls}>Código o NIT de Empresa</Label>
@@ -95,9 +99,15 @@ export function CreateSupplierDialog() {
                 <Label htmlFor="sup-address" className={labelCls}>Dirección</Label>
                 <Input id="sup-address" name="address" placeholder="Calle 123 #45-67" className={inputCls} required />
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="sup-country" className={labelCls}>País</Label>
-                <Input id="sup-country" name="country" defaultValue="Colombia" placeholder="Colombia" className={inputCls} required />
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className={labelCls}>País</Label>
+                <SearchableSelect
+                  options={WORLD_COUNTRIES}
+                  value={country}
+                  onChange={setCountry}
+                  placeholder="Selecciona el país..."
+                  searchPlaceholder="Buscar país..."
+                />
               </div>
               <div className="space-y-1.5 sm:col-span-2">
                 <Label className={labelCls}>Ciudad (Colombia)</Label>
@@ -133,11 +143,13 @@ export function CreateSupplierDialog() {
 // ── Edit Dialog ────────────────────────────────────────────────
 export function EditSupplierDialog({ supplier }: { supplier: Supplier }) {
   const [open, setOpen] = useState(false);
-  const [city, setCity] = useState(supplier.city);
+  const [city, setCity] = useState(supplier.city || "Bogotá");
+  const [country, setCountry] = useState(supplier.country || "Colombia");
   const [isPending, startTransition] = useTransition();
 
   async function handleAction(formData: FormData) {
     formData.set('city', city);
+    formData.set('country', country);
     startTransition(async () => {
       const result = await updateSupplier(formData);
       if (result.success) {
@@ -195,9 +207,15 @@ export function EditSupplierDialog({ supplier }: { supplier: Supplier }) {
                 <Label htmlFor={`edit-sup-address-${supplier.id}`} className={labelCls}>Dirección</Label>
                 <Input id={`edit-sup-address-${supplier.id}`} name="address" defaultValue={supplier.address} className={inputCls} required />
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor={`edit-sup-country-${supplier.id}`} className={labelCls}>País</Label>
-                <Input id={`edit-sup-country-${supplier.id}`} name="country" defaultValue={supplier.country || "Colombia"} className={inputCls} required />
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className={labelCls}>País</Label>
+                <SearchableSelect
+                  options={WORLD_COUNTRIES}
+                  value={country}
+                  onChange={setCountry}
+                  placeholder="Selecciona el país..."
+                  searchPlaceholder="Buscar país..."
+                />
               </div>
               <div className="space-y-1.5 sm:col-span-2">
                 <Label className={labelCls}>Ciudad (Colombia)</Label>

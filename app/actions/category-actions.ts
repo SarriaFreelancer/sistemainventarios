@@ -28,10 +28,18 @@ export async function createCategory(formData: FormData) {
       return { success: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' };
     }
 
-    const where = await withTenantWhere({ name: parsed.data.name });
-    const existing = await prisma.category.findFirst({ where });
-    if (existing) {
+    const whereName = await withTenantWhere({ name: parsed.data.name });
+    const existingName = await prisma.category.findFirst({ where: whereName });
+    if (existingName) {
       return { success: false, error: 'Ya existe una categoría con ese nombre' };
+    }
+
+    if (parsed.data.code) {
+      const whereCode = await withTenantWhere({ code: parsed.data.code });
+      const existingCode = await prisma.category.findFirst({ where: whereCode });
+      if (existingCode) {
+        return { success: false, error: 'Ya existe una categoría con ese código' };
+      }
     }
 
     const data = await withTenantData({
@@ -88,13 +96,25 @@ export async function updateCategory(formData: FormData) {
     }
 
     // Verificar nombre duplicado en la misma empresa
-    const whereExisting = await withTenantWhere({
+    const whereExistingName = await withTenantWhere({
       name: parsed.data.name,
       id: { not: id }
     });
-    const existing = await prisma.category.findFirst({ where: whereExisting });
-    if (existing) {
+    const existingName = await prisma.category.findFirst({ where: whereExistingName });
+    if (existingName) {
       return { success: false, error: 'Ya existe otra categoría con ese nombre' };
+    }
+
+    // Verificar código duplicado
+    if (parsed.data.code) {
+      const whereExistingCode = await withTenantWhere({
+        code: parsed.data.code,
+        id: { not: id }
+      });
+      const existingCode = await prisma.category.findFirst({ where: whereExistingCode });
+      if (existingCode) {
+        return { success: false, error: 'Ya existe otra categoría con ese código' };
+      }
     }
 
     const updated = await prisma.category.update({

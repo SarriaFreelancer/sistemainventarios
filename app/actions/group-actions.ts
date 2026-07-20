@@ -24,10 +24,18 @@ export async function createGroup(formData: FormData) {
       return { success: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' };
     }
 
-    const where = await withTenantWhere({ name: parsed.data.name });
-    const existing = await prisma.productGroup.findFirst({ where });
-    if (existing) {
+    const whereName = await withTenantWhere({ name: parsed.data.name });
+    const existingName = await prisma.productGroup.findFirst({ where: whereName });
+    if (existingName) {
       return { success: false, error: 'Ya existe un grupo con ese nombre' };
+    }
+
+    if (parsed.data.code) {
+      const whereCode = await withTenantWhere({ code: parsed.data.code });
+      const existingCode = await prisma.productGroup.findFirst({ where: whereCode });
+      if (existingCode) {
+        return { success: false, error: 'Ya existe un grupo con ese código' };
+      }
     }
 
     const data = await withTenantData({
@@ -81,13 +89,25 @@ export async function updateGroup(formData: FormData) {
     }
 
     // Verificar duplicado en la misma empresa
-    const whereExisting = await withTenantWhere({
+    const whereExistingName = await withTenantWhere({
       name: parsed.data.name,
       id: { not: id }
     });
-    const existing = await prisma.productGroup.findFirst({ where: whereExisting });
-    if (existing) {
+    const existingName = await prisma.productGroup.findFirst({ where: whereExistingName });
+    if (existingName) {
       return { success: false, error: 'Ya existe otro grupo con ese nombre' };
+    }
+
+    // Verificar código duplicado
+    if (parsed.data.code) {
+      const whereExistingCode = await withTenantWhere({
+        code: parsed.data.code,
+        id: { not: id }
+      });
+      const existingCode = await prisma.productGroup.findFirst({ where: whereExistingCode });
+      if (existingCode) {
+        return { success: false, error: 'Ya existe otro grupo con ese código' };
+      }
     }
 
     const updated = await prisma.productGroup.update({

@@ -9,6 +9,9 @@ import {
 import { CustomerStatus, OpportunityStage } from '@prisma/client';
 import { X, UserPlus, Briefcase, Loader2 } from 'lucide-react';
 import { successAlert, errorAlert } from '@/lib/sweetalert';
+import { SearchableSelect } from '@/components/ui/searchable-select';
+import { COLOMBIAN_CITIES } from '@/lib/colombian-cities';
+import { WORLD_COUNTRIES } from '@/lib/world-countries';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -19,6 +22,7 @@ export interface CustomerRow {
   phone: string | null;
   company: string | null;
   city: string | null;
+  country?: string | null;
   status: CustomerStatus;
 }
 
@@ -104,11 +108,15 @@ function SubmitBtn({ pending, label }: { pending: boolean; label: string }) {
 // ─── Create Customer Modal ────────────────────────────────────────────────────
 
 function CreateCustomerModal({ onClose }: { onClose: () => void }) {
+  const [city, setCity] = useState('Bogotá');
+  const [country, setCountry] = useState('Colombia');
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    formData.set('city', city);
+    formData.set('country', country);
     startTransition(async () => {
       const res = await createCustomer(formData);
       if (res.success) {
@@ -145,8 +153,24 @@ function CreateCustomerModal({ onClose }: { onClose: () => void }) {
             <input name="company" placeholder="Nombre de empresa" className={inputCls} />
           </div>
           <div>
+            <label className={labelCls}>País</label>
+            <SearchableSelect
+              options={WORLD_COUNTRIES}
+              value={country}
+              onChange={setCountry}
+              placeholder="Selecciona el país..."
+              searchPlaceholder="Buscar país..."
+            />
+          </div>
+          <div>
             <label className={labelCls}>Ciudad</label>
-            <input name="city" placeholder="Bogotá" className={inputCls} />
+            <SearchableSelect
+              options={COLOMBIAN_CITIES}
+              value={city}
+              onChange={setCity}
+              placeholder="Selecciona la ciudad..."
+              searchPlaceholder="Buscar ciudad..."
+            />
           </div>
           <div>
             <label className={labelCls}>Estado</label>
@@ -179,12 +203,16 @@ function EditCustomerModal({
   customer: CustomerRow;
   onClose: () => void;
 }) {
+  const [city, setCity] = useState(customer.city || 'Bogotá');
+  const [country, setCountry] = useState(customer.country || 'Colombia');
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     formData.set('id', customer.id);
+    formData.set('city', city);
+    formData.set('country', country);
     startTransition(async () => {
       const res = await updateCustomer(formData);
       if (res.success) {
@@ -240,11 +268,23 @@ function EditCustomerModal({
             />
           </div>
           <div>
+            <label className={labelCls}>País</label>
+            <SearchableSelect
+              options={WORLD_COUNTRIES}
+              value={country}
+              onChange={setCountry}
+              placeholder="Selecciona el país..."
+              searchPlaceholder="Buscar país..."
+            />
+          </div>
+          <div>
             <label className={labelCls}>Ciudad</label>
-            <input
-              name="city"
-              defaultValue={customer.city ?? ''}
-              className={inputCls}
+            <SearchableSelect
+              options={COLOMBIAN_CITIES}
+              value={city}
+              onChange={setCity}
+              placeholder="Selecciona la ciudad..."
+              searchPlaceholder="Buscar ciudad..."
             />
           </div>
           <div>

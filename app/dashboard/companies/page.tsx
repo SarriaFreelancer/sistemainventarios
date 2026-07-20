@@ -37,6 +37,7 @@ export default async function CompaniesPage() {
     themeConfig: company.themeConfig ? JSON.parse(JSON.stringify(company.themeConfig)) : null,
     modules: company.modules.map((m) => m.moduleId),
     nit: company.setting?.nit ?? '',
+    planId: company.planId,
     _count: { users: company._count.users },
   }));
 

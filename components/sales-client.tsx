@@ -75,7 +75,7 @@ const inputCls = "bg-card border border-border focus:border-primary focus:ring-4
 const selectCls = "flex h-10 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all duration-300";
 const labelCls = "text-[10px] font-bold uppercase tracking-wider text-muted-foreground";
 
-function NewSaleDialog({ products, customers, userId, onSuccess }: { products: Product[]; customers: { id: string; name: string; code: string }[]; userId: string; onSuccess?: () => void }) {
+function NewSaleDialog({ products, customers, userId, onSuccess, allowNegativeStock = false }: { products: Product[]; customers: { id: string; name: string; code: string }[]; userId: string; onSuccess?: () => void; allowNegativeStock?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -96,10 +96,10 @@ function NewSaleDialog({ products, customers, userId, onSuccess }: { products: P
     const q = productSearch.toLowerCase();
     if (!q) return [];
     return products.filter(p =>
-      (status === 'PENDING' || p.quantityAvailable > 0) &&
+      (status === 'PENDING' || allowNegativeStock || p.quantityAvailable > 0) &&
       (p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q))
     ).slice(0, 5);
-  }, [products, productSearch, status]);
+  }, [products, productSearch, status, allowNegativeStock]);
 
   const subtotal = cart.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
   const total = Math.max(0, subtotal - discount - cart.reduce((s, i) => s + i.discount, 0));
@@ -108,7 +108,7 @@ function NewSaleDialog({ products, customers, userId, onSuccess }: { products: P
     setCart(prev => {
       const existing = prev.find(i => i.productId === product.id);
       if (existing) {
-        if (existing.quantity >= existing.maxQty && status === 'COMPLETED') return prev;
+        if (!allowNegativeStock && existing.quantity >= existing.maxQty && status === 'COMPLETED') return prev;
         return prev.map(i => i.productId === product.id ? { ...i, quantity: i.quantity + 1 } : i);
       }
       return [...prev, {
@@ -127,7 +127,7 @@ function NewSaleDialog({ products, customers, userId, onSuccess }: { products: P
   const updateQty = (productId: string, qty: number) => {
     setCart(prev => prev.map(i => {
       if (i.productId === productId) {
-        const targetQty = status === 'COMPLETED' ? Math.min(Math.max(1, qty), i.maxQty) : Math.max(1, qty);
+        const targetQty = status === 'COMPLETED' && !allowNegativeStock ? Math.min(Math.max(1, qty), i.maxQty) : Math.max(1, qty);
         return { ...i, quantity: targetQty };
       }
       return i;
@@ -994,19 +994,15 @@ function exportSalesToExcel(sales: Sale[]) {
   });
 }
 
-export function SalesClient({
-  initialSales,
-  products,
-  customers,
-  userId,
-  invoiceConfig,
-}: {
+export function SalesClient(props: {
   initialSales: Sale[];
   products: Product[];
   customers: { id: string; name: string; code: string }[];
   userId: string;
   invoiceConfig?: any;
+  allowNegativeStock?: boolean;
 }) {
+  const { initialSales, products, customers, userId, invoiceConfig, allowNegativeStock = false } = props;
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -1104,7 +1100,9 @@ export function SalesClient({
             <FileDown className="h-4 w-4" />
             Exportar Excel
           </Button>
-          <NewSaleDialog products={products} customers={customers} userId={userId} />
+          <NewSaleDialog products={products} customers={customers} userId={userId} onSuccess={() => {
+            // refresh happens automatically or via revalidatePath
+          }} allowNegativeStock={allowNegativeStock} />
         </div>
       </div>
 

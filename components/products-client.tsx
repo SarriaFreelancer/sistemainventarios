@@ -38,19 +38,15 @@ interface Product {
 type SortField = 'name' | 'code' | 'quantityAvailable' | 'salePrice' | 'unitCost';
 type SortDir = 'asc' | 'desc';
 
-export function ProductsClient({
-  initialProducts,
-  categories,
-  suppliers,
-  groups,
-  userId,
-}: {
+export function ProductsClient(props: {
   initialProducts: Product[];
   categories: Category[];
   suppliers: Supplier[];
   groups: ProductGroup[];
   userId: string;
+  allowNegativeStock?: boolean;
 }) {
+  const { initialProducts, categories, suppliers, groups, userId, allowNegativeStock = false } = props;
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
@@ -92,7 +88,7 @@ export function ProductsClient({
       if (filterStatus === 'AVAILABLE') {
         list = list.filter(p => p.quantityAvailable > 0);
       } else if (filterStatus === 'OUT_OF_STOCK') {
-        list = list.filter(p => p.quantityAvailable === 0);
+        list = list.filter(p => p.quantityAvailable <= 0);
       }
     }
 
@@ -119,7 +115,7 @@ export function ProductsClient({
 
   const totalStock = filteredProducts.reduce((s, p) => s + p.quantityAvailable, 0);
   const totalValue = filteredProducts.reduce((s, p) => s + p.salePrice * p.quantityAvailable, 0);
-  const outOfStock = filteredProducts.filter(p => p.quantityAvailable === 0).length;
+  const outOfStock = filteredProducts.filter(p => p.quantityAvailable <= 0).length;
 
   function toggleSort(field: SortField) {
     if (sortField === field) {
@@ -156,7 +152,7 @@ export function ProductsClient({
   };
 
   const handleQuickSell = async (product: Product) => {
-    if (product.quantityAvailable === 0) {
+    if (!allowNegativeStock && product.quantityAvailable <= 0) {
       errorAlert('Sin Existencias', 'Este producto no tiene unidades disponibles para vender.');
       return;
     }
@@ -196,7 +192,7 @@ export function ProductsClient({
           brandAlert.showValidationMessage('Ingresa una cantidad válida.');
           return false;
         }
-        if (qty > product.quantityAvailable) {
+        if (!allowNegativeStock && qty > product.quantityAvailable) {
           brandAlert.showValidationMessage(`Máximo disponible: ${product.quantityAvailable} u.`);
           return false;
         }
@@ -399,7 +395,7 @@ export function ProductsClient({
               </thead>
               <tbody className="divide-y divide-border/40">
                 {paginatedProducts.map((product) => {
-                  const isOut = product.quantityAvailable === 0;
+                  const isOut = product.quantityAvailable <= 0;
                   return (
                     <tr key={product.id} className="group hover:bg-primary/5 transition-colors duration-200">
                       <td className="px-4 py-3.5">
@@ -490,7 +486,7 @@ export function ProductsClient({
             <div className="text-center py-10 text-muted-foreground">No hay productos.</div>
           ) : (
             paginatedProducts.map(product => {
-              const isOut = product.quantityAvailable === 0;
+              const isOut = product.quantityAvailable <= 0;
               return (
                 <div key={product.id} className="p-5 space-y-3 hover:bg-primary/5 transition-colors">
                   <div className="flex items-start justify-between">

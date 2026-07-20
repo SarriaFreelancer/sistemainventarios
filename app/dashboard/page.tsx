@@ -79,7 +79,7 @@ export default async function DashboardHomePage() {
       take: 5,
     }),
     prisma.product.findMany({
-      where: { ...companyFilter, quantityAvailable: 0 },
+      where: { ...companyFilter, quantityAvailable: { lte: 0 } },
       take: 4,
     }),
     prisma.product.findMany({

@@ -8,6 +8,9 @@ import { Label } from "@/components/ui/label";
 import { CheckCircle2, Plus, Pencil, Trash2, XCircle, Folder, Search } from "lucide-react";
 import { confirmAction, errorAlert, successAlert } from "@/lib/sweetalert";
 import { createCompany, deleteCompany, updateCompany } from "@/app/actions/company-actions";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { COLOMBIAN_CITIES } from "@/lib/colombian-cities";
+import { WORLD_COUNTRIES } from "@/lib/world-countries";
 
 interface Module {
   id: number;
@@ -23,7 +26,8 @@ interface Company {
   status: string;
   themeConfig?: { primaryColor?: string; mode?: string } | null;
   modules: number[];
-  nit?: string;
+  nit?: string | null;
+  planId?: string | null;
   _count: { users: number };
 }
 
@@ -47,14 +51,20 @@ const POPULAR_CITIES = [
 
 export function CreateCompanyDialog({ modules }: { modules: Module[] }) {
   const [open, setOpen] = useState(false);
+  const [city, setCity] = useState("Bogotá");
+  const [country, setCountry] = useState("Colombia");
   const [isPending, startTransition] = useTransition();
 
   async function handleAction(formData: FormData) {
+    formData.set('city', city);
+    formData.set('country', country);
     startTransition(async () => {
       const result = await createCompany(formData);
       if (result?.success) {
         successAlert('Empresa creada', 'La empresa fue registrada correctamente.');
         setOpen(false);
+        setCity("Bogotá");
+        setCountry("Colombia");
       } else {
         errorAlert('Error al crear', result?.error ?? 'No se pudo crear la empresa.');
       }
@@ -76,23 +86,47 @@ export function CreateCompanyDialog({ modules }: { modules: Module[] }) {
               Nueva Empresa
             </DialogTitle>
           </DialogHeader>
-          <form action={handleAction} className="space-y-5 mt-2">
+          <form onSubmit={(e) => { e.preventDefault(); handleAction(new FormData(e.currentTarget)); }} className="space-y-5 mt-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="company-name" className={labelCls}>Nombre</Label>
                 <Input id="company-name" name="name" placeholder="Ej. GNS SarriaTech S.A.S." className={inputCls} required />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="company-country" className={labelCls}>País</Label>
-                <Input id="company-country" name="country" defaultValue="Colombia" list="countries-list" className={inputCls} required />
+                <Label htmlFor="company-nit" className={labelCls}>NIT / Código de Empresa</Label>
+                <Input id="company-nit" name="nit" placeholder="Ej. 900.123.456-7" className={inputCls} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="company-plan" className={labelCls}>Plan (Licencia)</Label>
+                <select id="company-plan" name="planId" className={selectCls}>
+                  <option value="">Básico (Free/Basic)</option>
+                  <option value="pro">Intermedio (Pro)</option>
+                  <option value="premium">Premium</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className={labelCls}>País</Label>
+                <SearchableSelect
+                  options={WORLD_COUNTRIES}
+                  value={country}
+                  onChange={setCountry}
+                  placeholder="Selecciona el país..."
+                  searchPlaceholder="Buscar país..."
+                />
               </div>
               <div className="space-y-1.5 sm:col-span-2">
                 <Label htmlFor="company-address" className={labelCls}>Dirección</Label>
                 <Input id="company-address" name="address" placeholder="Calle 95 #14-60" className={inputCls} />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="company-city" className={labelCls}>Ciudad</Label>
-                <Input id="company-city" name="city" placeholder="Bogotá" list="cities-list" className={inputCls} />
+                <Label className={labelCls}>Ciudad</Label>
+                <SearchableSelect
+                  options={COLOMBIAN_CITIES}
+                  value={city}
+                  onChange={setCity}
+                  placeholder="Selecciona la ciudad..."
+                  searchPlaceholder="Buscar ciudad..."
+                />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="company-status" className={labelCls}>Estado</Label>
@@ -143,9 +177,13 @@ export function CreateCompanyDialog({ modules }: { modules: Module[] }) {
 
 export function EditCompanyDialog({ company, modules }: { company: Company; modules: Module[] }) {
   const [open, setOpen] = useState(false);
+  const [city, setCity] = useState(company.city || "Bogotá");
+  const [country, setCountry] = useState(company.country || "Colombia");
   const [isPending, startTransition] = useTransition();
 
   async function handleAction(formData: FormData) {
+    formData.set('city', city);
+    formData.set('country', country);
     startTransition(async () => {
       const result = await updateCompany(formData);
       if (result?.success) {
@@ -180,20 +218,44 @@ export function EditCompanyDialog({ company, modules }: { company: Company; modu
             <input type="hidden" name="id" value={String(company.id)} />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor={`edit-company-name-${company.id}`} className={labelCls}>Nombre</Label>
-                <Input id={`edit-company-name-${company.id}`} name="name" defaultValue={company.name} className={inputCls} required />
+                <Label htmlFor={`edit-name-${company.id}`} className={labelCls}>Nombre</Label>
+                <Input id={`edit-name-${company.id}`} name="name" defaultValue={company.name} className={inputCls} required />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor={`edit-company-country-${company.id}`} className={labelCls}>País</Label>
-                <Input id={`edit-company-country-${company.id}`} name="country" defaultValue={company.country} list="countries-list" className={inputCls} required />
+                <Label htmlFor={`edit-nit-${company.id}`} className={labelCls}>NIT / Código de Empresa</Label>
+                <Input id={`edit-nit-${company.id}`} name="nit" defaultValue={company.nit || ''} className={inputCls} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor={`edit-plan-${company.id}`} className={labelCls}>Plan (Licencia)</Label>
+                <select id={`edit-plan-${company.id}`} name="planId" defaultValue={company.planId || ''} className={selectCls}>
+                  <option value="">Básico (Free/Basic)</option>
+                  <option value="pro">Intermedio (Pro)</option>
+                  <option value="premium">Premium</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className={labelCls}>País</Label>
+                <SearchableSelect
+                  options={WORLD_COUNTRIES}
+                  value={country}
+                  onChange={setCountry}
+                  placeholder="Selecciona el país..."
+                  searchPlaceholder="Buscar país..."
+                />
               </div>
               <div className="space-y-1.5 sm:col-span-2">
                 <Label htmlFor={`edit-company-address-${company.id}`} className={labelCls}>Dirección</Label>
                 <Input id={`edit-company-address-${company.id}`} name="address" defaultValue={company.address ?? ''} className={inputCls} />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor={`edit-company-city-${company.id}`} className={labelCls}>Ciudad</Label>
-                <Input id={`edit-company-city-${company.id}`} name="city" defaultValue={company.city ?? ''} list="cities-list" className={inputCls} />
+                <Label className={labelCls}>Ciudad</Label>
+                <SearchableSelect
+                  options={COLOMBIAN_CITIES}
+                  value={city}
+                  onChange={setCity}
+                  placeholder="Selecciona la ciudad..."
+                  searchPlaceholder="Buscar ciudad..."
+                />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor={`edit-company-status-${company.id}`} className={labelCls}>Estado</Label>

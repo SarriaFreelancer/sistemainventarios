@@ -36,6 +36,11 @@ export default async function ProductsPage() {
     }),
   ]);
 
+  const settings = companyId
+    ? await prisma.companySetting.findUnique({ where: { companyId } })
+    : await prisma.companySetting.findFirst();
+  const allowNegativeStock = settings?.allowNegativeStock ?? false;
+
   // Serialize safely (Decimal → number, IDs → string para encajar con el frontend)
   const serializedProducts = products.map((p) => ({
     id: String(p.id),
@@ -59,10 +64,11 @@ export default async function ProductsPage() {
     <div className="p-4 sm:p-6">
       <ProductsClient
         initialProducts={serializedProducts}
-        categories={categories.map((c) => ({ id: String(c.id), name: c.name }))}
+        categories={categories.map((c) => ({ id: String(c.id), name: c.name, productGroupId: c.productGroupId ? String(c.productGroupId) : undefined }))}
         suppliers={suppliers.map((s) => ({ id: String(s.id), companyName: s.companyName }))}
         groups={groups.map((g) => ({ id: String(g.id), name: g.name }))}
         userId={String(session.user.id)}
+        allowNegativeStock={allowNegativeStock}
       />
     </div>
   );
