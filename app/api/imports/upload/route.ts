@@ -62,6 +62,7 @@ export async function POST(request: NextRequest) {
     }
 
     let count = 0;
+    const skipped: string[] = [];
 
     await prisma.$transaction(async (tx) => {
       if (type === "groups") {
@@ -74,7 +75,7 @@ export async function POST(request: NextRequest) {
 
           // Check if exists
           const exists = await tx.productGroup.findFirst({
-            where: { code, companyId: String(companyId) }
+            where: { code, companyId: Number(companyId) }
           });
 
           if (!exists) {
@@ -83,10 +84,12 @@ export async function POST(request: NextRequest) {
                 code,
                 name,
                 status,
-                companyId: String(companyId)
+                companyId: Number(companyId)
               }
             });
             count++;
+          } else {
+            skipped.push(`Grupo ${code}: Ya existe.`);
           }
         }
       } 
@@ -100,7 +103,7 @@ export async function POST(request: NextRequest) {
           if (!code || !name || !groupCode || code === "undefined" || name === "undefined") continue;
 
           const group = await tx.productGroup.findFirst({
-            where: { code: groupCode, companyId: String(companyId) }
+            where: { code: groupCode, companyId: Number(companyId) }
           });
 
           if (!group) {
@@ -108,7 +111,7 @@ export async function POST(request: NextRequest) {
           }
 
           const exists = await tx.category.findFirst({
-            where: { code, companyId: String(companyId) }
+            where: { code, companyId: Number(companyId) }
           });
 
           if (!exists) {
@@ -118,10 +121,12 @@ export async function POST(request: NextRequest) {
                 name,
                 description,
                 productGroupId: group.id,
-                companyId: String(companyId)
+                companyId: Number(companyId)
               }
             });
             count++;
+          } else {
+            skipped.push(`Categoría ${code}: Ya existe.`);
           }
         }
       }
@@ -139,7 +144,7 @@ export async function POST(request: NextRequest) {
           if (!code || !companyName || code === "undefined" || companyName === "undefined") continue;
 
           const exists = await tx.supplier.findFirst({
-            where: { code, companyId: String(companyId) }
+            where: { code, companyId: Number(companyId) }
           });
 
           if (!exists) {
@@ -148,15 +153,17 @@ export async function POST(request: NextRequest) {
                 code,
                 companyName,
                 contactName: contactName === "undefined" ? "" : contactName,
-                email: email === "undefined" ? "" : email,
-                phone: phone === "undefined" ? "" : phone,
+                email: email === "undefined" ? null : email,
+                phone: phone === "undefined" ? null : phone,
                 city: city === "undefined" ? "" : city,
                 country: country === "undefined" ? "Colombia" : country,
                 address: address === "undefined" ? "" : address,
-                companyId: String(companyId)
+                companyId: Number(companyId)
               }
             });
             count++;
+          } else {
+            skipped.push(`Proveedor ${code}: Ya existe.`);
           }
         }
       }
@@ -174,9 +181,9 @@ export async function POST(request: NextRequest) {
 
           if (!code || !name || !catCode || !supCode || code === "undefined" || name === "undefined") continue;
 
-          const group = await tx.productGroup.findFirst({ where: { code: groupCode, companyId: String(companyId) } });
-          const category = await tx.category.findFirst({ where: { code: catCode, companyId: String(companyId) } });
-          const supplier = await tx.supplier.findFirst({ where: { code: supCode, companyId: String(companyId) } });
+          const group = await tx.productGroup.findFirst({ where: { code: groupCode, companyId: Number(companyId) } });
+          const category = await tx.category.findFirst({ where: { code: catCode, companyId: Number(companyId) } });
+          const supplier = await tx.supplier.findFirst({ where: { code: supCode, companyId: Number(companyId) } });
 
           if (!category) throw new Error(`Categoría con código ${catCode} no encontrada para producto ${code}`);
           if (!supplier) throw new Error(`Proveedor con código ${supCode} no encontrado para producto ${code}`);
@@ -189,7 +196,7 @@ export async function POST(request: NextRequest) {
           }
 
           const exists = await tx.product.findFirst({
-            where: { code, companyId: String(companyId) }
+            where: { code, companyId: Number(companyId) }
           });
 
           if (!exists) {
@@ -204,11 +211,13 @@ export async function POST(request: NextRequest) {
                 categoryId: category.id,
                 supplierId: supplier.id,
                 productGroupId: groupId,
-                companyId: String(companyId),
+                companyId: Number(companyId),
                 status: initialQty > 0 ? "AVAILABLE" : "OUT_OF_STOCK"
               }
             });
             count++;
+          } else {
+            skipped.push(`Producto ${code}: Ya existe.`);
           }
         }
       } else {
@@ -219,7 +228,7 @@ export async function POST(request: NextRequest) {
       timeout: 30000 // 30s timeout for execution (useful for bulk uploads)
     });
 
-    return NextResponse.json({ success: true, count }, { status: 200 });
+    return NextResponse.json({ success: true, count, skipped }, { status: 200 });
   } catch (error: any) {
     console.error("[IMPORTS_UPLOAD]", error);
     return NextResponse.json({ error: error.message || "Error al procesar el archivo" }, { status: 500 });

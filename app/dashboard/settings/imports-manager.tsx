@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Upload, Download, FileSpreadsheet, Loader2, AlertTriangle } from "lucide-react";
-import { successAlert, errorAlert } from "@/lib/sweetalert";
+import { brandAlert, errorAlert } from "@/lib/sweetalert";
 
 const TEMPLATES = [
   { id: "groups", name: "Grupos de Productos", file: "plantilla_grupos.xlsx", desc: "Sube grupos principales de inventario." },
@@ -59,7 +59,23 @@ export function ImportsManager() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al procesar archivo");
 
-      successAlert("Importación Exitosa", `Se importaron ${data.count} registros correctamente.`);
+      let msg = `<div class="text-left font-sans text-sm"><p>Se importaron <strong>${data.count}</strong> registros correctamente.</p>`;
+      if (data.skipped && data.skipped.length > 0) {
+        msg += `<div class="mt-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                  <p class="text-amber-700 dark:text-amber-400 font-semibold mb-2 text-xs">Omitidos (${data.skipped.length}) por ya existir:</p>
+                  <div class="max-h-32 overflow-y-auto text-[11px] text-muted-foreground space-y-1">
+                    ${data.skipped.map((s: string) => `<div>${s}</div>`).join("")}
+                  </div>
+                </div>`;
+      }
+      msg += `</div>`;
+
+      brandAlert.fire({
+        title: "Resumen de Importación",
+        html: msg,
+        icon: data.count > 0 ? "success" : "info",
+        confirmButtonText: "Entendido",
+      });
       setFiles({ ...files, [id]: null });
       // Clear input
       const input = document.getElementById(`upload-${id}`) as HTMLInputElement;
