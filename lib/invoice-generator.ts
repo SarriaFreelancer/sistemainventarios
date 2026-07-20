@@ -33,6 +33,7 @@ export async function generateInvoiceMedia(sale: InvoiceData, format: 'png' | 'j
     primaryColor: invoiceConfig?.primaryColor || '#b91c1c',
     secondaryColor: invoiceConfig?.secondaryColor || '#C5A059',
     logo: invoiceConfig?.logo || '',
+    resolutionText: invoiceConfig?.resolutionText || '',
     footerText: invoiceConfig?.footerText || 'Documento equivalente de venta generado de forma electrónica.',
   };
 
@@ -297,6 +298,13 @@ export async function generateInvoiceMedia(sale: InvoiceData, format: 'png' | 'j
   ctx.fillStyle = config.primaryColor;
   ctx.font = 'italic 12px Georgia';
   ctx.fillText(config.companyName.toUpperCase(), canvas.width / 2, yCursor);
+
+  if (config.resolutionText) {
+    ctx.font = '10px sans-serif';
+    ctx.fillStyle = '#17121F';
+    ctx.fillText(config.resolutionText, canvas.width / 2, yCursor + 20);
+    yCursor += 15;
+  }
 
   ctx.font = '10px sans-serif';
   ctx.fillStyle = '#726A7A';

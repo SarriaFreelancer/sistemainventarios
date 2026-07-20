@@ -1,16 +1,14 @@
 "use client";
 
-import { useEffect, useState, useCallback, useTransition } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Bell, Check, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuHeader,
-  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { getUserNotifications, markNotificationsAsRead, deleteNotification, clearAllNotifications } from "@/app/actions/notification-actions";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
@@ -28,72 +26,83 @@ export function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
 
-  const fetchNotifications = useCallback(async (showToasts = false) => {
-    const res = await getUserNotifications();
-    if (res.success && res.data) {
-      const data = res.data as Notification[];
-      
-      if (showToasts) {
-        setNotifications((prev) => {
-          // Find new ones that weren't here before
-          const newNotifs = data.filter(n => !n.isRead && !prev.find(old => old.id === n.id));
-          newNotifs.forEach(n => {
-            if (n.type === 'ERROR') {
-              toast.error(n.title, { description: n.message, duration: 5000 });
-            } else if (n.type === 'WARNING') {
-              toast.warning(n.title, { description: n.message, duration: 5000 });
-            } else {
-              toast.success(n.title, { description: n.message, duration: 5000 });
-            }
+  // Polling usando API Route estable (no Server Action) para evitar errores de versión
+  const pollNotifications = useCallback(async (showToasts = false) => {
+    try {
+      const res = await fetch('/api/notifications', { cache: 'no-store' });
+      if (!res.ok) return;
+      const json = await res.json();
+      if (json.success && json.data) {
+        const data = json.data as Notification[];
+
+        if (showToasts) {
+          setNotifications((prev) => {
+            const newNotifs = data.filter(n => !n.isRead && !prev.find(old => old.id === n.id));
+            newNotifs.forEach(n => {
+              if (n.type === 'ERROR') {
+                toast.error(n.title, { description: n.message, duration: 5000 });
+              } else if (n.type === 'WARNING') {
+                toast.warning(n.title, { description: n.message, duration: 5000 });
+              } else {
+                toast.success(n.title, { description: n.message, duration: 5000 });
+              }
+            });
+            return data;
           });
-          return data;
-        });
-      } else {
-        setNotifications(data);
+        } else {
+          setNotifications(data);
+        }
+
+        setUnreadCount(data.filter(n => !n.isRead).length);
       }
-      
-      setUnreadCount(data.filter(n => !n.isRead).length);
+    } catch {
+      // Silently ignore network errors during polling
     }
   }, []);
 
   useEffect(() => {
-    fetchNotifications(false);
+    // Carga inicial usando API Route (no Server Action)
+    pollNotifications(false);
     
-    // Polling every 15 seconds
+    // Polling every 15 seconds usando API Route estable
     const interval = setInterval(() => {
-      fetchNotifications(true);
+      pollNotifications(true);
     }, 15000);
 
     return () => clearInterval(interval);
-  }, [fetchNotifications]);
+  }, [pollNotifications]);
 
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
     if (open && unreadCount > 0) {
-      startTransition(async () => {
-        await markNotificationsAsRead();
+      // Usar API Route estable en lugar de Server Action
+      fetch('/api/notifications', { method: 'PATCH' }).then(() => {
         setUnreadCount(0);
         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-      });
+      }).catch(() => {});
     }
   };
 
   const handleDelete = async (e: React.MouseEvent, id: number) => {
-    e.stopPropagation(); // Prevent closing dropdown
-    const res = await deleteNotification(id);
-    if (res.success) {
-      setNotifications(prev => prev.filter(n => n.id !== id));
-    }
+    e.stopPropagation();
+    try {
+      const res = await fetch(`/api/notifications/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setNotifications(prev => prev.filter(n => n.id !== id));
+      }
+    } catch {}
   };
 
   const handleClearAll = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    const res = await clearAllNotifications();
-    if (res.success) {
-      setNotifications([]);
-    }
+    try {
+      const res = await fetch('/api/notifications', { method: 'DELETE' });
+      if (res.ok) {
+        setNotifications([]);
+        setUnreadCount(0);
+      }
+    } catch {}
   };
 
   const getTypeStyles = (type: string) => {

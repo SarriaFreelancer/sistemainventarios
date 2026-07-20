@@ -109,6 +109,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
   const [invoicePrimaryColor, setInvoicePrimaryColor] = useState(initialInvoiceConfig.primaryColor || "#b91c1c");
   const [invoiceSecondaryColor, setInvoiceSecondaryColor] = useState(initialInvoiceConfig.secondaryColor || "#C5A059");
   const [invoiceLogo, setInvoiceLogo] = useState(initialInvoiceConfig.logo || "");
+  const [invoiceResolutionText, setInvoiceResolutionText] = useState(initialInvoiceConfig.resolutionText || "");
   const [invoiceFooterText, setInvoiceFooterText] = useState(initialInvoiceConfig.footerText || "Documento equivalente de venta generado de forma electrónica.");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -154,6 +155,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
         primaryColor: invoicePrimaryColor,
         secondaryColor: invoiceSecondaryColor,
         logo: invoiceLogo,
+        resolutionText: invoiceResolutionText,
         footerText: invoiceFooterText
       }
     });
@@ -870,6 +872,19 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
                     onChange={(e) => setInvoiceWebsite(e.target.value)}
                     className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none"
                     placeholder="Ej. https://empresa.com"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-muted-foreground uppercase">Resolución de Facturación (DIAN o Equivalente)</label>
+                  <input
+                    type="text"
+                    value={invoiceResolutionText}
+                    onChange={(e) => setInvoiceResolutionText(e.target.value)}
+                    className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none"
+                    placeholder="Ej. Resolución DIAN No. 123456789 de 2026/01/01 al 2027/01/01"
                   />
                 </div>
               </div>

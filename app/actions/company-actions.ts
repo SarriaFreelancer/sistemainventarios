@@ -69,7 +69,6 @@ export async function createCompany(formData: FormData) {
             module: { connect: { id: moduleId } }
           }))
         } : undefined,
-        planId: parsed.data.planId,
         setting: {
           create: {
             nit: parsed.data.nit
@@ -155,7 +154,6 @@ export async function updateCompany(formData: FormData) {
              moduleId: moduleId 
           })) || []
         },
-        planId: parsed.data.planId,
         setting: {
           upsert: {
             create: { nit: parsed.data.nit },

@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes);
     
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(buffer);
+    await workbook.xlsx.load(buffer as any);
     const worksheet = workbook.worksheets[0];
     
     if (!worksheet) {
@@ -153,8 +153,8 @@ export async function POST(request: NextRequest) {
                 code,
                 companyName,
                 contactName: contactName === "undefined" ? "" : contactName,
-                email: email === "undefined" ? null : email,
-                phone: phone === "undefined" ? null : phone,
+                email: email === "undefined" ? "" : email,
+                phone: phone === "undefined" ? "" : phone,
                 city: city === "undefined" ? "" : city,
                 country: country === "undefined" ? "Colombia" : country,
                 address: address === "undefined" ? "" : address,

@@ -227,7 +227,7 @@ export default async function DashboardHomePage() {
       </div>
 
       {/* ── KPI Cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
         {/* KPI 1: Productos */}
         <div className="p-6 rounded-[24px] bg-card border border-border shadow-sm flex flex-col justify-between h-36 hover:shadow-md hover:border-primary/20 transition-all duration-300 group">

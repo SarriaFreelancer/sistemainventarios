@@ -999,15 +999,15 @@ function exportSalesToExcel(sales: Sale[]) {
   }
 
   const fileName = `gns_sarriatech_ventas_${new Date().toISOString().split('T')[0]}.xlsx`;
-  const buffer = await workbook.xlsx.writeBuffer();
-  saveAs(new Blob([buffer]), fileName);
-
-  brandAlert.fire({
-    title: 'Exportación exitosa',
-    text: `Archivo guardado como ${fileName}`,
-    icon: 'success',
-    timer: 2000,
-    showConfirmButton: false,
+  workbook.xlsx.writeBuffer().then((buffer) => {
+    saveAs(new Blob([buffer]), fileName);
+    brandAlert.fire({
+      title: 'Exportación exitosa',
+      text: `Archivo guardado como ${fileName}`,
+      icon: 'success',
+      timer: 2000,
+      showConfirmButton: false,
+    });
   });
 }
 

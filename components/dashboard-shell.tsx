@@ -225,7 +225,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
 
       {/* ── Sidebar (Mobile Drawer) ── */}
       {isMenuOpen && (
-        <div className="fixed inset-0 z-50 bg-black" onClick={() => setIsMenuOpen(false)}>
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" onClick={() => setIsMenuOpen(false)}>
           <div
             className="h-full w-72 bg-card p-6 flex flex-col shadow-2xl border-r border-border animate-in slide-in-from-left duration-300"
             onClick={(e) => e.stopPropagation()}
