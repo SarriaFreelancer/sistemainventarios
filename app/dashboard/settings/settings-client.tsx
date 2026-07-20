@@ -39,6 +39,9 @@ interface CompanySetting {
   smtpUser: string | null;
   smtpPass: string | null;
   backupFrequency: string;
+  backupTime?: string | null;
+  backupDay?: number | null;
+  backupPath?: string | null;
   updatedAt: string;
 }
 
@@ -84,9 +87,14 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
   // Integraciones & SMTP
   const [smtpHost, setSmtpHost] = useState(initialSettings.smtpHost || "");
   const [smtpPort, setSmtpPort] = useState(initialSettings.smtpPort || "");
-  const [smtpUser, setSmtpUser] = useState(initialSettings.smtpUser || "");
-  const [smtpPass, setSmtpPass] = useState(initialSettings.smtpPass || "");
-  const [backupFrequency, setBackupFrequency] = useState(initialSettings.backupFrequency);
+  const [smtpUser, setSmtpUser] = useState(initialSettings?.smtpUser || "");
+  const [smtpPass, setSmtpPass] = useState(initialSettings?.smtpPass || "");
+  const [backupFrequency, setBackupFrequency] = useState(initialSettings?.backupFrequency || "DAILY");
+  const [backupTime, setBackupTime] = useState(initialSettings?.backupTime || "02:00");
+  const [backupDay, setBackupDay] = useState(initialSettings?.backupDay || 1);
+  const [backupPath, setBackupPath] = useState(initialSettings?.backupPath || "");
+  const [backupType, setBackupType] = useState<"shared" | "dedicated">("shared");
+  const [backupCompanyId, setBackupCompanyId] = useState<string>("");
 
   // Facturación Personalizada
   const initialInvoiceConfig = (initialSettings as any).invoiceConfig || {};
@@ -130,6 +138,9 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
       smtpUser,
       smtpPass,
       backupFrequency,
+      backupTime,
+      backupDay,
+      backupPath,
       invoiceConfig: {
         companyName: invoiceCompanyName,
         address: invoiceAddress,
@@ -154,8 +165,6 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
     }
   };
 
-  const [backupType, setBackupType] = useState<"shared" | "dedicated">("shared");
-  const [backupCompanyId, setBackupCompanyId] = useState<string>("");
 
   const triggerManualBackup = async () => {
     try {
@@ -335,7 +344,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
         )}
 
       {/* Renderizamos el form solo para tabs no-infraestructura */}
-      {["company", "inventory", "security", "integrations", "invoice"].includes(activeTab) && (
+      {["company", "inventory", "security", "integrations", "invoice", "imports"].includes(activeTab) && (
       <form onSubmit={handleSubmit} className="bg-card rounded-2xl border border-border p-6 shadow-sm space-y-6">
         
         {/* PESTAÑA: DATOS DE EMPRESA */}
@@ -605,6 +614,54 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
                     <option value="WEEKLY">Semanal (Automático)</option>
                   </select>
                 </div>
+              </div>
+
+              {/* Extra Backup Options based on Frequency */}
+              {(backupFrequency === "DAILY" || backupFrequency === "WEEKLY") && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-3 animate-in fade-in zoom-in-95">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase">Hora del Respaldo</label>
+                    <input
+                      type="time"
+                      value={backupTime}
+                      onChange={(e) => setBackupTime(e.target.value)}
+                      className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-xs focus:outline-none font-bold"
+                    />
+                  </div>
+                  
+                  {backupFrequency === "WEEKLY" && (
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase">Día de la Semana</label>
+                      <select
+                        value={backupDay}
+                        onChange={(e) => setBackupDay(Number(e.target.value))}
+                        className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-xs focus:outline-none font-bold"
+                      >
+                        <option value={1}>Lunes</option>
+                        <option value={2}>Martes</option>
+                        <option value={3}>Miércoles</option>
+                        <option value={4}>Jueves</option>
+                        <option value={5}>Viernes</option>
+                        <option value={6}>Sábado</option>
+                        <option value={7}>Domingo</option>
+                      </select>
+                    </div>
+                  )}
+
+                  <div className="space-y-1.5 lg:col-span-1 sm:col-span-2">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase">Ruta de Guardado (Local/Servidor)</label>
+                    <input
+                      type="text"
+                      value={backupPath}
+                      onChange={(e) => setBackupPath(e.target.value)}
+                      placeholder="/var/backups o C:\backups"
+                      className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-xs focus:outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row gap-3 mt-4">
                 {role === 'SUPERADMIN' && (
                   <div className="flex flex-col gap-2 bg-muted/20 p-3 rounded-xl border border-border mt-2 sm:mt-0 col-span-2 sm:col-span-1 text-xs">
                     <p className="font-bold text-foreground">Selección de Base de Datos</p>

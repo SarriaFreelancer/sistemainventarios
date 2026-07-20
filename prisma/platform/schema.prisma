@@ -254,6 +254,9 @@ model CompanySetting {
   smtpUser              String?
   smtpPass              String?
   backupFrequency       String   @default("DAILY")
+  backupTime            String?  @default("02:00")
+  backupDay             Int?     @default(1)
+  backupPath            String?
   updatedAt             DateTime @updatedAt
 }
 

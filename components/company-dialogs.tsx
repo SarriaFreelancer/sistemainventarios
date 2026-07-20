@@ -28,6 +28,8 @@ interface Company {
   modules: number[];
   nit?: string | null;
   planId?: string | null;
+  maxUsers?: number | null;
+  maxProducts?: number | null;
   _count: { users: number };
 }
 
@@ -99,10 +101,18 @@ export function CreateCompanyDialog({ modules }: { modules: Module[] }) {
               <div className="space-y-1.5">
                 <Label htmlFor="company-plan" className={labelCls}>Plan (Licencia)</Label>
                 <select id="company-plan" name="planId" className={selectCls}>
-                  <option value="">Básico (Free/Basic)</option>
-                  <option value="pro">Intermedio (Pro)</option>
+                  <option value="basic">Básico</option>
+                  <option value="intermediate">Intermedio</option>
                   <option value="premium">Premium</option>
                 </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="company-max-users" className={labelCls}>Límite Usuarios</Label>
+                <Input id="company-max-users" name="maxUsers" type="number" placeholder="Ej. 10 (Opcional)" className={inputCls} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="company-max-products" className={labelCls}>Límite Productos</Label>
+                <Input id="company-max-products" name="maxProducts" type="number" placeholder="Ej. 2000 (Opcional)" className={inputCls} />
               </div>
               <div className="space-y-1.5">
                 <Label className={labelCls}>País</Label>
@@ -227,11 +237,19 @@ export function EditCompanyDialog({ company, modules }: { company: Company; modu
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor={`edit-plan-${company.id}`} className={labelCls}>Plan (Licencia)</Label>
-                <select id={`edit-plan-${company.id}`} name="planId" defaultValue={company.planId || ''} className={selectCls}>
-                  <option value="">Básico (Free/Basic)</option>
-                  <option value="pro">Intermedio (Pro)</option>
+                <select id={`edit-plan-${company.id}`} name="planId" defaultValue={company.planId || 'basic'} className={selectCls}>
+                  <option value="basic">Básico</option>
+                  <option value="intermediate">Intermedio</option>
                   <option value="premium">Premium</option>
                 </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor={`edit-max-users-${company.id}`} className={labelCls}>Límite Usuarios</Label>
+                <Input id={`edit-max-users-${company.id}`} name="maxUsers" type="number" defaultValue={company.maxUsers ?? ''} placeholder="Ej. 10 (Opcional)" className={inputCls} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor={`edit-max-products-${company.id}`} className={labelCls}>Límite Productos</Label>
+                <Input id={`edit-max-products-${company.id}`} name="maxProducts" type="number" defaultValue={company.maxProducts ?? ''} placeholder="Ej. 2000 (Opcional)" className={inputCls} />
               </div>
               <div className="space-y-1.5">
                 <Label className={labelCls}>País</Label>

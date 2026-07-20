@@ -22,13 +22,15 @@ interface CreateProductDialogProps {
   categories: Category[];
   suppliers: Supplier[];
   groups: ProductGroup[];
+  disabled?: boolean;
+  limitMessage?: string;
 }
 
 const inputCls = "bg-background/50 border-border/80 focus:border-primary focus:ring-4 focus:ring-primary/10 text-foreground placeholder:text-muted-foreground/50 h-11 rounded-xl";
 const selectCls = "flex h-11 w-full rounded-xl border border-border/80 bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all duration-300 disabled:opacity-50";
 const labelCls = "text-[10px] font-bold uppercase tracking-wider text-muted-foreground";
 
-export function CreateProductDialog({ categories, suppliers, groups }: CreateProductDialogProps) {
+export function CreateProductDialog({ categories, suppliers, groups, disabled = false, limitMessage = '' }: CreateProductDialogProps) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [productType, setProductType] = useState('SALE');
@@ -53,8 +55,14 @@ export function CreateProductDialog({ categories, suppliers, groups }: CreatePro
   return (
     <>
       <Button
-        onClick={() => setOpen(true)}
-        className="flex items-center gap-2 px-5 h-11 rounded-2xl"
+        onClick={() => {
+          if (disabled) {
+            errorAlert('Límite alcanzado', limitMessage);
+            return;
+          }
+          setOpen(true);
+        }}
+        className={`flex items-center gap-2 px-5 h-11 rounded-2xl ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         <Plus className="h-4 w-4" />
         Nuevo Producto

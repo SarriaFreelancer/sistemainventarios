@@ -2,10 +2,10 @@ import { NextRequest } from "next/server";
 import * as XLSX from "xlsx";
 
 const HEADERS: Record<string, string[]> = {
-  groups: ["Nombre", "Descripción"],
-  categories: ["Código de Grupo", "Nombre", "Descripción"],
-  suppliers: ["Empresa", "Contacto", "Email", "Teléfono", "Sitio Web", "País", "Ciudad", "Dirección", "Términos de Pago"],
-  products: ["Código de Grupo", "Código de Categoría", "NIT de Proveedor", "Código de Producto", "Nombre", "Descripción", "Tipo (SALE, RAW_MATERIAL, FINISHED_GOOD, SUPPLY, SERVICE, FIXED_ASSET)", "Costo Unitario", "Precio Venta", "Cantidad Inicial"],
+  groups: ["Código de Grupo", "Nombre", "Estado (ACTIVE o INACTIVE)"],
+  categories: ["Código de Grupo", "Código de Categoría", "Nombre", "Descripción"],
+  suppliers: ["Código de Proveedor", "Empresa", "Contacto", "Email", "Teléfono", "Ciudad", "País", "Dirección"],
+  products: ["Código de Grupo", "Código de Categoría", "Código de Proveedor", "Código de Producto", "Nombre", "Tipo (SALE, RAW_MATERIAL, FINISHED_GOOD, SUPPLY, SERVICE, FIXED_ASSET)", "Costo Unitario", "Precio Venta", "Cantidad Inicial"],
 };
 
 export async function GET(request: NextRequest) {

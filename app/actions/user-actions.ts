@@ -5,6 +5,7 @@ import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { logActivity } from '@/lib/audit';
+import { getPlanLimits } from '@/lib/plans';
 
 const userCreateSchema = z.object({
   name: z.string().min(2, 'El nombre completo es obligatorio'),
@@ -38,6 +39,24 @@ export async function createUser(formData: FormData) {
   const existing = await prisma.user.findUnique({ where: { email: parsed.data.email } });
   if (existing) {
     return { success: false, error: 'Ya existe un usuario con ese correo' };
+  }
+
+  // Verificar límite de usuarios del plan
+  if (parsed.data.companyId) {
+    const company = await prisma.company.findUnique({
+      where: { id: parsed.data.companyId },
+      select: { planId: true, maxUsers: true, maxProducts: true, _count: { select: { users: true } } }
+    });
+    
+    if (company) {
+      const limits = getPlanLimits(company.planId, { maxUsers: company.maxUsers, maxProducts: company.maxProducts });
+      if (company._count.users >= limits.maxUsers) {
+        return { 
+          success: false, 
+          error: `Has alcanzado el límite de usuarios de tu plan (${limits.maxUsers}). Para crear más usuarios, actualiza tu plan.` 
+        };
+      }
+    }
   }
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 10);

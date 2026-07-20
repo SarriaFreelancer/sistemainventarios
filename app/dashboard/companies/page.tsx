@@ -38,6 +38,8 @@ export default async function CompaniesPage() {
     modules: company.modules.map((m) => m.moduleId),
     nit: company.setting?.nit ?? '',
     planId: company.planId,
+    maxUsers: company.maxUsers,
+    maxProducts: company.maxProducts,
     _count: { users: company._count.users },
   }));
 

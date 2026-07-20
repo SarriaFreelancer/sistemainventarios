@@ -261,6 +261,8 @@ model Company {
   id                 Int                 @id @default(autoincrement())
   name               String              @unique
   planId             String?
+  maxUsers           Int?
+  maxProducts        Int?
 
   serverId           String?
   server             Server?             @relation("ServerCompanies", fields: [serverId], references: [id])
@@ -672,5 +674,8 @@ model CompanySetting {
   smtpUser              String?
   smtpPass              String?
   backupFrequency       String   @default("DAILY") // MANUAL, DAILY, WEEKLY
+  backupTime            String?  @default("02:00")
+  backupDay             Int?     @default(1)
+  backupPath            String?
   updatedAt             DateTime @updatedAt
 }

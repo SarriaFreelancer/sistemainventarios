@@ -3,6 +3,7 @@ import { getAuthSession } from '@/auth';
 import { getSessionCompanyId } from '@/lib/session';
 import { UsersClient } from '@/components/user-dialogs';
 import { redirect } from 'next/navigation';
+import { getPlanLimits } from '@/lib/plans';
 
 export const metadata = {
   title: 'Usuarios · GNS',
@@ -47,9 +48,32 @@ export default async function UsersPage() {
   const serializedRoles = filteredRoles.map((role) => ({ id: role.id, name: role.name }));
   const serializedCompanies = companies.map((company) => ({ id: company.id, name: company.name }));
 
+  let planLimits = { maxUsers: 9999, planName: 'Plan Premium' };
+  let currentUsersCount = 0;
+  
+  if (companyId) {
+    const activeCompany = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { planId: true, maxUsers: true, maxProducts: true, _count: { select: { users: true } } }
+    });
+    
+    if (activeCompany) {
+      const limits = getPlanLimits(activeCompany.planId, { maxUsers: activeCompany.maxUsers, maxProducts: activeCompany.maxProducts });
+      planLimits = { maxUsers: limits.maxUsers, planName: limits.name };
+      currentUsersCount = activeCompany._count.users;
+    }
+  }
+
   return (
     <div className="p-4 sm:p-6">
-      <UsersClient users={serializedUsers} roles={serializedRoles} companies={serializedCompanies} />
+      <UsersClient 
+        users={serializedUsers} 
+        roles={serializedRoles} 
+        companies={serializedCompanies} 
+        maxUsers={planLimits.maxUsers}
+        currentUsers={currentUsersCount}
+        planName={planLimits.planName}
+      />
     </div>
   );
 }

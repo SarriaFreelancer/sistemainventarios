@@ -45,8 +45,14 @@ export function ProductsClient(props: {
   groups: ProductGroup[];
   userId: string;
   allowNegativeStock?: boolean;
+  maxProducts?: number;
+  currentProducts?: number;
+  planName?: string;
 }) {
-  const { initialProducts, categories, suppliers, groups, userId, allowNegativeStock = false } = props;
+  const { 
+    initialProducts, categories, suppliers, groups, userId, allowNegativeStock = false,
+    maxProducts = 999999, currentProducts = 0, planName = 'Plan Premium'
+  } = props;
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
@@ -265,8 +271,19 @@ export function ProductsClient(props: {
             <p className="text-sm text-muted-foreground">Gestiona el catálogo de productos de GNS SarriaTech.</p>
           </div>
         </div>
-        <div className="relative z-10 flex gap-2">
-          <CreateProductDialog categories={categories} suppliers={suppliers} groups={groups} />
+        <div className="relative z-10 flex flex-col items-end gap-2">
+          <CreateProductDialog 
+            categories={categories} 
+            suppliers={suppliers} 
+            groups={groups}
+            disabled={currentProducts >= maxProducts}
+            limitMessage={`Has alcanzado el límite de ${maxProducts} productos de tu ${planName}.`}
+          />
+          {maxProducts < 999999 && (
+            <p className="text-[10px] font-bold text-muted-foreground uppercase">
+              {currentProducts} / {maxProducts} Productos ({planName})
+            </p>
+          )}
         </div>
       </div>
 

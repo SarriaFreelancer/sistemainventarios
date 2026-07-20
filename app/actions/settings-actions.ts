@@ -77,7 +77,10 @@ export async function updateCompanySettings(data: any) {
         smtpPort: data.smtpPort ? Number(data.smtpPort) : null,
         smtpUser: data.smtpUser,
         smtpPass: data.smtpPass,
-        backupFrequency: data.backupFrequency
+        backupFrequency: data.backupFrequency,
+        backupTime: data.backupTime,
+        backupDay: data.backupDay ? Number(data.backupDay) : 1,
+        backupPath: data.backupPath
       }
     });
     

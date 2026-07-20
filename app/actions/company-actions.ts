@@ -16,6 +16,8 @@ const companySchema = z.object({
   modules: z.array(z.number()).optional(),
   nit: z.string().optional(),
   planId: z.string().optional(),
+  maxUsers: z.coerce.number().optional().nullable(),
+  maxProducts: z.coerce.number().optional().nullable(),
 });
 
 export async function createCompany(formData: FormData) {
@@ -36,6 +38,8 @@ export async function createCompany(formData: FormData) {
     modules: modulesIds.length > 0 ? modulesIds : undefined,
     nit: formData.get('nit') || undefined,
     planId: formData.get('planId') || undefined,
+    maxUsers: formData.get('maxUsers') ? Number(formData.get('maxUsers')) : null,
+    maxProducts: formData.get('maxProducts') ? Number(formData.get('maxProducts')) : null,
   });
 
   if (!parsed.success) return { success: false, error: 'Datos inválidos' };
@@ -53,6 +57,9 @@ export async function createCompany(formData: FormData) {
         city: parsed.data.city,
         country: parsed.data.country,
         status: parsed.data.status,
+        planId: parsed.data.planId,
+        maxUsers: parsed.data.maxUsers,
+        maxProducts: parsed.data.maxProducts,
         themeConfig: (parsed.data.themeColor || parsed.data.themeMode) ? {
           primaryColor: parsed.data.themeColor,
           mode: parsed.data.themeMode
@@ -110,6 +117,8 @@ export async function updateCompany(formData: FormData) {
     modules: modulesIds,
     nit: formData.get('nit') || undefined,
     planId: formData.get('planId') || undefined,
+    maxUsers: formData.get('maxUsers') ? Number(formData.get('maxUsers')) : null,
+    maxProducts: formData.get('maxProducts') ? Number(formData.get('maxProducts')) : null,
   });
 
   if (!parsed.success || !id || isNaN(id)) return { success: false, error: 'Datos inválidos' };
@@ -133,6 +142,9 @@ export async function updateCompany(formData: FormData) {
         city: parsed.data.city,
         country: parsed.data.country,
         status: parsed.data.status,
+        planId: parsed.data.planId,
+        maxUsers: session.user.role === 'SUPERADMIN' ? parsed.data.maxUsers : undefined,
+        maxProducts: session.user.role === 'SUPERADMIN' ? parsed.data.maxProducts : undefined,
         themeConfig: (parsed.data.themeColor || parsed.data.themeMode) ? {
           primaryColor: parsed.data.themeColor,
           mode: parsed.data.themeMode

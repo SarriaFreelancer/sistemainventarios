@@ -17,7 +17,7 @@ const inputCls = "bg-background/50 border-border/80 focus:border-primary focus:r
 const selectCls = "flex h-11 w-full rounded-xl border border-border/80 bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all duration-300";
 const labelCls = "text-[10px] font-bold uppercase tracking-wider text-muted-foreground";
 
-export function CreateUserDialog({ roles, companies }: { roles: Role[]; companies: Company[] }) {
+export function CreateUserDialog({ roles, companies, disabled = false, limitMessage = '' }: { roles: Role[]; companies: Company[], disabled?: boolean, limitMessage?: string }) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -35,7 +35,16 @@ export function CreateUserDialog({ roles, companies }: { roles: Role[]; companie
 
   return (
     <>
-      <Button onClick={() => setOpen(true)} className="flex items-center gap-2 px-5 h-11 rounded-2xl">
+      <Button 
+        onClick={() => {
+          if (disabled) {
+            errorAlert('Límite alcanzado', limitMessage);
+            return;
+          }
+          setOpen(true);
+        }} 
+        className={`flex items-center gap-2 px-5 h-11 rounded-2xl ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+      >
         <Plus className="h-4 w-4" />
         Nuevo Usuario
       </Button>
@@ -214,7 +223,21 @@ export function DeleteUserButton({ id, name }: { id: number; name: string }) {
   );
 }
 
-export function UsersClient({ users, roles, companies }: { users: User[]; roles: Role[]; companies: Company[] }) {
+export function UsersClient({ 
+  users, 
+  roles, 
+  companies,
+  maxUsers = 9999,
+  currentUsers = 0,
+  planName = 'Plan Premium'
+}: { 
+  users: User[]; 
+  roles: Role[]; 
+  companies: Company[];
+  maxUsers?: number;
+  currentUsers?: number;
+  planName?: string;
+}) {
   const [search, setSearch] = useState("");
   const activeUsers = users.length;
   const companyScoped = users.filter((user) => !!user.company).length;
@@ -245,7 +268,19 @@ export function UsersClient({ users, roles, companies }: { users: User[]; roles:
           </div>
         </div>
         <div className="relative z-10">
-          <CreateUserDialog roles={roles} companies={companies} />
+          <div className="flex flex-col items-end gap-2">
+            <CreateUserDialog 
+              roles={roles} 
+              companies={companies} 
+              disabled={currentUsers >= maxUsers}
+              limitMessage={`Has alcanzado el límite de ${maxUsers} usuarios de tu ${planName}.`}
+            />
+            {maxUsers < 9999 && (
+              <p className="text-[10px] font-bold text-muted-foreground uppercase">
+                {currentUsers} / {maxUsers} Usuarios ({planName})
+              </p>
+            )}
+          </div>
         </div>
       </div>
 

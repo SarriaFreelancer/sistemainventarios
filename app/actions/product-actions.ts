@@ -7,6 +7,7 @@ import { withTenantWhere, withTenantData } from '@/lib/tenant-db';
 import { getSessionCompanyId } from '@/lib/session';
 import { ProductStatus, ProductType } from '@prisma/client';
 import { logActivity } from '@/lib/audit';
+import { getPlanLimits } from '@/lib/plans';
 
 const productSchema = z.object({
   code: z.string().min(2, 'El código es obligatorio'),
@@ -43,6 +44,20 @@ export async function createProduct(formData: FormData) {
     const existingCode = await prisma.product.findFirst({ where: whereCode });
     if (existingCode) {
       return { success: false, error: 'Ya existe un producto con el mismo código' };
+    }
+
+    const companyId = await getSessionCompanyId();
+    if (companyId) {
+      const company = await prisma.company.findUnique({
+        where: { id: companyId },
+        select: { planId: true, maxUsers: true, maxProducts: true, _count: { select: { products: true } } }
+      });
+      if (company) {
+        const limits = getPlanLimits(company.planId, { maxUsers: company.maxUsers, maxProducts: company.maxProducts });
+        if (company._count.products >= limits.maxProducts) {
+          return { success: false, error: `Has alcanzado el límite de productos de tu plan (${limits.maxProducts}). Para crear más productos, actualiza tu plan.` };
+        }
+      }
     }
 
     const quantity = parsed.data.quantityAvailable;
