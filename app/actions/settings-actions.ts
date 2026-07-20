@@ -80,7 +80,8 @@ export async function updateCompanySettings(data: any) {
         backupFrequency: data.backupFrequency,
         backupTime: data.backupTime,
         backupDay: data.backupDay ? Number(data.backupDay) : 1,
-        backupPath: data.backupPath
+        backupPath: data.backupPath,
+        enableNotifications: data.enableNotifications
       }
     });
     

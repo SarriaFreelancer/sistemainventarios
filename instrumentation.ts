@@ -66,8 +66,43 @@ export async function register() {
             }
             fs.writeFileSync(filePath, sqlDump, 'utf8');
             console.log(`[BACKUP] Respaldo guardado exitosamente en: ${filePath}`);
+            
+            // Notificar a los admins
+            if (setting.enableNotifications) {
+              const admins = await prisma.user.findMany({
+                where: { companyId: setting.companyId, role: { name: 'ADMIN' } }
+              });
+              for (const admin of admins) {
+                await prisma.notification.create({
+                  data: {
+                    userId: admin.id,
+                    companyId: setting.companyId,
+                    title: 'Respaldo Automático Exitoso',
+                    message: `El respaldo de base de datos se ha completado correctamente y guardado en ${filePath}`,
+                    type: 'SUCCESS'
+                  }
+                });
+              }
+            }
           } catch (err) {
             console.error(`[BACKUP ERROR] No se pudo guardar el archivo en la ruta: ${setting.backupPath}`, err);
+            // Notificar a los admins sobre el error
+            if (setting.enableNotifications) {
+              const admins = await prisma.user.findMany({
+                where: { companyId: setting.companyId, role: { name: 'ADMIN' } }
+              });
+              for (const admin of admins) {
+                await prisma.notification.create({
+                  data: {
+                    userId: admin.id,
+                    companyId: setting.companyId,
+                    title: 'Error en Respaldo Automático',
+                    message: `No se pudo guardar el archivo de respaldo en la ruta: ${setting.backupPath}. Verifica los permisos.`,
+                    type: 'ERROR'
+                  }
+                });
+              }
+            }
           }
         }
       } catch (error) {

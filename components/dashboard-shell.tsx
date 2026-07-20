@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import * as LucideIcons from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { NotificationBell } from '@/components/notification-bell';
 
 interface ModuleConfig {
   id: string;
@@ -131,6 +132,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
             </div>
 
             <div className="flex items-center gap-3">
+              <NotificationBell />
               {/* Theme Toggle Button */}
               <button
                 className="rounded-xl border border-border bg-card p-2.5 text-foreground hover:bg-muted transition-all active:scale-95 shadow-sm"

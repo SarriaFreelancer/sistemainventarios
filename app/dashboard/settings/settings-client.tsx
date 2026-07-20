@@ -42,6 +42,7 @@ interface CompanySetting {
   backupTime?: string | null;
   backupDay?: number | null;
   backupPath?: string | null;
+  enableNotifications: boolean;
   updatedAt: string;
 }
 
@@ -95,6 +96,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
   const [backupPath, setBackupPath] = useState(initialSettings?.backupPath || "");
   const [backupType, setBackupType] = useState<"shared" | "dedicated">("shared");
   const [backupCompanyId, setBackupCompanyId] = useState<string>("");
+  const [enableNotifications, setEnableNotifications] = useState((initialSettings as any).enableNotifications ?? true);
 
   // Facturación Personalizada
   const initialInvoiceConfig = (initialSettings as any).invoiceConfig || {};
@@ -141,6 +143,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
       backupTime,
       backupDay,
       backupPath,
+      enableNotifications,
       invoiceConfig: {
         companyName: invoiceCompanyName,
         address: invoiceAddress,
@@ -712,6 +715,26 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
                     Generar Respaldo Ahora
                   </button>
                 </div>
+              </div>
+            </div>
+
+            {/* Configuración de Notificaciones Internas */}
+            <div className="space-y-3 pb-4 border-b border-border/60">
+              <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                <LucideIcons.Bell size={18} className="text-primary" />
+                Centro de Notificaciones
+              </h3>
+              <div className="flex items-center justify-between p-4 border border-border/80 bg-muted/10 rounded-2xl">
+                <div>
+                  <p className="text-sm font-bold text-foreground">Habilitar notificaciones del sistema</p>
+                  <p className="text-xs text-muted-foreground">Muestra alertas sobre ventas, compras, y estado de los respaldos para los administradores.</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={enableNotifications}
+                  onChange={(e) => setEnableNotifications(e.target.checked)}
+                  className="w-4 h-4 text-primary bg-muted rounded border-border focus:ring-primary"
+                />
               </div>
             </div>
 

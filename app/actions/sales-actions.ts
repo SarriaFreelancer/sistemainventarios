@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { withTenantWhere, withTenantData } from '@/lib/tenant-db';
 import { getSessionCompanyId } from '@/lib/session';
 import { logActivity } from '@/lib/audit';
+import { createNotification } from '@/app/actions/notification-actions';
 
 const saleSchema = z.object({
   userId: z.coerce.number().min(1),
@@ -143,32 +144,34 @@ export async function createSale(data: {
       });
 
       // 3. Si se completó, reducir existencias
+      const lowStockProducts: any[] = [];
+      const settings = await tx.companySetting.findUnique({ where: { companyId } });
+      const allowNegativeStock = settings?.allowNegativeStock ?? false;
+      
       if (status === 'COMPLETED') {
-        for (const item of items) {
-          const product = await tx.product.findFirst({
-            where: { id: item.productId, companyId }
-          });
-          const settings = await prisma.companySetting.findUnique({ where: { companyId } });
-          const allowNegativeStock = settings?.allowNegativeStock ?? false;
-          
+        for (const item of finalItems) {
+          const product = await tx.product.findUnique({ where: { id: item.productId } });
           if (product) {
-            let newQty = product.quantityAvailable - item.quantity;
-            if (!allowNegativeStock && newQty < 0) {
-              newQty = 0;
-            }
+            const newQty = product.quantityAvailable - item.quantity;
             await tx.product.update({
               where: { id: item.productId },
               data: {
                 quantityAvailable: newQty,
                 soldQuantity: { increment: item.quantity },
-                status: newQty === 0 ? 'OUT_OF_STOCK' : 'AVAILABLE',
+                status: newQty <= 0 ? 'OUT_OF_STOCK' : 'AVAILABLE',
               }
             });
+            
+            if (newQty <= 0) {
+              lowStockProducts.push({ name: product.name, type: 'CERO', newQty });
+            } else if (newQty <= 5) {
+              lowStockProducts.push({ name: product.name, type: 'BAJO', newQty });
+            }
           }
         }
       }
 
-      return { id: createdSale.id, saleNumber, total, sale: createdSale };
+      return { id: createdSale.id, saleNumber, total, sale: createdSale, lowStockProducts };
     });
 
     await logActivity({
@@ -179,6 +182,31 @@ export async function createSale(data: {
       description: `Registró la venta "${result.saleNumber}" en estado ${status} (Total: $${result.total.toLocaleString()})`,
       newValues: result.sale
     });
+
+    if (status !== 'PENDING') {
+      const admins = await prisma.user.findMany({
+        where: { companyId, role: { name: 'ADMIN' } }
+      });
+      for (const admin of admins) {
+        await createNotification(
+          admin.id,
+          companyId,
+          'Venta Confirmada',
+          `Se ha completado la venta ${result.saleNumber} por un total de $${result.total.toLocaleString()}`,
+          'SUCCESS'
+        );
+        
+        for (const ls of result.lowStockProducts) {
+          await createNotification(
+            admin.id,
+            companyId,
+            ls.type === 'CERO' ? 'Stock Agotado' : 'Stock Bajo',
+            `El producto "${ls.name}" ahora tiene ${ls.newQty} unidades disponibles.`,
+            ls.type === 'CERO' ? 'ERROR' : 'WARNING'
+          );
+        }
+      }
+    }
 
     revalidatePath('/dashboard/sales');
     revalidatePath('/dashboard/products');
@@ -225,6 +253,7 @@ export async function completePendingSale(saleIdInput: any, updateData?: {
       }
 
       // Descontar inventario
+      const lowStockProducts: any[] = [];
       for (const detail of sale.details) {
         let newQty = detail.product.quantityAvailable - detail.quantity;
         if (!allowNegativeStock && newQty < 0) {
@@ -235,9 +264,15 @@ export async function completePendingSale(saleIdInput: any, updateData?: {
           data: {
             quantityAvailable: newQty,
             soldQuantity: { increment: detail.quantity },
-            status: newQty === 0 ? 'OUT_OF_STOCK' : 'AVAILABLE',
+            status: newQty <= 0 ? 'OUT_OF_STOCK' : 'AVAILABLE',
           }
         });
+        
+        if (newQty <= 0) {
+          lowStockProducts.push({ name: detail.product.name, type: 'CERO', newQty });
+        } else if (newQty <= 5) {
+          lowStockProducts.push({ name: detail.product.name, type: 'BAJO', newQty });
+        }
       }
 
       // Recalcular total si el descuento cambió
@@ -264,7 +299,7 @@ export async function completePendingSale(saleIdInput: any, updateData?: {
         }
       });
 
-      return { oldValues: sale, newValues: updated };
+      return { oldValues: sale, newValues: updated, lowStockProducts, companyId };
     });
 
     await logActivity({
@@ -276,6 +311,29 @@ export async function completePendingSale(saleIdInput: any, updateData?: {
       oldValues: result.oldValues,
       newValues: result.newValues
     });
+
+    const admins = await prisma.user.findMany({
+      where: { companyId: result.companyId, role: { name: 'ADMIN' } }
+    });
+    for (const admin of admins) {
+      await createNotification(
+        admin.id,
+        result.companyId,
+        'Venta Confirmada',
+        `Se ha completado la venta pendiente ${result.newValues.saleNumber} por $${result.newValues.total.toLocaleString()}`,
+        'SUCCESS'
+      );
+      
+      for (const ls of result.lowStockProducts) {
+        await createNotification(
+          admin.id,
+          result.companyId,
+          ls.type === 'CERO' ? 'Stock Agotado' : 'Stock Bajo',
+          `El producto "${ls.name}" ahora tiene ${ls.newQty} unidades disponibles.`,
+          ls.type === 'CERO' ? 'ERROR' : 'WARNING'
+        );
+      }
+    }
 
     revalidatePath('/dashboard/sales');
     revalidatePath('/dashboard/products');

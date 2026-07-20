@@ -215,6 +215,7 @@ model User {
   sales           Sale[]
   voidedSales     Sale[]         @relation("VoidedSales")
   activities      Activity[]
+  notifications   Notification[]
 
   @@index([email])
   @@index([companyId])
@@ -285,6 +286,7 @@ model Company {
   customers          Customer[]
   opportunities      Opportunity[]
   purchaseOrders     PurchaseOrder[]
+  notifications      Notification[]
   purchaseOrderLines PurchaseOrderLine[]
   expenses           Expense[]
   productGroups      ProductGroup[]
@@ -628,6 +630,19 @@ model LoginHistory {
   @@index([createdAt])
 }
 
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyId Int
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   // SUCCESS, ERROR, WARNING, INFO
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
 model UserSession {
   id              Int      @id @default(autoincrement())
   userId          Int
@@ -669,6 +684,7 @@ model CompanySetting {
   maxLoginAttempts      Int      @default(5)
   sessionTimeoutMinutes Int      @default(60)
   enable2FA             Boolean  @default(false)
+  enableNotifications   Boolean  @default(true)
   smtpHost              String?
   smtpPort              Int?
   smtpUser              String?
