@@ -1,6 +1,6 @@
 # GNS SarriaTech - Sistema ERP & Inventario Multi-Tenant
 
-Bienvenido a **GNS SarriaTech**, una plataforma ERP moderna, elegante y de alto rendimiento diseñada para la gestión integral de inventarios, transacciones comerciales (POS), proveedores, compras, clientes y reportes de rendimiento. 
+Bienvenido a **GNS SarriaTech**, una plataforma ERP moderna, elegante y de alto rendimiento diseñada para la gestión integral de inventarios, transacciones comerciales (POS), proveedores, compras, clientes y reportes de rendimiento.
 
 Este sistema cuenta con una arquitectura **Multi-Tenant (Multi-Inquilino)** de aislamiento estricto, permitiendo que múltiples empresas operen de manera independiente bajo una única base de datos y despliegue.
 
@@ -30,7 +30,7 @@ La plataforma implementa un esquema de seguridad robusto a múltiples niveles:
 
 ## 🛠️ Arquitectura Multi-Tenant y Roles
 
-El aislamiento de datos a nivel de base de datos se maneja inyectando y filtrando a través de la propiedad `companyId` (ID de Empresa). 
+El aislamiento de datos a nivel de base de datos se maneja inyectando y filtrando a través de la propiedad `companyId` (ID de Empresa).
 
 - **Superadmin**: Es el usuario administrador global de la plataforma, el cual tiene acceso completo a la creación y gestión de empresas, usuarios globales, integración de pagos y asignación de licencias o planes a cada inquilino.
 - **Admin**: Administrador específico de cada empresa, con control absoluto del catálogo de productos, proveedores, clientes, compras, reportes y ventas de su respectivo tenant. Tiene acceso a configuraciones críticas de la empresa (facturación, notificaciones, respaldos).
@@ -44,14 +44,14 @@ Para garantizar la seguridad de las transacciones, la capa de base de datos impl
 
 1. **Productos e Inventario**: CRUD completo con soporte de códigos administrativos, precios de costo y venta. Control estricto de existencias, con alertas en tiempo real al llegar a stock bajo (Naranja) o stock cero (Rojo).
 2. **Categorías y Grupos**: Clasificación estructurada del catálogo. Cada categoría pertenece obligatoriamente a un grupo y cuenta con un código administrativo.
-3. **Proveedores y Compras**: 
+3. **Proveedores y Compras**:
    - Directorio de proveedores soportando "Código o NIT de Empresa".
    - Panel de **Órdenes de Compra** (generación y recepción de mercancía para abastecer inventario de forma organizada).
 4. **Ventas (POS)**: Registro transaccional de facturas rápidas asociadas a clientes del CRM o consumidores finales.
    - **Venta Rápida**: Guarda la transacción en estado `PENDING` (pendiente) sin restar inventario de inmediato.
    - **Completar Venta**: Abre un modal interactivo para seleccionar el método de pago, cobrar y deducir automáticamente las existencias.
 5. **CRM (Clientes)**: Gestión del listado de clientes de la empresa, rastreo de historial e integraciones.
-6. **Centro de Notificaciones**: Campanita interactiva global que notifica en tiempo real sobre ventas completadas (Éxito), stock agotado (Alerta) y finalización de respaldos de base de datos. Integrado con `Sonner` para visualización temporal de *toasts* elegantes.
+6. **Centro de Notificaciones**: Campanita interactiva global que notifica en tiempo real sobre ventas completadas (Éxito), stock agotado (Alerta) y finalización de respaldos de base de datos. Integrado con `Sonner` para visualización temporal de _toasts_ elegantes.
 7. **Reportes y Analíticas**: Dashboard interactivo con analíticas de ventas, valor de inventario, ganancias, métricas de rendimiento comercial y fechas de filtrado (hoy, semana, mes, año).
 8. **Auditoría (Log de Acciones)**: Registro inmutable de cada acción generada por los usuarios del sistema.
 9. **Suscripciones y Pagos**: Gestión automatizada de planes (Básico, Intermedio, Premium) restringiendo la cantidad de usuarios y productos por plan. Integrado de base con pasarelas (ej. Bold) para venta de licencias SaaS.
@@ -122,6 +122,7 @@ Abre [http://localhost:3000](http://localhost:3000) en tu navegador para ver el 
 ## 🔒 Buenas Prácticas de Seguridad en Git
 
 El archivo `.env` local contiene información crítica y credenciales de acceso a la base de datos en producción. Para evitar fugas de información:
+
 - Nunca comitees el archivo `.env`. El archivo `.gitignore` del proyecto ya lo excluye de manera predeterminada.
 - Si por error Git ya estaba trackeando tu archivo `.env`, puedes desvincularlo sin borrarlo de tu disco duro físico ejecutando:
   ```bash
@@ -130,4 +131,4 @@ El archivo `.env` local contiene información crítica y credenciales de acceso 
 
 ---
 
-*GNS SarriaTech — Premium Business System para la gestión eficiente y elegante de tu negocio.*
+_GNS SarriaTech — Premium Business System para la gestión eficiente y elegante de tu negocio..._
