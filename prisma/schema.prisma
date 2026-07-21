@@ -89,19 +89,19 @@ enum SupplierStatus {
 }
 
 model Customer {
-  id            Int              @id @default(autoincrement())
+  id            Int            @id @default(autoincrement())
   name          String
-  email         String?          @unique
+  email         String?        @unique
   phone         String?
   company       String?
   address       String?
   city          String?
-  country       String           @default("Colombia")
-  status        CustomerStatus   @default(ACTIVE)
+  country       String         @default("Colombia")
+  status        CustomerStatus @default(ACTIVE)
   companyId     Int?
-  tenantCompany Company?         @relation(fields: [companyId], references: [id])
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
+  tenantCompany Company?       @relation(fields: [companyId], references: [id])
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   opportunities Opportunity[]
   contacts      Contact[]
   activities    Activity[]
@@ -130,34 +130,48 @@ model Opportunity {
 }
 
 model PurchaseOrder {
-  id               Int                 @id @default(autoincrement())
-  orderNumber      String              @unique
-  supplierId       Int
-  status           PurchaseOrderStatus @default(DRAFT)
-  total            Float               @default(0)
-  expectedDelivery DateTime?
-  companyId        Int?
-  company          Company?            @relation(fields: [companyId], references: [id])
-  createdAt        DateTime            @default(now())
-  updatedAt        DateTime            @updatedAt
-  supplier         Supplier            @relation(fields: [supplierId], references: [id])
-  lines            PurchaseOrderLine[]
+  id                Int                 @id @default(autoincrement())
+  orderNumber       String              @unique
+  supplierId        Int
+  status            PurchaseOrderStatus @default(DRAFT)
+  total             Float               @default(0)
+  expectedDelivery  DateTime?
+  companyId         Int?
+  company           Company?            @relation(fields: [companyId], references: [id])
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  supplier          Supplier            @relation(fields: [supplierId], references: [id])
+  lines             PurchaseOrderLine[]
+  purchaseRequestId Int?
+  purchaseRequest   PurchaseRequest?    @relation(fields: [purchaseRequestId], references: [id])
+  quotationId       Int?
+  quotation         PurchaseQuotation?  @relation(fields: [quotationId], references: [id])
+  subtotal          Float               @default(0)
+  taxAmount         Float               @default(0)
+  notes             String?             @db.Text
+  terms             String?             @db.Text
+  receipts          PurchaseReceipt[]
+  invoices          PurchaseInvoice[]
 
   @@index([companyId])
   @@index([supplierId])
 }
 
 model PurchaseOrderLine {
-  id              Int           @id @default(autoincrement())
-  purchaseOrderId Int
-  productId       Int?
-  quantity        Int           @default(1)
-  unitPrice       Float         @default(0)
-  total           Float         @default(0)
-  companyId       Int?
-  company         Company?      @relation(fields: [companyId], references: [id])
-  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
-  product         Product?      @relation(fields: [productId], references: [id])
+  id               Int              @id @default(autoincrement())
+  purchaseOrderId  Int
+  productId        Int?
+  quantity         Int              @default(1)
+  unitPrice        Float            @default(0)
+  total            Float            @default(0)
+  companyId        Int?
+  company          Company?         @relation(fields: [companyId], references: [id])
+  purchaseOrder    PurchaseOrder    @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product          Product?         @relation(fields: [productId], references: [id])
+  description      String?
+  itemType         PurchaseItemType @default(PRODUCT)
+  taxRate          Float            @default(0)
+  receivedQuantity Int              @default(0)
 
   @@index([companyId])
   @@index([purchaseOrderId])
@@ -179,43 +193,46 @@ model Expense {
 }
 
 model ProductGroup {
-  id        Int       @id @default(autoincrement())
-  name      String
-  code      String?
-  status    String    @default("ACTIVE")
-  companyId Int?
-  company   Company?  @relation(fields: [companyId], references: [id])
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  products  Product[]
+  id         Int        @id @default(autoincrement())
+  name       String
+  code       String?
+  status     String     @default("ACTIVE")
+  companyId  Int?
+  company    Company?   @relation(fields: [companyId], references: [id])
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  products   Product[]
   categories Category[]
 
   @@unique([name, companyId])
   @@index([companyId])
 }
+
 model User {
-  id              Int            @id @default(autoincrement())
-  name            String
-  email           String         @unique
-  password        String
-  image           String?
-  roleId          Int?
-  role            Role?          @relation(fields: [roleId], references: [id])
-  companyId       Int?
-  company         Company?       @relation(fields: [companyId], references: [id])
-  position        String?        // Cargo o puesto (e.g., "Vendedor", "Gerente")
-  preferences     Json?          // Preferencias de UI/tema (e.g., {"theme": "dark"})
-  lastLogin       DateTime?      // Fecha/hora del último inicio de sesión
-  rememberMe      Boolean        @default(false)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  auditLogs       AuditLog[]
-  loginHistories  LoginHistory[]
-  sessions        UserSession[]
-  sales           Sale[]
-  voidedSales     Sale[]         @relation("VoidedSales")
-  activities      Activity[]
-  notifications   Notification[]
+  id                Int                @id @default(autoincrement())
+  name              String
+  email             String             @unique
+  password          String
+  image             String?
+  roleId            Int?
+  role              Role?              @relation(fields: [roleId], references: [id])
+  companyId         Int?
+  company           Company?           @relation(fields: [companyId], references: [id])
+  position          String? // Cargo o puesto (e.g., "Vendedor", "Gerente")
+  preferences       Json? // Preferencias de UI/tema (e.g., {"theme": "dark"})
+  lastLogin         DateTime? // Fecha/hora del último inicio de sesión
+  rememberMe        Boolean            @default(false)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  auditLogs         AuditLog[]
+  loginHistories    LoginHistory[]
+  sessions          UserSession[]
+  sales             Sale[]
+  voidedSales       Sale[]             @relation("VoidedSales")
+  activities        Activity[]
+  notifications     Notification[]
+  purchaseRequests  PurchaseRequest[]
+  purchaseApprovals PurchaseApproval[]
 
   @@index([email])
   @@index([companyId])
@@ -230,6 +247,7 @@ model Role {
   modules     RoleModule[]
   users       User[]
 }
+
 enum DatabaseEngine {
   MYSQL
   POSTGRESQL
@@ -242,68 +260,81 @@ enum DatabaseType {
 }
 
 model Server {
-  id          String   @id @default(cuid())
-  name        String
-  engine      DatabaseEngine
-  host        String
-  port        Int
-  username    String
-  password    String // cifrada
-  ssl         Boolean  @default(false)
-  active      Boolean  @default(true)
+  id       String         @id @default(cuid())
+  name     String
+  engine   DatabaseEngine
+  host     String
+  port     Int
+  username String
+  password String // cifrada
+  ssl      Boolean        @default(false)
+  active   Boolean        @default(true)
 
-  companies   Company[] @relation("ServerCompanies")
-  
-  ownerId     Int?
-  owner       Company?  @relation("CompanyServers", fields: [ownerId], references: [id])
+  companies Company[] @relation("ServerCompanies")
+
+  ownerId Int?
+  owner   Company? @relation("CompanyServers", fields: [ownerId], references: [id])
 }
 
 model Company {
-  id                 Int                 @id @default(autoincrement())
-  name               String              @unique
-  planId             String?
-  maxUsers           Int?
-  maxProducts        Int?
+  id          Int     @id @default(autoincrement())
+  name        String  @unique
+  planId      String?
+  maxUsers    Int?
+  maxProducts Int?
 
-  serverId           String?
-  server             Server?             @relation("ServerCompanies", fields: [serverId], references: [id])
-  ownedServers       Server[]            @relation("CompanyServers")
+  serverId     String?
+  server       Server?  @relation("ServerCompanies", fields: [serverId], references: [id])
+  ownedServers Server[] @relation("CompanyServers")
 
-  databaseName       String?
-  databaseType       DatabaseType? // SHARED | DEDICATED
+  databaseName String?
+  databaseType DatabaseType? // SHARED | DEDICATED
 
-  currentVersion     String?
-  address            String?
-  city               String?
-  country            String              @default("Colombia")
-  status             String              @default("ACTIVE")
-  themeConfig        Json?
-  setting            CompanySetting?
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
-  users              User[]
-  modules            CompanyModule[]
-  customers          Customer[]
-  opportunities      Opportunity[]
-  purchaseOrders     PurchaseOrder[]
-  notifications      Notification[]
-  purchaseOrderLines PurchaseOrderLine[]
-  expenses           Expense[]
-  productGroups      ProductGroup[]
-  categories         Category[]
-  suppliers          Supplier[]
-  products           Product[]
-  sales              Sale[]
-  saleDetails        SaleDetail[]
-  auditLogs          AuditLog[]
-  loginHistories     LoginHistory[]
-  sessions           UserSession[]
-  discounts          Discount[]
-  leads              Lead[]
-  contacts           Contact[]
-  activities         Activity[]
-  quotes             Quote[]
-  invoiceCounters    InvoiceCounter[]
+  currentVersion          String?
+  address                 String?
+  city                    String?
+  country                 String                   @default("Colombia")
+  status                  String                   @default("ACTIVE")
+  themeConfig             Json?
+  setting                 CompanySetting?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  users                   User[]
+  modules                 CompanyModule[]
+  customers               Customer[]
+  opportunities           Opportunity[]
+  purchaseOrders          PurchaseOrder[]
+  notifications           Notification[]
+  purchaseOrderLines      PurchaseOrderLine[]
+  expenses                Expense[]
+  productGroups           ProductGroup[]
+  categories              Category[]
+  suppliers               Supplier[]
+  products                Product[]
+  sales                   Sale[]
+  saleDetails             SaleDetail[]
+  auditLogs               AuditLog[]
+  loginHistories          LoginHistory[]
+  sessions                UserSession[]
+  discounts               Discount[]
+  leads                   Lead[]
+  contacts                Contact[]
+  activities              Activity[]
+  quotes                  Quote[]
+  invoiceCounters         InvoiceCounter[]
+  purchaseRequests        PurchaseRequest[]
+  purchaseRequestItems    PurchaseRequestItem[]
+  purchaseApprovalConfigs PurchaseApprovalConfig[]
+  purchaseApprovals       PurchaseApproval[]
+  purchaseQuotations      PurchaseQuotation[]
+  purchaseQuotationItems  PurchaseQuotationItem[]
+  purchaseReceipts        PurchaseReceipt[]
+  purchaseReceiptItems    PurchaseReceiptItem[]
+  inventoryEntries        InventoryEntry[]
+  inventoryEntryItems     InventoryEntryItem[]
+  purchaseInvoices        PurchaseInvoice[]
+  accountsPayables        AccountsPayable[]
+  purchasePayments        PurchasePayment[]
 
   @@index([name])
 }
@@ -328,22 +359,24 @@ model Category {
 }
 
 model Supplier {
-  id             Int             @id @default(autoincrement())
-  companyName    String
-  contactName    String
-  phone          String
-  email          String
-  address        String
-  city           String
-  country        String          @default("Colombia")
-  status         SupplierStatus  @default(ACTIVE)
-  companyId      Int?
-  company        Company?        @relation(fields: [companyId], references: [id])
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  products       Product[]
-  purchaseOrders PurchaseOrder[]
-  code           String?
+  id                 Int                 @id @default(autoincrement())
+  companyName        String
+  contactName        String
+  phone              String
+  email              String
+  address            String
+  city               String
+  country            String              @default("Colombia")
+  status             SupplierStatus      @default(ACTIVE)
+  companyId          Int?
+  company            Company?            @relation(fields: [companyId], references: [id])
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  products           Product[]
+  purchaseOrders     PurchaseOrder[]
+  code               String?
+  purchaseQuotations PurchaseQuotation[]
+  purchaseInvoices   PurchaseInvoice[]
 
   @@unique([companyName, companyId])
   @@unique([email, companyId])
@@ -351,27 +384,31 @@ model Supplier {
 }
 
 model Product {
-  id                 Int                 @id @default(autoincrement())
-  code               String
-  name               String
-  categoryId         Int
-  supplierId         Int
-  quantityAvailable  Int                 @default(0)
-  unitCost           Float               @default(0)
-  salePrice          Float               @default(0)
-  soldQuantity       Int                 @default(0)
-  status             ProductStatus       @default(AVAILABLE)
-  type               ProductType         @default(SALE)
-  productGroupId     Int?
-  companyId          Int?
-  company            Company?            @relation(fields: [companyId], references: [id])
-  productGroup       ProductGroup?       @relation(fields: [productGroupId], references: [id])
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
-  category           Category            @relation(fields: [categoryId], references: [id])
-  supplier           Supplier            @relation(fields: [supplierId], references: [id])
-  saleDetails        SaleDetail[]
-  purchaseOrderLines PurchaseOrderLine[]
+  id                     Int                     @id @default(autoincrement())
+  code                   String
+  name                   String
+  categoryId             Int
+  supplierId             Int
+  quantityAvailable      Int                     @default(0)
+  unitCost               Float                   @default(0)
+  salePrice              Float                   @default(0)
+  soldQuantity           Int                     @default(0)
+  status                 ProductStatus           @default(AVAILABLE)
+  type                   ProductType             @default(SALE)
+  productGroupId         Int?
+  companyId              Int?
+  company                Company?                @relation(fields: [companyId], references: [id])
+  productGroup           ProductGroup?           @relation(fields: [productGroupId], references: [id])
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  category               Category                @relation(fields: [categoryId], references: [id])
+  supplier               Supplier                @relation(fields: [supplierId], references: [id])
+  saleDetails            SaleDetail[]
+  purchaseOrderLines     PurchaseOrderLine[]
+  purchaseRequestItems   PurchaseRequestItem[]
+  purchaseQuotationItems PurchaseQuotationItem[]
+  purchaseReceiptItems   PurchaseReceiptItem[]
+  inventoryEntryItems    InventoryEntryItem[]
 
   @@unique([code, companyId])
   @@index([name])
@@ -431,19 +468,20 @@ model SaleDetail {
   @@index([productId])
   @@index([companyId])
 }
+
 model AuditLog {
   id              Int      @id @default(autoincrement())
   companyId       Int?
   company         Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   userId          Int?
   user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  module          String   // e.g., "PRODUCTS", "SALES", "USERS", "COMPANY"
-  action          String   // e.g., "CREATE", "UPDATE", "DELETE", "VOID", "EXPORT"
-  entity          String   // e.g., "Product", "Sale", "Category"
+  module          String // e.g., "PRODUCTS", "SALES", "USERS", "COMPANY"
+  action          String // e.g., "CREATE", "UPDATE", "DELETE", "VOID", "EXPORT"
+  entity          String // e.g., "Product", "Sale", "Category"
   entityId        Int?
   description     String   @db.Text
-  oldValues       Json?    // Valores antes del cambio (para updates)
-  newValues       Json?    // Valores después del cambio
+  oldValues       Json? // Valores antes del cambio (para updates)
+  newValues       Json? // Valores después del cambio
   ip              String?
   browser         String?
   operatingSystem String?
@@ -575,7 +613,7 @@ model Contact {
 model Activity {
   id          Int       @id @default(autoincrement())
   title       String
-  type        String    // CALL, EMAIL, MEETING
+  type        String // CALL, EMAIL, MEETING
   description String?   @db.Text
   date        DateTime
   userId      Int
@@ -591,6 +629,7 @@ model Activity {
   @@index([userId])
   @@index([customerId])
 }
+
 model Quote {
   id          Int       @id @default(autoincrement())
   quoteNumber String    @unique
@@ -612,7 +651,7 @@ model LoginHistory {
   id              Int      @id @default(autoincrement())
   userId          Int?
   user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  email           String   // Email ingresado
+  email           String // Email ingresado
   companyId       Int?
   company         Company? @relation(fields: [companyId], references: [id])
   ip              String?
@@ -621,8 +660,8 @@ model LoginHistory {
   device          String?
   country         String?
   city            String?
-  status          String   // "SUCCESS", "FAILED"
-  reason          String?  // e.g., "WRONG_PASSWORD"
+  status          String // "SUCCESS", "FAILED"
+  reason          String? // e.g., "WRONG_PASSWORD"
   createdAt       DateTime @default(now())
 
   @@index([companyId])
@@ -638,7 +677,7 @@ model Notification {
   company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   title     String
   message   String
-  type      String   // SUCCESS, ERROR, WARNING, INFO
+  type      String // SUCCESS, ERROR, WARNING, INFO
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 }
@@ -666,8 +705,8 @@ model CompanySetting {
   nit                   String?
   phone                 String?
   website               String?
-  socialMedia           Json?    // Redes sociales (Facebook, Instagram, etc.)
-  invoiceConfig         Json?    // Parámetros de facturación personalizada (colores, logo, pie de página, etc.)
+  socialMedia           Json? // Redes sociales (Facebook, Instagram, etc.)
+  invoiceConfig         Json? // Parámetros de facturación personalizada (colores, logo, pie de página, etc.)
   currency              String   @default("COP")
   timezone              String   @default("America/Bogota")
   dateFormat            String   @default("YYYY-MM-DD")
@@ -694,4 +733,246 @@ model CompanySetting {
   backupDay             Int?     @default(1)
   backupPath            String?
   updatedAt             DateTime @updatedAt
+}
+
+enum PurchaseRequestStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum PurchaseRequestPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum PurchaseQuotationStatus {
+  DRAFT
+  SENT
+  RECEIVED
+  SELECTED
+  REJECTED
+}
+
+enum PurchaseReceiptStatus {
+  PENDING
+  PARTIAL
+  COMPLETE
+  CANCELLED
+}
+
+enum PurchaseInvoiceStatus {
+  DRAFT
+  PENDING
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum PayableStatus {
+  PENDING
+  PARTIAL
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum PurchasePaymentMethod {
+  CASH
+  TRANSFER
+  CHECK
+  CREDIT_CARD
+  OTHER
+}
+
+enum PurchaseItemType {
+  PRODUCT
+  SERVICE
+}
+
+model PurchaseRequest {
+  id            Int                     @id @default(autoincrement())
+  requestNumber String                  @unique
+  status        PurchaseRequestStatus   @default(DRAFT)
+  priority      PurchaseRequestPriority @default(MEDIUM)
+  userId        Int
+  user          User                    @relation(fields: [userId], references: [id])
+  companyId     Int?
+  company       Company?                @relation(fields: [companyId], references: [id])
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+  items         PurchaseRequestItem[]
+  approvals     PurchaseApproval[]
+  quotations    PurchaseQuotation[]
+  orders        PurchaseOrder[]
+}
+
+model PurchaseRequestItem {
+  id                Int              @id @default(autoincrement())
+  purchaseRequestId Int
+  purchaseRequest   PurchaseRequest  @relation(fields: [purchaseRequestId], references: [id], onDelete: Cascade)
+  productId         Int?
+  product           Product?         @relation(fields: [productId], references: [id])
+  description       String?
+  quantity          Int              @default(1)
+  itemType          PurchaseItemType @default(PRODUCT)
+  companyId         Int?
+  company           Company?         @relation(fields: [companyId], references: [id])
+}
+
+model PurchaseApprovalConfig {
+  id              Int     @id @default(autoincrement())
+  companyId       Int     @unique
+  company         Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  requireApproval Boolean @default(true)
+  levels          Int     @default(1)
+}
+
+model PurchaseApproval {
+  id                Int             @id @default(autoincrement())
+  purchaseRequestId Int
+  purchaseRequest   PurchaseRequest @relation(fields: [purchaseRequestId], references: [id], onDelete: Cascade)
+  userId            Int
+  user              User            @relation(fields: [userId], references: [id])
+  level             Int             @default(1)
+  status            String          @default("APPROVED")
+  comments          String?
+  companyId         Int?
+  company           Company?        @relation(fields: [companyId], references: [id])
+  createdAt         DateTime        @default(now())
+}
+
+model PurchaseQuotation {
+  id                Int                     @id @default(autoincrement())
+  quotationNumber   String                  @unique
+  purchaseRequestId Int
+  purchaseRequest   PurchaseRequest         @relation(fields: [purchaseRequestId], references: [id], onDelete: Cascade)
+  supplierId        Int
+  supplier          Supplier                @relation(fields: [supplierId], references: [id])
+  status            PurchaseQuotationStatus @default(DRAFT)
+  total             Float                   @default(0)
+  companyId         Int?
+  company           Company?                @relation(fields: [companyId], references: [id])
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  items             PurchaseQuotationItem[]
+  orders            PurchaseOrder[]
+}
+
+model PurchaseQuotationItem {
+  id                  Int               @id @default(autoincrement())
+  purchaseQuotationId Int
+  purchaseQuotation   PurchaseQuotation @relation(fields: [purchaseQuotationId], references: [id], onDelete: Cascade)
+  productId           Int?
+  product             Product?          @relation(fields: [productId], references: [id])
+  description         String?
+  quantity            Int               @default(1)
+  unitPrice           Float             @default(0)
+  total               Float             @default(0)
+  itemType            PurchaseItemType  @default(PRODUCT)
+  companyId           Int?
+  company             Company?          @relation(fields: [companyId], references: [id])
+}
+
+model PurchaseReceipt {
+  id               Int                   @id @default(autoincrement())
+  receiptNumber    String                @unique
+  purchaseOrderId  Int
+  purchaseOrder    PurchaseOrder         @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  status           PurchaseReceiptStatus @default(PENDING)
+  receivedDate     DateTime              @default(now())
+  companyId        Int?
+  company          Company?              @relation(fields: [companyId], references: [id])
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  items            PurchaseReceiptItem[]
+  inventoryEntries InventoryEntry[]
+  invoices         PurchaseInvoice[]
+}
+
+model PurchaseReceiptItem {
+  id                Int             @id @default(autoincrement())
+  purchaseReceiptId Int
+  purchaseReceipt   PurchaseReceipt @relation(fields: [purchaseReceiptId], references: [id], onDelete: Cascade)
+  productId         Int?
+  product           Product?        @relation(fields: [productId], references: [id])
+  quantityReceived  Int             @default(0)
+  companyId         Int?
+  company           Company?        @relation(fields: [companyId], references: [id])
+}
+
+model InventoryEntry {
+  id                Int                  @id @default(autoincrement())
+  purchaseReceiptId Int
+  purchaseReceipt   PurchaseReceipt      @relation(fields: [purchaseReceiptId], references: [id], onDelete: Cascade)
+  entryDate         DateTime             @default(now())
+  companyId         Int?
+  company           Company?             @relation(fields: [companyId], references: [id])
+  items             InventoryEntryItem[]
+}
+
+model InventoryEntryItem {
+  id               Int            @id @default(autoincrement())
+  inventoryEntryId Int
+  inventoryEntry   InventoryEntry @relation(fields: [inventoryEntryId], references: [id], onDelete: Cascade)
+  productId        Int
+  product          Product        @relation(fields: [productId], references: [id])
+  quantityAdded    Int            @default(0)
+  companyId        Int?
+  company          Company?       @relation(fields: [companyId], references: [id])
+}
+
+model PurchaseInvoice {
+  id                Int                   @id @default(autoincrement())
+  invoiceNumber     String
+  purchaseOrderId   Int
+  purchaseOrder     PurchaseOrder         @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  purchaseReceiptId Int?
+  purchaseReceipt   PurchaseReceipt?      @relation(fields: [purchaseReceiptId], references: [id])
+  supplierId        Int
+  supplier          Supplier              @relation(fields: [supplierId], references: [id])
+  status            PurchaseInvoiceStatus @default(DRAFT)
+  subtotal          Float                 @default(0)
+  taxAmount         Float                 @default(0)
+  total             Float                 @default(0)
+  issueDate         DateTime              @default(now())
+  dueDate           DateTime?
+  companyId         Int?
+  company           Company?              @relation(fields: [companyId], references: [id])
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  payables          AccountsPayable[]
+}
+
+model AccountsPayable {
+  id                Int               @id @default(autoincrement())
+  purchaseInvoiceId Int
+  purchaseInvoice   PurchaseInvoice   @relation(fields: [purchaseInvoiceId], references: [id], onDelete: Cascade)
+  amount            Float             @default(0)
+  paidAmount        Float             @default(0)
+  status            PayableStatus     @default(PENDING)
+  dueDate           DateTime
+  companyId         Int?
+  company           Company?          @relation(fields: [companyId], references: [id])
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  payments          PurchasePayment[]
+}
+
+model PurchasePayment {
+  id                Int                   @id @default(autoincrement())
+  accountsPayableId Int
+  accountsPayable   AccountsPayable       @relation(fields: [accountsPayableId], references: [id], onDelete: Cascade)
+  amount            Float
+  paymentDate       DateTime              @default(now())
+  paymentMethod     PurchasePaymentMethod @default(TRANSFER)
+  reference         String?
+  companyId         Int?
+  company           Company?              @relation(fields: [companyId], references: [id])
+  createdAt         DateTime              @default(now())
 }
