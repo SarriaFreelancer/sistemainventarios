@@ -14,10 +14,10 @@ export default async function PurchaseOrdersPage() {
   if (!session?.user?.id) redirect('/auth/login');
   
   const companyId = await getSessionCompanyId();
-  if (!companyId) redirect('/dashboard');
+  const companyFilter = companyId ? { companyId } : {};
 
   const orders = await prisma.purchaseOrder.findMany({
-    where: { companyId },
+    where: companyFilter,
     include: {
       supplier: true,
       _count: {
@@ -136,13 +136,13 @@ export default async function PurchaseOrdersPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={\`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold \${getStatusColor(order.status)}\`}>
+                      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getStatusColor(order.status)}`}>
                         {getStatusLabel(order.status)}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <Link
-                        href={\`/dashboard/compras/ordenes/\${order.id}\`}
+                        href={`/dashboard/compras/ordenes/${order.id}`}
                         className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-input bg-background hover:bg-accent hover:text-accent-foreground"
                       >
                         <ChevronRight className="h-4 w-4" />

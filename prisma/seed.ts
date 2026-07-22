@@ -29,6 +29,16 @@ async function main() {
   const userRole = await prisma.role.create({ data: { name: 'USER' } });
 
   // Create sample companies
+  const globalCompany = await prisma.company.create({
+    data: {
+      name: 'Global',
+      address: 'N/A',
+      city: 'N/A',
+      country: 'N/A',
+      status: 'ACTIVE',
+    },
+  });
+
   const mainCompany = await prisma.company.create({
     data: {
       name: 'Dulche Dorelle S.A.S.',
@@ -60,13 +70,14 @@ async function main() {
     },
   });
 
-  // Create super‑admin user without company scope
+  // Create super‑admin user scoped to Global company
   const superAdminUser = await prisma.user.create({
     data: {
       name: 'Super Admin',
       email: 'superadmin@dulchedorelle.com',
       password: passwordHash,
       roleId: superAdminRole.id,
+      companyId: globalCompany.id,
     },
   });
 
@@ -111,6 +122,10 @@ async function main() {
     // Assign to SUPERADMIN, USER (if standard module), and all companies by default
     await prisma.roleModule.create({
       data: { roleId: superAdminRole.id, moduleId: createdModule.id }
+    });
+
+    await prisma.companyModule.create({
+      data: { companyId: globalCompany.id, moduleId: createdModule.id }
     });
 
     const userModules = ['Dashboard', 'Productos', 'Grupos', 'Categorías', 'Proveedores', 'Ventas', 'CRM', 'Compras', 'Finanzas', 'Reportes'];

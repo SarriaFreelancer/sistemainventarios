@@ -169,7 +169,7 @@ model PurchaseOrderLine {
   purchaseOrder    PurchaseOrder    @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
   product          Product?         @relation(fields: [productId], references: [id])
   description      String?
-  itemType         PurchaseItemType @default(PRODUCT)
+  itemType         PurchaseItemType @default(PRODUCTO_VENTA)
   taxRate          Float            @default(0)
   receivedQuantity Int              @default(0)
 
@@ -209,30 +209,31 @@ model ProductGroup {
 }
 
 model User {
-  id                Int                @id @default(autoincrement())
-  name              String
-  email             String             @unique
-  password          String
-  image             String?
-  roleId            Int?
-  role              Role?              @relation(fields: [roleId], references: [id])
-  companyId         Int?
-  company           Company?           @relation(fields: [companyId], references: [id])
-  position          String? // Cargo o puesto (e.g., "Vendedor", "Gerente")
-  preferences       Json? // Preferencias de UI/tema (e.g., {"theme": "dark"})
-  lastLogin         DateTime? // Fecha/hora del último inicio de sesión
-  rememberMe        Boolean            @default(false)
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  auditLogs         AuditLog[]
-  loginHistories    LoginHistory[]
-  sessions          UserSession[]
-  sales             Sale[]
-  voidedSales       Sale[]             @relation("VoidedSales")
-  activities        Activity[]
-  notifications     Notification[]
-  purchaseRequests  PurchaseRequest[]
-  purchaseApprovals PurchaseApproval[]
+  id                   Int                   @id @default(autoincrement())
+  name                 String
+  email                String                @unique
+  password             String
+  image                String?
+  roleId               Int?
+  role                 Role?                 @relation(fields: [roleId], references: [id])
+  companyId            Int?
+  company              Company?              @relation(fields: [companyId], references: [id])
+  position             String? // Cargo o puesto (e.g., "Vendedor", "Gerente")
+  preferences          Json? // Preferencias de UI/tema (e.g., {"theme": "dark"})
+  lastLogin            DateTime? // Fecha/hora del último inicio de sesión
+  rememberMe           Boolean               @default(false)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  auditLogs            AuditLog[]
+  loginHistories       LoginHistory[]
+  sessions             UserSession[]
+  sales                Sale[]
+  voidedSales          Sale[]                @relation("VoidedSales")
+  activities           Activity[]
+  notifications        Notification[]
+  purchaseRequests     PurchaseRequest[]
+  purchaseApprovals    PurchaseApproval[]
+  internalRequisitions InternalRequisition[]
 
   @@index([email])
   @@index([companyId])
@@ -290,51 +291,53 @@ model Company {
   databaseName String?
   databaseType DatabaseType? // SHARED | DEDICATED
 
-  currentVersion          String?
-  address                 String?
-  city                    String?
-  country                 String                   @default("Colombia")
-  status                  String                   @default("ACTIVE")
-  themeConfig             Json?
-  setting                 CompanySetting?
-  createdAt               DateTime                 @default(now())
-  updatedAt               DateTime                 @updatedAt
-  users                   User[]
-  modules                 CompanyModule[]
-  customers               Customer[]
-  opportunities           Opportunity[]
-  purchaseOrders          PurchaseOrder[]
-  notifications           Notification[]
-  purchaseOrderLines      PurchaseOrderLine[]
-  expenses                Expense[]
-  productGroups           ProductGroup[]
-  categories              Category[]
-  suppliers               Supplier[]
-  products                Product[]
-  sales                   Sale[]
-  saleDetails             SaleDetail[]
-  auditLogs               AuditLog[]
-  loginHistories          LoginHistory[]
-  sessions                UserSession[]
-  discounts               Discount[]
-  leads                   Lead[]
-  contacts                Contact[]
-  activities              Activity[]
-  quotes                  Quote[]
-  invoiceCounters         InvoiceCounter[]
-  purchaseRequests        PurchaseRequest[]
-  purchaseRequestItems    PurchaseRequestItem[]
-  purchaseApprovalConfigs PurchaseApprovalConfig[]
-  purchaseApprovals       PurchaseApproval[]
-  purchaseQuotations      PurchaseQuotation[]
-  purchaseQuotationItems  PurchaseQuotationItem[]
-  purchaseReceipts        PurchaseReceipt[]
-  purchaseReceiptItems    PurchaseReceiptItem[]
-  inventoryEntries        InventoryEntry[]
-  inventoryEntryItems     InventoryEntryItem[]
-  purchaseInvoices        PurchaseInvoice[]
-  accountsPayables        AccountsPayable[]
-  purchasePayments        PurchasePayment[]
+  currentVersion           String?
+  address                  String?
+  city                     String?
+  country                  String                    @default("Colombia")
+  status                   String                    @default("ACTIVE")
+  themeConfig              Json?
+  setting                  CompanySetting?
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  users                    User[]
+  modules                  CompanyModule[]
+  customers                Customer[]
+  opportunities            Opportunity[]
+  purchaseOrders           PurchaseOrder[]
+  notifications            Notification[]
+  purchaseOrderLines       PurchaseOrderLine[]
+  expenses                 Expense[]
+  productGroups            ProductGroup[]
+  categories               Category[]
+  suppliers                Supplier[]
+  products                 Product[]
+  sales                    Sale[]
+  saleDetails              SaleDetail[]
+  auditLogs                AuditLog[]
+  loginHistories           LoginHistory[]
+  sessions                 UserSession[]
+  discounts                Discount[]
+  leads                    Lead[]
+  contacts                 Contact[]
+  activities               Activity[]
+  quotes                   Quote[]
+  invoiceCounters          InvoiceCounter[]
+  purchaseRequests         PurchaseRequest[]
+  purchaseRequestItems     PurchaseRequestItem[]
+  purchaseApprovalConfigs  PurchaseApprovalConfig[]
+  purchaseApprovals        PurchaseApproval[]
+  purchaseQuotations       PurchaseQuotation[]
+  purchaseQuotationItems   PurchaseQuotationItem[]
+  purchaseReceipts         PurchaseReceipt[]
+  purchaseReceiptItems     PurchaseReceiptItem[]
+  inventoryEntries         InventoryEntry[]
+  inventoryEntryItems      InventoryEntryItem[]
+  purchaseInvoices         PurchaseInvoice[]
+  accountsPayables         AccountsPayable[]
+  purchasePayments         PurchasePayment[]
+  internalRequisitions     InternalRequisition[]
+  internalRequisitionItems InternalRequisitionItem[]
 
   @@index([name])
 }
@@ -384,31 +387,32 @@ model Supplier {
 }
 
 model Product {
-  id                     Int                     @id @default(autoincrement())
-  code                   String
-  name                   String
-  categoryId             Int
-  supplierId             Int
-  quantityAvailable      Int                     @default(0)
-  unitCost               Float                   @default(0)
-  salePrice              Float                   @default(0)
-  soldQuantity           Int                     @default(0)
-  status                 ProductStatus           @default(AVAILABLE)
-  type                   ProductType             @default(SALE)
-  productGroupId         Int?
-  companyId              Int?
-  company                Company?                @relation(fields: [companyId], references: [id])
-  productGroup           ProductGroup?           @relation(fields: [productGroupId], references: [id])
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
-  category               Category                @relation(fields: [categoryId], references: [id])
-  supplier               Supplier                @relation(fields: [supplierId], references: [id])
-  saleDetails            SaleDetail[]
-  purchaseOrderLines     PurchaseOrderLine[]
-  purchaseRequestItems   PurchaseRequestItem[]
-  purchaseQuotationItems PurchaseQuotationItem[]
-  purchaseReceiptItems   PurchaseReceiptItem[]
-  inventoryEntryItems    InventoryEntryItem[]
+  id                       Int                       @id @default(autoincrement())
+  code                     String
+  name                     String
+  categoryId               Int
+  supplierId               Int
+  quantityAvailable        Int                       @default(0)
+  unitCost                 Float                     @default(0)
+  salePrice                Float                     @default(0)
+  soldQuantity             Int                       @default(0)
+  status                   ProductStatus             @default(AVAILABLE)
+  type                     ProductType               @default(SALE)
+  productGroupId           Int?
+  companyId                Int?
+  company                  Company?                  @relation(fields: [companyId], references: [id])
+  productGroup             ProductGroup?             @relation(fields: [productGroupId], references: [id])
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  category                 Category                  @relation(fields: [categoryId], references: [id])
+  supplier                 Supplier                  @relation(fields: [supplierId], references: [id])
+  saleDetails              SaleDetail[]
+  purchaseOrderLines       PurchaseOrderLine[]
+  purchaseRequestItems     PurchaseRequestItem[]
+  purchaseQuotationItems   PurchaseQuotationItem[]
+  purchaseReceiptItems     PurchaseReceiptItem[]
+  inventoryEntryItems      InventoryEntryItem[]
+  internalRequisitionItems InternalRequisitionItem[]
 
   @@unique([code, companyId])
   @@index([name])
@@ -791,8 +795,14 @@ enum PurchasePaymentMethod {
 }
 
 enum PurchaseItemType {
-  PRODUCT
-  SERVICE
+  MATERIA_PRIMA
+  PRODUCTO_VENTA
+  SERVICIO
+  ACTIVO_FIJO
+  INSUMO
+  PAPELERIA
+  GASTO_ADMINISTRATIVO
+  OTROS
 }
 
 model PurchaseRequest {
@@ -820,7 +830,7 @@ model PurchaseRequestItem {
   product           Product?         @relation(fields: [productId], references: [id])
   description       String?
   quantity          Int              @default(1)
-  itemType          PurchaseItemType @default(PRODUCT)
+  itemType          PurchaseItemType @default(PRODUCTO_VENTA)
   companyId         Int?
   company           Company?         @relation(fields: [companyId], references: [id])
 }
@@ -874,7 +884,7 @@ model PurchaseQuotationItem {
   quantity            Int               @default(1)
   unitPrice           Float             @default(0)
   total               Float             @default(0)
-  itemType            PurchaseItemType  @default(PRODUCT)
+  itemType            PurchaseItemType  @default(PRODUCTO_VENTA)
   companyId           Int?
   company             Company?          @relation(fields: [companyId], references: [id])
 }
@@ -930,8 +940,8 @@ model InventoryEntryItem {
 model PurchaseInvoice {
   id                Int                   @id @default(autoincrement())
   invoiceNumber     String
-  purchaseOrderId   Int
-  purchaseOrder     PurchaseOrder         @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  purchaseOrderId   Int?
+  purchaseOrder     PurchaseOrder?        @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
   purchaseReceiptId Int?
   purchaseReceipt   PurchaseReceipt?      @relation(fields: [purchaseReceiptId], references: [id])
   supplierId        Int
@@ -975,4 +985,52 @@ model PurchasePayment {
   companyId         Int?
   company           Company?              @relation(fields: [companyId], references: [id])
   createdAt         DateTime              @default(now())
+}
+
+enum InternalRequisitionStatus {
+  DRAFT
+  PENDING_BOSS
+  APPROVED
+  REJECTED
+  CONVERTED_TO_PURCHASE
+  CANCELLED
+}
+
+model InternalRequisition {
+  id             Int                       @id @default(autoincrement())
+  requisitionNum String                    @unique
+  status         InternalRequisitionStatus @default(DRAFT)
+  priority       PurchaseRequestPriority   @default(MEDIUM)
+  userId         Int
+  user           User                      @relation(fields: [userId], references: [id])
+  companyId      Int?
+  company        Company?                  @relation(fields: [companyId], references: [id])
+  notes          String?                   @db.Text
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+  deletedAt      DateTime?
+  items          InternalRequisitionItem[]
+
+  @@index([companyId])
+  @@index([userId])
+}
+
+model InternalRequisitionItem {
+  id                    Int                 @id @default(autoincrement())
+  internalRequisitionId Int
+  internalRequisition   InternalRequisition @relation(fields: [internalRequisitionId], references: [id], onDelete: Cascade)
+  productId             Int?
+  product               Product?            @relation(fields: [productId], references: [id])
+  description           String?
+  quantity              Int                 @default(1)
+  unit                  String?             @default("UN")
+  itemType              PurchaseItemType    @default(PRODUCTO_VENTA)
+  notes                 String?             @db.Text
+  companyId             Int?
+  company               Company?            @relation(fields: [companyId], references: [id])
+  deletedAt             DateTime?
+
+  @@index([internalRequisitionId])
+  @@index([productId])
+  @@index([companyId])
 }

@@ -9,15 +9,17 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const session = await getAuthSession();
-    if (!session?.user?.id || !session?.user?.companyId) {
+    if (!session?.user?.id) {
       return NextResponse.json({ success: false, data: [] }, { status: 401 });
     }
 
+    const whereClause: any = { userId: Number(session.user.id) };
+    if (session.user.companyId) {
+      whereClause.companyId = Number(session.user.companyId);
+    }
+
     const notifications = await prisma.notification.findMany({
-      where: {
-        userId: Number(session.user.id),
-        companyId: Number(session.user.companyId),
-      },
+      where: whereClause,
       orderBy: { createdAt: 'desc' },
       take: 50,
     });

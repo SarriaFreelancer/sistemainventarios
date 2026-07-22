@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { getAuthSession } from '@/auth';
-import { getSessionCompanyId } from '@/lib/session';
+import { resolveActionCompanyId, getSessionCompanyId } from '@/lib/session';
 
 export async function createPurchaseOrder(data: {
   supplierId: number;
@@ -10,7 +10,7 @@ export async function createPurchaseOrder(data: {
   lines: Array<{
     productId?: number;
     description?: string;
-    itemType: 'PRODUCT' | 'SERVICE';
+    itemType: 'MATERIA_PRIMA' | 'PRODUCTO_VENTA' | 'SERVICIO' | 'ACTIVO_FIJO' | 'INSUMO' | 'PAPELERIA' | 'GASTO_ADMINISTRATIVO' | 'OTROS';
     quantity: number;
     unitPrice: number;
     taxRate?: number;
@@ -18,8 +18,7 @@ export async function createPurchaseOrder(data: {
 }) {
   const session = await getAuthSession();
   if (!session?.user?.id) throw new Error('No autorizado');
-  const companyId = await getSessionCompanyId();
-  if (!companyId) throw new Error('No hay empresa en sesión');
+  const companyId = await resolveActionCompanyId();
 
   let subtotal = 0;
   let taxAmount = 0;
@@ -32,7 +31,7 @@ export async function createPurchaseOrder(data: {
 
   const order = await prisma.purchaseOrder.create({
     data: {
-      orderNumber: \`PO-\${Date.now()}\`,
+      orderNumber: `PO-${Date.now()}`,
       supplierId: data.supplierId,
       expectedDelivery: data.expectedDelivery,
       subtotal,
@@ -61,7 +60,7 @@ export async function createPurchaseOrder(data: {
       module: 'PURCHASES',
       entity: 'PurchaseOrder',
       entityId: order.id,
-      description: \`Orden de compra \${order.orderNumber} creada\`,
+      description: `Orden de compra ${order.orderNumber} creada`,
       userId: Number(session.user.id),
       companyId,
     },
@@ -71,7 +70,7 @@ export async function createPurchaseOrder(data: {
 }
 
 export async function sendPurchaseOrder(id: number) {
-  const companyId = await getSessionCompanyId();
+  const companyId = await resolveActionCompanyId();
   const order = await prisma.purchaseOrder.update({
     where: { id, companyId: companyId! },
     data: { status: 'SENT' },
@@ -84,11 +83,11 @@ export async function createPurchaseReceipt(
   receivedItems: Array<{ lineId: number; productId: number; quantity: number }>
 ) {
   const session = await getAuthSession();
-  const companyId = await getSessionCompanyId();
+  const companyId = await resolveActionCompanyId();
 
   const receipt = await prisma.purchaseReceipt.create({
     data: {
-      receiptNumber: \`REC-\${Date.now()}\`,
+      receiptNumber: `REC-${Date.now()}`,
       purchaseOrderId: orderId,
       status: 'COMPLETE',
       companyId: companyId!,
