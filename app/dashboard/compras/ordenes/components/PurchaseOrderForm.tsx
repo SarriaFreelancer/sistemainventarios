@@ -1,18 +1,21 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import { Plus, Trash2, Save, ArrowLeft, Calculator } from "lucide-react";
+import { Save, Calculator } from "lucide-react";
 import { createPurchaseOrder } from "@/app/actions/purchase-actions";
-import Link from "next/link";
 
 interface Supplier {
   id: number;
   companyName: string;
 }
 
-export function PurchaseOrderForm({ suppliers }: { suppliers: Supplier[] }) {
-  const router = useRouter();
+interface PurchaseOrderFormProps {
+  suppliers: Supplier[];
+  onSuccess?: () => void;
+  onCancel?: () => void;
+}
+
+export function PurchaseOrderForm({ suppliers, onSuccess, onCancel }: PurchaseOrderFormProps) {
   const [loading, setLoading] = useState(false);
   const [supplierId, setSupplierId] = useState<string>("");
   const [expectedDelivery, setExpectedDelivery] = useState("");
@@ -69,7 +72,7 @@ export function PurchaseOrderForm({ suppliers }: { suppliers: Supplier[] }) {
     });
 
     if (result && result.id) {
-      router.push("/dashboard/compras/ordenes");
+      if (onSuccess) onSuccess();
     } else {
       alert("Error al crear orden");
       setLoading(false);
@@ -235,12 +238,13 @@ export function PurchaseOrderForm({ suppliers }: { suppliers: Supplier[] }) {
       </div>
 
       <div className="flex justify-end pt-4 border-t border-border gap-4">
-        <Link
-          href="/dashboard/compras/ordenes"
+        <button
+          type="button"
+          onClick={onCancel}
           className="inline-flex h-11 items-center justify-center rounded-xl border border-input bg-background px-8 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
         >
           Cancelar
-        </Link>
+        </button>
         <button 
           type="submit" 
           disabled={loading}

@@ -3,7 +3,8 @@ import { getAuthSession } from '@/auth';
 import { getSessionCompanyId } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, Search, FileText, Filter, ChevronRight, DollarSign, ArrowLeft } from 'lucide-react';
+import { Search, FileText, ChevronRight, Filter, Calendar, Building2, AlertCircle, ArrowLeft } from 'lucide-react';
+import { NewInvoiceModal } from './components/NewInvoiceModal';
 
 export const metadata = {
   title: 'Facturas de Proveedores · GNS',
@@ -24,6 +25,11 @@ export default async function PurchaseInvoicesPage() {
       purchaseReceipt: true,
     },
     orderBy: { createdAt: 'desc' },
+  });
+
+  const suppliers = await prisma.supplier.findMany({
+    where: companyFilter,
+    orderBy: { companyName: 'asc' },
   });
 
   const getStatusColor = (status: string) => {
@@ -57,19 +63,13 @@ export default async function PurchaseInvoicesPage() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">Facturas de Proveedores</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Facturas de Compra (CXP)</h1>
             <p className="mt-1 text-muted-foreground">
-              Registra las facturas recibidas (Cuentas por Pagar).
+              Registra y gestiona las cuentas por pagar a tus proveedores.
             </p>
           </div>
         </div>
-        <Link
-          href="/dashboard/compras/facturas/nueva"
-          className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-6 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Registrar Factura
-        </Link>
+        <NewInvoiceModal suppliers={suppliers} />
       </div>
 
       <div className="rounded-3xl border border-border bg-card overflow-hidden shadow-sm">

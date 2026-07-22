@@ -1,12 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Save, CheckCircle } from "lucide-react";
 import { createPurchaseReceipt } from "@/app/actions/purchase-actions";
 
-export function PurchaseReceiptForm({ pendingOrders }: { pendingOrders: any[] }) {
-  const router = useRouter();
+interface PurchaseReceiptFormProps {
+  pendingOrders: any[];
+  onSuccess?: () => void;
+  onCancel?: () => void;
+}
+
+export function PurchaseReceiptForm({ pendingOrders, onSuccess, onCancel }: PurchaseReceiptFormProps) {
   const [loading, setLoading] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<number | "">("");
   const [receivedItems, setReceivedItems] = useState<any[]>([]);
@@ -61,7 +65,7 @@ export function PurchaseReceiptForm({ pendingOrders }: { pendingOrders: any[] })
 
     try {
       await createPurchaseReceipt(Number(selectedOrderId), itemsToProcess);
-      router.push("/dashboard/compras/recepciones");
+      if (onSuccess) onSuccess();
     } catch (error: any) {
       alert("Error: " + error.message);
       setLoading(false);
@@ -132,7 +136,14 @@ export function PurchaseReceiptForm({ pendingOrders }: { pendingOrders: any[] })
             </div>
           </div>
           
-          <div className="flex justify-end pt-4 gap-4">
+          <div className="flex justify-end pt-4 gap-4 border-t border-border mt-4">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="inline-flex h-11 items-center justify-center rounded-xl bg-secondary px-8 text-sm font-medium text-secondary-foreground shadow-sm transition-colors hover:bg-secondary/80 gap-2"
+            >
+              Cancelar
+            </button>
             <button 
               type="submit" 
               disabled={loading}

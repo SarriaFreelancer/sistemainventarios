@@ -3,7 +3,8 @@ import { getAuthSession } from '@/auth';
 import { getSessionCompanyId } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, Search, Truck, Calendar, DollarSign, ChevronRight, Filter, ArrowLeft } from 'lucide-react';
+import { Search, Truck, Calendar, DollarSign, ChevronRight, Filter, ArrowLeft } from 'lucide-react';
+import { NewPurchaseOrderModal } from './components/NewPurchaseOrderModal';
 
 export const metadata = {
   title: 'Órdenes de Compra · GNS',
@@ -25,6 +26,11 @@ export default async function PurchaseOrdersPage() {
       }
     },
     orderBy: { createdAt: 'desc' },
+  });
+
+  const suppliers = await prisma.supplier.findMany({
+    where: companyFilter,
+    orderBy: { companyName: 'asc' },
   });
 
   const getStatusColor = (status: string) => {
@@ -60,17 +66,11 @@ export default async function PurchaseOrdersPage() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-foreground">Órdenes de Compra</h1>
             <p className="mt-1 text-muted-foreground">
-              Gestiona tus pedidos a proveedores y haz seguimiento a las entregas.
+              Emite documentos formales de compra hacia tus proveedores.
             </p>
           </div>
         </div>
-        <Link
-          href="/dashboard/compras/ordenes/nueva"
-          className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-6 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Nueva Orden
-        </Link>
+        <NewPurchaseOrderModal suppliers={suppliers} />
       </div>
 
       {/* Filtros y Búsqueda */}

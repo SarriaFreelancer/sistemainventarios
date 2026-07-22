@@ -3,7 +3,8 @@ import { getAuthSession } from '@/auth';
 import { getSessionCompanyId } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, Search, FileText, ChevronRight, Filter, Calendar, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Search, FileText, ChevronRight, Filter, Calendar, AlertCircle, ArrowLeft } from 'lucide-react';
+import { NewRequisitionModal } from './components/NewRequisitionModal';
 
 export const metadata = {
   title: 'Requisiciones Internas · GNS',
@@ -70,22 +71,13 @@ export default async function InternalRequisitionsPage() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
-              Requisiciones Internas
-              <span className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground ring-1 ring-inset ring-border">Fase 0</span>
-            </h1>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Requisiciones Internas</h1>
             <p className="mt-1 text-muted-foreground">
-              Solicita materiales o insumos desde cualquier área para aprobación.
+              Solicita y aprueba requerimientos de material o servicios antes de comprar.
             </p>
           </div>
         </div>
-        <Link
-          href="/dashboard/compras/requisiciones/nueva"
-          className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Nueva Requisición
-        </Link>
+        <NewRequisitionModal />
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 mb-6">

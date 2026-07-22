@@ -3,7 +3,8 @@ import { getAuthSession } from '@/auth';
 import { getSessionCompanyId } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, Search, PackageCheck, Calendar, Filter, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Search, PackageCheck, ChevronRight, Filter, Calendar, ArrowLeft, Plus } from 'lucide-react';
+import { NewReceiptModal } from './components/NewReceiptModal';
 
 export const metadata = {
   title: 'Recepciones de Mercancía · GNS',
@@ -24,6 +25,22 @@ export default async function PurchaseReceiptsPage() {
       },
       _count: {
         select: { items: true }
+      }
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  const pendingOrders = await prisma.purchaseOrder.findMany({
+    where: { 
+      ...companyFilter,
+      status: { in: ['SENT', 'PARTIAL'] },
+    },
+    include: {
+      supplier: true,
+      lines: {
+        include: {
+          product: true
+        }
       }
     },
     orderBy: { createdAt: 'desc' },
@@ -66,13 +83,7 @@ export default async function PurchaseReceiptsPage() {
             </p>
           </div>
         </div>
-        <Link
-          href="/dashboard/compras/recepciones/nueva"
-          className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-6 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Nueva Recepción
-        </Link>
+        <NewReceiptModal pendingOrders={pendingOrders} />
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 mb-6">

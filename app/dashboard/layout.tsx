@@ -18,7 +18,8 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   const requiredModules = [
     { name: 'Auditoría', href: '/dashboard/audit', icon: 'ShieldAlert', description: 'Trazabilidad y registro de actividad' },
     { name: 'Configuración', href: '/dashboard/settings', icon: 'Settings', description: 'Ajustes generales, seguridad e integraciones' },
-    { name: 'Analíticas', href: '/dashboard/analytics', icon: 'BarChart3', description: 'Métricas SaaS, actividad de usuarios y módulos' }
+    { name: 'Analíticas', href: '/dashboard/analytics', icon: 'BarChart3', description: 'Métricas SaaS, actividad de usuarios y módulos' },
+    { name: 'RRHH', href: '/dashboard/rrhh', icon: 'Users', description: 'Gestión de personal y nómina' }
   ];
 
   for (const mod of requiredModules) {
@@ -62,7 +63,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   if (userRoleObj) {
     const assignedCount = await prisma.roleModule.count({ where: { roleId: userRoleObj.id } });
     if (assignedCount === 0) {
-      const userModuleNames = ['Dashboard', 'Productos', 'Grupos', 'Categorías', 'Proveedores', 'Ventas', 'CRM', 'Compras', 'Finanzas', 'Reportes'];
+      const userModuleNames = ['Dashboard', 'Productos', 'Grupos', 'Categorías', 'Proveedores', 'Ventas', 'CRM', 'Compras', 'Finanzas', 'RRHH', 'Reportes'];
       const modulesToAssign = await prisma.module.findMany({
         where: { name: { in: userModuleNames } }
       });
