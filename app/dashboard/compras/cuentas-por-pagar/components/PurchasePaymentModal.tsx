@@ -15,7 +15,7 @@ export function PurchasePaymentModal({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   
-  const balance = payable.totalAmount - payable.amountPaid;
+  const balance = payable.amount - payable.paidAmount;
   const [amount, setAmount] = useState(balance.toString());
   const [paymentMethod, setPaymentMethod] = useState("TRANSFER");
   const [reference, setReference] = useState("");
@@ -32,11 +32,18 @@ export function PurchasePaymentModal({
     setLoading(true);
 
     try {
-      await createPurchasePayment(payable.id, Number(amount), paymentMethod, reference);
+      const res = await createPurchasePayment(payable.id, Number(amount), paymentMethod, reference);
+      
+      if (!res.success) {
+        alert("Error: " + res.error);
+        setLoading(false);
+        return;
+      }
+
+      router.refresh();
       onClose();
-      // Refrescar para ver el nuevo balance
     } catch (error: any) {
-      alert("Error: " + error.message);
+      alert("Error inesperado: " + error.message);
       setLoading(false);
     }
   };
@@ -52,11 +59,11 @@ export function PurchasePaymentModal({
         <div className="mt-4 p-4 rounded-xl bg-muted/50 space-y-2 text-sm">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Total Facturado:</span>
-            <span className="font-medium text-foreground">{formatCurrency(payable.totalAmount)}</span>
+            <span className="font-medium text-foreground">{formatCurrency(payable.amount)}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Total Pagado:</span>
-            <span className="font-medium text-foreground">{formatCurrency(payable.amountPaid)}</span>
+            <span className="font-medium text-foreground">{formatCurrency(payable.paidAmount)}</span>
           </div>
           <div className="flex justify-between pt-2 border-t border-border">
             <span className="text-foreground font-semibold">Saldo Pendiente:</span>

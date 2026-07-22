@@ -3,7 +3,7 @@ import { getAuthSession } from '@/auth';
 import { getSessionCompanyId } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, Search, FileText, ChevronRight, Filter, Calendar, AlertCircle } from 'lucide-react';
+import { Plus, Search, FileText, ChevronRight, Filter, Calendar, AlertCircle, ArrowLeft } from 'lucide-react';
 
 export const metadata = {
   title: 'Requisiciones Internas · GNS',
@@ -62,14 +62,22 @@ export default async function InternalRequisitionsPage() {
   return (
     <div className="space-y-6 p-4 sm:p-6 md:p-8 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            Requisiciones Internas
-            <span className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground ring-1 ring-inset ring-border">Fase 0</span>
-          </h1>
-          <p className="mt-1 text-muted-foreground">
-            Solicita materiales o insumos desde cualquier área para aprobación.
-          </p>
+        <div className="flex items-center gap-4">
+          <Link 
+            href="/dashboard/compras"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground hover:bg-muted transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
+              Requisiciones Internas
+              <span className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground ring-1 ring-inset ring-border">Fase 0</span>
+            </h1>
+            <p className="mt-1 text-muted-foreground">
+              Solicita materiales o insumos desde cualquier área para aprobación.
+            </p>
+          </div>
         </div>
         <Link
           href="/dashboard/compras/requisiciones/nueva"

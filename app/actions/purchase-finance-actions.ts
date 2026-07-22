@@ -91,7 +91,7 @@ export async function createPurchasePayment(payableId: number, amount: number, p
     // Crear registro de pago
     const payment = await prisma.purchasePayment.create({
       data: {
-        purchaseInvoiceId: payable.purchaseInvoiceId,
+        accountsPayableId: payable.id,
         amount,
         paymentMethod,
         reference,

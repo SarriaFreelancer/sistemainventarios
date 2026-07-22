@@ -3,7 +3,7 @@ import { getAuthSession } from '@/auth';
 import { getSessionCompanyId } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, Search, Truck, Calendar, DollarSign, ChevronRight, Filter } from 'lucide-react';
+import { Plus, Search, Truck, Calendar, DollarSign, ChevronRight, Filter, ArrowLeft } from 'lucide-react';
 
 export const metadata = {
   title: 'Órdenes de Compra · GNS',
@@ -50,11 +50,19 @@ export default async function PurchaseOrdersPage() {
   return (
     <div className="space-y-6 p-4 sm:p-6 md:p-8 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Órdenes de Compra</h1>
-          <p className="mt-1 text-muted-foreground">
-            Gestiona tus pedidos a proveedores y haz seguimiento a las entregas.
-          </p>
+        <div className="flex items-center gap-4">
+          <Link 
+            href="/dashboard/compras"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground hover:bg-muted transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Órdenes de Compra</h1>
+            <p className="mt-1 text-muted-foreground">
+              Gestiona tus pedidos a proveedores y haz seguimiento a las entregas.
+            </p>
+          </div>
         </div>
         <Link
           href="/dashboard/compras/ordenes/nueva"

@@ -3,7 +3,7 @@ import { getAuthSession } from '@/auth';
 import { getSessionCompanyId } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, Search, FileText, Filter, ChevronRight, DollarSign } from 'lucide-react';
+import { Plus, Search, FileText, Filter, ChevronRight, DollarSign, ArrowLeft } from 'lucide-react';
 
 export const metadata = {
   title: 'Facturas de Proveedores · GNS',
@@ -49,11 +49,19 @@ export default async function PurchaseInvoicesPage() {
   return (
     <div className="space-y-6 p-4 sm:p-6 md:p-8 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Facturación (CXP)</h1>
-          <p className="mt-1 text-muted-foreground">
-            Registra las facturas emitidas por tus proveedores para el control de tesorería.
-          </p>
+        <div className="flex items-center gap-4">
+          <Link 
+            href="/dashboard/compras"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground hover:bg-muted transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Facturas de Proveedores</h1>
+            <p className="mt-1 text-muted-foreground">
+              Registra las facturas recibidas (Cuentas por Pagar).
+            </p>
+          </div>
         </div>
         <Link
           href="/dashboard/compras/facturas/nueva"
@@ -109,7 +117,7 @@ export default async function PurchaseInvoicesPage() {
                     <td className="px-6 py-4 font-medium">
                       <div className="flex items-center gap-1">
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
-                        {new Intl.NumberFormat('es-CO').format(inv.totalAmount)}
+                        {new Intl.NumberFormat('es-CO').format(inv.total)}
                       </div>
                     </td>
                     <td className="px-6 py-4">

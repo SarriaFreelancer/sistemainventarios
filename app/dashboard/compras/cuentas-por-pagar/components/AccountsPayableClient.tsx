@@ -56,20 +56,20 @@ export function AccountsPayableClient({ payables }: { payables: any[] }) {
               </thead>
               <tbody className="divide-y divide-border">
                 {payables.map((ap) => {
-                  const balance = ap.totalAmount - ap.amountPaid;
+                  const balance = ap.amount - ap.paidAmount;
                   return (
                     <tr key={ap.id} className="group hover:bg-muted/30 transition-colors">
                       <td className="px-6 py-4 font-medium text-foreground">
                         {ap.purchaseInvoice?.invoiceNumber || 'N/A'}
                       </td>
                       <td className="px-6 py-4">
-                        {ap.supplier.companyName}
+                        {ap.purchaseInvoice?.supplier?.companyName || 'N/A'}
                       </td>
                       <td className="px-6 py-4 text-muted-foreground">
                         {ap.dueDate ? new Date(ap.dueDate).toLocaleDateString('es-CO') : 'Sin fecha'}
                       </td>
                       <td className="px-6 py-4 font-medium">
-                        {formatCurrency(ap.totalAmount)}
+                        {formatCurrency(ap.amount)}
                       </td>
                       <td className="px-6 py-4 font-bold text-rose-500">
                         {formatCurrency(balance)}
