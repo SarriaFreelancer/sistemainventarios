@@ -2,15 +2,6 @@ import ExcelJS from 'exceljs';
 import { getAuthSession } from '@/auth';
 import { prisma } from '@/lib/prisma';
 
-const STATUS_LABELS: Record<string, string> = {
-  PENDING: 'Pendiente',
-  REVIEWED: 'Revisado',
-  PAID: 'Pagado',
-  COMPLETED: 'Completado',
-  VOIDED: 'Anulado',
-  RETURNED: 'Devuelto',
-};
-
 export async function GET(request: Request) {
   try {
     const session = await getAuthSession();
@@ -24,7 +15,6 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
-    const status = searchParams.get('status');
 
     const dateFilter = startDate || endDate ? {
       createdAt: {
@@ -33,63 +23,51 @@ export async function GET(request: Request) {
       }
     } : {};
 
-    const whereClause = {
-      ...companyFilter,
-      ...dateFilter,
-      ...(status ? { status: status as any } : {}),
-    };
-
-    const sales = await prisma.sale.findMany({
-      where: whereClause,
+    const payrolls = await prisma.payroll.findMany({
+      where: {
+        ...companyFilter,
+        ...dateFilter
+      },
       include: {
         details: {
-          include: {
-            product: true,
-          },
-        },
+          include: { employee: { include: { position: true } } }
+        }
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'desc' }
     });
 
-    const rows = sales.map((sale) => {
-      const products = sale.details
-        .map((d) => {
-          const priceStr = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(Number(d.unitPrice));
-          return `${d.product?.name ?? '?'} (x${d.quantity} a ${priceStr})`;
-        })
-        .join(', ');
+    const rows: any[] = [];
 
-      const totalQuantity = sale.details.reduce((sum, d) => sum + d.quantity, 0);
-      
-      const totalCost = sale.details.reduce((sum, d) => {
-        const cost = Number(d.product?.unitCost || 0);
-        return sum + (cost * d.quantity);
-      }, 0);
-      
-      const totalSales = Number(sale.total);
-      const profit = totalSales - totalCost;
-
-      return {
-        '# Venta': sale.saleNumber,
-        'Fecha': new Date(sale.createdAt).toLocaleDateString('es-CO', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-        }),
-        'Cliente': sale.client ?? 'Consumidor Final',
-        'Productos': products,
-        'Cantidad Total': totalQuantity,
-        'Descuento': Number(sale.discount),
-        'Costo Total': totalCost,
-        'Venta Total': totalSales,
-        'Utilidad Bruta': profit,
-        'Método de Pago': sale.paymentMethod,
-        'Estado': STATUS_LABELS[sale.status] ?? sale.status,
+    payrolls.forEach(payroll => {
+      const getStatus = (s: string) => {
+        switch(s) {
+          case 'DRAFT': return 'Borrador';
+          case 'APPROVED': return 'Aprobada';
+          case 'PAID': return 'Pagada';
+          default: return s;
+        }
       };
+
+      payroll.details.forEach(detail => {
+        rows.push({
+          'Código Nómina': payroll.code,
+          'Período Inicio': new Date(payroll.periodStart).toLocaleDateString(),
+          'Período Fin': new Date(payroll.periodEnd).toLocaleDateString(),
+          'Fecha Pago': payroll.paymentDate ? new Date(payroll.paymentDate).toLocaleDateString() : 'Pendiente',
+          'Estado': getStatus(payroll.status),
+          'Empleado': `${detail.employee.firstName} ${detail.employee.lastName}`,
+          'Documento': detail.employee.documentId,
+          'Cargo': detail.employee.position?.name || 'N/A',
+          'Salario Base': Number(detail.baseSalary),
+          'Adiciones': Number(detail.additions),
+          'Deducciones': Number(detail.deductions),
+          'Neto Pagado': Number(detail.netPay),
+        });
+      });
     });
 
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Ventas');
+    const worksheet = workbook.addWorksheet('Nómina Detallada');
 
     if (rows.length > 0) {
       const headers = Object.keys(rows[0]);
@@ -113,7 +91,7 @@ export async function GET(request: Request) {
       rows.forEach(r => worksheet.addRow(Object.values(r)));
 
       worksheet.columns.forEach(col => {
-        col.width = 20;
+        col.width = 18;
       });
     }
 
@@ -123,12 +101,12 @@ export async function GET(request: Request) {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': 'attachment; filename="historial_ventas.xlsx"',
+        'Content-Disposition': 'attachment; filename="reporte_nomina.xlsx"',
         'Cache-Control': 'no-store',
       },
     });
   } catch (error) {
-    console.error('[REPORT_SALES]', error);
+    console.error('[REPORT_PAYROLL]', error);
     return new Response(JSON.stringify({ error: 'Error al generar el reporte' }), { status: 500 });
   }
 }

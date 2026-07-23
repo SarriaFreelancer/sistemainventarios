@@ -340,8 +340,10 @@ model Company {
   internalRequisitions     InternalRequisition[]
   internalRequisitionItems InternalRequisitionItem[]
   employees                Employee[]
+  positions                Position[]
   payrolls                 Payroll[]
   payrollDetails           PayrollDetail[]
+  employeeNovelties        EmployeeNovelty[]
 
   @@index([name])
 }
@@ -915,6 +917,7 @@ model PurchaseReceiptItem {
   purchaseReceipt   PurchaseReceipt @relation(fields: [purchaseReceiptId], references: [id], onDelete: Cascade)
   productId         Int?
   product           Product?        @relation(fields: [productId], references: [id])
+  description       String?
   quantityReceived  Int             @default(0)
   companyId         Int?
   company           Company?        @relation(fields: [companyId], references: [id])
@@ -1039,11 +1042,34 @@ model InternalRequisitionItem {
   @@index([companyId])
 }
 
+model Position {
+  id         Int    @id @default(autoincrement())
+  name       String
+  baseSalary Float  @default(0)
+
+  companyId Int?
+  company   Company? @relation(fields: [companyId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  employees Employee[]
+
+  @@unique([name, companyId])
+  @@index([companyId])
+}
+
 enum EmployeeStatus {
   ACTIVE
   INACTIVE
   SUSPENDED
   TERMINATED
+}
+
+enum NoveltyType {
+  BONUS
+  DEDUCTION
 }
 
 enum PayrollStatus {
@@ -1054,80 +1080,106 @@ enum PayrollStatus {
 }
 
 model Employee {
-  id              Int            @id @default(autoincrement())
-  firstName       String
-  lastName        String
-  documentId      String
-  email           String?
-  phone           String?
-  address         String?
-  department      String?
-  position        String?
-  hireDate        DateTime
-  status          EmployeeStatus @default(ACTIVE)
-  baseSalary      Float          @default(0)
-  bankName        String?
-  bankAccount     String?
-  
-  userId          Int?           @unique
-  user            User?          @relation(fields: [userId], references: [id])
-  
-  companyId       Int?
-  company         Company?       @relation(fields: [companyId], references: [id])
-  
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  deletedAt       DateTime?
+  id          Int            @id @default(autoincrement())
+  firstName   String
+  lastName    String
+  documentId  String
+  email       String?
+  phone       String?
+  address     String?
+  department  String?
+  positionId  Int?
+  position    Position?      @relation(fields: [positionId], references: [id])
+  hireDate    DateTime
+  status      EmployeeStatus @default(ACTIVE)
+  bankName    String?
+  bankAccount String?
 
-  payrollDetails  PayrollDetail[]
+  userId Int?  @unique
+  user   User? @relation(fields: [userId], references: [id])
+
+  companyId Int?
+  company   Company? @relation(fields: [companyId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  payrollDetails PayrollDetail[]
+  novelties      EmployeeNovelty[]
 
   @@unique([documentId, companyId])
+  @@index([positionId])
   @@index([companyId])
 }
 
 model Payroll {
-  id              Int             @id @default(autoincrement())
-  code            String
-  periodStart     DateTime
-  periodEnd       DateTime
-  paymentDate     DateTime?
-  status          PayrollStatus   @default(DRAFT)
-  totalAmount     Float           @default(0)
-  
-  companyId       Int?
-  company         Company?        @relation(fields: [companyId], references: [id])
-  
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  deletedAt       DateTime?
+  id          Int           @id @default(autoincrement())
+  code        String
+  periodStart DateTime
+  periodEnd   DateTime
+  paymentDate DateTime?
+  status      PayrollStatus @default(DRAFT)
+  totalAmount Float         @default(0)
 
-  details         PayrollDetail[]
+  companyId Int?
+  company   Company? @relation(fields: [companyId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  details          PayrollDetail[]
+  appliedNovelties EmployeeNovelty[]
 
   @@unique([code, companyId])
   @@index([companyId])
 }
 
 model PayrollDetail {
-  id              Int       @id @default(autoincrement())
-  payrollId       Int
-  payroll         Payroll   @relation(fields: [payrollId], references: [id], onDelete: Cascade)
-  
-  employeeId      Int
-  employee        Employee  @relation(fields: [employeeId], references: [id])
-  
-  baseSalary      Float     @default(0)
-  additions       Float     @default(0)
-  deductions      Float     @default(0)
-  netPay          Float     @default(0)
-  notes           String?   @db.Text
-  
-  companyId       Int?
-  company         Company?  @relation(fields: [companyId], references: [id])
-  
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id        Int     @id @default(autoincrement())
+  payrollId Int
+  payroll   Payroll @relation(fields: [payrollId], references: [id], onDelete: Cascade)
+
+  employeeId Int
+  employee   Employee @relation(fields: [employeeId], references: [id])
+
+  baseSalary Float   @default(0)
+  additions  Float   @default(0)
+  deductions Float   @default(0)
+  netPay     Float   @default(0)
+  notes      String? @db.Text
+
+  companyId Int?
+  company   Company? @relation(fields: [companyId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([payrollId])
   @@index([employeeId])
+  @@index([companyId])
+}
+
+model EmployeeNovelty {
+  id          Int         @id @default(autoincrement())
+  employeeId  Int
+  employee    Employee    @relation(fields: [employeeId], references: [id])
+  type        NoveltyType
+  amount      Float
+  description String
+  isRecurring Boolean     @default(false)
+
+  appliedPayrollId Int?
+  appliedPayroll   Payroll? @relation(fields: [appliedPayrollId], references: [id])
+
+  companyId Int?
+  company   Company? @relation(fields: [companyId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([employeeId])
+  @@index([appliedPayrollId])
   @@index([companyId])
 }

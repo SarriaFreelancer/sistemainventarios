@@ -3,7 +3,8 @@ import { getAuthSession } from '@/auth';
 import { getSessionCompanyId } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, Search, ShieldCheck, ChevronRight, Filter, Calendar } from 'lucide-react';
+import { ArrowLeft, Search, ShieldCheck, ChevronRight, Filter, Calendar } from 'lucide-react';
+import { NewPurchaseRequestModal } from './components/NewPurchaseRequestModal';
 
 export const metadata = {
   title: 'Solicitudes de Compra · GNS',
@@ -52,19 +53,21 @@ export default async function PurchaseRequestsPage() {
   return (
     <div className="space-y-6 p-4 sm:p-6 md:p-8 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Solicitudes de Compra</h1>
-          <p className="mt-1 text-muted-foreground">
-            Revisa y gestiona las solicitudes de compras internas del equipo.
-          </p>
+        <div className="flex items-center gap-4">
+          <Link 
+            href="/dashboard/compras"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground hover:bg-muted transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Solicitudes de Compra</h1>
+            <p className="mt-1 text-muted-foreground">
+              Revisa y gestiona las solicitudes de compras internas del equipo.
+            </p>
+          </div>
         </div>
-        <Link
-          href="/dashboard/compras/solicitudes/nueva"
-          className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-6 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Nueva Solicitud
-        </Link>
+        <NewPurchaseRequestModal />
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -92,12 +95,9 @@ export default async function PurchaseRequestsPage() {
             <p className="mt-2 text-sm text-muted-foreground max-w-sm">
               No hay solicitudes de compra generadas aún.
             </p>
-            <Link
-              href="/dashboard/compras/solicitudes/nueva"
-              className="mt-6 inline-flex h-10 items-center justify-center rounded-xl border border-input bg-background px-6 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
-            >
-              Crear Solicitud
-            </Link>
+            <div className="mt-6">
+              <NewPurchaseRequestModal />
+            </div>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -142,9 +142,10 @@ export default async function PurchaseRequestsPage() {
                     <td className="px-6 py-4 text-right">
                       <Link
                         href={`/dashboard/compras/solicitudes/${req.id}`}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+                        className="inline-flex h-8 items-center justify-center rounded-lg border border-input bg-background px-3 text-xs font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
                       >
-                        <ChevronRight className="h-4 w-4" />
+                        Ver Detalle
+                        <ChevronRight className="ml-1 h-3 w-3" />
                       </Link>
                     </td>
                   </tr>

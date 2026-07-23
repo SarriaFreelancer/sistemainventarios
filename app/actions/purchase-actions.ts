@@ -80,7 +80,7 @@ export async function sendPurchaseOrder(id: number) {
 
 export async function createPurchaseReceipt(
   orderId: number,
-  receivedItems: Array<{ lineId: number; productId: number; quantity: number }>
+  receivedItems: Array<{ lineId: number; productId: number | null; description: string; quantity: number }>
 ) {
   const session = await getAuthSession();
   const companyId = await resolveActionCompanyId();
@@ -94,6 +94,7 @@ export async function createPurchaseReceipt(
       items: {
         create: receivedItems.map((item) => ({
           productId: item.productId,
+          description: item.description,
           quantityReceived: item.quantity,
           companyId: companyId!,
         })),
@@ -108,26 +109,31 @@ export async function createPurchaseReceipt(
       data: { receivedQuantity: { increment: item.quantity } },
     });
 
-    await prisma.product.update({
-      where: { id: item.productId },
-      data: { quantityAvailable: { increment: item.quantity } },
-    });
+    if (item.productId) {
+      await prisma.product.update({
+        where: { id: item.productId },
+        data: { quantityAvailable: { increment: item.quantity } },
+      });
+    }
   }
 
-  // Create Inventory Entry
-  await prisma.inventoryEntry.create({
-    data: {
-      purchaseReceiptId: receipt.id,
-      companyId: companyId!,
-      items: {
-        create: receivedItems.map((item) => ({
-          productId: item.productId,
-          quantityAdded: item.quantity,
-          companyId: companyId!,
-        })),
+  // Create Inventory Entry only for physical products
+  const physicalItems = receivedItems.filter(i => i.productId != null);
+  if (physicalItems.length > 0) {
+    await prisma.inventoryEntry.create({
+      data: {
+        purchaseReceiptId: receipt.id,
+        companyId: companyId!,
+        items: {
+          create: physicalItems.map((item) => ({
+            productId: item.productId as number,
+            quantityAdded: item.quantity,
+            companyId: companyId!,
+          })),
+        },
       },
-    },
-  });
+    });
+  }
 
   await prisma.purchaseOrder.update({
     where: { id: orderId },
@@ -135,4 +141,62 @@ export async function createPurchaseReceipt(
   });
 
   return receipt;
+}
+
+export async function updatePurchaseOrderStatus(id: number, status: 'DRAFT' | 'SENT' | 'RECEIVED' | 'CANCELLED') {
+  try {
+    const session = await getAuthSession();
+    if (!session?.user?.id) throw new Error("No autenticado");
+    const companyId = await resolveActionCompanyId();
+    
+    const order = await prisma.purchaseOrder.update({
+      where: { id, companyId: companyId! },
+      data: { status },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        action: "UPDATE",
+        module: "COMPRAS",
+        entity: "PurchaseOrder",
+        entityId: order.id,
+        description: `Orden de compra ${order.orderNumber} cambió a estado ${status}`,
+        userId: Number(session.user.id),
+        companyId: order.companyId,
+      },
+    });
+
+    return { success: true, order };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function updatePurchaseInvoiceStatus(id: number, status: 'PENDING' | 'PARTIAL' | 'PAID' | 'CANCELLED') {
+  try {
+    const session = await getAuthSession();
+    if (!session?.user?.id) throw new Error("No autenticado");
+    const companyId = await resolveActionCompanyId();
+    
+    const invoice = await prisma.purchaseInvoice.update({
+      where: { id, companyId: companyId! },
+      data: { status },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        action: "UPDATE",
+        module: "COMPRAS",
+        entity: "PurchaseInvoice",
+        entityId: invoice.id,
+        description: `Factura ${invoice.invoiceNumber} cambió a estado ${status}`,
+        userId: Number(session.user.id),
+        companyId: invoice.companyId,
+      },
+    });
+
+    return { success: true, invoice };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
 }

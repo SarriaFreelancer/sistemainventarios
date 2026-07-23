@@ -46,8 +46,18 @@ const SALE_STATUSES = [
   { value: 'RETURNED', label: 'Devuelta' },
 ];
 
+const EMPLOYEE_STATUSES = [
+  { value: '', label: 'Todos los estados' },
+  { value: 'ACTIVE', label: 'Activo' },
+  { value: 'INACTIVE', label: 'Inactivo' },
+  { value: 'SUSPENDED', label: 'Suspendido' },
+  { value: 'TERMINATED', label: 'Liquidado' },
+];
+
 const isProductReport = (type: string) => ['products', 'stock'].includes(type);
 const isSalesReport = (type: string) => type === 'sales';
+const isEmployeeReport = (type: string) => type === 'employees';
+const isDateFilteredReport = (type: string) => ['sales', 'employees', 'purchases', 'payroll'].includes(type);
 
 export function ReportDownloadButton({
   href,
@@ -67,7 +77,7 @@ export function ReportDownloadButton({
     status: '',
   });
 
-  const hasFilters = isProductReport(reportType) || isSalesReport(reportType);
+  const hasFilters = isProductReport(reportType) || isDateFilteredReport(reportType);
 
   const buildUrl = () => {
     const params = new URLSearchParams();
@@ -77,7 +87,7 @@ export function ReportDownloadButton({
       if (filters.productGroupId) params.set('productGroupId', filters.productGroupId);
       if (filters.productType) params.set('productType', filters.productType);
     }
-    if (isSalesReport(reportType)) {
+    if (isDateFilteredReport(reportType)) {
       if (filters.startDate) params.set('startDate', filters.startDate);
       if (filters.endDate) params.set('endDate', filters.endDate);
       if (filters.status) params.set('status', filters.status);
@@ -230,13 +240,14 @@ export function ReportDownloadButton({
                 </>
               )}
 
-              {/* ── Sales filters ── */}
-              {isSalesReport(reportType) && (
+              {/* ── Date & Status filters ── */}
+              {isDateFilteredReport(reportType) && (
                 <>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-                        <Calendar className="inline h-3 w-3 mr-1" />Fecha Inicio
+                        <Calendar className="inline h-3 w-3 mr-1" />
+                        {isEmployeeReport(reportType) ? 'Contratado Desde' : 'Fecha Inicio'}
                       </label>
                       <input
                         type="date"
@@ -247,7 +258,8 @@ export function ReportDownloadButton({
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-                        <Calendar className="inline h-3 w-3 mr-1" />Fecha Fin
+                        <Calendar className="inline h-3 w-3 mr-1" />
+                        {isEmployeeReport(reportType) ? 'Contratado Hasta' : 'Fecha Fin'}
                       </label>
                       <input
                         type="date"
@@ -258,18 +270,22 @@ export function ReportDownloadButton({
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Estado de Venta</label>
-                    <select
-                      value={filters.status}
-                      onChange={set('status')}
-                      className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                    >
-                      {SALE_STATUSES.map(s => (
-                        <option key={s.value} value={s.value}>{s.label}</option>
-                      ))}
-                    </select>
-                  </div>
+                  {(isEmployeeReport(reportType) || isSalesReport(reportType)) && (
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                        {isEmployeeReport(reportType) ? 'Estado del Empleado' : 'Estado de Venta'}
+                      </label>
+                      <select
+                        value={filters.status}
+                        onChange={set('status')}
+                        className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      >
+                        {(isEmployeeReport(reportType) ? EMPLOYEE_STATUSES : SALE_STATUSES).map(s => (
+                          <option key={s.value} value={s.value}>{s.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </>
               )}
             </div>

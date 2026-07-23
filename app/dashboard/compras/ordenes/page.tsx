@@ -3,22 +3,36 @@ import { getAuthSession } from '@/auth';
 import { getSessionCompanyId } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Search, Truck, Calendar, DollarSign, ChevronRight, Filter, ArrowLeft } from 'lucide-react';
+import { Search, Plus, Filter, Calendar, Building2, Truck, ArrowLeft, ChevronRight, DollarSign } from 'lucide-react';
 import { NewPurchaseOrderModal } from './components/NewPurchaseOrderModal';
+import { OrderSearch } from './components/OrderSearch';
 
 export const metadata = {
   title: 'Órdenes de Compra · GNS',
 };
 
-export default async function PurchaseOrdersPage() {
+export default async function PurchaseOrdersPage(props: { searchParams: Promise<{ q?: string }> }) {
   const session = await getAuthSession();
   if (!session?.user?.id) redirect('/auth/login');
   
   const companyId = await getSessionCompanyId();
+  const searchParams = await props.searchParams;
+  const q = searchParams.q || "";
+
   const companyFilter = companyId ? { companyId } : {};
+  
+  const queryFilter = q ? {
+    OR: [
+      { orderNumber: { contains: q } },
+      { supplier: { companyName: { contains: q } } }
+    ]
+  } : {};
 
   const orders = await prisma.purchaseOrder.findMany({
-    where: companyFilter,
+    where: {
+      ...companyFilter,
+      ...queryFilter,
+    },
     include: {
       supplier: true,
       _count: {
@@ -75,14 +89,7 @@ export default async function PurchaseOrdersPage() {
 
       {/* Filtros y Búsqueda */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input 
-            type="text" 
-            placeholder="Buscar orden por número o proveedor..." 
-            className="h-10 w-full rounded-xl border border-input bg-background pl-10 pr-4 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          />
-        </div>
+        <OrderSearch />
         <button className="inline-flex h-10 items-center justify-center rounded-xl border border-input bg-card px-4 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground gap-2">
           <Filter className="h-4 w-4" />
           Filtros
@@ -99,12 +106,9 @@ export default async function PurchaseOrdersPage() {
             <p className="mt-2 text-sm text-muted-foreground max-w-sm">
               Aún no has creado ninguna orden de compra. Crea tu primera orden para comenzar a gestionar el abastecimiento.
             </p>
-            <Link
-              href="/dashboard/compras/ordenes/nueva"
-              className="mt-6 inline-flex h-10 items-center justify-center rounded-xl border border-input bg-background px-6 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
-            >
-              Crear orden
-            </Link>
+            <div className="mt-6">
+              <NewPurchaseOrderModal suppliers={suppliers} />
+            </div>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -151,9 +155,10 @@ export default async function PurchaseOrdersPage() {
                     <td className="px-6 py-4 text-right">
                       <Link
                         href={`/dashboard/compras/ordenes/${order.id}`}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+                        className="inline-flex h-8 items-center justify-center rounded-lg border border-input bg-background px-3 text-xs font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
                       >
-                        <ChevronRight className="h-4 w-4" />
+                        Ver Detalle
+                        <ChevronRight className="ml-1 h-3 w-3" />
                       </Link>
                     </td>
                   </tr>

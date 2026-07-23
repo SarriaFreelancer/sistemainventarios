@@ -10,7 +10,8 @@ export const metadata = {
   title: 'Detalle de Nómina · RRHH',
 };
 
-export default async function PayrollDetailPage({ params }: { params: { id: string } }) {
+export default async function PayrollDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getAuthSession();
   if (!session?.user?.id) redirect('/auth/login');
   
@@ -21,7 +22,11 @@ export default async function PayrollDetailPage({ params }: { params: { id: stri
     where: { id: payrollId, companyId: companyId || undefined },
     include: {
       details: {
-        include: { employee: true },
+        include: { 
+          employee: {
+            include: { position: true }
+          }
+        },
         orderBy: { employee: { firstName: 'asc' } }
       }
     }
@@ -114,6 +119,7 @@ export default async function PayrollDetailPage({ params }: { params: { id: stri
                 <th className="px-6 py-4 font-medium">Empleado</th>
                 <th className="px-6 py-4 font-medium">Cargo</th>
                 <th className="px-6 py-4 font-medium text-right">Salario Base</th>
+                <th className="px-6 py-4 font-medium text-right text-emerald-500">Adiciones</th>
                 <th className="px-6 py-4 font-medium text-right text-rose-500">Deducciones</th>
                 <th className="px-6 py-4 font-medium text-right text-emerald-500">Neto a Pagar</th>
               </tr>
@@ -126,12 +132,15 @@ export default async function PayrollDetailPage({ params }: { params: { id: stri
                     <div className="text-xs text-muted-foreground font-normal">{detail.employee.documentId}</div>
                   </td>
                   <td className="px-6 py-4 text-muted-foreground">
-                    {detail.employee.position || 'N/A'}
+                    {detail.employee.position?.name || 'Sin asignar'}
                   </td>
                   <td className="px-6 py-4 text-right">
                     {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(detail.baseSalary)}
                   </td>
-                  <td className="px-6 py-4 text-right text-rose-500">
+                  <td className="px-6 py-4 text-right text-emerald-500 font-medium">
+                    + {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(detail.additions)}
+                  </td>
+                  <td className="px-6 py-4 text-right text-rose-500 font-medium">
                     - {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(detail.deductions)}
                   </td>
                   <td className="px-6 py-4 text-right font-bold text-emerald-600">

@@ -3,7 +3,7 @@ import { getAuthSession } from '@/auth';
 import { getSessionCompanyId } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Search, FileText, ChevronRight, Calculator, Calendar } from 'lucide-react';
+import { Search, FileText, ChevronRight, Calculator, Calendar, ArrowLeft } from 'lucide-react';
 import { GeneratePayrollModal } from './components/GeneratePayrollModal';
 
 export const metadata = {
@@ -50,11 +50,19 @@ export default async function PayrollPage() {
   return (
     <div className="space-y-6 p-4 sm:p-6 md:p-8 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Gestión de Nómina</h1>
-          <p className="mt-1 text-muted-foreground">
-            Calcula, aprueba y paga la nómina de tus empleados.
-          </p>
+        <div className="flex items-center gap-4">
+          <Link 
+            href="/dashboard/rrhh"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground hover:bg-muted transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Gestión de Nómina</h1>
+            <p className="mt-1 text-muted-foreground">
+              Calcula, aprueba y paga la nómina de tus empleados.
+            </p>
+          </div>
         </div>
         <GeneratePayrollModal />
       </div>

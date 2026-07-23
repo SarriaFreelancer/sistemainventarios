@@ -3,7 +3,7 @@ import { getAuthSession } from '@/auth';
 import { getSessionCompanyId } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Search, FileText, ChevronRight, Filter, Calendar, Building2, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Search, FileText, ChevronRight, Filter, Calendar, Building2, AlertCircle, ArrowLeft, DollarSign } from 'lucide-react';
 import { NewInvoiceModal } from './components/NewInvoiceModal';
 
 export const metadata = {
@@ -82,12 +82,9 @@ export default async function PurchaseInvoicesPage() {
             <p className="mt-2 text-sm text-muted-foreground max-w-sm">
               Registra las cuentas de cobro o facturas electrónicas de tus proveedores.
             </p>
-            <Link
-              href="/dashboard/compras/facturas/nueva"
-              className="mt-6 inline-flex h-10 items-center justify-center rounded-xl border border-input bg-background px-6 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
-            >
-              Crear Factura
-            </Link>
+            <div className="mt-6">
+              <NewInvoiceModal suppliers={suppliers} />
+            </div>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -126,9 +123,13 @@ export default async function PurchaseInvoicesPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-input bg-background hover:bg-accent hover:text-accent-foreground">
-                        <ChevronRight className="h-4 w-4" />
-                      </button>
+                      <Link
+                        href={`/dashboard/compras/facturas/${inv.id}`}
+                        className="inline-flex h-8 items-center justify-center rounded-lg border border-input bg-background px-3 text-xs font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+                      >
+                        Ver Detalle
+                        <ChevronRight className="ml-1 h-3 w-3" />
+                      </Link>
                     </td>
                   </tr>
                 ))}

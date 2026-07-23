@@ -5,11 +5,12 @@ import { Save } from "lucide-react";
 import { createEmployee } from "@/app/actions/hr-actions";
 
 interface EmployeeFormProps {
+  positions: any[];
   onSuccess?: () => void;
   onCancel?: () => void;
 }
 
-export function EmployeeForm({ onSuccess, onCancel }: EmployeeFormProps) {
+export function EmployeeForm({ positions, onSuccess, onCancel }: EmployeeFormProps) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
@@ -19,9 +20,8 @@ export function EmployeeForm({ onSuccess, onCancel }: EmployeeFormProps) {
     phone: "",
     address: "",
     department: "",
-    position: "",
+    positionId: "",
     hireDate: new Date().toISOString().split("T")[0],
-    baseSalary: "",
     bankName: "",
     bankAccount: "",
   });
@@ -37,7 +37,6 @@ export function EmployeeForm({ onSuccess, onCancel }: EmployeeFormProps) {
     const result = await createEmployee({
       ...formData,
       hireDate: new Date(formData.hireDate),
-      baseSalary: Number(formData.baseSalary)
     });
 
     if (result.success) {
@@ -141,14 +140,20 @@ export function EmployeeForm({ onSuccess, onCancel }: EmployeeFormProps) {
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">Cargo / Posición</label>
-            <input 
-              name="position"
-              type="text" 
+            <select
+              name="positionId"
               required
-              value={formData.position}
+              value={formData.positionId}
               onChange={handleChange}
               className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            />
+            >
+              <option value="">-- Seleccionar Cargo --</option>
+              {positions.map(p => (
+                <option key={p.id} value={p.id}>
+                  {p.name} (Salario: ${p.baseSalary.toLocaleString('es-CO')})
+                </option>
+              ))}
+            </select>
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">Fecha de Contratación</label>
@@ -157,19 +162,6 @@ export function EmployeeForm({ onSuccess, onCancel }: EmployeeFormProps) {
               type="date" 
               required
               value={formData.hireDate}
-              onChange={handleChange}
-              className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Salario Base Mensual</label>
-            <input 
-              name="baseSalary"
-              type="number" 
-              required
-              min="0"
-              step="0.01"
-              value={formData.baseSalary}
               onChange={handleChange}
               className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             />

@@ -3,8 +3,9 @@ import { getAuthSession } from '@/auth';
 import { getSessionCompanyId } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Search, Users, Briefcase, Mail, MoreVertical } from 'lucide-react';
+import { Search, Users, Briefcase, Mail, MoreVertical, ArrowLeft } from 'lucide-react';
 import { NewEmployeeModal } from './components/NewEmployeeModal';
+import { EmployeeActions } from './components/EmployeeActions';
 
 export const metadata = {
   title: 'Directorio de Empleados · RRHH',
@@ -19,7 +20,13 @@ export default async function EmployeesPage() {
 
   const employees = await prisma.employee.findMany({
     where: companyFilter,
+    include: { position: true },
     orderBy: { firstName: 'asc' },
+  });
+
+  const positions = await prisma.position.findMany({
+    where: companyFilter,
+    orderBy: { name: 'asc' },
   });
 
   const getStatusColor = (status: string) => {
@@ -45,13 +52,21 @@ export default async function EmployeesPage() {
   return (
     <div className="space-y-6 p-4 sm:p-6 md:p-8 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Directorio de Empleados</h1>
-          <p className="mt-1 text-muted-foreground">
-            Gestiona la información del personal y sus condiciones laborales.
-          </p>
+        <div className="flex items-center gap-4">
+          <Link 
+            href="/dashboard/rrhh"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground hover:bg-muted transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Directorio de Empleados</h1>
+            <p className="mt-1 text-muted-foreground">
+              Gestiona la información del personal y sus condiciones laborales.
+            </p>
+          </div>
         </div>
-        <NewEmployeeModal />
+        <NewEmployeeModal positions={positions} />
       </div>
 
       {/* Tarjetas de Estadísticas Rápidas */}
@@ -122,7 +137,7 @@ export default async function EmployeesPage() {
                       {emp.documentId}
                     </td>
                     <td className="px-6 py-4">
-                      <p className="font-medium text-foreground">{emp.position || 'Sin asignar'}</p>
+                      <p className="font-medium text-foreground">{emp.position?.name || 'Sin asignar'}</p>
                       <p className="text-xs text-muted-foreground mt-1">{emp.department || 'General'}</p>
                     </td>
                     <td className="px-6 py-4">
@@ -131,9 +146,7 @@ export default async function EmployeesPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
-                        <MoreVertical className="h-4 w-4" />
-                      </button>
+                      <EmployeeActions employeeId={emp.id} currentStatus={emp.status} />
                     </td>
                   </tr>
                 ))

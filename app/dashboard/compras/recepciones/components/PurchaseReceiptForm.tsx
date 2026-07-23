@@ -50,15 +50,16 @@ export function PurchaseReceiptForm({ pendingOrders, onSuccess, onCancel }: Purc
     // Filtrar solo los ítems donde se está recibiendo algo y son productos que impactan inventario
     // Opcional: Permitir recibir servicios si se requiere tracking
     const itemsToProcess = receivedItems
-      .filter(i => i.quantityToReceive > 0 && i.productId !== null)
+      .filter(i => i.quantityToReceive > 0)
       .map(i => ({
         lineId: i.lineId,
         productId: i.productId,
+        description: i.description,
         quantity: i.quantityToReceive
       }));
 
     if (itemsToProcess.length === 0) {
-      alert("No hay ítems válidos para recibir (revisa que las cantidades sean mayores a 0 y estén asociadas a productos físicos).");
+      alert("No hay ítems con cantidad mayor a 0 para recibir.");
       setLoading(false);
       return;
     }
@@ -116,18 +117,14 @@ export function PurchaseReceiptForm({ pendingOrders, onSuccess, onCancel }: Purc
                       <td className="p-3 text-right">{item.requestedQuantity}</td>
                       <td className="p-3 text-right">{item.alreadyReceived}</td>
                       <td className="p-2 text-right">
-                        {item.productId ? (
-                          <input 
-                            type="number" 
-                            min="0"
-                            max={item.requestedQuantity - item.alreadyReceived}
-                            value={item.quantityToReceive}
-                            onChange={(e) => handleQuantityChange(item.lineId, e.target.value)}
-                            className="w-24 ml-auto rounded-lg border border-input bg-background px-3 py-1.5 text-sm focus:ring-1 focus:ring-primary outline-none text-right"
-                          />
-                        ) : (
-                          <span className="text-xs text-muted-foreground">N/A (No físico)</span>
-                        )}
+                        <input 
+                          type="number" 
+                          min="0"
+                          max={item.requestedQuantity - item.alreadyReceived}
+                          value={item.quantityToReceive}
+                          onChange={(e) => handleQuantityChange(item.lineId, e.target.value)}
+                          className="w-24 ml-auto rounded-lg border border-input bg-background px-3 py-1.5 text-sm focus:ring-1 focus:ring-primary outline-none text-right"
+                        />
                       </td>
                     </tr>
                   ))}

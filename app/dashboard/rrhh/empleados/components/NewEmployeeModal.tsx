@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Plus, X } from "lucide-react";
 import { EmployeeForm } from "./EmployeeForm";
 
-export function NewEmployeeModal() {
+export function NewEmployeeModal({ positions }: { positions: any[] }) {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleSuccess = () => {
@@ -39,6 +39,7 @@ export function NewEmployeeModal() {
             
             <div className="p-6">
               <EmployeeForm 
+                positions={positions}
                 onSuccess={handleSuccess} 
                 onCancel={() => setIsOpen(false)} 
               />

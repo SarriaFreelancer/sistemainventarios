@@ -81,7 +81,7 @@ export function DashboardCharts({
         </CardHeader>
         <CardContent className="h-[300px] mt-4">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={salesByMonth} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <AreaChart data={salesByMonth} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor={COLORS[0]} stopOpacity={0.6}/>
@@ -94,7 +94,13 @@ export function DashboardCharts({
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
               <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }} />
-              <YAxis tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }} />
+              <YAxis 
+                width={50}
+                tickLine={false} 
+                axisLine={false} 
+                tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }} 
+                tickFormatter={(value) => new Intl.NumberFormat('es-CO', { notation: "compact", compactDisplay: "short", maximumFractionDigits: 1 }).format(value)}
+              />
               <Tooltip
                 contentStyle={{
                   background: 'var(--card)',

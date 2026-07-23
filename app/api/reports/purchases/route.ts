@@ -2,15 +2,6 @@ import ExcelJS from 'exceljs';
 import { getAuthSession } from '@/auth';
 import { prisma } from '@/lib/prisma';
 
-const STATUS_LABELS: Record<string, string> = {
-  PENDING: 'Pendiente',
-  REVIEWED: 'Revisado',
-  PAID: 'Pagado',
-  COMPLETED: 'Completado',
-  VOIDED: 'Anulado',
-  RETURNED: 'Devuelto',
-};
-
 export async function GET(request: Request) {
   try {
     const session = await getAuthSession();
@@ -24,7 +15,6 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
-    const status = searchParams.get('status');
 
     const dateFilter = startDate || endDate ? {
       createdAt: {
@@ -33,63 +23,44 @@ export async function GET(request: Request) {
       }
     } : {};
 
-    const whereClause = {
-      ...companyFilter,
-      ...dateFilter,
-      ...(status ? { status: status as any } : {}),
-    };
-
-    const sales = await prisma.sale.findMany({
-      where: whereClause,
-      include: {
-        details: {
-          include: {
-            product: true,
-          },
-        },
+    const purchases = await prisma.purchaseOrder.findMany({
+      where: {
+        ...companyFilter,
+        ...dateFilter
       },
-      orderBy: { createdAt: 'desc' },
+      include: {
+        supplier: true,
+      },
+      orderBy: { createdAt: 'desc' }
     });
 
-    const rows = sales.map((sale) => {
-      const products = sale.details
-        .map((d) => {
-          const priceStr = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(Number(d.unitPrice));
-          return `${d.product?.name ?? '?'} (x${d.quantity} a ${priceStr})`;
-        })
-        .join(', ');
-
-      const totalQuantity = sale.details.reduce((sum, d) => sum + d.quantity, 0);
-      
-      const totalCost = sale.details.reduce((sum, d) => {
-        const cost = Number(d.product?.unitCost || 0);
-        return sum + (cost * d.quantity);
-      }, 0);
-      
-      const totalSales = Number(sale.total);
-      const profit = totalSales - totalCost;
+    const rows = purchases.map(po => {
+      const getStatus = (s: string) => {
+        switch(s) {
+          case 'DRAFT': return 'Borrador';
+          case 'SENT': return 'Enviada';
+          case 'PARTIAL': return 'Parcial';
+          case 'RECEIVED': return 'Recibida (Cerrada)';
+          case 'CANCELLED': return 'Cancelada';
+          default: return s;
+        }
+      };
 
       return {
-        '# Venta': sale.saleNumber,
-        'Fecha': new Date(sale.createdAt).toLocaleDateString('es-CO', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-        }),
-        'Cliente': sale.client ?? 'Consumidor Final',
-        'Productos': products,
-        'Cantidad Total': totalQuantity,
-        'Descuento': Number(sale.discount),
-        'Costo Total': totalCost,
-        'Venta Total': totalSales,
-        'Utilidad Bruta': profit,
-        'Método de Pago': sale.paymentMethod,
-        'Estado': STATUS_LABELS[sale.status] ?? sale.status,
+        'Número Orden': po.orderNumber,
+        'Fecha Creación': new Date(po.createdAt).toLocaleDateString(),
+        'Fecha Esperada': po.expectedDate ? new Date(po.expectedDate).toLocaleDateString() : 'N/A',
+        'Proveedor': po.supplier.companyName,
+        'Subtotal': Number(po.subtotal),
+        'Impuestos': Number(po.tax),
+        'Total': Number(po.total),
+        'Estado': getStatus(po.status),
+        'Notas': po.notes || 'N/A'
       };
     });
 
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Ventas');
+    const worksheet = workbook.addWorksheet('Órdenes de Compra');
 
     if (rows.length > 0) {
       const headers = Object.keys(rows[0]);
@@ -113,7 +84,7 @@ export async function GET(request: Request) {
       rows.forEach(r => worksheet.addRow(Object.values(r)));
 
       worksheet.columns.forEach(col => {
-        col.width = 20;
+        col.width = 18;
       });
     }
 
@@ -123,12 +94,12 @@ export async function GET(request: Request) {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': 'attachment; filename="historial_ventas.xlsx"',
+        'Content-Disposition': 'attachment; filename="historial_compras.xlsx"',
         'Cache-Control': 'no-store',
       },
     });
   } catch (error) {
-    console.error('[REPORT_SALES]', error);
+    console.error('[REPORT_PURCHASES]', error);
     return new Response(JSON.stringify({ error: 'Error al generar el reporte' }), { status: 500 });
   }
 }

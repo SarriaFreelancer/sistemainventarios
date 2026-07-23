@@ -33,7 +33,7 @@ export default async function PurchaseReceiptsPage() {
   const pendingOrders = await prisma.purchaseOrder.findMany({
     where: { 
       ...companyFilter,
-      status: { in: ['SENT', 'PARTIAL'] },
+      status: 'SENT',
     },
     include: {
       supplier: true,
@@ -111,12 +111,9 @@ export default async function PurchaseReceiptsPage() {
             <p className="mt-2 text-sm text-muted-foreground max-w-sm">
               Aún no has registrado ninguna entrega de mercancía.
             </p>
-            <Link
-              href="/dashboard/compras/recepciones/nueva"
-              className="mt-6 inline-flex h-10 items-center justify-center rounded-xl border border-input bg-background px-6 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
-            >
-              Recibir Mercancía
-            </Link>
+            <div className="mt-6">
+              <NewReceiptModal pendingOrders={pendingOrders} />
+            </div>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -155,9 +152,13 @@ export default async function PurchaseReceiptsPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-input bg-background hover:bg-accent hover:text-accent-foreground">
-                        <ChevronRight className="h-4 w-4" />
-                      </button>
+                      <Link
+                        href={`/dashboard/compras/recepciones/${rec.id}`}
+                        className="inline-flex h-8 items-center justify-center rounded-lg border border-input bg-background px-3 text-xs font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+                      >
+                        Ver Detalle
+                        <ChevronRight className="ml-1 h-3 w-3" />
+                      </Link>
                     </td>
                   </tr>
                 ))}

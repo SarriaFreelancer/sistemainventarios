@@ -1,7 +1,7 @@
 import { getAuthSession } from '@/auth';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Users, Calculator, ArrowRight } from 'lucide-react';
+import { Users, Calculator, ArrowRight, Star } from 'lucide-react';
 
 export const metadata = {
   title: 'Recursos Humanos · GNS',
@@ -12,6 +12,22 @@ export default async function RRHHPage() {
   if (!session?.user?.id) redirect('/auth/login');
 
   const rrhhModules = [
+    {
+      title: 'Cargos',
+      description: 'Define la estructura organizacional y los salarios base.',
+      href: '/dashboard/rrhh/cargos',
+      icon: Users,
+      color: 'text-violet-500',
+      bgColor: 'bg-violet-500/10'
+    },
+    {
+      title: 'Novedades',
+      description: 'Gestiona bonos, horas extras y deducciones del personal.',
+      href: '/dashboard/rrhh/novedades',
+      icon: Star,
+      color: 'text-amber-500',
+      bgColor: 'bg-amber-500/10'
+    },
     {
       title: 'Directorio de Empleados',
       description: 'Gestión de información personal, cargos y salarios base del equipo.',
@@ -39,7 +55,7 @@ export default async function RRHHPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
         {rrhhModules.map((module) => {
           const Icon = module.icon;
           return (

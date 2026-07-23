@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Save, Calculator } from "lucide-react";
+import { Save, Calculator, Plus, Trash2 } from "lucide-react";
 import { createPurchaseOrder } from "@/app/actions/purchase-actions";
 
 interface Supplier {
