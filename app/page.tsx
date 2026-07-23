@@ -70,7 +70,7 @@ export default async function HomePage() {
   ];
 
   return (
-    <div style={{ fontFamily: 'Inter, system-ui, sans-serif' }} className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-x-hidden">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-x-hidden font-sans">
       {/* ─── KEYFRAME ANIMATIONS ─── */}
       <style>{`
         @keyframes fade-in-up {
@@ -91,13 +91,13 @@ export default async function HomePage() {
           100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
         }
 
-        .animate-fade-in { animation: fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        .animate-fade-in-1 { animation: fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards; opacity: 0; }
-        .animate-fade-in-2 { animation: fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards; opacity: 0; }
-        .animate-fade-in-3 { animation: fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards; opacity: 0; }
+        .animate-fade-in { animation: fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; will-change: transform, opacity; }
+        .animate-fade-in-1 { animation: fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards; opacity: 0; will-change: transform, opacity; }
+        .animate-fade-in-2 { animation: fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards; opacity: 0; will-change: transform, opacity; }
+        .animate-fade-in-3 { animation: fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards; opacity: 0; will-change: transform, opacity; }
         
-        .animate-float { animation: float-smooth 6s ease-in-out infinite; }
-        .animate-float-delay { animation: float-reverse 7s ease-in-out infinite 1s; }
+        .animate-float { animation: float-smooth 6s ease-in-out infinite; will-change: transform; }
+        .animate-float-delay { animation: float-reverse 7s ease-in-out infinite 1s; will-change: transform; }
         
         .pulse-btn { animation: pulse-glow 2s infinite; }
         
@@ -500,7 +500,7 @@ export default async function HomePage() {
       {/* ══════════════════════════════════════════
           MÓDULOS — DISEÑO FUNCIONES
       ══════════════════════════════════════════ */}
-      <section id="modulos" className="relative py-[80px] px-6 bg-slate-50 dark:bg-slate-950">
+      <section id="modulos" className="relative py-[80px] px-6 bg-slate-50 dark:bg-slate-950" style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 800px' }}>
         <div className="max-w-[1280px] mx-auto relative z-10">
           <div className="text-center mb-14">
             <span className="inline-block text-amber-600 dark:text-amber-500 text-[12px] font-extrabold tracking-[0.15em] uppercase mb-3.5">
@@ -518,7 +518,7 @@ export default async function HomePage() {
       {/* ══════════════════════════════════════════
           ARQUITECTURA MULTI-TENANT
       ══════════════════════════════════════════ */}
-      <section className="py-[100px] px-6 bg-white dark:bg-slate-900 overflow-hidden">
+      <section className="py-[100px] px-6 bg-white dark:bg-slate-900 overflow-hidden" style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 600px' }}>
         <div className="max-w-[1280px] mx-auto flex flex-wrap gap-10 items-center">
           
           {/* Left Column - Text */}
@@ -688,7 +688,7 @@ export default async function HomePage() {
       {/* ══════════════════════════════════════════
           LOGOS DE EMPRESAS
       ══════════════════════════════════════════ */}
-      <section className="py-[60px] px-6 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800">
+      <section className="py-[60px] px-6 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800" style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 200px' }}>
         <div className="max-w-[1280px] mx-auto text-center">
           <div className="text-[11px] font-extrabold text-red-600 dark:text-red-500 tracking-[0.15em] uppercase mb-8">
             EMPRESAS QUE CONFÍAN EN GNS
