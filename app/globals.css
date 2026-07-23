@@ -256,10 +256,4 @@ textarea::placeholder {
     --font-heading: var(--font-sans);
     --font-sans: var(--font-sans);
   }
-  :root {
-    color-scheme: light;
-  }
-  .dark {
-    color-scheme: dark;
-  }
 }

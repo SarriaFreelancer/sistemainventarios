@@ -81,7 +81,7 @@ export async function createPurchaseRequest(data: z.infer<typeof CreatePurchaseR
   }
 }
 
-export async function updatePurchaseRequestStatus(id: number, status: "PENDING_APPROVAL" | "APPROVED" | "REJECTED" | "CONVERTED_TO_ORDER" | "CANCELLED") {
+export async function updatePurchaseRequestStatus(id: number, status: "PENDING_APPROVAL" | "APPROVED" | "REJECTED" | "CANCELLED") {
   try {
     const session = await getAuthSession();
     if (!session?.user?.id) throw new Error("No autenticado");

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import * as LucideIcons from "lucide-react";
+import { Search, Building, CheckCircle2, XCircle, Loader2, Ban, Power, Info } from "lucide-react";
 import { toggleCompanyAccess } from "@/app/actions/license-actions";
 import { confirmAction, successAlert, errorAlert } from "@/lib/sweetalert";
 import { useRouter } from "next/navigation";
@@ -53,7 +53,7 @@ export function LicensesManager({ companies }: { companies: Company[] }) {
           <p className="text-sm text-muted-foreground">Gestiona los planes y el estado de las empresas registradas.</p>
         </div>
         <div className="relative">
-          <LucideIcons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
           <input 
             type="text"
             placeholder="Buscar empresa..."
@@ -85,7 +85,7 @@ export function LicensesManager({ companies }: { companies: Company[] }) {
               filteredCompanies.map((company) => (
                 <tr key={company.id} className="hover:bg-muted/20 transition">
                   <td className="px-6 py-4 font-semibold flex items-center gap-2">
-                    <LucideIcons.Building size={16} className="text-muted-foreground" />
+                    <Building size={16} className="text-muted-foreground" />
                     {company.name}
                   </td>
                   <td className="px-6 py-4">
@@ -99,7 +99,7 @@ export function LicensesManager({ companies }: { companies: Company[] }) {
                   </td>
                   <td className="px-6 py-4">
                     <span className={`flex items-center gap-1.5 ${company.active ? 'text-green-600' : 'text-red-600'}`}>
-                      {company.active ? <LucideIcons.CheckCircle2 size={16} /> : <LucideIcons.XCircle size={16} />}
+                      {company.active ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
                       <span className="font-semibold">{company.active ? 'ACTIVO' : 'SUSPENDIDO'}</span>
                     </span>
                   </td>
@@ -115,11 +115,11 @@ export function LicensesManager({ companies }: { companies: Company[] }) {
                       } disabled:opacity-50`}
                     >
                       {togglingId === company.id ? (
-                        <LucideIcons.Loader2 size={16} className="animate-spin" />
+                        <Loader2 size={16} className="animate-spin" />
                       ) : company.active ? (
-                        <LucideIcons.Ban size={16} />
+                        <Ban size={16} />
                       ) : (
-                        <LucideIcons.Power size={16} />
+                        <Power size={16} />
                       )}
                     </button>
                   </td>
@@ -131,7 +131,7 @@ export function LicensesManager({ companies }: { companies: Company[] }) {
       </div>
       
       <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 flex items-start gap-3 mt-4">
-        <LucideIcons.Info className="text-blue-500 mt-0.5 shrink-0" size={18} />
+        <Info className="text-blue-500 mt-0.5 shrink-0" size={18} />
         <div className="text-sm text-blue-800">
           <p className="font-bold mb-1">Próxima Integración: Pasarela de Pagos (Bold)</p>
           <p>En el futuro, las licencias se actualizarán automáticamente mediante webhooks al recibir los pagos a través de Bold API. Por ahora, la suspensión de acceso se controla manualmente.</p>

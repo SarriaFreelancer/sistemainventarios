@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import * as LucideIcons from "lucide-react";
+import { ArrowRightLeft, Loader2 } from "lucide-react";
 import { getCompaniesForMigration, migrateCompany } from "@/app/actions/migration-actions";
 import { successAlert, errorAlert, confirmAction } from "@/lib/sweetalert";
 import { useRouter } from "next/navigation";
@@ -77,7 +77,7 @@ export function MigrationsManager({ servers }: { servers: any[] }) {
     <div className="space-y-8">
       <div className="flex flex-col gap-2">
         <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-          <LucideIcons.ArrowRightLeft size={18} className="text-primary" />
+          <ArrowRightLeft size={18} className="text-primary" />
           Motor de Migración
         </h3>
         <p className="text-sm text-muted-foreground">Mueve empresas de la base monolítica hacia los Tenants (Servidores Compartidos o Dedicados) sin tocar código.</p>
@@ -156,7 +156,7 @@ export function MigrationsManager({ servers }: { servers: any[] }) {
               disabled={migrating || !selectedCompany || !selectedServer}
               className="w-full mt-4 bg-primary text-primary-foreground font-semibold px-4 py-3 rounded-xl text-sm flex items-center justify-center gap-2 transition hover:bg-primary/90 disabled:opacity-50"
             >
-              {migrating ? <LucideIcons.Loader2 className="animate-spin" size={16} /> : <LucideIcons.ArrowRightLeft size={16} />}
+              {migrating ? <Loader2 className="animate-spin" size={16} /> : <ArrowRightLeft size={16} />}
               {migrating ? 'Migrando y Configurando...' : 'Iniciar Migración'}
             </button>
           </form>

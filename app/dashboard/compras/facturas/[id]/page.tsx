@@ -113,7 +113,7 @@ export default async function PurchaseInvoiceDetailPage({ params }: { params: Pr
             
             <div className="flex items-center justify-between text-sm pt-2">
               <span className="text-muted-foreground flex items-center gap-2"><Calendar className="h-4 w-4"/> Vencimiento:</span>
-              <span className="font-semibold text-foreground">{new Date(invoice.dueDate).toLocaleDateString('es-CO')}</span>
+              <span className="font-semibold text-foreground">{invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString('es-CO') : 'N/A'}</span>
             </div>
 
             {invoice.purchaseOrder && (

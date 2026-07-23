@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import * as LucideIcons from "lucide-react";
+import { Calendar, LogIn, User, Upload, Loader2, Save, Key, ShieldAlert } from "lucide-react";
 import { updateProfile, updatePassword, uploadProfileImage } from "@/app/actions/profile-actions";
 import { successAlert, errorAlert } from "@/lib/sweetalert";
 import { useRouter } from "next/navigation";
@@ -176,12 +176,12 @@ export function ProfileClient({ user }: ProfileClientProps) {
         {/* Fechas de Registro / Último Ingreso */}
         <div className="w-full border-t border-border/60 pt-4 text-left text-xs text-muted-foreground space-y-1">
           <p className="flex items-center gap-1.5 font-medium">
-            <LucideIcons.Calendar size={14} />
+            <Calendar size={14} />
             Miembro desde: {new Date(user.createdAt).toLocaleDateString("es-ES", { day: '2-digit', month: 'long', year: 'numeric' })}
           </p>
           {user.lastLogin && (
             <p className="flex items-center gap-1.5 font-medium">
-              <LucideIcons.LogIn size={14} />
+              <LogIn size={14} />
               Último acceso: {new Date(user.lastLogin).toLocaleDateString("es-ES", { day: '2-digit', month: '2-digit', year: 'numeric' })} {new Date(user.lastLogin).toLocaleTimeString("es-ES", { hour: '2-digit', minute: '2-digit' })}
             </p>
           )}
@@ -194,7 +194,7 @@ export function ProfileClient({ user }: ProfileClientProps) {
         {/* Formulario de Información Personal */}
         <div className="bg-card rounded-3xl border border-border p-6 shadow-sm">
           <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
-            <LucideIcons.User size={18} className="text-primary" />
+            <User size={18} className="text-primary" />
             Información del Perfil
           </h3>
 
@@ -271,7 +271,7 @@ export function ProfileClient({ user }: ProfileClientProps) {
                   onClick={() => fileInputRef.current?.click()}
                   className="bg-secondary/10 hover:bg-secondary/20 border border-border text-foreground font-semibold px-4 py-2 rounded-xl text-sm transition flex items-center gap-2"
                 >
-                  <LucideIcons.Upload size={16} />
+                  <Upload size={16} />
                   Seleccionar Archivo
                 </button>
                 {selectedFile && (
@@ -304,7 +304,7 @@ export function ProfileClient({ user }: ProfileClientProps) {
                 disabled={savingProfile}
                 className="bg-primary text-primary-foreground font-semibold px-5 py-2.5 rounded-xl text-sm hover:opacity-90 active:scale-95 transition flex items-center gap-2 shadow-sm disabled:opacity-50"
               >
-                {savingProfile ? <LucideIcons.Loader2 size={16} className="animate-spin" /> : <LucideIcons.Save size={16} />}
+                {savingProfile ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                 Guardar Cambios
               </button>
             </div>
@@ -314,7 +314,7 @@ export function ProfileClient({ user }: ProfileClientProps) {
         {/* Formulario de Cambio de Contraseña */}
         <div className="bg-card rounded-3xl border border-border p-6 shadow-sm">
           <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
-            <LucideIcons.Key size={18} className="text-primary" />
+            <Key size={18} className="text-primary" />
             Seguridad & Contraseña
           </h3>
 
@@ -359,7 +359,7 @@ export function ProfileClient({ user }: ProfileClientProps) {
                 disabled={savingPass}
                 className="bg-primary text-primary-foreground font-semibold px-5 py-2.5 rounded-xl text-sm hover:opacity-90 active:scale-95 transition flex items-center gap-2 shadow-sm disabled:opacity-50"
               >
-                {savingPass ? <LucideIcons.Loader2 size={16} className="animate-spin" /> : <LucideIcons.ShieldAlert size={16} />}
+                {savingPass ? <Loader2 size={16} className="animate-spin" /> : <ShieldAlert size={16} />}
                 Cambiar Contraseña
               </button>
             </div>

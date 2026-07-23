@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import * as LucideIcons from "lucide-react";
+import { Server, ChevronDown, Database, Building, ChevronUp } from "lucide-react";
 
 interface Company {
   id: number;
@@ -51,7 +51,7 @@ export function DatabasesManager({ servers, allCompanies = [] }: { servers: Serv
           >
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
-                <LucideIcons.Server size={20} />
+                <Server size={20} />
               </div>
               <div>
                 <h4 className="font-bold text-sm text-foreground flex items-center gap-2">
@@ -66,7 +66,7 @@ export function DatabasesManager({ servers, allCompanies = [] }: { servers: Serv
                 <p className="text-sm font-bold">{monolithCompanies.length}</p>
                 <p className="text-[10px] text-muted-foreground uppercase">Empresas</p>
               </div>
-              <LucideIcons.ChevronDown
+              <ChevronDown
                 size={20}
                 className={`text-muted-foreground transition-transform ${expandedServers["monolith"] ? "rotate-180" : ""}`}
               />
@@ -78,7 +78,7 @@ export function DatabasesManager({ servers, allCompanies = [] }: { servers: Serv
               <div className="bg-background rounded-lg border border-border p-4">
                 <div className="flex items-center justify-between mb-3">
                   <h5 className="text-sm font-bold flex items-center gap-2">
-                    <LucideIcons.Database size={16} className="text-indigo-500" />
+                    <Database size={16} className="text-indigo-500" />
                     inventario_produccion
                   </h5>
                 </div>
@@ -88,7 +88,7 @@ export function DatabasesManager({ servers, allCompanies = [] }: { servers: Serv
                   ) : (
                     monolithCompanies.map(c => (
                       <span key={c.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted text-xs font-semibold border border-border">
-                        <LucideIcons.Building size={12} className="text-muted-foreground" />
+                        <Building size={12} className="text-muted-foreground" />
                         {c.name}
                       </span>
                     ))
@@ -127,7 +127,7 @@ export function DatabasesManager({ servers, allCompanies = [] }: { servers: Serv
                 >
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-primary/10 text-primary rounded-lg">
-                      <LucideIcons.Server size={20} />
+                      <Server size={20} />
                     </div>
                     <div>
                       <h4 className="font-semibold">{server.name}</h4>
@@ -146,7 +146,7 @@ export function DatabasesManager({ servers, allCompanies = [] }: { servers: Serv
                         PLATAFORMA
                       </span>
                     )}
-                    {isExpanded ? <LucideIcons.ChevronUp size={18} /> : <LucideIcons.ChevronDown size={18} />}
+                    {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                   </div>
                 </div>
 
@@ -165,7 +165,7 @@ export function DatabasesManager({ servers, allCompanies = [] }: { servers: Serv
                           return (
                             <div key={dbName} className="border border-border rounded-lg bg-background p-3 shadow-sm">
                               <div className="flex items-center gap-2 mb-3">
-                                <LucideIcons.Database size={16} className="text-muted-foreground" />
+                                <Database size={16} className="text-muted-foreground" />
                                 <span className="font-mono text-sm font-semibold">{dbName}</span>
                                 <span
                                   className={`ml-auto px-2 py-0.5 text-[10px] font-bold rounded-full ${
@@ -180,7 +180,7 @@ export function DatabasesManager({ servers, allCompanies = [] }: { servers: Serv
                               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                                 {companies.map((company) => (
                                   <div key={company.id} className="flex items-center gap-2 p-2 text-sm border border-border/50 rounded-md bg-muted/30">
-                                    <LucideIcons.Building size={14} className="text-muted-foreground" />
+                                    <Building size={14} className="text-muted-foreground" />
                                     <span className="truncate">{company.name}</span>
                                   </div>
                                 ))}

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import * as LucideIcons from "lucide-react";
+import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import Link from "next/link";
 
 function PaymentResultContent() {
@@ -47,7 +47,7 @@ function PaymentResultContent() {
     <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl text-center border border-slate-200">
       {status === "LOADING" && (
         <div className="py-8">
-          <LucideIcons.Loader2 className="animate-spin text-primary mx-auto mb-4" size={48} />
+          <Loader2 className="animate-spin text-primary mx-auto mb-4" size={48} />
           <h2 className="text-2xl font-bold text-slate-800">Verificando tu pago...</h2>
           <p className="text-slate-500 mt-2">Por favor no cierres esta ventana.</p>
         </div>
@@ -56,7 +56,7 @@ function PaymentResultContent() {
       {status === "SUCCESS" && (
         <div className="py-8 animate-fade-in">
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <LucideIcons.CheckCircle2 className="text-green-500" size={40} />
+            <CheckCircle2 className="text-green-500" size={40} />
           </div>
           <h2 className="text-2xl font-bold text-slate-800 mb-2">¡Pago Exitoso!</h2>
           <p className="text-slate-600 mb-8">
@@ -74,7 +74,7 @@ function PaymentResultContent() {
       {status === "ERROR" && (
         <div className="py-8 animate-fade-in">
           <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <LucideIcons.XCircle className="text-red-500" size={40} />
+            <XCircle className="text-red-500" size={40} />
           </div>
           <h2 className="text-2xl font-bold text-slate-800 mb-2">Pago Rechazado</h2>
           <p className="text-slate-600 mb-8">
@@ -94,7 +94,7 @@ export default function PaymentResultPage() {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <Suspense fallback={
         <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl text-center border border-slate-200">
-          <LucideIcons.Loader2 className="animate-spin text-primary mx-auto mb-4" size={48} />
+          <Loader2 className="animate-spin text-primary mx-auto mb-4" size={48} />
           <h2 className="text-2xl font-bold text-slate-800">Cargando...</h2>
         </div>
       }>

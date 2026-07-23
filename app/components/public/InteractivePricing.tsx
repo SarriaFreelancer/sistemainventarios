@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import * as LucideIcons from "lucide-react";
+import { Star, Crown, Send, Check, CheckCircle, ArrowRight, ArrowLeft, Loader2, ShieldCheck } from "lucide-react";
 import { errorAlert, successAlert } from "@/lib/sweetalert";
 import { signIn, getSession } from "next-auth/react";
 
@@ -198,11 +198,11 @@ export function InteractivePricing() {
                   
                   <div className={`flex items-center gap-3 ${plan.recommended ? 'mt-6' : ''}`}>
                     {plan.recommended ? (
-                      <LucideIcons.Star size={24} className="text-amber-600 dark:text-amber-500 fill-amber-600 dark:fill-amber-500" />
+                      <Star size={24} className="text-amber-600 dark:text-amber-500 fill-amber-600 dark:fill-amber-500" />
                     ) : plan.name.includes("Premium") ? (
-                      <LucideIcons.Crown size={24} className="text-amber-600 dark:text-amber-500 fill-amber-600 dark:fill-amber-500" />
+                      <Crown size={24} className="text-amber-600 dark:text-amber-500 fill-amber-600 dark:fill-amber-500" />
                     ) : (
-                      <LucideIcons.Send size={24} className="text-red-600 dark:text-red-500 fill-red-600 dark:fill-red-500" />
+                      <Send size={24} className="text-red-600 dark:text-red-500 fill-red-600 dark:fill-red-500" />
                     )}
                     <div>
                       <div className="text-[18px] font-black text-slate-900 dark:text-white uppercase">
@@ -229,7 +229,7 @@ export function InteractivePricing() {
                     {plan.features.map((item, i) => (
                       <li key={i} className="flex items-start gap-3 text-slate-900 dark:text-slate-200 text-[13px] font-semibold">
                         <div className="w-4 h-4 rounded-full bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center shrink-0 mt-[2px]">
-                          <LucideIcons.Check size={10} className="text-amber-600 dark:text-amber-500" strokeWidth={3} />
+                          <Check size={10} className="text-amber-600 dark:text-amber-500" strokeWidth={3} />
                         </div>
                         {item}
                       </li>
@@ -275,7 +275,7 @@ export function InteractivePricing() {
                               : 'bg-white dark:bg-slate-800 text-red-600 dark:text-red-400 border border-red-600 dark:border-red-500 hover:bg-red-50 dark:hover:bg-red-950/30'
                         } ${btnDisabled && !isCurrentPlan ? 'opacity-50 cursor-not-allowed hover:bg-transparent hover:scale-100 hover:shadow-none' : ''}`}
                       >
-                        {isCurrentPlan && <LucideIcons.CheckCircle size={16} />}
+                        {isCurrentPlan && <CheckCircle size={16} />}
                         {btnLabel}
                       </button>
                     );
@@ -297,7 +297,7 @@ export function InteractivePricing() {
                   Pago anual con<br/>descuento especial
                 </p>
                 <button className="w-full py-3.5 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-[13px] border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-2">
-                  Ver todos los planes anuales <LucideIcons.ArrowRight size={16} />
+                  Ver todos los planes anuales <ArrowRight size={16} />
                 </button>
               </div>
             </div>
@@ -309,7 +309,7 @@ export function InteractivePricing() {
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-4">
                 <button onClick={() => setStep("SELECT_PLAN")} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full cursor-pointer border-none bg-transparent text-slate-500 dark:text-slate-400">
-                  <LucideIcons.ArrowLeft size={20} />
+                  <ArrowLeft size={20} />
                 </button>
                 <h3 className="text-2xl font-bold m-0 text-slate-900 dark:text-white">
                   {authMode === "REGISTER" ? `Crea tu cuenta (${selectedPlan.name})` : "Iniciar Sesión"}
@@ -362,7 +362,7 @@ export function InteractivePricing() {
               </div>
 
               <button type="submit" disabled={loading} className="w-full p-4 mt-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-extrabold border-none cursor-pointer flex justify-center items-center gap-2 disabled:opacity-70 transition-colors">
-                {loading ? <LucideIcons.Loader2 className="animate-spin" /> : (authMode === "REGISTER" ? "Registrarse y Proceder al Pago" : "Iniciar Sesión y Pagar")}
+                {loading ? <Loader2 className="animate-spin" /> : (authMode === "REGISTER" ? "Registrarse y Proceder al Pago" : "Iniciar Sesión y Pagar")}
               </button>
             </form>
           </div>
@@ -371,7 +371,7 @@ export function InteractivePricing() {
         {step === "CHECKOUT" && (
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800 shadow-xl max-w-xl mx-auto text-center shadow-[0_20px_40px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_40px_rgba(0,0,0,0.4)]">
             <div className="flex justify-center mb-4">
-              <LucideIcons.ShieldCheck size={64} className="text-emerald-500" />
+              <ShieldCheck size={64} className="text-emerald-500" />
             </div>
             <h3 className="text-[24px] font-black mb-2 text-slate-900 dark:text-white">
               {userSession ? '¡Sesión Detectada!' : '¡Registro Completado!'}

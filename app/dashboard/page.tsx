@@ -1,9 +1,14 @@
 import { prisma } from '@/lib/prisma';
 import { LayoutDashboard, Package, Tags, Factory, AlertTriangle, DollarSign, ShoppingCart, Sparkles, TrendingUp, Calendar, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
-import { DashboardCharts } from '@/components/dashboard-charts';
+import dynamic from 'next/dynamic';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { WelcomeTour } from '@/components/welcome-tour';
+
+const DashboardCharts = dynamic(() => import('@/components/dashboard-charts').then(m => m.DashboardCharts), {
+  loading: () => <div className="h-[400px] rounded-2xl bg-muted/30 animate-pulse" />
+});
+
+const WelcomeTour = dynamic(() => import('@/components/welcome-tour').then(m => m.WelcomeTour));
 
 import { redirect } from 'next/navigation';
 import { getAuthSession } from '../../auth';

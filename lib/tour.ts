@@ -1,6 +1,5 @@
 "use client";
 
-import Swal from "sweetalert2";
 import "driver.js/dist/driver.css";
 
 export async function startDashboardTour(allowedModules?: string[], userId?: string) {

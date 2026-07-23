@@ -49,13 +49,13 @@ export async function GET(request: Request) {
       return {
         'Número Orden': po.orderNumber,
         'Fecha Creación': new Date(po.createdAt).toLocaleDateString(),
-        'Fecha Esperada': po.expectedDate ? new Date(po.expectedDate).toLocaleDateString() : 'N/A',
+        'Fecha Esperada': (po as any).expectedDate ? new Date((po as any).expectedDate).toLocaleDateString() : 'N/A',
         'Proveedor': po.supplier.companyName,
-        'Subtotal': Number(po.subtotal),
-        'Impuestos': Number(po.tax),
-        'Total': Number(po.total),
-        'Estado': getStatus(po.status),
-        'Notas': po.notes || 'N/A'
+        'Subtotal': Number((po as any).subtotal),
+        'Impuestos': Number((po as any).tax),
+        'Total': Number((po as any).total),
+        'Estado': getStatus((po as any).status),
+        'Notas': (po as any).notes || 'N/A'
       };
     });
 

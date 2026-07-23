@@ -283,6 +283,7 @@ export default async function HomePage() {
       {/* ══════════════════════════════════════════
           HERO — BLANCO CON ACENTOS ROJOS Y SLATE
       ══════════════════════════════════════════ */}
+      <main>
       <section className="pt-[100px] md:pt-[140px] pb-[60px] md:pb-[100px] relative overflow-hidden bg-white dark:bg-slate-900">
         {/* Background Gradients */}
         <div className="absolute -top-[10%] -right-[5%] w-[300px] md:w-[600px] h-[300px] md:h-[600px] rounded-full pointer-events-none bg-[radial-gradient(circle,rgba(220,38,38,0.04)_0%,rgba(255,255,255,0)_70%)] dark:bg-[radial-gradient(circle,rgba(220,38,38,0.1)_0%,rgba(15,23,42,0)_70%)]" />
@@ -793,21 +794,21 @@ export default async function HomePage() {
             <form className="bg-white dark:bg-slate-950 rounded-2xl p-8 border border-slate-100 dark:border-slate-800 shadow-[0_20px_40px_rgba(0,0,0,0.04)] dark:shadow-none flex flex-col gap-5">
               <div className="flex flex-wrap gap-5">
                 <div className="flex-1 min-w-[200px]">
-                  <label className="block text-[12px] font-bold text-slate-700 dark:text-slate-300 mb-2">Nombre completo</label>
-                  <input type="text" placeholder="Tu nombre" className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-[14px] outline-none focus:border-red-500 dark:focus:border-red-500 transition-colors" />
+                  <label htmlFor="contact-name" className="block text-[12px] font-bold text-slate-700 dark:text-slate-300 mb-2">Nombre completo</label>
+                  <input id="contact-name" type="text" placeholder="Tu nombre" className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-[14px] outline-none focus:border-red-500 dark:focus:border-red-500 transition-colors" />
                 </div>
                 <div className="flex-1 min-w-[200px]">
-                  <label className="block text-[12px] font-bold text-slate-700 dark:text-slate-300 mb-2">Empresa</label>
-                  <input type="text" placeholder="Nombre de tu negocio" className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-[14px] outline-none focus:border-red-500 dark:focus:border-red-500 transition-colors" />
+                  <label htmlFor="contact-company" className="block text-[12px] font-bold text-slate-700 dark:text-slate-300 mb-2">Empresa</label>
+                  <input id="contact-company" type="text" placeholder="Nombre de tu negocio" className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-[14px] outline-none focus:border-red-500 dark:focus:border-red-500 transition-colors" />
                 </div>
               </div>
               <div>
-                <label className="block text-[12px] font-bold text-slate-700 dark:text-slate-300 mb-2">Correo electrónico</label>
-                <input type="email" placeholder="ejemplo@correo.com" className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-[14px] outline-none focus:border-red-500 dark:focus:border-red-500 transition-colors" />
+                <label htmlFor="contact-email" className="block text-[12px] font-bold text-slate-700 dark:text-slate-300 mb-2">Correo electrónico</label>
+                <input id="contact-email" type="email" placeholder="ejemplo@correo.com" className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-[14px] outline-none focus:border-red-500 dark:focus:border-red-500 transition-colors" />
               </div>
               <div>
-                <label className="block text-[12px] font-bold text-slate-700 dark:text-slate-300 mb-2">Mensaje</label>
-                <textarea placeholder="¿En qué podemos ayudarte?" rows={4} className="w-full p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-[14px] outline-none focus:border-red-500 dark:focus:border-red-500 transition-colors resize-none"></textarea>
+                <label htmlFor="contact-message" className="block text-[12px] font-bold text-slate-700 dark:text-slate-300 mb-2">Mensaje</label>
+                <textarea id="contact-message" placeholder="¿En qué podemos ayudarte?" rows={4} className="w-full p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-[14px] outline-none focus:border-red-500 dark:focus:border-red-500 transition-colors resize-none"></textarea>
               </div>
               <button type="button" className="btn-red w-full h-12 mt-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-[14px] transition-colors">
                 Enviar Mensaje
@@ -817,6 +818,7 @@ export default async function HomePage() {
 
         </div>
       </section>
+      </main>
 
       <footer className="bg-white dark:bg-slate-950 pt-[60px] px-6 pb-10 border-t border-slate-100 dark:border-slate-800">
         <div className="max-w-[1280px] mx-auto">

@@ -17,7 +17,7 @@ import {
   TrendingUp, DollarSign, Receipt, Calendar, X, Package, Check, Download, AlertTriangle
 } from "lucide-react";
 import { confirmAction, successAlert, errorAlert, brandAlert } from "@/lib/sweetalert";
-import ExcelJS from "exceljs";
+// ExcelJS se importa dinámicamente cuando se necesita exportar (await import('exceljs'))
 import { saveAs } from "file-saver";
 import { generateInvoiceMedia } from "@/lib/invoice-generator";
 
@@ -936,7 +936,7 @@ function SaleDetailDialog({ sale, invoiceConfig }: { sale: Sale; invoiceConfig?:
   );
 }
 
-function exportSalesToExcel(sales: Sale[]) {
+async function exportSalesToExcel(sales: Sale[]) {
   const rows = sales.flatMap(s =>
     s.details.map(d => ({
       'N° Venta': s.saleNumber,
@@ -957,6 +957,7 @@ function exportSalesToExcel(sales: Sale[]) {
     }))
   );
 
+  const ExcelJS = (await import('exceljs')).default;
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet('Ventas');
 

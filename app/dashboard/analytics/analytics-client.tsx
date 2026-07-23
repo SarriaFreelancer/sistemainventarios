@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import * as LucideIcons from "lucide-react";
+import { CircleDollarSign, UserCheck, ShoppingCart, Boxes, Pencil, ShieldOff, Calendar, TrendingUp, BarChart3, LayoutGrid, PieChart as PieChartIcon, Clock, Building, Shield, CheckCircle, XCircle, ShieldCheck, AlertTriangle, ShieldAlert } from "lucide-react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import {
   BarChart,
@@ -129,7 +129,7 @@ export function AnalyticsClient({ analytics, isSuperAdmin }: AnalyticsClientProp
     {
       label: `Ingresos ${suffix}`,
       value: formatCOP(analytics.crudStats.revenue || 0),
-      icon: LucideIcons.CircleDollarSign,
+      icon: CircleDollarSign,
       color: "text-emerald-500",
       bg: "bg-emerald-500/10",
       border: "border-emerald-500/20",
@@ -137,7 +137,7 @@ export function AnalyticsClient({ analytics, isSuperAdmin }: AnalyticsClientProp
     {
       label: `Usuarios activos ${suffix}`,
       value: analytics.usersToday,
-      icon: LucideIcons.UserCheck,
+      icon: UserCheck,
       color: "text-blue-500",
       bg: "bg-blue-500/10",
       border: "border-blue-500/20",
@@ -145,7 +145,7 @@ export function AnalyticsClient({ analytics, isSuperAdmin }: AnalyticsClientProp
     {
       label: `Ventas ${suffix}`,
       value: analytics.crudStats.salesCreated,
-      icon: LucideIcons.ShoppingCart,
+      icon: ShoppingCart,
       color: "text-primary",
       bg: "bg-primary/10",
       border: "border-primary/20",
@@ -153,7 +153,7 @@ export function AnalyticsClient({ analytics, isSuperAdmin }: AnalyticsClientProp
     {
       label: `Productos creados ${suffix}`,
       value: analytics.crudStats.productsCreated,
-      icon: LucideIcons.Boxes,
+      icon: Boxes,
       color: "text-violet-500",
       bg: "bg-violet-500/10",
       border: "border-violet-500/20",
@@ -161,7 +161,7 @@ export function AnalyticsClient({ analytics, isSuperAdmin }: AnalyticsClientProp
     {
       label: `Ediciones ${suffix}`,
       value: analytics.crudStats.productsUpdated,
-      icon: LucideIcons.Pencil,
+      icon: Pencil,
       color: "text-amber-500",
       bg: "bg-amber-500/10",
       border: "border-amber-500/20",
@@ -169,7 +169,7 @@ export function AnalyticsClient({ analytics, isSuperAdmin }: AnalyticsClientProp
     {
       label: `Intentos fallidos ${suffix}`,
       value: analytics.failedLogins,
-      icon: LucideIcons.ShieldOff,
+      icon: ShieldOff,
       color: "text-rose-500",
       bg: "bg-rose-500/10",
       border: "border-rose-500/20",
@@ -182,7 +182,7 @@ export function AnalyticsClient({ analytics, isSuperAdmin }: AnalyticsClientProp
       {/* Filtros de Fecha */}
       <div className="flex flex-col sm:flex-row items-center gap-3 bg-card p-4 rounded-2xl border border-border">
         <div className="flex items-center gap-2">
-          <LucideIcons.Calendar className="w-4 h-4 text-muted-foreground" />
+          <Calendar className="w-4 h-4 text-muted-foreground" />
           <span className="text-sm font-medium text-foreground">Rango de fechas:</span>
         </div>
         <input 
@@ -245,7 +245,7 @@ export function AnalyticsClient({ analytics, isSuperAdmin }: AnalyticsClientProp
         {/* Área de Ventas Mensuales */}
         <div className="lg:col-span-2 bg-card rounded-2xl border border-border p-5 shadow-sm">
           <h3 className="font-bold text-foreground mb-1 flex items-center gap-2">
-            <LucideIcons.TrendingUp size={16} className="text-primary" />
+            <TrendingUp size={16} className="text-primary" />
             Ventas Mensuales (últimos 6 meses)
           </h3>
           <p className="text-xs text-muted-foreground mb-4">
@@ -281,7 +281,7 @@ export function AnalyticsClient({ analytics, isSuperAdmin }: AnalyticsClientProp
           ) : (
             <div className="h-[240px] flex items-center justify-center text-sm text-muted-foreground">
               <div className="text-center">
-                <LucideIcons.BarChart3 size={36} className="mx-auto mb-2 opacity-30" />
+                <BarChart3 size={36} className="mx-auto mb-2 opacity-30" />
                 <p>Sin datos de ventas aún</p>
               </div>
             </div>
@@ -291,7 +291,7 @@ export function AnalyticsClient({ analytics, isSuperAdmin }: AnalyticsClientProp
         {/* Módulos más usados (Pie Chart) */}
         <div className="bg-card rounded-2xl border border-border p-5 shadow-sm">
           <h3 className="font-bold text-foreground mb-1 flex items-center gap-2">
-            <LucideIcons.LayoutGrid size={16} className="text-primary" />
+            <LayoutGrid size={16} className="text-primary" />
             Módulos más usados
           </h3>
           <p className="text-xs text-muted-foreground mb-4">
@@ -349,7 +349,7 @@ export function AnalyticsClient({ analytics, isSuperAdmin }: AnalyticsClientProp
           ) : (
             <div className="h-[200px] flex items-center justify-center text-sm text-muted-foreground">
               <div className="text-center">
-                <LucideIcons.PieChart size={36} className="mx-auto mb-2 opacity-30" />
+                <PieChartIcon size={36} className="mx-auto mb-2 opacity-30" />
                 <p>Sin datos de módulos</p>
               </div>
             </div>
@@ -362,7 +362,7 @@ export function AnalyticsClient({ analytics, isSuperAdmin }: AnalyticsClientProp
         {/* Mapa de calor horario */}
         <div className="lg:col-span-2 bg-card rounded-2xl border border-border p-5 shadow-sm">
           <h3 className="font-bold text-foreground mb-1 flex items-center gap-2">
-            <LucideIcons.Clock size={16} className="text-primary" />
+            <Clock size={16} className="text-primary" />
             Actividad por Hora del Día
           </h3>
           <p className="text-xs text-muted-foreground mb-4">
@@ -419,7 +419,7 @@ export function AnalyticsClient({ analytics, isSuperAdmin }: AnalyticsClientProp
           {isSuperAdmin && analytics.topCompanies.length > 0 && (
             <div className="bg-card rounded-2xl border border-border p-5 shadow-sm">
               <h3 className="font-bold text-foreground mb-3 text-sm flex items-center gap-2">
-                <LucideIcons.Building size={15} className="text-primary" />
+                <Building size={15} className="text-primary" />
                 Empresas más activas
               </h3>
               <div className="space-y-2">
@@ -455,13 +455,13 @@ export function AnalyticsClient({ analytics, isSuperAdmin }: AnalyticsClientProp
           {/* Resumen de Seguridad */}
           <div className="bg-card rounded-2xl border border-border p-5 shadow-sm">
             <h3 className="font-bold text-foreground mb-3 text-sm flex items-center gap-2">
-              <LucideIcons.Shield size={15} className="text-primary" />
+              <Shield size={15} className="text-primary" />
               Estado de Seguridad
             </h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-                  <LucideIcons.CheckCircle size={14} className="text-emerald-500" />
+                  <CheckCircle size={14} className="text-emerald-500" />
                   Logins exitosos hoy
                 </div>
                 <span className="text-xs font-extrabold text-emerald-500">
@@ -470,7 +470,7 @@ export function AnalyticsClient({ analytics, isSuperAdmin }: AnalyticsClientProp
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-                  <LucideIcons.XCircle size={14} className="text-rose-500" />
+                  <XCircle size={14} className="text-rose-500" />
                   Intentos fallidos hoy
                 </div>
                 <span className="text-xs font-extrabold text-rose-500">
@@ -489,17 +489,17 @@ export function AnalyticsClient({ analytics, isSuperAdmin }: AnalyticsClientProp
                 >
                   {analytics.failedLogins === 0 ? (
                     <>
-                      <LucideIcons.ShieldCheck size={14} />
+                      <ShieldCheck size={14} />
                       Sistema seguro — Sin anomalías
                     </>
                   ) : analytics.failedLogins < 5 ? (
                     <>
-                      <LucideIcons.AlertTriangle size={14} />
+                      <AlertTriangle size={14} />
                       Revisión recomendada
                     </>
                   ) : (
                     <>
-                      <LucideIcons.ShieldAlert size={14} />
+                      <ShieldAlert size={14} />
                       Alerta de seguridad activa
                     </>
                   )}

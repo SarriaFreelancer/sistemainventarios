@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import * as LucideIcons from "lucide-react";
+import { Building, Boxes, ShieldAlert, SlidersHorizontal, Receipt, Upload, Sparkles, Server, ArrowRightLeft, Database, KeyRound, DownloadCloud, Bell, Mail, Loader2, Save } from "lucide-react";
 import { updateCompanySettings } from "@/app/actions/settings-actions";
 import { generateDemoData, clearDemoData } from "@/app/actions/demo-actions";
 import { successAlert, errorAlert } from "@/lib/sweetalert";
@@ -216,7 +216,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
             activeTab === "company" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
           }`}
         >
-          <LucideIcons.Building size={16} />
+          <Building size={16} />
           Datos de Empresa
         </button>
         <button
@@ -225,7 +225,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
             activeTab === "inventory" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
           }`}
         >
-          <LucideIcons.Boxes size={16} />
+          <Boxes size={16} />
           Inventario & Ventas
         </button>
         <button
@@ -234,7 +234,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
             activeTab === "security" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
           }`}
         >
-          <LucideIcons.ShieldAlert size={16} />
+          <ShieldAlert size={16} />
           Seguridad & Sesión
         </button>
         <button
@@ -243,7 +243,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
             activeTab === "integrations" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
           }`}
         >
-          <LucideIcons.SlidersHorizontal size={16} />
+          <SlidersHorizontal size={16} />
           Respaldos & SMTP
         </button>
         <button
@@ -252,7 +252,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
             activeTab === "invoice" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
           }`}
         >
-          <LucideIcons.Receipt size={16} />
+          <Receipt size={16} />
           Facturación Personalizada
         </button>
         <button
@@ -261,7 +261,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
             activeTab === "imports" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
           }`}
         >
-          <LucideIcons.Upload size={16} />
+          <Upload size={16} />
           Importación Masiva
         </button>
         <button
@@ -270,7 +270,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
             activeTab === "onboarding" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
           }`}
         >
-          <LucideIcons.Sparkles size={16} />
+          <Sparkles size={16} />
           Datos de Prueba
         </button>
 
@@ -294,7 +294,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
                 activeTab === "servers" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
               }`}
             >
-              <LucideIcons.Server size={16} />
+              <Server size={16} />
               {isSuperAdmin ? "Servidores (Tenants)" : "Servidores Propios"}
             </button>
             <button
@@ -303,7 +303,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
                 activeTab === "migrations" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
               }`}
             >
-              <LucideIcons.ArrowRightLeft size={16} />
+              <ArrowRightLeft size={16} />
               Migraciones
             </button>
           </>
@@ -317,7 +317,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
                 activeTab === "databases" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
               }`}
             >
-              <LucideIcons.Database size={16} />
+              <Database size={16} />
               Bases de Datos
             </button>
             <button
@@ -326,7 +326,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
                 activeTab === "licenses" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
               }`}
             >
-              <LucideIcons.KeyRound size={16} />
+              <KeyRound size={16} />
               Licencias y Suscripciones
             </button>
           </>
@@ -374,7 +374,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
         {activeTab === "company" && (
           <div className="space-y-4">
             <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-              <LucideIcons.Building size={18} className="text-primary" />
+              <Building size={18} className="text-primary" />
               Parámetros de la Organización
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -446,7 +446,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
         {activeTab === "inventory" && (
           <div className="space-y-4">
             <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-              <LucideIcons.Boxes size={18} className="text-primary" />
+              <Boxes size={18} className="text-primary" />
               Lógica Comercial & Control de Stock
             </h3>
 
@@ -558,7 +558,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
         {activeTab === "security" && (
           <div className="space-y-4">
             <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-              <LucideIcons.ShieldAlert size={18} className="text-primary" />
+              <ShieldAlert size={18} className="text-primary" />
               Políticas de Acceso y Contraseñas
             </h3>
 
@@ -620,7 +620,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
             {/* Sección de Backups */}
             <div className="space-y-3 pb-4 border-b border-border/60">
               <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-                <LucideIcons.Database size={18} className="text-primary" />
+                <Database size={18} className="text-primary" />
                 Respaldo de Base de Datos
               </h3>
               <p className="text-xs text-muted-foreground">Genera copias completas en archivo SQL para salvaguardar tu inventario.</p>
@@ -731,7 +731,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
                     onClick={triggerManualBackup}
                     className="bg-secondary/15 hover:bg-secondary/25 border border-border font-bold text-foreground px-5 py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 h-[42px] transition active:scale-95 shadow-sm whitespace-nowrap"
                   >
-                    <LucideIcons.DownloadCloud size={16} />
+                    <DownloadCloud size={16} />
                     Generar Respaldo Ahora
                   </button>
                 </div>
@@ -741,7 +741,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
             {/* Configuración de Notificaciones Internas */}
             <div className="space-y-3 pb-4 border-b border-border/60">
               <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-                <LucideIcons.Bell size={18} className="text-primary" />
+                <Bell size={18} className="text-primary" />
                 Centro de Notificaciones
               </h3>
               <div className="flex items-center justify-between p-4 border border-border/80 bg-muted/10 rounded-2xl">
@@ -761,7 +761,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
             {/* Configuración SMTP */}
             <div className="space-y-3">
               <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-                <LucideIcons.Mail size={18} className="text-primary" />
+                <Mail size={18} className="text-primary" />
                 Servidor de Correo Saliente (SMTP)
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -818,7 +818,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
           <div className="space-y-6">
             <div>
               <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-                <LucideIcons.Receipt size={18} className="text-primary" />
+                <Receipt size={18} className="text-primary" />
                 Personalización de Facturas
               </h3>
               <p className="text-xs text-muted-foreground mt-1">Define la apariencia visual y la información legal que se reflejará en tus facturas en PDF e imágenes.</p>
@@ -980,7 +980,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
             disabled={saving}
             className="bg-primary text-primary-foreground font-semibold px-6 py-3 rounded-xl text-sm hover:opacity-90 active:scale-95 transition flex items-center gap-2 shadow-md shadow-primary/20 disabled:opacity-50"
           >
-            {saving ? <LucideIcons.Loader2 size={16} className="animate-spin" /> : <LucideIcons.Save size={16} />}
+            {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
             Guardar Configuración
           </button>
         </div>

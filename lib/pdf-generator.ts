@@ -1,5 +1,4 @@
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+// jsPDF y jspdf-autotable se importan dinámicamente en cada función
 
 interface CompanyData {
   name: string;
@@ -8,7 +7,9 @@ interface CompanyData {
   phone?: string;
 }
 
-export function generateInvoicePDF(sale: any, company: CompanyData = { name: 'GNS SarriaTech' }) {
+export async function generateInvoicePDF(sale: any, company: CompanyData = { name: 'GNS SarriaTech' }) {
+  const jsPDF = (await import('jspdf')).default;
+  await import('jspdf-autotable');
   const doc = new jsPDF();
   
   // Header
@@ -77,7 +78,9 @@ export function generateInvoicePDF(sale: any, company: CompanyData = { name: 'GN
 }
 
 
-export function generatePayrollReceiptPDF(payrollDetail: any, payroll: any, company: CompanyData = { name: 'GNS SarriaTech' }) {
+export async function generatePayrollReceiptPDF(payrollDetail: any, payroll: any, company: CompanyData = { name: 'GNS SarriaTech' }) {
+  const jsPDF = (await import('jspdf')).default;
+  await import('jspdf-autotable');
   const doc = new jsPDF();
   const emp = payrollDetail.employee;
 

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import * as LucideIcons from "lucide-react";
+import { Server, Plus, Edit2, Trash2, X } from "lucide-react";
 import { createServer, updateServer, deleteServer } from "@/app/actions/server-actions";
 import { successAlert, errorAlert, confirmAction } from "@/lib/sweetalert";
 import { useRouter } from "next/navigation";
@@ -121,14 +121,14 @@ export function ServersManager({ servers }: { servers: any[] }) {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-          <LucideIcons.Server size={18} className="text-primary" />
+          <Server size={18} className="text-primary" />
           Infraestructura de Servidores
         </h3>
         <button
           onClick={() => openModal()}
           className="bg-primary text-primary-foreground px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 hover:bg-primary/90 transition"
         >
-          <LucideIcons.Plus size={16} /> Agregar Servidor
+          <Plus size={16} /> Agregar Servidor
         </button>
       </div>
 
@@ -142,10 +142,10 @@ export function ServersManager({ servers }: { servers: any[] }) {
               </div>
               <div className="flex gap-2">
                 <button onClick={() => openModal(s)} className="text-muted-foreground hover:text-primary transition">
-                  <LucideIcons.Edit2 size={16} />
+                  <Edit2 size={16} />
                 </button>
                 <button onClick={() => handleDelete(s.id)} className="text-muted-foreground hover:text-destructive transition">
-                  <LucideIcons.Trash2 size={16} />
+                  <Trash2 size={16} />
                 </button>
               </div>
             </div>
@@ -180,7 +180,7 @@ export function ServersManager({ servers }: { servers: any[] }) {
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-bold text-lg">{editingServer ? 'Editar Servidor' : 'Nuevo Servidor'}</h3>
               <button onClick={() => setIsModalOpen(false)} className="text-muted-foreground hover:text-foreground">
-                <LucideIcons.X size={20} />
+                <X size={20} />
               </button>
             </div>
 

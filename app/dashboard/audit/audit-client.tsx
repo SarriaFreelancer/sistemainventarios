@@ -2,7 +2,7 @@
 
 import React, { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import * as LucideIcons from "lucide-react";
+import { Chrome, Globe, Compass, Laptop, Smartphone, Tablet, Monitor, Search, Loader2, SlidersHorizontal, ShieldAlert, ChevronLeft, ChevronRight, X } from "lucide-react";
 
 interface AuditLog {
   id: number;
@@ -83,19 +83,19 @@ export function AuditClient({
   // Helper para iconos de Navegador
   const getBrowserIcon = (browserName: string | null) => {
     const name = (browserName || "").toLowerCase();
-    if (name.includes("chrome")) return <LucideIcons.Chrome size={14} className="text-amber-500" />;
-    if (name.includes("edge")) return <LucideIcons.Globe size={14} className="text-blue-500" />;
-    if (name.includes("firefox")) return <LucideIcons.Globe size={14} className="text-orange-500" />;
-    if (name.includes("safari")) return <LucideIcons.Compass size={14} className="text-sky-500" />;
-    return <LucideIcons.Laptop size={14} className="text-muted-foreground" />;
+    if (name.includes("chrome")) return <Chrome size={14} className="text-amber-500" />;
+    if (name.includes("edge")) return <Globe size={14} className="text-blue-500" />;
+    if (name.includes("firefox")) return <Globe size={14} className="text-orange-500" />;
+    if (name.includes("safari")) return <Compass size={14} className="text-sky-500" />;
+    return <Laptop size={14} className="text-muted-foreground" />;
   };
 
   // Helper para iconos de Dispositivo
   const getDeviceIcon = (device: string | null) => {
     const dev = (device || "").toLowerCase();
-    if (dev.includes("móvil") || dev.includes("mobile")) return <LucideIcons.Smartphone size={14} />;
-    if (dev.includes("tablet")) return <LucideIcons.Tablet size={14} />;
-    return <LucideIcons.Monitor size={14} />;
+    if (dev.includes("móvil") || dev.includes("mobile")) return <Smartphone size={14} />;
+    if (dev.includes("tablet")) return <Tablet size={14} />;
+    return <Monitor size={14} />;
   };
 
   // Comparador de diferencias de campos
@@ -163,7 +163,7 @@ export function AuditClient({
       <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-card p-4 rounded-2xl border border-border shadow-sm">
         <form onSubmit={handleSearch} className="flex gap-2 w-full sm:max-w-md">
           <div className="relative flex-1">
-            <LucideIcons.Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               placeholder="Buscar por módulo, acción, usuario o descripción..."
@@ -177,7 +177,7 @@ export function AuditClient({
             disabled={isPending}
             className="bg-primary text-primary-foreground font-semibold px-4 py-2.5 rounded-xl text-sm hover:opacity-90 active:scale-95 transition flex items-center gap-2 shadow-sm"
           >
-            {isPending ? <LucideIcons.Loader2 size={16} className="animate-spin" /> : <LucideIcons.SlidersHorizontal size={16} />}
+            {isPending ? <Loader2 size={16} className="animate-spin" /> : <SlidersHorizontal size={16} />}
             Filtrar
           </button>
         </form>
@@ -191,7 +191,7 @@ export function AuditClient({
       {initialLogs.length === 0 ? (
         <div className="bg-card rounded-2xl border border-border p-12 text-center shadow-sm">
           <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center text-muted-foreground mb-4">
-            <LucideIcons.ShieldAlert size={24} />
+            <ShieldAlert size={24} />
           </div>
           <h3 className="font-semibold text-lg text-foreground">Sin registros de auditoría</h3>
           <p className="text-sm text-muted-foreground mt-1">No se encontraron registros de auditoría con los parámetros indicados.</p>
@@ -277,7 +277,7 @@ export function AuditClient({
                 disabled={currentPage === 1 || isPending}
                 className="flex items-center gap-1 px-4 py-2 border border-border rounded-xl text-sm font-semibold bg-card text-foreground hover:bg-muted disabled:opacity-50 disabled:hover:bg-card transition"
               >
-                <LucideIcons.ChevronLeft size={16} />
+                <ChevronLeft size={16} />
                 Anterior
               </button>
               <span className="text-sm text-muted-foreground font-medium">
@@ -289,7 +289,7 @@ export function AuditClient({
                 className="flex items-center gap-1 px-4 py-2 border border-border rounded-xl text-sm font-semibold bg-card text-foreground hover:bg-muted disabled:opacity-50 disabled:hover:bg-card transition"
               >
                 Siguiente
-                <LucideIcons.ChevronRight size={16} />
+                <ChevronRight size={16} />
               </button>
             </div>
           )}
@@ -315,7 +315,7 @@ export function AuditClient({
                 onClick={() => setSelectedLog(null)}
                 className="rounded-full border border-border bg-card p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition"
               >
-                <LucideIcons.X size={18} />
+                <X size={18} />
               </button>
             </div>
 

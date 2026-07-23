@@ -4,8 +4,10 @@ import { useState, useTransition, useMemo, useEffect } from "react";
 import { deleteProduct, quickSellProduct } from "@/app/actions/product-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { EditProductDialog } from "@/components/edit-product-dialog";
-import { CreateProductDialog } from "@/components/create-product-dialog";
+import dynamic from 'next/dynamic';
+
+const EditProductDialog = dynamic(() => import('@/components/edit-product-dialog').then(mod => mod.EditProductDialog), { ssr: false });
+const CreateProductDialog = dynamic(() => import('@/components/create-product-dialog').then(mod => mod.CreateProductDialog), { ssr: false });
 import {
   Package, Trash2, TrendingUp, Archive, DollarSign, ShoppingCart,
   Search, SlidersHorizontal, ChevronUp, ChevronDown, ChevronsUpDown, Folder

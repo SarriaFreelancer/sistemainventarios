@@ -28,6 +28,7 @@ export function LandingAuthNav({ user }: LandingAuthNavProps) {
         {mounted && (
           <button 
             onClick={toggleTheme}
+            aria-label="Cambiar tema"
             className="p-1.5 sm:p-2 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             {theme === 'dark' ? <Sun size={20} className="text-slate-300" /> : <Moon size={20} className="text-slate-600" />}
@@ -54,6 +55,7 @@ export function LandingAuthNav({ user }: LandingAuthNavProps) {
       {mounted && (
         <button 
           onClick={toggleTheme}
+          aria-label="Cambiar tema"
           className="p-2 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
         >
           {theme === 'dark' ? <Sun size={20} className="text-slate-300" /> : <Moon size={20} className="text-slate-600" />}

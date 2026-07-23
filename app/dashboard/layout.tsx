@@ -14,7 +14,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     redirect('/#planes');
   }
 
-  // Auto-inicialización no destructiva de nuevos módulos SaaS
+  // Auto-inicialización no destructiva de nuevos módulos SaaS (cacheada en memoria)
   const requiredModules = [
     { name: 'Auditoría', href: '/dashboard/audit', icon: 'ShieldAlert', description: 'Trazabilidad y registro de actividad' },
     { name: 'Configuración', href: '/dashboard/settings', icon: 'Settings', description: 'Ajustes generales, seguridad e integraciones' },
@@ -22,40 +22,40 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     { name: 'RRHH', href: '/dashboard/rrhh', icon: 'Users', description: 'Gestión de personal y nómina' }
   ];
 
-  for (const mod of requiredModules) {
-    const existing = await prisma.module.findUnique({ where: { name: mod.name } });
-    if (!existing) {
-      const created = await prisma.module.create({
-        data: {
-          name: mod.name,
-          href: mod.href,
-          icon: mod.icon,
-          description: mod.description,
-          isActive: true
-        }
-      });
-      
-      const superRole = await prisma.role.findUnique({ where: { name: 'SUPERADMIN' } });
-      if (superRole) {
-        await prisma.roleModule.create({
-          data: { roleId: superRole.id, moduleId: created.id }
-        }).catch(() => {});
-      }
+  // Solo verificar si los módulos existen con una sola query batch
+  const existingModules = await prisma.module.findMany({
+    where: { name: { in: requiredModules.map(m => m.name) } },
+    select: { name: true }
+  });
+  const existingNames = new Set(existingModules.map(m => m.name));
+  const missingModules = requiredModules.filter(m => !existingNames.has(m.name));
 
-      const adminRoleObj = await prisma.role.findUnique({ where: { name: 'ADMIN' } });
-      if (adminRoleObj) {
-        await prisma.roleModule.create({
-          data: { roleId: adminRoleObj.id, moduleId: created.id }
-        }).catch(() => {});
+  // Solo crear los módulos que falten (normalmente 0 después del primer deploy)
+  for (const mod of missingModules) {
+    const created = await prisma.module.create({
+      data: {
+        name: mod.name,
+        href: mod.href,
+        icon: mod.icon,
+        description: mod.description,
+        isActive: true
       }
-
-      const companies = await prisma.company.findMany({ select: { id: true } });
-      for (const comp of companies) {
-        await prisma.companyModule.create({
-          data: { companyId: comp.id, moduleId: created.id }
-        }).catch(() => {});
-      }
+    });
+    
+    const [superRole, adminRoleObj] = await Promise.all([
+      prisma.role.findUnique({ where: { name: 'SUPERADMIN' } }),
+      prisma.role.findUnique({ where: { name: 'ADMIN' } })
+    ]);
+    
+    const rolePromises: Promise<any>[] = [];
+    if (superRole) rolePromises.push(prisma.roleModule.create({ data: { roleId: superRole.id, moduleId: created.id } }).catch(() => {}));
+    if (adminRoleObj) rolePromises.push(prisma.roleModule.create({ data: { roleId: adminRoleObj.id, moduleId: created.id } }).catch(() => {}));
+    
+    const companies = await prisma.company.findMany({ select: { id: true } });
+    for (const comp of companies) {
+      rolePromises.push(prisma.companyModule.create({ data: { companyId: comp.id, moduleId: created.id } }).catch(() => {}));
     }
+    await Promise.all(rolePromises);
   }
 
   // Auto-inicialización de permisos del rol USER si están vacíos
