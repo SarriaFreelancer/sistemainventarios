@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, User, DollarSign, Calendar, FileText } from 'lucide-react';
 import { PayrollActions } from './components/PayrollActions';
+import { PayrollDownloader } from './components/PayrollDownloader';
 
 export const metadata = {
   title: 'Detalle de Nómina · RRHH',
@@ -122,6 +123,7 @@ export default async function PayrollDetailPage(props: { params: Promise<{ id: s
                 <th className="px-6 py-4 font-medium text-right text-emerald-500">Adiciones</th>
                 <th className="px-6 py-4 font-medium text-right text-rose-500">Deducciones</th>
                 <th className="px-6 py-4 font-medium text-right text-emerald-500">Neto a Pagar</th>
+                <th className="px-6 py-4 font-medium text-center">Acción</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -145,6 +147,13 @@ export default async function PayrollDetailPage(props: { params: Promise<{ id: s
                   </td>
                   <td className="px-6 py-4 text-right font-bold text-emerald-600">
                     {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(detail.netPay)}
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <PayrollDownloader 
+                      payrollDetail={detail} 
+                      payroll={payroll} 
+                      companyName="GNS SarriaTech" 
+                    />
                   </td>
                 </tr>
               ))}

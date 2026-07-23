@@ -93,7 +93,7 @@ export async function createPurchasePayment(payableId: number, amount: number, p
       data: {
         accountsPayableId: payable.id,
         amount,
-        paymentMethod,
+        paymentMethod: paymentMethod as any,
         reference,
         companyId: companyId!,
       },

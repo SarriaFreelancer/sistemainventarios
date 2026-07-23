@@ -172,7 +172,7 @@ export async function updatePurchaseOrderStatus(id: number, status: 'DRAFT' | 'S
   }
 }
 
-export async function updatePurchaseInvoiceStatus(id: number, status: 'PENDING' | 'PARTIAL' | 'PAID' | 'CANCELLED') {
+export async function updatePurchaseInvoiceStatus(id: number, status: 'PENDING' | 'PARTIALLY_PAID' | 'PAID' | 'CANCELLED') {
   try {
     const session = await getAuthSession();
     if (!session?.user?.id) throw new Error("No autenticado");

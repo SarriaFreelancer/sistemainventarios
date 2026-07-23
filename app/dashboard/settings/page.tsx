@@ -61,20 +61,33 @@ export default async function SettingsPage() {
         </p>
       </div>
 
-      {(result.success && result.settings) || isSuperAdmin ? (
-        <SettingsClient 
-          initialSettings={result.settings as any} 
-          role={session.user.role} 
-          initialServers={servers}
-          dedicatedCompanies={allCompanies}
-          canManageServers={canManageServers}
-        />
-      ) : (
-        <div className="rounded-2xl border border-destructive/20 bg-destructive/10 p-6 text-destructive">
-          <p className="font-semibold">Error al cargar configuración</p>
-          <p className="text-sm">{result.error || "Ocurrió un error inesperado."}</p>
-        </div>
-      )}
+      {(() => {
+        const fallbackSettings = {
+          nit: "", phone: "", website: "", currency: "COP", timezone: "America/Bogota", dateFormat: "DD/MM/YYYY", currencyFormat: "$",
+          allowNegativeStock: false, automaticCode: true, decimals: 0, defaultIva: 19,
+          invoicePrefix: "FAC", invoiceConsecutive: 1, purchasePrefix: "COM", purchaseConsecutive: 1,
+          passwordMinLength: 8, maxLoginAttempts: 5, sessionTimeoutMinutes: 60, enable2FA: false,
+          smtpHost: "", smtpPort: 587, smtpUser: "", smtpPass: "",
+          backupFrequency: "DAILY", backupTime: "02:00", backupDay: 1, backupPath: "", enableNotifications: true,
+          invoiceConfig: {}
+        };
+        const finalSettings = result.settings || fallbackSettings;
+
+        return ((result.success && result.settings) || isSuperAdmin) ? (
+          <SettingsClient 
+            initialSettings={finalSettings as any} 
+            role={session.user.role} 
+            initialServers={servers}
+            dedicatedCompanies={allCompanies}
+            canManageServers={canManageServers}
+          />
+        ) : (
+          <div className="rounded-2xl border border-destructive/20 bg-destructive/10 p-6 text-destructive">
+            <p className="font-semibold">Error al cargar configuración</p>
+            <p className="text-sm">{result.error || "Ocurrió un error inesperado."}</p>
+          </div>
+        );
+      })()}
     </div>
   );
 }

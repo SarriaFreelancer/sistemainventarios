@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import * as LucideIcons from "lucide-react";
 import { updateCompanySettings } from "@/app/actions/settings-actions";
+import { generateDemoData, clearDemoData } from "@/app/actions/demo-actions";
 import { successAlert, errorAlert } from "@/lib/sweetalert";
 import { useRouter } from "next/navigation";
 import { ServersManager } from "./servers-manager";
@@ -10,6 +11,7 @@ import { MigrationsManager } from "./migrations-manager";
 import { DatabasesManager } from "./databases-manager";
 import { LicensesManager } from "./licenses-manager";
 import { ImportsManager } from "./imports-manager";
+import { OnboardingManager } from "./onboarding-manager";
 
 interface CompanySetting {
   id: number;
@@ -56,7 +58,7 @@ interface SettingsClientProps {
 
 export function SettingsClient({ initialSettings, role, initialServers = [], dedicatedCompanies = [], canManageServers = false }: SettingsClientProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"company" | "inventory" | "security" | "integrations" | "invoice" | "imports" | "servers" | "databases" | "migrations" | "licenses">("company");
+  const [activeTab, setActiveTab] = useState<"company" | "inventory" | "security" | "integrations" | "invoice" | "imports" | "servers" | "databases" | "migrations" | "licenses" | "onboarding">("company");
   const [saving, setSaving] = useState(false);
   const isSuperAdmin = role === "SUPERADMIN";
 
@@ -261,6 +263,15 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
           <LucideIcons.Upload size={16} />
           Importación Masiva
         </button>
+        <button
+          onClick={() => setActiveTab("onboarding")}
+          className={`flex w-full items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold transition ${
+            activeTab === "onboarding" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
+          }`}
+        >
+          <LucideIcons.Sparkles size={16} />
+          Datos de Prueba
+        </button>
 
         {isSuperAdmin && (
           <div className="pt-4 pb-1">
@@ -343,8 +354,14 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
 
         {activeTab === "licenses" && isSuperAdmin && (
           <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
-            {/* The initialServers logic isn't perfect, we need companies! Let's pass dedicatedCompanies for now, or we might need to fetch them. */}
             <LicensesManager companies={dedicatedCompanies as any} />
+          </div>
+        )}
+
+        {/* PESTAÑA: ONBOARDING */}
+        {activeTab === "onboarding" && (
+          <div className="bg-card rounded-2xl border border-border p-6 shadow-sm animate-in fade-in zoom-in-95">
+            <OnboardingManager />
           </div>
         )}
 

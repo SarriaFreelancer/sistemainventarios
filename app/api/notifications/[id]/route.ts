@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 // DELETE: Eliminar una notificación específica
 export async function DELETE(
   _req: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getAuthSession();
@@ -15,7 +15,8 @@ export async function DELETE(
       return NextResponse.json({ success: false }, { status: 401 });
     }
 
-    const id = Number(params.id);
+    const { id: rawId } = await context.params;
+    const id = Number(rawId);
     if (isNaN(id)) {
       return NextResponse.json({ success: false, error: 'ID inválido' }, { status: 400 });
     }

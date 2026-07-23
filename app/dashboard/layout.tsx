@@ -123,6 +123,11 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
       .filter(m => m.isActive && m.href !== '/dashboard/companies');
   }
 
+  // Garantizar que "Configuración" quede de último
+  const settingsModule = allowedModules.find(m => m.href === '/dashboard/settings');
+  const otherModules = allowedModules.filter(m => m.href !== '/dashboard/settings');
+  allowedModules = settingsModule ? [...otherModules, settingsModule] : otherModules;
+
   return (
     <DashboardShell session={session} modules={allowedModules} themeConfig={companyTheme} companyName={companyName}>
       {children}

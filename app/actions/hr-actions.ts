@@ -11,7 +11,7 @@ async function resolveActionCompanyId() {
     const session = await getAuthSession();
     if (!session?.user?.id) throw new Error("No autenticado");
     const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: Number(session.user.id) },
       select: { companyId: true, role: { select: { name: true } } },
     });
     if (user?.role?.name === "SUPERADMIN") {

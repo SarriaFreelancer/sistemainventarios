@@ -3,6 +3,7 @@ import { LayoutDashboard, Package, Tags, Factory, AlertTriangle, DollarSign, Sho
 import Link from 'next/link';
 import { DashboardCharts } from '@/components/dashboard-charts';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { WelcomeTour } from '@/components/welcome-tour';
 
 import { redirect } from 'next/navigation';
 import { getAuthSession } from '../../auth';
@@ -197,6 +198,7 @@ export default async function DashboardHomePage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
+      <WelcomeTour modules={allowedModules.map(m => m.name)} />
 
       {/* ── Header Premium ── */}
       <div className="p-8 rounded-[32px] bg-card border border-border shadow-md shadow-primary/5 relative overflow-hidden transition-colors duration-500">
@@ -227,7 +229,7 @@ export default async function DashboardHomePage() {
       </div>
 
       {/* ── KPI Cards ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div id="tour-dashboard-kpi" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
         {/* KPI 1: Productos */}
         <div className="p-6 rounded-[24px] bg-card border border-border shadow-sm flex flex-col justify-between h-36 hover:shadow-md hover:border-primary/20 transition-all duration-300 group">
@@ -295,7 +297,7 @@ export default async function DashboardHomePage() {
       </div>
 
       {/* ── Gráficos de Recharts ── */}
-      <div className="space-y-6">
+      <div id="tour-dashboard-stats" className="space-y-6">
         <DashboardCharts
           salesByMonth={salesByMonth}
           topProducts={topProducts}

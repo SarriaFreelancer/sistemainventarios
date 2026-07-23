@@ -81,14 +81,15 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
           </div>
           
           <nav className="space-y-1.5 flex-1">
-            {(modules || []).map((item) => {
-                const IconComponent = item.icon && (LucideIcons as any)[item.icon] ? (LucideIcons as any)[item.icon] : LucideIcons.Folder;
-                const itemHref = item.href || '#';
+            {(modules || []).map((module) => {
+                const IconComponent = module.icon && (LucideIcons as any)[module.icon] ? (LucideIcons as any)[module.icon] : LucideIcons.Folder;
+                const itemHref = module.href || '#';
                 const isActive = pathname === itemHref || (itemHref !== '/dashboard' && pathname.startsWith(itemHref));
                 return (
                   <Link
-                    key={item.id}
+                    key={module.id}
                     href={itemHref}
+                    id={`tour-nav-${module.name.toLowerCase().replace(/\s+/g, '-')}`}
                     className={cn(
                       "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all duration-300",
                       isActive
@@ -97,7 +98,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                     )}
                   >
                     <IconComponent size={18} />
-                    {item.name}
+                    {module.name}
                   </Link>
                 );
               })}
@@ -135,6 +136,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
               <NotificationBell />
               {/* Theme Toggle Button */}
               <button
+                id="tour-theme-toggle"
                 className="rounded-xl border border-border bg-card p-2.5 text-foreground hover:bg-muted transition-all active:scale-95 shadow-sm"
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                 aria-label="Cambiar Tema"
@@ -145,6 +147,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
               {/* User Dropdown */}
               <div className="relative">
                 <button
+                  id="tour-profile-menu"
                   onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
                   className="flex items-center gap-2.5 rounded-xl border border-border bg-card p-1.5 pr-3 text-foreground hover:bg-muted transition-all active:scale-95 shadow-sm"
                 >
