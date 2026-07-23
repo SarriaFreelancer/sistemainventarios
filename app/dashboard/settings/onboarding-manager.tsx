@@ -8,13 +8,13 @@ import { generateDemoData, clearDemoData } from "@/app/actions/demo-actions";
 import { useRouter } from "next/navigation";
 import { startDashboardTour } from "@/lib/tour";
 
-export function OnboardingManager() {
+export function OnboardingManager({ userId }: { userId: string }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [cleaning, setCleaning] = useState(false);
 
   const handleRestartTour = async () => {
-    localStorage.removeItem("gns_sarriatech_tour_completed");
+    localStorage.removeItem(`gns_sarriatech_tour_completed_${userId}`);
     router.push("/dashboard");
   };
 

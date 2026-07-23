@@ -198,7 +198,7 @@ export default async function DashboardHomePage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      <WelcomeTour modules={allowedModules.map(m => m.name)} />
+      <WelcomeTour modules={allowedModules.map(m => m.name)} userId={session.user.id} />
 
       {/* ── Header Premium ── */}
       <div className="p-8 rounded-[32px] bg-card border border-border shadow-md shadow-primary/5 relative overflow-hidden transition-colors duration-500">

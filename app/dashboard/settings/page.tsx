@@ -80,6 +80,7 @@ export default async function SettingsPage() {
             initialServers={servers}
             dedicatedCompanies={allCompanies}
             canManageServers={canManageServers}
+            userId={session.user.id}
           />
         ) : (
           <div className="rounded-2xl border border-destructive/20 bg-destructive/10 p-6 text-destructive">

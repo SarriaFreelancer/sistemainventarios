@@ -3,9 +3,9 @@
 import Swal from "sweetalert2";
 import "driver.js/dist/driver.css";
 
-export async function startDashboardTour(allowedModules?: string[]) {
+export async function startDashboardTour(allowedModules?: string[], userId?: string) {
   const { driver } = await import("driver.js");
-  const tourKey = "gns_sarriatech_tour_completed";
+  const tourKey = userId ? `gns_sarriatech_tour_completed_${userId}` : "gns_sarriatech_tour_completed";
 
   const hasModule = (name: string) => allowedModules?.some(m => m.toLowerCase() === name.toLowerCase());
 

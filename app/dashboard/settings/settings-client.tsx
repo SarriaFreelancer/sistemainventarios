@@ -54,9 +54,10 @@ interface SettingsClientProps {
   initialServers?: any[];
   dedicatedCompanies?: { id: number; name: string }[];
   canManageServers?: boolean;
+  userId: string;
 }
 
-export function SettingsClient({ initialSettings, role, initialServers = [], dedicatedCompanies = [], canManageServers = false }: SettingsClientProps) {
+export function SettingsClient({ initialSettings, role, initialServers = [], dedicatedCompanies = [], canManageServers = false, userId }: SettingsClientProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"company" | "inventory" | "security" | "integrations" | "invoice" | "imports" | "servers" | "databases" | "migrations" | "licenses" | "onboarding">("company");
   const [saving, setSaving] = useState(false);
@@ -361,7 +362,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
         {/* PESTAÑA: ONBOARDING */}
         {activeTab === "onboarding" && (
           <div className="bg-card rounded-2xl border border-border p-6 shadow-sm animate-in fade-in zoom-in-95">
-            <OnboardingManager />
+            <OnboardingManager userId={userId} />
           </div>
         )}
 
