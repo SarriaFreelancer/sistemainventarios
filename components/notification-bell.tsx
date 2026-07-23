@@ -31,6 +31,13 @@ export function NotificationBell() {
   const pollNotifications = useCallback(async (showToasts = false) => {
     try {
       const res = await fetch('/api/notifications', { cache: 'no-store' });
+      
+      if (res.status === 401) {
+        // Si la sesión expiró (ej. cerró sesión en otra pestaña), redirigir al login
+        window.location.href = '/auth/login';
+        return;
+      }
+
       if (!res.ok) return;
       const json = await res.json();
       if (json.success && json.data) {
@@ -128,7 +135,7 @@ export function NotificationBell() {
         </Button>
       </DropdownMenuTrigger>
       
-      <DropdownMenuContent align="end" className="w-[480px] p-0 border-border/60 shadow-2xl rounded-2xl overflow-hidden">
+      <DropdownMenuContent align="end" className="w-[calc(100vw-2rem)] sm:w-[480px] p-0 border-border/60 shadow-2xl rounded-2xl overflow-hidden">
         <DropdownMenuHeader className="p-4 border-b border-border/50 bg-muted/30 flex flex-row items-center justify-between">
           <div>
             <h3 className="font-semibold text-sm">Notificaciones</h3>
