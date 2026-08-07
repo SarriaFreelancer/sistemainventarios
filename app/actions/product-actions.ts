@@ -4,10 +4,11 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { withTenantWhere, withTenantData } from '@/lib/tenant-db';
-import { getSessionCompanyId } from '@/lib/session';
+import { getSessionCompanyId, resolveActionCompanyId } from '@/lib/session';
 import { ProductStatus, ProductType } from '@prisma/client';
 import { logActivity } from '@/lib/audit';
 import { getPlanLimits } from '@/lib/plans';
+import { createNotification } from '@/app/actions/notification-actions';
 
 const productSchema = z.object({
   code: z.string().min(2, 'El código es obligatorio'),
@@ -230,8 +231,8 @@ export async function quickSellProduct(data: {
       return { success: false, error: `Stock insuficiente. Disponible: ${product.quantityAvailable} unidades.` };
     }
 
-    const companyId = await getSessionCompanyId();
-    if (!companyId) return { success: false, error: 'No autorizado o sin empresa' };
+    const companyId = product.companyId ?? (await resolveActionCompanyId());
+    if (!companyId) return { success: false, error: 'No fue posible determinar la empresa para la venta' };
 
     // Verificar si la empresa tiene el módulo de Ventas habilitado
     const salesModule = await prisma.module.findUnique({ where: { name: 'Ventas' } });
@@ -328,6 +329,30 @@ export async function quickSellProduct(data: {
         ? `Venta rápida "${result.saleNumber}" creada como PENDIENTE desde Productos. Requiere completarse en el módulo Ventas.`
         : `Venta rápida "${result.saleNumber}" completada automáticamente desde Productos. Stock descontado.`,
     });
+
+    // Enviar notificaciones a los usuarios de la empresa
+    const companyUsers = await prisma.user.findMany({ where: { companyId } });
+    if (hasSalesModule) {
+      for (const user of companyUsers) {
+        await createNotification(
+          user.id,
+          companyId,
+          '⚠️ Venta Pendiente Registrada',
+          `Venta rápida #${result.saleNumber} por $${result.total?.toLocaleString('es-CO')} fue creada como PENDIENTE. Completa el cobro en el módulo de Ventas.`,
+          'WARNING'
+        );
+      }
+    } else {
+      for (const user of companyUsers) {
+        await createNotification(
+          user.id,
+          companyId,
+          'Venta Rápida Completada',
+          `Venta rápida #${result.saleNumber} por $${result.total?.toLocaleString('es-CO')} registrada con éxito.`,
+          'SUCCESS'
+        );
+      }
+    }
 
     revalidatePath('/dashboard/products');
     revalidatePath('/dashboard/sales');

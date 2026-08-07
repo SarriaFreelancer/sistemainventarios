@@ -49,12 +49,12 @@ export async function getSystemAnalytics(startDateStr?: string, endDateStr?: str
       }
     });
     
-    // 4. Conteo de acciones de auditoría (CRUD en el periodo)
-    const productsCreatedToday = await prisma.auditLog.count({
-      where: { module: "PRODUCTS", action: "CREATE", createdAt: { gte: periodStart, lte: periodEnd }, ...tenantWhere }
+    // 4. Conteo real de productos creados y actualizados en el periodo
+    const productsCreatedToday = await prisma.product.count({
+      where: { createdAt: { gte: periodStart, lte: periodEnd }, ...tenantWhere }
     });
     const productsUpdatedToday = await prisma.auditLog.count({
-      where: { module: "PRODUCTS", action: "UPDATE", createdAt: { gte: periodStart, lte: periodEnd }, ...tenantWhere }
+      where: { module: "PRODUCTS", action: "UPDATE", entity: "Product", createdAt: { gte: periodStart, lte: periodEnd }, ...tenantWhere }
     });
     const salesCreatedToday = await prisma.sale.count({
       where: { createdAt: { gte: periodStart, lte: periodEnd }, ...tenantWhere }

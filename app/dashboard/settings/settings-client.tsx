@@ -166,8 +166,8 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
     setSaving(false);
 
     if (result.success) {
-      successAlert("Ajustes guardados", "Los parámetros del sistema fueron actualizados con éxito.");
-      router.refresh();
+      await successAlert("Ajustes guardados", "Los parámetros del sistema fueron actualizados con éxito.");
+      window.location.reload();
     } else {
       errorAlert("Error", result.error || "No se pudieron guardar los ajustes.");
     }

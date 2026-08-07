@@ -91,9 +91,9 @@ export function ServersManager({ servers }: { servers: any[] }) {
     setIsSaving(false);
 
     if (result.success) {
-      successAlert("Éxito", `Servidor ${editingServer ? 'actualizado' : 'registrado'} correctamente.`);
       setIsModalOpen(false);
-      router.refresh();
+      await successAlert("Éxito", `Servidor ${editingServer ? 'actualizado' : 'registrado'} correctamente.`);
+      window.location.reload();
     } else {
       errorAlert("Error", result.error || "Ocurrió un error");
     }
@@ -110,8 +110,8 @@ export function ServersManager({ servers }: { servers: any[] }) {
 
     const result = await deleteServer(id);
     if (result.success) {
-      successAlert("Eliminado", "Servidor eliminado.");
-      router.refresh();
+      await successAlert("Eliminado", "Servidor eliminado.");
+      window.location.reload();
     } else {
       errorAlert("Error", result.error || "Ocurrió un error");
     }

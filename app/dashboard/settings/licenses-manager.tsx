@@ -34,8 +34,8 @@ export function LicensesManager({ companies }: { companies: Company[] }) {
     setTogglingId(null);
 
     if (result.success) {
-      successAlert("Estado Actualizado", `El acceso de la empresa ha sido ${currentActive ? 'suspendido' : 'reactivado'}.`);
-      router.refresh();
+      await successAlert("Estado Actualizado", `El acceso de la empresa ha sido ${currentActive ? 'suspendido' : 'reactivado'}.`);
+      window.location.reload();
     } else {
       errorAlert("Error", result.error || "No se pudo cambiar el estado");
     }

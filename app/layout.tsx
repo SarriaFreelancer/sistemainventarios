@@ -6,6 +6,8 @@ import { Toaster } from 'sonner';
 import { Inter, Hanken_Grotesk } from 'next/font/google';
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/theme-provider";
+import { ClientSecurityShield } from "@/components/security/client-security-shield";
+import { CookieConsentBanner } from "@/components/security/cookie-consent-banner";
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans', display: 'swap' });
 const hanken = Hanken_Grotesk({ subsets: ['latin'], variable: '--font-hanken', display: 'swap' });
@@ -29,10 +31,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </head>
       <body className="font-body-md bg-background text-foreground transition-colors duration-300">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <ClientSecurityShield />
           {children}
+          <CookieConsentBanner />
           <Toaster richColors position="top-right" />
         </ThemeProvider>
       </body>
     </html>
   );
 }
+

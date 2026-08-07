@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { withTenantWhere, withTenantData } from '@/lib/tenant-db';
-import { getSessionCompanyId } from '@/lib/session';
+import { getSessionCompanyId, resolveActionCompanyId } from '@/lib/session';
 import { logActivity } from '@/lib/audit';
 import { createNotification } from '@/app/actions/notification-actions';
 
@@ -42,8 +42,8 @@ export async function createSale(data: {
 
     const { userId, client, customerId, discount = 0, paymentMethod = 'EFECTIVO', remarks, status = 'COMPLETED', items } = parsed.data;
 
-    // Aislamiento Tenant: Obtener companyId
-    const companyId = await getSessionCompanyId();
+    // Aislamiento Tenant: Obtener companyId (con fallback para SUPERADMIN)
+    const companyId = (await getSessionCompanyId()) ?? (await resolveActionCompanyId());
     if (!companyId) {
       return { success: false, error: 'No autorizado o empresa no válida' };
     }
@@ -183,16 +183,28 @@ export async function createSale(data: {
       newValues: result.sale
     });
 
-    if (status !== 'PENDING') {
-      const admins = await prisma.user.findMany({
-        where: { companyId, role: { name: 'ADMIN' } }
-      });
+    const companyUsers = await prisma.user.findMany({
+      where: { companyId }
+    });
+
+    if (status === 'PENDING') {
+      for (const user of companyUsers) {
+        await createNotification(
+          user.id,
+          companyId,
+          '⚠️ Venta Pendiente Registrada',
+          `Se ha registrado la venta pendiente ${result.saleNumber} por $${result.total.toLocaleString('es-CO')}. Requiere ser completada en el módulo de Ventas.`,
+          'WARNING'
+        );
+      }
+    } else {
+      const admins = companyUsers.filter(u => u.roleId !== null);
       for (const admin of admins) {
         await createNotification(
           admin.id,
           companyId,
           'Venta Confirmada',
-          `Se ha completado la venta ${result.saleNumber} por un total de $${result.total.toLocaleString()}`,
+          `Se ha completado la venta ${result.saleNumber} por un total de $${result.total.toLocaleString('es-CO')}`,
           'SUCCESS'
         );
         
@@ -231,16 +243,17 @@ export async function completePendingSale(saleIdInput: any, updateData?: {
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      const companyId = await getSessionCompanyId();
-      if (!companyId) throw new Error('No autorizado o sin empresa');
+      const sessionCompanyId = await getSessionCompanyId();
 
       const sale = await tx.sale.findFirst({
-        where: { id: saleId, companyId },
+        where: sessionCompanyId ? { id: saleId, companyId: sessionCompanyId } : { id: saleId },
         include: { details: { include: { product: true } } }
       });
 
       if (!sale) throw new Error('Venta no encontrada o no autorizada');
       if (sale.status !== 'PENDING') throw new Error('La venta no está pendiente');
+
+      const companyId = sale.companyId ?? (await resolveActionCompanyId());
 
       const settings = await tx.companySetting.findUnique({ where: { companyId } });
       const allowNegativeStock = settings?.allowNegativeStock ?? false;
@@ -358,11 +371,10 @@ export async function voidSale(data: {
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      const companyId = await getSessionCompanyId();
-      if (!companyId) throw new Error('No autorizado o sin empresa');
+      const sessionCompanyId = await getSessionCompanyId();
 
       const sale = await tx.sale.findFirst({
-        where: { id: saleId, companyId },
+        where: sessionCompanyId ? { id: saleId, companyId: sessionCompanyId } : { id: saleId },
         include: { details: { include: { product: true } } }
       });
 
@@ -422,11 +434,10 @@ export async function deleteSale(idInput: any) {
   if (isNaN(id)) return { success: false, error: 'ID inválido' };
 
   try {
-    const companyId = await getSessionCompanyId();
-    if (!companyId) return { success: false, error: 'No autorizado o sin empresa' };
+    const sessionCompanyId = await getSessionCompanyId();
 
     const sale = await prisma.sale.findFirst({
-      where: { id, companyId },
+      where: sessionCompanyId ? { id, companyId: sessionCompanyId } : { id },
       include: { details: true }
     });
 
@@ -437,7 +448,7 @@ export async function deleteSale(idInput: any) {
       if (sale.status === 'COMPLETED') {
         for (const detail of sale.details) {
           const product = await tx.product.findFirst({
-            where: { id: detail.productId, companyId }
+            where: { id: detail.productId }
           });
           if (product) {
             await tx.product.update({
@@ -468,7 +479,7 @@ export async function getSalesReport(filters: {
   endDate?: Date;
 }) {
   const { startDate, endDate } = filters;
-  const companyId = await getSessionCompanyId();
+  const companyId = (await getSessionCompanyId()) ?? (await resolveActionCompanyId());
   if (!companyId) throw new Error('No autorizado o sin empresa');
 
   const where: any = { companyId };

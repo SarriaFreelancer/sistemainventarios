@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useState, useTransition, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Chrome, Globe, Compass, Laptop, Smartphone, Tablet, Monitor, Search, Loader2, SlidersHorizontal, ShieldAlert, ChevronLeft, ChevronRight, X } from "lucide-react";
 
@@ -47,6 +47,29 @@ export function AuditClient({
   const [isPending, startTransition] = useTransition();
   const [search, setSearch] = useState(initialSearch);
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+
+  const topScrollRef = useRef<HTMLDivElement>(null);
+  const bottomScrollRef = useRef<HTMLDivElement>(null);
+  const tableRef = useRef<HTMLTableElement>(null);
+  const [contentWidth, setContentWidth] = useState(0);
+
+  useEffect(() => {
+    if (tableRef.current) {
+      setContentWidth(tableRef.current.scrollWidth);
+    }
+  }, [initialLogs]);
+
+  const handleTopScroll = () => {
+    if (topScrollRef.current && bottomScrollRef.current) {
+      bottomScrollRef.current.scrollLeft = topScrollRef.current.scrollLeft;
+    }
+  };
+
+  const handleBottomScroll = () => {
+    if (topScrollRef.current && bottomScrollRef.current) {
+      topScrollRef.current.scrollLeft = bottomScrollRef.current.scrollLeft;
+    }
+  };
 
   // Router Update for Search
   const handleSearch = (e: React.FormEvent) => {
@@ -198,8 +221,18 @@ export function AuditClient({
         </div>
       ) : (
         <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden transition-colors duration-500">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+          {/* Barra de scroll superior sincronizada */}
+          <div
+            ref={topScrollRef}
+            onScroll={handleTopScroll}
+            className="overflow-x-auto border-b border-border/60 bg-muted/20 py-1"
+          >
+            <div style={{ width: contentWidth > 0 ? `${contentWidth}px` : '1200px', height: '1px' }} />
+          </div>
+
+          {/* Tabla con scroll inferior sincronizado */}
+          <div className="overflow-x-auto" ref={bottomScrollRef} onScroll={handleBottomScroll}>
+            <table ref={tableRef} className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-border/80 bg-muted/30 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   <th className="px-6 py-4">Fecha / Hora</th>

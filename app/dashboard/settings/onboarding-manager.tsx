@@ -35,8 +35,8 @@ export function OnboardingManager({ userId }: { userId: string }) {
       setLoading(false);
       
       if (res.success) {
-        successAlert("Datos generados", "Explora el dashboard para ver los nuevos datos.");
-        router.refresh();
+        await successAlert("Datos generados", "Explora el dashboard para ver los nuevos datos.");
+        window.location.reload();
       } else {
         errorAlert("Error", res.error || "Ocurrió un error");
       }
@@ -60,8 +60,8 @@ export function OnboardingManager({ userId }: { userId: string }) {
       setCleaning(false);
       
       if (res.success) {
-        successAlert("Limpieza exitosa", "Los datos de prueba han sido eliminados.");
-        router.refresh();
+        await successAlert("Limpieza exitosa", "Los datos de prueba han sido eliminados.");
+        window.location.reload();
       } else {
         errorAlert("Error", res.error || "Ocurrió un error");
       }

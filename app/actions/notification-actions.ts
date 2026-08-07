@@ -12,12 +12,12 @@ export async function createNotification(
   message: string,
   type: 'SUCCESS' | 'ERROR' | 'WARNING' | 'INFO'
 ) {
-  // Check if notifications are enabled for the company
+  // Check if notifications are explicitly disabled for the company
   const settings = await prisma.companySetting.findUnique({
     where: { companyId }
   });
   
-  if (!settings?.enableNotifications) return;
+  if (settings?.enableNotifications === false) return;
 
   await prisma.notification.create({
     data: {

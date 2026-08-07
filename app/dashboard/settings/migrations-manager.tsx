@@ -59,12 +59,11 @@ export function MigrationsManager({ servers }: { servers: any[] }) {
     setMigrating(false);
 
     if (result.success) {
-      successAlert("Éxito", "Migración completada correctamente.");
+      await successAlert("Éxito", "Migración completada correctamente.");
       setSelectedCompany("");
       setSelectedServer("");
       setCustomDbName("");
-      loadCompanies();
-      router.refresh();
+      window.location.reload();
     } else {
       errorAlert("Error", result.error || "Fallo en la migración.");
     }

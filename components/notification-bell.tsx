@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Bell, Check, Trash2, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Bell, Check, Trash2, X, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -23,8 +24,8 @@ interface Notification {
 }
 
 export function NotificationBell() {
+  const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
 
   // Polling usando API Route estable (no Server Action) para evitar errores de versión
@@ -60,8 +61,6 @@ export function NotificationBell() {
         } else {
           setNotifications(data);
         }
-
-        setUnreadCount(data.filter(n => !n.isRead).length);
       }
     } catch {
       // Silently ignore network errors during polling
@@ -82,13 +81,6 @@ export function NotificationBell() {
 
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
-    if (open && unreadCount > 0) {
-      // Usar API Route estable en lugar de Server Action
-      fetch('/api/notifications', { method: 'PATCH' }).then(() => {
-        setUnreadCount(0);
-        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-      }).catch(() => {});
-    }
   };
 
   const handleDelete = async (e: React.MouseEvent, id: number) => {
@@ -107,9 +99,44 @@ export function NotificationBell() {
       const res = await fetch('/api/notifications', { method: 'DELETE' });
       if (res.ok) {
         setNotifications([]);
-        setUnreadCount(0);
       }
     } catch {}
+  };
+
+  const getNotificationRoute = (title: string, message: string) => {
+    const text = `${title} ${message}`.toLowerCase();
+    
+    if (text.includes("venta") || text.includes("cobro")) {
+      return "/dashboard/sales";
+    }
+    if (text.includes("producto") || text.includes("stock") || text.includes("inventario")) {
+      return "/dashboard/products";
+    }
+    if (text.includes("compra") || text.includes("requisici") || text.includes("proveedor")) {
+      return "/dashboard/compras";
+    }
+    if (text.includes("crm") || text.includes("oportunidad") || text.includes("cliente") || text.includes("cotizaci")) {
+      return "/dashboard/crm";
+    }
+    if (text.includes("rrhh") || text.includes("empleado") || text.includes("nómina") || text.includes("nomina")) {
+      return "/dashboard/rrhh";
+    }
+    if (text.includes("auditor") || text.includes("seguridad") || text.includes("log")) {
+      return "/dashboard/audit";
+    }
+    if (text.includes("configuración") || text.includes("configuracion") || text.includes("empresa") || text.includes("ajuste")) {
+      return "/dashboard/settings";
+    }
+    
+    return null;
+  };
+
+  const handleNotificationClick = (notif: Notification) => {
+    const targetRoute = getNotificationRoute(notif.title, notif.message);
+    if (targetRoute) {
+      setIsOpen(false);
+      router.push(targetRoute);
+    }
   };
 
   const getTypeStyles = (type: string) => {
@@ -124,12 +151,14 @@ export function NotificationBell() {
   return (
     <DropdownMenu open={isOpen} onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative rounded-full h-9 w-9 overflow-hidden group">
-          <Bell className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
-          {unreadCount > 0 && (
-            <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
+        <Button variant="ghost" size="icon" className="relative rounded-full h-9 w-9 overflow-visible group">
+          <Bell className={`h-5 w-5 transition-all ${notifications.length > 0 ? 'text-destructive animate-pulse' : 'text-muted-foreground group-hover:text-primary'}`} />
+          {notifications.length > 0 && (
+            <span className="absolute -top-1 -right-1 flex h-4 w-4">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive"></span>
+              <span className="relative inline-flex items-center justify-center rounded-full h-4 w-4 bg-destructive text-[9px] font-black text-white shadow-md">
+                {notifications.length > 9 ? '9+' : notifications.length}
+              </span>
             </span>
           )}
         </Button>
@@ -155,30 +184,41 @@ export function NotificationBell() {
               No tienes notificaciones nuevas
             </div>
           ) : (
-            notifications.map((notif) => (
-              <div 
-                key={notif.id} 
-                className={`relative group flex gap-3 px-3 py-2 rounded-xl transition-all border ${notif.isRead ? 'bg-transparent border-transparent' : 'bg-muted/30 border-border/50 shadow-sm'} hover:bg-muted/50`}
-              >
-                <div className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${notif.isRead ? 'bg-transparent' : 'bg-primary animate-pulse'}`} />
-                <div className={`flex-1 pr-8 rounded-md px-3 py-2 ${getTypeStyles(notif.type)}`}>
-                  <p className="text-[12px] font-bold leading-tight">{notif.title}</p>
-                  <p className="text-[11px] mt-1 opacity-90 leading-relaxed">{notif.message}</p>
-                  <p className="text-[10px] mt-1 opacity-60">
-                    {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true, locale: es })}
-                  </p>
-                </div>
-                
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={(e) => handleDelete(e, notif.id)}
-                  className="absolute top-1/2 -translate-y-1/2 right-3 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive rounded-full"
+            notifications.map((notif) => {
+              const targetRoute = getNotificationRoute(notif.title, notif.message);
+              return (
+                <div 
+                  key={notif.id}
+                  onClick={() => handleNotificationClick(notif)}
+                  className={`relative group flex gap-3 px-3 py-2 rounded-xl transition-all border cursor-pointer hover:scale-[1.01] ${notif.isRead ? 'bg-transparent border-transparent' : 'bg-muted/30 border-border/50 shadow-sm'} hover:bg-muted/50`}
                 >
-                  <X className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            ))
+                  <div className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${notif.isRead ? 'bg-transparent' : 'bg-primary animate-pulse'}`} />
+                  <div className={`flex-1 pr-8 rounded-md px-3 py-2 ${getTypeStyles(notif.type)}`}>
+                    <p className="text-[12px] font-bold leading-tight">{notif.title}</p>
+                    <p className="text-[11px] mt-1 opacity-90 leading-relaxed">{notif.message}</p>
+                    <div className="flex items-center justify-between mt-1 pt-1 border-t border-current/10">
+                      <p className="text-[10px] opacity-60">
+                        {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true, locale: es })}
+                      </p>
+                      {targetRoute && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold opacity-90 group-hover:underline">
+                          Ir al módulo <ExternalLink className="h-2.5 w-2.5" />
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={(e) => handleDelete(e, notif.id)}
+                    className="absolute top-3 right-3 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive rounded-full"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              );
+            })
           )}
         </div>
       </DropdownMenuContent>
