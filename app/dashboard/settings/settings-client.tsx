@@ -981,7 +981,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
             className="bg-primary text-primary-foreground font-semibold px-6 py-3 rounded-xl text-sm hover:opacity-90 active:scale-95 transition flex items-center gap-2 shadow-md shadow-primary/20 disabled:opacity-50"
           >
             {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-            Guardar Configuración
+            <span>Guardar Configuración</span>
           </button>
         </div>
       </form>

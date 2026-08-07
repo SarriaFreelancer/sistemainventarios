@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { startDashboardTour } from "@/lib/tour";
+import { markTourAsCompleted } from "@/app/actions/user-actions";
 
 export function WelcomeTour({ modules, userId }: { modules?: string[], userId: string }) {
   const initialized = useRef(false);
@@ -16,7 +17,9 @@ export function WelcomeTour({ modules, userId }: { modules?: string[], userId: s
 
     // Pequeño delay para asegurar que el DOM haya cargado completamente
     const timeout = setTimeout(() => {
-      startDashboardTour(modules, userId);
+      startDashboardTour(modules, userId, () => {
+        markTourAsCompleted(Number(userId)).catch(console.error);
+      });
     }, 1500);
 
     return () => {

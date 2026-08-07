@@ -159,3 +159,27 @@ export async function deleteUser(formData: FormData) {
   revalidatePath('/dashboard/users');
   return { success: true };
 }
+
+export async function markTourAsCompleted(userId: number) {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return { success: false, error: 'Usuario no encontrado' };
+
+    const currentPreferences = user.preferences ? (user.preferences as any) : {};
+    
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        preferences: {
+          ...currentPreferences,
+          tourCompleted: true
+        }
+      }
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error marking tour as completed:', error);
+    return { success: false, error: 'Ocurrió un error al actualizar preferencias' };
+  }
+}

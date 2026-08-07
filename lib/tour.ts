@@ -2,7 +2,7 @@
 
 import "driver.js/dist/driver.css";
 
-export async function startDashboardTour(allowedModules?: string[], userId?: string) {
+export async function startDashboardTour(allowedModules?: string[], userId?: string, onComplete?: () => void) {
   const { driver } = await import("driver.js");
   const tourKey = userId ? `gns_sarriatech_tour_completed_${userId}` : "gns_sarriatech_tour_completed";
 
@@ -104,6 +104,7 @@ export async function startDashboardTour(allowedModules?: string[], userId?: str
     ],
     onDestroyStarted: () => {
       localStorage.setItem(tourKey, "true");
+      if (onComplete) onComplete();
       tour.destroy();
     }
   });
