@@ -1,8 +1,7 @@
 import { getAuthSession } from "@/auth";
 import { redirect } from "next/navigation";
 import { getSystemAnalytics } from "@/app/actions/analytics-actions";
-import dynamic from "next/dynamic";
-const AnalyticsClient = dynamic(() => import("./analytics-client").then(m => m.AnalyticsClient), { ssr: false });
+import { AnalyticsClient } from "./analytics-client";
 
 export const metadata = {
   title: "Analíticas del Sistema - GNS SarriaTech",

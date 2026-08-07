@@ -98,18 +98,57 @@ body {
   background: rgba(225, 29, 72, 0.7);
 }
 
-/* Scrollbars específicas para contenedores oscuros */
+/* Scrollbar del menú lateral — siempre al 100% del color principal de la empresa */
 .dark-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--primary);
+  opacity: 1;
 }
 
 .dark-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(225, 29, 72, 0.9);
+  background: var(--primary);
+  filter: brightness(1.15);
 }
 
 * {
     box-sizing: border-box;
 }
+
+/* ─── Imagen de fondo: forzar texto blanco en área libre de contenido ─── */
+/* Solo afecta texto que NO está dentro de tarjetas con fondo propio       */
+.has-bg-image {
+  --foreground:       255 255 255;
+  --muted-foreground: 200 200 200;
+}
+
+/* h1, h2, párrafos, labels y spans sueltos se vuelven blancos */
+.has-bg-image h1,
+.has-bg-image h2:not([class*="card"] h2),
+.has-bg-image > div > p,
+.has-bg-image > div > div > p,
+.has-bg-image > div > h1,
+.has-bg-image > div > div > h1 {
+  color: white !important;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+}
+
+/* Restaurar colores normales dentro de tarjetas/paneles con fondo propio */
+.has-bg-image .bg-card,
+.has-bg-image [class*="rounded"][class*="border"],
+.has-bg-image .card {
+  --foreground:       initial;
+  --muted-foreground: initial;
+}
+
+.has-bg-image .bg-card h1,
+.has-bg-image .bg-card h2,
+.has-bg-image .bg-card h3,
+.has-bg-image .bg-card p,
+.has-bg-image .bg-card span,
+.has-bg-image .bg-card label {
+  color: unset !important;
+  text-shadow: none !important;
+}
+
 
 /* ─── Responsive base ─── */
 img, video {

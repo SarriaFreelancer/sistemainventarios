@@ -66,6 +66,53 @@ export async function GET() {
       console.error('[SYNC_PENDING_NOTIFS_ERROR]', syncErr);
     }
 
+    // 1b. Sincronizar automáticamente productos con stock bajo o agotado
+    try {
+      const lowStockProductsWhere: any = {
+        quantityAvailable: { lte: 5 },
+        type: { not: 'SERVICE' }
+      };
+      if (userCompanyId) {
+        lowStockProductsWhere.companyId = userCompanyId;
+      }
+
+      const lowStockProducts = await prisma.product.findMany({
+        where: lowStockProductsWhere,
+        orderBy: { quantityAvailable: 'asc' },
+        take: 20
+      });
+
+      for (const prod of lowStockProducts) {
+        const title = prod.quantityAvailable <= 0 ? '⚠️ Stock Agotado' : '⚠️ Stock Bajo';
+        const notifExists = await prisma.notification.findFirst({
+          where: {
+            userId,
+            title,
+            message: { contains: `"${prod.name}"` }
+          }
+        });
+
+        if (!notifExists) {
+          const msg = prod.quantityAvailable <= 0
+            ? `El producto "${prod.name}" no tiene unidades disponibles (Stock: 0).`
+            : `El producto "${prod.name}" tiene pocas unidades disponibles (Stock: ${prod.quantityAvailable}).`;
+
+          await prisma.notification.create({
+            data: {
+              userId,
+              companyId: prod.companyId ?? userCompanyId ?? 1,
+              title,
+              message: msg,
+              type: prod.quantityAvailable <= 0 ? 'ERROR' : 'WARNING',
+              isRead: false
+            }
+          });
+        }
+      }
+    } catch (stockSyncErr) {
+      console.error('[SYNC_STOCK_NOTIFS_ERROR]', stockSyncErr);
+    }
+
     // 2. Limpieza automática de notificaciones resueltas (ventas completadas/anuladas o stock repuesto)
     const whereClause: any = { userId };
     if (userCompanyId) {

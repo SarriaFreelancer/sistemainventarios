@@ -39,6 +39,38 @@ export async function uploadCompanyLogo(base64Data: string) {
   }
 }
 
+export async function uploadCompanyBackgroundImage(base64Data: string) {
+  try {
+    const session = await getAuthSession();
+    if (!session?.user) return { success: false, error: "No autenticado" };
+
+    const matches = base64Data.match(/^data:image\/([a-zA-Z]+);base64,(.+)$/);
+    if (!matches || matches.length !== 3) {
+      return { success: false, error: "Formato de imagen inválido" };
+    }
+
+    const extRaw = matches[1].toLowerCase();
+    const extension = extRaw === 'jpeg' ? 'jpg' : extRaw;
+    const imageBuffer = Buffer.from(matches[2], 'base64');
+
+    const fileName = `bg-${session.user.companyId || 'company'}-${Date.now()}.${extension}`;
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'backgrounds');
+
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    const filePath = path.join(uploadDir, fileName);
+    await fs.promises.writeFile(filePath, imageBuffer);
+
+    const publicUrl = `/uploads/backgrounds/${fileName}`;
+    return { success: true, url: publicUrl };
+  } catch (error: any) {
+    console.error("[UPLOAD_COMPANY_BG]", error);
+    return { success: false, error: "Error al guardar la imagen de fondo" };
+  }
+}
+
 export async function getCompanySettings() {
   try {
     const session = await getAuthSession();
@@ -74,7 +106,14 @@ export async function getCompanySettings() {
       });
     }
     
-    return { success: true, settings: JSON.parse(JSON.stringify(settings)) };
+    const themeConfig = (targetCompany.themeConfig as any) || {};
+    const fullSettings = {
+      ...settings,
+      bgImage: themeConfig.bgImage || "",
+      themeColor: themeConfig.primaryColor || ""
+    };
+
+    return { success: true, settings: JSON.parse(JSON.stringify(fullSettings)) };
   } catch (error: any) {
     console.error("[GET_SETTINGS]", error);
     return { success: false, error: error.message || "Error al obtener la configuración" };
@@ -148,7 +187,7 @@ export async function updateCompanySettings(data: any) {
       }
     });
     
-    if (data.themeColor) {
+    if (data.themeColor !== undefined || data.bgImage !== undefined) {
       const existingCompany = await prisma.company.findUnique({ where: { id: companyId } });
       const currentTheme = (existingCompany?.themeConfig as any) || {};
       await prisma.company.update({
@@ -156,7 +195,8 @@ export async function updateCompanySettings(data: any) {
         data: {
           themeConfig: {
             ...currentTheme,
-            primaryColor: data.themeColor
+            ...(data.themeColor !== undefined ? { primaryColor: data.themeColor } : {}),
+            ...(data.bgImage !== undefined ? { bgImage: data.bgImage } : {})
           }
         }
       });

@@ -4,8 +4,7 @@ import { getSessionCompanyId } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Truck, Receipt, FileText, Settings, ShieldCheck, CreditCard, ArrowRight, PackagePlus, TrendingUp, TrendingDown } from 'lucide-react';
-import dynamic from 'next/dynamic';
-const PurchaseCharts = dynamic(() => import('./components/PurchaseCharts').then(m => m.PurchaseCharts), { ssr: false });
+import { PurchaseCharts } from './components/PurchaseCharts';
 import { 
   getSpendingKPIs, 
   getMonthlySpendings, 

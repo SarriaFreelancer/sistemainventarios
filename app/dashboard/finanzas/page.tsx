@@ -127,7 +127,7 @@ export default async function FinanzasPage() {
         </div>
 
         {/* Ganancia Neta */}
-        <div className="rounded-[24px] border border-border bg-primary/5 p-6 shadow-sm flex flex-col justify-between group hover:bg-primary/10 transition-all relative overflow-hidden">
+        <div className="rounded-[24px] border-2 border-primary/40 bg-card p-6 shadow-sm flex flex-col justify-between group hover:border-primary transition-all relative overflow-hidden">
           <div className="absolute -right-4 -top-4 w-16 h-16 bg-primary/10 rounded-full blur-xl" />
           <div className="flex justify-between items-center mb-4 relative z-10">
             <p className="text-[10px] font-bold uppercase tracking-widest text-primary">Ganancia Neta</p>

@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { Building, Boxes, ShieldAlert, SlidersHorizontal, Receipt, Upload, Sparkles, Server, ArrowRightLeft, Database, KeyRound, DownloadCloud, Bell, Mail, Loader2, Save } from "lucide-react";
-import { updateCompanySettings, uploadCompanyLogo } from "@/app/actions/settings-actions";
+import { Building, Boxes, ShieldAlert, SlidersHorizontal, Receipt, Upload, Sparkles, Server, ArrowRightLeft, Database, KeyRound, DownloadCloud, Bell, Mail, Loader2, Save, Image as ImageIcon, Trash2 } from "lucide-react";
+import { updateCompanySettings, uploadCompanyLogo, uploadCompanyBackgroundImage } from "@/app/actions/settings-actions";
 import { generateDemoData, clearDemoData } from "@/app/actions/demo-actions";
 import { successAlert, errorAlert } from "@/lib/sweetalert";
 import { useRouter } from "next/navigation";
@@ -72,6 +72,9 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
   const [timezone, setTimezone] = useState(initialSettings.timezone);
   const [dateFormat, setDateFormat] = useState(initialSettings.dateFormat);
   const [currencyFormat, setCurrencyFormat] = useState(initialSettings.currencyFormat);
+
+  // Fondo de Pantalla Personalizado
+  const [bgImage, setBgImage] = useState<string>((initialSettings as any).bgImage || "");
 
   // Inventario & Ventas
   const [allowNegativeStock, setAllowNegativeStock] = useState(initialSettings.allowNegativeStock);
@@ -149,6 +152,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
       backupDay,
       backupPath,
       enableNotifications,
+      bgImage,
       invoiceConfig: {
         companyName: invoiceCompanyName,
         address: invoiceAddress,
@@ -168,7 +172,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
 
     if (result.success) {
       await successAlert("Ajustes guardados", "Los parámetros del sistema fueron actualizados con éxito.");
-      window.location.reload();
+      router.refresh();
     } else {
       errorAlert("Error", result.error || "No se pudieron guardar los ajustes.");
     }
@@ -459,6 +463,81 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Imagen de Fondo de Pantalla Adaptable */}
+            <div className="space-y-3 border-t border-border/60 pt-4">
+              <div>
+                <label className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-1.5">
+                  <ImageIcon size={14} className="text-primary" />
+                  Imagen de Fondo de Pantalla del Sistema (Wallpaper)
+                </label>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Se ajusta automáticamente en escritorios, tablets y teléfonos (Cover Responsive). Si no agregas ninguna, el sistema continuará con su diseño plano estándar.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 items-center">
+                <input
+                  type="text"
+                  value={bgImage}
+                  onChange={(e) => setBgImage(e.target.value)}
+                  className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none"
+                  placeholder="Ej. https://miempresa.com/fondo.jpg o sube un archivo local"
+                />
+                
+                <label className="cursor-pointer bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-semibold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2 shrink-0">
+                  <Upload size={14} />
+                  Subir Fondo
+                  <input
+                    type="file"
+                    accept="image/png, image/jpeg, image/webp"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        const reader = new FileReader();
+                        reader.readAsDataURL(file);
+                        reader.onload = async () => {
+                          const res = await uploadCompanyBackgroundImage(reader.result as string);
+                          if (res.success && res.url) {
+                            setBgImage(res.url);
+                            successAlert("Imagen de fondo cargada", "El fondo de pantalla fue subido con éxito.");
+                          } else {
+                            errorAlert("Error", res.error || "No se pudo subir la imagen de fondo");
+                          }
+                        };
+                      } catch (err) {
+                        errorAlert("Error", "No se pudo procesar la imagen seleccionada");
+                      }
+                    }}
+                  />
+                </label>
+
+                {bgImage && (
+                  <button
+                    type="button"
+                    onClick={() => setBgImage("")}
+                    className="px-3.5 py-2.5 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500/20 text-xs font-bold transition flex items-center gap-1.5 shrink-0"
+                    title="Eliminar imagen de fondo"
+                  >
+                    <Trash2 size={14} />
+                    Quitar Fondo
+                  </button>
+                )}
+              </div>
+
+              {bgImage && (
+                <div className="relative h-32 w-full rounded-2xl overflow-hidden border border-border bg-muted/50 shadow-inner group">
+                  <img src={bgImage} alt="Previsualización de Fondo" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center">
+                    <span className="text-xs font-black text-white bg-black/70 px-4 py-1.5 rounded-full border border-white/20 shadow-md">
+                      Previsualización de Fondo Adaptable (Cover Responsive)
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-border/60 pt-4">

@@ -313,28 +313,28 @@ export function ProductsClient(props: {
       </div>
 
       {/* ── Type Tabs ── */}
-      <div className="flex border-b border-border gap-4 overflow-x-auto scrollbar-hide">
-        <button onClick={() => setFilterType('ALL')} className={`pb-3 px-2 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${filterType === 'ALL' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'}`}>
-          Todos
-        </button>
-        <button onClick={() => setFilterType('SALE')} className={`pb-3 px-2 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${filterType === 'SALE' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'}`}>
-          Para Venta
-        </button>
-        <button onClick={() => setFilterType('FINISHED_GOOD')} className={`pb-3 px-2 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${filterType === 'FINISHED_GOOD' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'}`}>
-          Producto Terminado
-        </button>
-        <button onClick={() => setFilterType('SERVICE')} className={`pb-3 px-2 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${filterType === 'SERVICE' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'}`}>
-          Servicios
-        </button>
-        <button onClick={() => setFilterType('RAW_MATERIAL')} className={`pb-3 px-2 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${filterType === 'RAW_MATERIAL' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'}`}>
-          Materia Prima
-        </button>
-        <button onClick={() => setFilterType('SUPPLY')} className={`pb-3 px-2 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${filterType === 'SUPPLY' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'}`}>
-          Insumos
-        </button>
-        <button onClick={() => setFilterType('FIXED_ASSET')} className={`pb-3 px-2 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${filterType === 'FIXED_ASSET' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'}`}>
-          Activos Fijos
-        </button>
+      <div className="flex gap-2 flex-wrap p-1 bg-card border border-border rounded-2xl shadow-sm">
+        {[
+          { value: 'ALL',          label: 'Todos' },
+          { value: 'SALE',         label: 'Para Venta' },
+          { value: 'FINISHED_GOOD',label: 'Prod. Terminado' },
+          { value: 'SERVICE',      label: 'Servicios' },
+          { value: 'RAW_MATERIAL', label: 'Materia Prima' },
+          { value: 'SUPPLY',       label: 'Insumos' },
+          { value: 'FIXED_ASSET',  label: 'Activos Fijos' },
+        ].map(({ value, label }) => (
+          <button
+            key={value}
+            onClick={() => setFilterType(value)}
+            className={`px-3.5 py-1.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
+              filterType === value
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-foreground hover:bg-muted hover:text-foreground'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {/* ── Search & Filters ── */}

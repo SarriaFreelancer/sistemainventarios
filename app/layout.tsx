@@ -15,6 +15,11 @@ const hanken = Hanken_Grotesk({ subsets: ['latin'], variable: '--font-hanken', d
 export const metadata: Metadata = {
   title: 'GNS | Gestión de Negocios SarriaTech',
   description: 'GNS - Gestión de Negocios SarriaTech',
+  icons: {
+    icon: '/gns-logo.png',
+    shortcut: '/gns-logo.png',
+    apple: '/gns-logo.png',
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

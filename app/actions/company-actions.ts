@@ -133,6 +133,13 @@ export async function updateCompany(formData: FormData) {
   }
 
   try {
+    // Leer el themeConfig actual para preservar bgImage y otros campos que no toca este formulario
+    const existingCompany = await prisma.company.findUnique({
+      where: { id },
+      select: { themeConfig: true }
+    });
+    const currentTheme = (existingCompany?.themeConfig as any) || {};
+
     await prisma.company.update({
       where: { id },
       data: {
@@ -144,10 +151,11 @@ export async function updateCompany(formData: FormData) {
         planId: parsed.data.planId,
         maxUsers: session.user.role === 'SUPERADMIN' ? parsed.data.maxUsers : undefined,
         maxProducts: session.user.role === 'SUPERADMIN' ? parsed.data.maxProducts : undefined,
-        themeConfig: (parsed.data.themeColor || parsed.data.themeMode) ? {
-          primaryColor: parsed.data.themeColor,
-          mode: parsed.data.themeMode
-        } : undefined,
+        themeConfig: {
+          ...currentTheme,                                        // preserva bgImage y todo lo existente
+          ...(parsed.data.themeColor ? { primaryColor: parsed.data.themeColor } : {}),
+          ...(parsed.data.themeMode  ? { mode: parsed.data.themeMode }          : {}),
+        },
         modules: {
           deleteMany: {},
           create: parsed.data.modules?.map((moduleId: number) => ({
@@ -163,6 +171,7 @@ export async function updateCompany(formData: FormData) {
       },
     });
     revalidatePath('/dashboard/companies');
+    revalidatePath('/', 'layout');
     return { success: true };
   } catch (error: any) {
     if (error.code === 'P2002') {

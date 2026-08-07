@@ -19,7 +19,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
   children: React.ReactNode; 
   session: { user?: { id?: string | number; name?: string | null; email?: string | null; role?: string; companyId?: string | null; image?: string | null } | null };
   modules?: ModuleConfig[];
-  themeConfig?: { primaryColor?: string; mode?: string } | null;
+  themeConfig?: { primaryColor?: string; mode?: string; bgImage?: string } | null;
   companyName?: string;
   companyLogo?: string | null;
 }) {
@@ -85,8 +85,14 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
   const roleThemeClass = (isSuperAdmin && !themeConfig?.primaryColor) ? 'theme-superadmin' : '';
   const roleLabel = session?.user?.role === 'SUPERADMIN' ? 'Super Administrador' : session?.user?.role === 'ADMIN' ? 'Administrador' : 'Colaborador';
 
+  const hasBgImage = !!(themeConfig?.bgImage);
+
   return (
-    <div className={cn("h-screen w-screen flex flex-col bg-background text-foreground transition-colors duration-500 font-sans overflow-hidden", roleThemeClass)}>
+    <div className={cn(
+      "h-screen w-screen flex flex-col bg-background text-foreground transition-colors duration-500 font-sans overflow-hidden",
+      roleThemeClass
+    )}>
+
       {themeConfig?.primaryColor && (
         <style dangerouslySetInnerHTML={{ __html: `
           :root, .dark, .theme-superadmin {
@@ -95,7 +101,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
           }
         `}} />
       )}
-      <div className="flex flex-1 overflow-hidden h-full">
+      <div className="flex flex-1 overflow-hidden h-full relative z-10">
         
         {/* ── Sidebar (Desktop) ── */}
         {/* ── Sidebar (Desktop) ── */}
@@ -147,11 +153,11 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                     title={isCollapsed ? module.name : undefined}
                     style={isActive ? { backgroundColor: themeConfig?.primaryColor || "#dc2626" } : undefined}
                     className={cn(
-                      "flex items-center gap-3 rounded-2xl transition-all duration-300 font-semibold text-white",
+                      "flex items-center gap-3 rounded-2xl transition-all duration-300 font-semibold",
                       isCollapsed ? "p-3.5 justify-center" : "px-4 py-3 text-sm justify-start",
                       isActive
-                        ? "opacity-100 shadow-lg scale-[1.02]"
-                        : "text-slate-300 hover:bg-[#202028]/90 hover:text-white"
+                        ? "text-white opacity-100 shadow-lg scale-[1.02]"
+                        : "text-white/80 hover:bg-[#202028]/90 hover:text-white"
                     )}
                   >
                     <IconComponent size={20} className="shrink-0" />
@@ -206,7 +212,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                   type="button"
                   onClick={toggleSidebar}
                   title="Colapsar Menú"
-                  className="w-full py-2 rounded-xl text-slate-400 hover:text-white hover:bg-[#202028]/90 transition flex items-center justify-center gap-1.5 text-xs font-semibold"
+                  className="w-full py-2 rounded-xl text-white/50 hover:text-white hover:bg-[#202028]/90 transition flex items-center justify-center gap-1.5 text-xs font-semibold"
                 >
                   <LucideIcons.ChevronsLeft size={18} />
                   <span>Colapsar Menú</span>
@@ -242,7 +248,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                   type="button"
                   onClick={toggleSidebar}
                   title="Expandir Menú"
-                  className="w-full py-2 rounded-xl text-slate-400 hover:text-white hover:bg-[#202028]/90 transition flex items-center justify-center"
+                  className="w-full py-2 rounded-xl text-white/50 hover:text-white hover:bg-[#202028]/90 transition flex items-center justify-center"
                 >
                   <LucideIcons.ChevronsRight size={18} />
                 </button>
@@ -252,10 +258,24 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
         </aside>
 
         {/* ── Main Content Area ── */}
-        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden relative">
+          {/* Imagen de fondo — solo ocupa el área de contenido, nunca el sidebar */}
+          {hasBgImage && (
+            <div
+              className="absolute inset-0 z-0 pointer-events-none"
+              style={{
+                backgroundImage: `url(${themeConfig!.bgImage})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+              }}
+            >
+              <div className="absolute inset-0 bg-background/40 dark:bg-[#09090b]/50 backdrop-blur-[1px]" />
+            </div>
+          )}
           
           {/* Header */}
-          <header className="flex items-center justify-between border-b border-border bg-card px-6 py-4 transition-colors duration-500 min-h-[73px] shrink-0">
+          <header className={cn("flex items-center justify-between border-b border-border px-6 py-4 transition-colors duration-500 min-h-[73px] shrink-0 relative z-20", hasBgImage ? "bg-card/60 backdrop-blur-md" : "bg-card")}>
             <div className="flex items-center gap-3">
               <button
                 aria-label="Menú principal"
@@ -277,11 +297,11 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                   )}
                 </div>
                 <div>
-                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+                  <p className={cn("text-[10px] font-extrabold uppercase tracking-widest flex items-center gap-1", hasBgImage ? "text-white drop-shadow-sm" : "text-foreground")}>
                     <span>EMPRESA:</span>
-                    <span className="text-foreground font-black">{companyName ? companyName.toUpperCase() : 'GLOBAL'}</span>
+                    <span className="font-black">{companyName ? companyName.toUpperCase() : 'GLOBAL'}</span>
                   </p>
-                  <h2 className="text-sm sm:text-base font-black text-foreground leading-tight">ERP Administrador</h2>
+                  <h2 className={cn("text-sm sm:text-base font-black leading-tight", hasBgImage ? "text-white drop-shadow-sm" : "text-foreground")}>ERP Administrador</h2>
                 </div>
               </div>
             </div>
@@ -303,7 +323,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                 <button
                   id="tour-profile-menu"
                   onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                  className="flex items-center gap-2.5 rounded-xl border border-border bg-card p-1.5 pr-3 text-foreground hover:bg-muted transition-all active:scale-95 shadow-sm"
+                  className="flex items-center gap-2.5 rounded-full border border-border bg-card p-1.5 pr-3 text-foreground hover:bg-muted transition-all active:scale-95 shadow-sm"
                 >
                   <div className="w-8 h-8 rounded-full overflow-hidden border border-primary/20">
                     <img 
@@ -322,10 +342,10 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                 {isProfileDropdownOpen && (
                   <>
                     {/* Backdrop para cerrar al hacer click fuera */}
-                    <div className="fixed inset-0 z-10" onClick={() => setIsProfileDropdownOpen(false)} />
+                    <div className="fixed inset-0 z-40" onClick={() => setIsProfileDropdownOpen(false)} />
                     
                     {/* Dropdown Menu */}
-                    <div className="absolute right-0 top-11 z-20 mt-2 w-56 origin-top-right rounded-2xl border border-border bg-card p-2.5 shadow-xl animate-in fade-in slide-in-from-top-3 duration-200">
+                    <div className="absolute right-0 top-11 z-50 mt-2 w-56 origin-top-right rounded-2xl border border-border bg-card p-2.5 shadow-xl animate-in fade-in slide-in-from-top-3 duration-200">
                       <div className="px-3.5 py-2 border-b border-border/60 mb-2">
                         <p className="text-[10px] font-bold text-muted-foreground uppercase">Sesión activa</p>
                         <p className="text-xs font-semibold text-foreground truncate mt-0.5">{session.user?.email || ""}</p>
@@ -374,7 +394,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
           </header>
 
           {/* Main page content wrapper */}
-          <main className="flex-1 overflow-y-auto p-6 bg-background transition-colors duration-500">
+          <main className={cn("flex-1 overflow-y-auto p-6 transition-colors duration-500 relative z-10", hasBgImage ? "bg-transparent has-bg-image" : "bg-background")}>
             {children}
           </main>
         </div>
