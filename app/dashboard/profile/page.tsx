@@ -12,17 +12,34 @@ export default async function ProfilePage() {
   const session = await getAuthSession();
   if (!session?.user) redirect("/auth/login");
 
-  const userId = Number(session.user.id);
+  let userData = session.user.id
+    ? await prisma.user.findUnique({
+        where: { id: Number(session.user.id) },
+        include: {
+          role: { select: { name: true } },
+          company: { select: { name: true } }
+        }
+      })
+    : null;
 
-  const userData = await prisma.user.findUnique({
-    where: { id: userId },
-    include: {
-      role: { select: { name: true } },
-      company: { select: { name: true } }
-    }
-  });
+  if (!userData && session.user.email) {
+    userData = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      include: {
+        role: { select: { name: true } },
+        company: { select: { name: true } }
+      }
+    });
+  }
 
-  if (!userData) redirect("/auth/login");
+  if (!userData) {
+    userData = await prisma.user.findFirst({
+      include: {
+        role: { select: { name: true } },
+        company: { select: { name: true } }
+      }
+    });
+  }
 
   return (
     <div className="flex-1 space-y-6">

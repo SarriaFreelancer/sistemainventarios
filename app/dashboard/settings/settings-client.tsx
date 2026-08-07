@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Building, Boxes, ShieldAlert, SlidersHorizontal, Receipt, Upload, Sparkles, Server, ArrowRightLeft, Database, KeyRound, DownloadCloud, Bell, Mail, Loader2, Save } from "lucide-react";
-import { updateCompanySettings } from "@/app/actions/settings-actions";
+import { updateCompanySettings, uploadCompanyLogo } from "@/app/actions/settings-actions";
 import { generateDemoData, clearDemoData } from "@/app/actions/demo-actions";
 import { successAlert, errorAlert } from "@/lib/sweetalert";
 import { useRouter } from "next/navigation";
@@ -410,6 +410,55 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
                 className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none"
                 placeholder="https://tudominio.com"
               />
+            </div>
+
+            <div className="space-y-2 border-t border-border/60 pt-4">
+              <label className="text-xs font-bold text-muted-foreground uppercase flex items-center justify-between">
+                <span>Logotipo Oficial de la Empresa</span>
+                <span className="text-[10px] text-primary lowercase font-normal">se mostrará en el encabezado de la app</span>
+              </label>
+              <div className="flex flex-col sm:flex-row gap-3 items-center">
+                <input
+                  type="text"
+                  value={invoiceLogo}
+                  onChange={(e) => setInvoiceLogo(e.target.value)}
+                  className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none"
+                  placeholder="Ej. https://miempresa.com/logo.png o sube un archivo"
+                />
+                <label className="cursor-pointer bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-semibold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2 shrink-0">
+                  <Upload size={14} />
+                  Subir Archivo
+                  <input
+                    type="file"
+                    accept="image/png, image/jpeg, image/webp, image/svg+xml"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        const reader = new FileReader();
+                        reader.readAsDataURL(file);
+                        reader.onload = async () => {
+                          const res = await uploadCompanyLogo(reader.result as string);
+                          if (res.success && res.url) {
+                            setInvoiceLogo(res.url);
+                            successAlert("Logo cargado", "La imagen del logo ha sido guardada.");
+                          } else {
+                            errorAlert("Error", res.error || "No se pudo subir el logo");
+                          }
+                        };
+                      } catch (err) {
+                        errorAlert("Error", "No se pudo procesar el archivo seleccionado");
+                      }
+                    }}
+                  />
+                </label>
+                {invoiceLogo && (
+                  <div className="h-10 w-10 rounded-xl overflow-hidden border border-border bg-background flex items-center justify-center shrink-0 shadow-sm relative">
+                    <img src={invoiceLogo} alt="Previsualización" className="h-full w-full object-cover scale-125 transition-transform" />
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-border/60 pt-4">

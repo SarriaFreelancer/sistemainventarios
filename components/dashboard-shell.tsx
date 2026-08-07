@@ -15,12 +15,13 @@ interface ModuleConfig {
   description: string | null;
 }
 
-export function DashboardShell({ children, session, modules, themeConfig, companyName }: { 
+export function DashboardShell({ children, session, modules, themeConfig, companyName, companyLogo }: { 
   children: React.ReactNode; 
   session: { user?: { id?: string | number; name?: string | null; email?: string | null; role?: string; companyId?: string | null; image?: string | null } | null };
   modules?: ModuleConfig[];
   themeConfig?: { primaryColor?: string; mode?: string } | null;
   companyName?: string;
+  companyLogo?: string | null;
 }) {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -31,6 +32,8 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
   const [theme, setTheme] = useState<'dark' | 'light'>('light');
   const [mounted, setMounted] = useState(false);
 
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
   useEffect(() => {
     // Si el usuario ya tiene una preferencia guardada ('dark' o 'light'), la respetamos.
     // Si es la primera vez para este usuario, la regla es iniciar SIEMPRE en modo claro ('light').
@@ -39,6 +42,13 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
 
     setTheme(initialTheme);
     document.documentElement.classList.toggle('dark', initialTheme === 'dark');
+
+    // Cargar preferencia de colapso de la barra lateral
+    const storedCollapse = window.localStorage.getItem('gns_sidebar_collapsed');
+    if (storedCollapse === 'true') {
+      setIsCollapsed(true);
+    }
+
     setMounted(true);
   }, [storageKey]);
 
@@ -49,6 +59,23 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
     window.localStorage.setItem(storageKey, nextTheme);
   };
 
+  const toggleSidebar = () => {
+    setIsCollapsed(prev => {
+      const next = !prev;
+      window.localStorage.setItem('gns_sidebar_collapsed', String(next));
+      return next;
+    });
+  };
+
+  const handleLogoutConfirm = async () => {
+    const { confirmAction } = await import('@/lib/sweetalert');
+    const confirmed = await confirmAction('¿Cerrar Sesión?', '¿Estás seguro que deseas salir del sistema?', 'Sí, salir', 'Cancelar');
+    if (confirmed) {
+      const { signOut } = await import('next-auth/react');
+      await signOut({ callbackUrl: '/auth/login' });
+    }
+  };
+
   // Prevent flash/hydration mismatch by rendering a skeleton or empty shell until mounted
   if (!mounted) {
     return <div className="min-h-screen bg-background" />;
@@ -56,6 +83,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
 
   const isSuperAdmin = session?.user?.role === 'SUPERADMIN';
   const roleThemeClass = isSuperAdmin ? 'theme-superadmin' : '';
+  const roleLabel = session?.user?.role === 'SUPERADMIN' ? 'Super Administrador' : session?.user?.role === 'ADMIN' ? 'Administrador' : 'Colaborador';
 
   return (
     <div className={cn("h-screen w-screen flex flex-col bg-background text-foreground transition-colors duration-500 font-sans overflow-hidden", roleThemeClass)}>
@@ -76,18 +104,43 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
       <div className="flex flex-1 overflow-hidden h-full">
         
         {/* ── Sidebar (Desktop) ── */}
-        <aside className="hidden w-72 flex-col border-r border-border/60 bg-card p-6 shadow-xl lg:flex transition-colors duration-500 shrink-0 h-full overflow-y-auto">
-          <div className="mb-10 flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-              <LucideIcons.Sparkles size={18} />
+        {/* ── Sidebar (Desktop) ── */}
+        {/* ── Sidebar (Desktop) ── */}
+        {/* ── Sidebar (Desktop) ── */}
+        {/* ── Sidebar (Desktop) ── */}
+        <aside className={cn(
+          "hidden flex-col border-r border-[#24242b]/80 bg-[#141417]/90 backdrop-blur-md text-[#f8fafc] shadow-2xl lg:flex transition-all duration-300 shrink-0 h-full overflow-y-auto overflow-x-hidden dark-scrollbar",
+          isCollapsed ? "w-20 p-3 items-center" : "w-72 p-6"
+        )}>
+          {/* Logo Brand Principal GNS */}
+          <div className={cn("mb-8 flex items-center gap-3 transition-all", isCollapsed ? "justify-center" : "w-full")}>
+            <div 
+              className="h-11 w-11 rounded-full overflow-hidden border-2 bg-black flex items-center justify-center shrink-0 shadow-lg shadow-primary/20"
+              style={{ borderColor: themeConfig?.primaryColor || "#dc2626" }}
+            >
+              <img 
+                src="/gns-logo.png" 
+                alt="GNS SarriaTech" 
+                className="h-full w-full object-cover rounded-full aspect-square" 
+              />
             </div>
-            <div>
-              <p className="text-sm font-bold tracking-[0.25em] uppercase text-foreground">GNS SARRIATECH</p>
-              <p className="text-[10px] font-bold tracking-wider text-primary uppercase">Gestión de Negocios</p>
-            </div>
+            {!isCollapsed && (
+              <div className="flex flex-col text-left">
+                <span className="text-xs sm:text-sm font-black text-white uppercase tracking-tight leading-none">
+                  GNS SARRIATECH
+                </span>
+                <span 
+                  className="text-[9px] font-extrabold uppercase tracking-wider mt-1 leading-none"
+                  style={{ color: themeConfig?.primaryColor || "#ef4444" }}
+                >
+                  GESTIÓN DE NEGOCIOS
+                </span>
+              </div>
+            )}
           </div>
           
-          <nav className="space-y-1.5 flex-1">
+          {/* Navigation Links - Botones al 100% del color principal de la empresa */}
+          <nav className={cn("space-y-1.5 flex-1 w-full", isCollapsed ? "px-1" : "")}>
             {(modules || []).map((module) => {
                 const IconComponent = module.icon && (LucideIcons as any)[module.icon] ? (LucideIcons as any)[module.icon] : LucideIcons.Folder;
                 const itemHref = module.href || '#';
@@ -97,25 +150,110 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                     key={module.id}
                     href={itemHref}
                     id={`tour-nav-${module.name.toLowerCase().replace(/\s+/g, '-')}`}
+                    title={isCollapsed ? module.name : undefined}
+                    style={isActive ? { backgroundColor: themeConfig?.primaryColor || "#dc2626" } : undefined}
                     className={cn(
-                      "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all duration-300",
+                      "flex items-center gap-3 rounded-2xl transition-all duration-300 font-semibold text-white",
+                      isCollapsed ? "p-3.5 justify-center" : "px-4 py-3 text-sm justify-start",
                       isActive
-                        ? "bg-primary text-primary-foreground shadow-lg scale-[1.02]"
-                        : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
+                        ? "opacity-100 shadow-lg scale-[1.02]"
+                        : "text-slate-300 hover:bg-[#202028]/90 hover:text-white"
                     )}
                   >
-                    <IconComponent size={18} />
-                    {module.name}
+                    <IconComponent size={20} className="shrink-0" />
+                    {!isCollapsed && <span className="truncate">{module.name}</span>}
                   </Link>
                 );
               })}
           </nav>
 
-          {/* User profile footer info con separación clara */}
-          <div className="mt-6 pt-2 border border-border/80 bg-muted/20 p-4 rounded-2xl flex flex-col gap-1 shrink-0 shadow-sm">
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Sesión Activa</p>
-            <p className="text-sm font-bold text-foreground truncate">{session.user?.name ?? 'Usuario GNS'}</p>
-            <p className="text-xs text-muted-foreground truncate">{session.user?.email ?? ''}</p>
+          {/* User profile footer & Logout & Collapse Toggle */}
+          <div className="mt-auto pt-4 border-t border-[#24242b]/80 w-full flex flex-col gap-3">
+            {!isCollapsed ? (
+              <>
+                <div className="flex items-center justify-between gap-2 w-full">
+                  {/* Tarjeta de Usuario - Negro Gris al 90% */}
+                  <div className="flex-1 flex items-center gap-3 bg-[#1a1a20]/90 border border-[#2a2a35]/80 p-2.5 rounded-2xl overflow-hidden shadow-sm min-w-0">
+                    <div 
+                      className="w-10 h-10 rounded-full overflow-hidden border-2 shrink-0"
+                      style={{ borderColor: themeConfig?.primaryColor || "#dc2626" }}
+                    >
+                      <img 
+                        src={session.user?.image || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80"} 
+                        alt="Avatar" 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-white truncate leading-tight">
+                        {session.user?.name ?? 'Usuario'}
+                      </p>
+                      <div className="flex items-center gap-1 text-[11px] font-medium mt-0.5 truncate">
+                        <LucideIcons.ShieldCheck size={12} className="shrink-0" style={{ color: themeConfig?.primaryColor || "#ef4444" }} />
+                        <span className="truncate font-semibold" style={{ color: themeConfig?.primaryColor || "#ef4444" }}>{roleLabel}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Botón de Logout directo - 100% del color principal de la empresa */}
+                  <button
+                    type="button"
+                    onClick={handleLogoutConfirm}
+                    title="Cerrar Sesión"
+                    style={{ backgroundColor: themeConfig?.primaryColor || "#dc2626" }}
+                    className="h-12 w-12 rounded-2xl text-white opacity-100 hover:brightness-110 transition-all duration-300 flex items-center justify-center shrink-0 active:scale-95 shadow-md"
+                  >
+                    <LucideIcons.LogOut size={18} />
+                  </button>
+                </div>
+
+                {/* Botón Colapsar << */}
+                <button
+                  type="button"
+                  onClick={toggleSidebar}
+                  title="Colapsar Menú"
+                  className="w-full py-2 rounded-xl text-slate-400 hover:text-white hover:bg-[#202028]/90 transition flex items-center justify-center gap-1.5 text-xs font-semibold"
+                >
+                  <LucideIcons.ChevronsLeft size={18} />
+                  <span>Colapsar Menú</span>
+                </button>
+              </>
+            ) : (
+              /* Modo Colapsado (Solo íconos) */
+              <div className="flex flex-col items-center gap-3 w-full">
+                <div 
+                  className="w-10 h-10 rounded-full overflow-hidden border-2 shrink-0 cursor-pointer" 
+                  style={{ borderColor: themeConfig?.primaryColor || "#dc2626" }}
+                  title={`${session.user?.name ?? 'Usuario'} (${roleLabel})`}
+                >
+                  <img 
+                    src={session.user?.image || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80"} 
+                    alt="Avatar" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleLogoutConfirm}
+                  title="Cerrar Sesión"
+                  style={{ backgroundColor: themeConfig?.primaryColor || "#dc2626" }}
+                  className="h-10 w-10 rounded-xl text-white opacity-100 hover:brightness-110 transition-all flex items-center justify-center shrink-0 active:scale-95 shadow-md"
+                >
+                  <LucideIcons.LogOut size={16} />
+                </button>
+
+                {/* Botón Expandir >> */}
+                <button
+                  type="button"
+                  onClick={toggleSidebar}
+                  title="Expandir Menú"
+                  className="w-full py-2 rounded-xl text-slate-400 hover:text-white hover:bg-[#202028]/90 transition flex items-center justify-center"
+                >
+                  <LucideIcons.ChevronsRight size={18} />
+                </button>
+              </div>
+            )}
           </div>
         </aside>
 
@@ -132,11 +270,25 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
               >
                 <LucideIcons.Menu size={18} />
               </button>
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  {companyName ? `Empresa: ${companyName}` : 'Panel de Control'}
-                </p>
-                <h2 className="text-base font-bold text-foreground">ERP Administrador</h2>
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-2xl overflow-hidden border border-border/80 bg-muted/40 flex items-center justify-center shrink-0 shadow-sm relative">
+                  {companyLogo ? (
+                    <img 
+                      src={companyLogo} 
+                      alt={companyName || "Empresa"} 
+                      className="h-full w-full object-cover scale-125 transition-transform" 
+                    />
+                  ) : (
+                    <LucideIcons.Building2 size={20} className="text-primary" />
+                  )}
+                </div>
+                <div>
+                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+                    <span>EMPRESA:</span>
+                    <span className="text-foreground font-black">{companyName ? companyName.toUpperCase() : 'GLOBAL'}</span>
+                  </p>
+                  <h2 className="text-sm sm:text-base font-black text-foreground leading-tight">ERP Administrador</h2>
+                </div>
               </div>
             </div>
 
@@ -238,20 +390,29 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
       {isMenuOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" onClick={() => setIsMenuOpen(false)}>
           <div
-            className="h-full w-72 bg-card p-6 flex flex-col shadow-2xl border-r border-border animate-in slide-in-from-left duration-300"
+            className="h-full w-72 bg-[#141417]/90 backdrop-blur-md text-[#f8fafc] p-6 flex flex-col shadow-2xl border-r border-[#24242b]/80 animate-in slide-in-from-left duration-300 dark-scrollbar"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-8 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <LucideIcons.Sparkles size={16} />
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full overflow-hidden border-2 border-red-600 bg-black flex items-center justify-center shrink-0 shadow-md">
+                  <img 
+                    src="/gns-logo.png" 
+                    alt="GNS SarriaTech" 
+                    className="h-full w-full object-cover rounded-full aspect-square" 
+                  />
                 </div>
-                <span className="font-display-lg text-sm tracking-[0.2em] font-semibold text-foreground">
-                  GNS SARRIATECH
-                </span>
+                <div className="flex flex-col text-left">
+                  <span className="text-xs sm:text-sm font-black text-white uppercase tracking-tight leading-none">
+                    GNS SARRIATECH
+                  </span>
+                  <span className="text-[9px] font-extrabold text-red-500 uppercase tracking-wider mt-1 leading-none">
+                    GESTIÓN DE NEGOCIOS
+                  </span>
+                </div>
               </div>
               <button
-                className="rounded-lg border border-border p-1.5 text-foreground hover:bg-muted transition"
+                className="rounded-lg border border-[#2a2a35]/80 bg-[#1a1a20]/90 p-1.5 text-slate-300 hover:text-white transition"
                 onClick={() => setIsMenuOpen(false)}
               >
                 <LucideIcons.X size={18} />
@@ -267,11 +428,12 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                   <Link
                     key={item.id}
                     href={itemHref}
+                    style={isActive ? { backgroundColor: themeConfig?.primaryColor || "#dc2626" } : undefined}
                     className={cn(
-                      "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all",
+                      "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all text-white",
                       isActive
-                        ? "bg-primary text-primary-foreground shadow-md"
-                        : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
+                        ? "opacity-100 shadow-md"
+                        : "text-slate-300 hover:bg-[#202028]/90 hover:text-white"
                     )}
                     onClick={() => setIsMenuOpen(false)}
                   >

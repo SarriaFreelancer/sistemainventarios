@@ -43,6 +43,7 @@ export default async function UsersPage() {
       id: user.id,
       name: user.name,
       email: user.email,
+      image: user.image ?? null,
       password: prefs.plainPassword ? String(prefs.plainPassword) : undefined,
       role: user.role ? { id: user.role.id, name: user.role.name } : null,
       company: user.company ? { id: user.company.id, name: user.company.name } : null,

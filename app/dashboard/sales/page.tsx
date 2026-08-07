@@ -21,7 +21,7 @@ export default async function SalesPage() {
       where: whereTenant,
       include: {
         company: { select: { name: true } },
-        user: { select: { name: true } },
+        user: { select: { name: true, image: true } },
         details: {
           include: { product: { select: { name: true, code: true } } }
         }
@@ -54,7 +54,7 @@ export default async function SalesPage() {
     voidedAt: s.voidedAt ? s.voidedAt.toISOString() : null,
     voidedReason: s.voidedReason,
     createdAt: s.createdAt.toISOString(),
-    user: { name: s.user?.name ?? null },
+    user: { name: s.user?.name ?? null, image: s.user?.image ?? null },
     company: s.company ? { name: s.company.name } : undefined,
     details: s.details.map(d => ({
       id: String(d.id),

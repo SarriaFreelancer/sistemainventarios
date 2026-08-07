@@ -4,6 +4,40 @@ import { prisma } from "@/lib/prisma";
 import { getAuthSession } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { logActivity } from "@/lib/audit";
+import fs from "fs";
+import path from "path";
+
+export async function uploadCompanyLogo(base64Data: string) {
+  try {
+    const session = await getAuthSession();
+    if (!session?.user) return { success: false, error: "No autenticado" };
+
+    const matches = base64Data.match(/^data:image\/([a-zA-Z]+);base64,(.+)$/);
+    if (!matches || matches.length !== 3) {
+      return { success: false, error: "Formato de imagen inválido" };
+    }
+
+    const extRaw = matches[1].toLowerCase();
+    const extension = extRaw === 'jpeg' ? 'jpg' : extRaw;
+    const imageBuffer = Buffer.from(matches[2], 'base64');
+
+    const fileName = `logo-${session.user.companyId || 'company'}-${Date.now()}.${extension}`;
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'logos');
+
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    const filePath = path.join(uploadDir, fileName);
+    await fs.promises.writeFile(filePath, imageBuffer);
+
+    const publicUrl = `/uploads/logos/${fileName}`;
+    return { success: true, url: publicUrl };
+  } catch (error: any) {
+    console.error("[UPLOAD_COMPANY_LOGO]", error);
+    return { success: false, error: "Error al guardar el logo de la empresa" };
+  }
+}
 
 export async function getCompanySettings() {
   try {
@@ -114,6 +148,20 @@ export async function updateCompanySettings(data: any) {
       }
     });
     
+    if (data.themeColor) {
+      const existingCompany = await prisma.company.findUnique({ where: { id: companyId } });
+      const currentTheme = (existingCompany?.themeConfig as any) || {};
+      await prisma.company.update({
+        where: { id: companyId },
+        data: {
+          themeConfig: {
+            ...currentTheme,
+            primaryColor: data.themeColor
+          }
+        }
+      });
+    }
+
     await logActivity({
       module: "COMPANY",
       action: "UPDATE",
@@ -124,6 +172,7 @@ export async function updateCompanySettings(data: any) {
       newValues: updated
     });
     
+    revalidatePath("/", "layout");
     revalidatePath("/dashboard");
     return { success: true };
   } catch (error: any) {

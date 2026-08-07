@@ -56,7 +56,7 @@ interface Sale {
   voidedAt: string | null;
   voidedReason: string | null;
   createdAt: string;
-  user: { name: string | null };
+  user: { name: string | null; image?: string | null };
   details: SaleDetail[];
 }
 
@@ -847,7 +847,16 @@ function SaleDetailDialog({ sale, invoiceConfig }: { sale: Sale; invoiceConfig?:
               </div>
               <div>
                 <p className="text-[9px] font-bold text-muted-foreground uppercase">Vendedor</p>
-                <p className="font-semibold text-foreground">{sale.user.name || 'Sistema'}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <div className="w-5 h-5 rounded-full overflow-hidden border border-primary/20 bg-muted shrink-0 shadow-sm">
+                    <img
+                      src={sale.user?.image || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80"}
+                      alt={sale.user?.name || "Vendedor"}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <p className="font-semibold text-foreground text-xs">{sale.user?.name || 'Sistema'}</p>
+                </div>
               </div>
               <div>
                 <p className="text-[9px] font-bold text-muted-foreground uppercase">Pago</p>
@@ -1185,7 +1194,7 @@ export function SalesClient(props: {
             <table className="w-full">
               <thead>
                 <tr className="bg-muted/20 border-b border-border/60">
-                  {['N° Venta', 'Fecha', 'Cliente', 'Productos', 'Pago', 'Total', 'Estado', 'Acciones'].map(h => (
+                  {['N° Venta', 'Fecha', 'Cliente', 'Vendedor', 'Productos', 'Pago', 'Total', 'Estado', 'Acciones'].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">{h}</th>
                   ))}
                 </tr>
@@ -1203,6 +1212,20 @@ export function SalesClient(props: {
                     </td>
                     <td className="px-4 py-3.5">
                       <span className="text-sm text-foreground">{sale.client ?? 'Consumidor final'}</span>
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full overflow-hidden border border-primary/20 bg-muted shrink-0 shadow-sm">
+                          <img
+                            src={sale.user?.image || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80"}
+                            alt={sale.user?.name || "Vendedor"}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <span className="text-xs font-semibold text-foreground truncate max-w-[120px]">
+                          {sale.user?.name || 'Sistema'}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-4 py-3.5">
                       <span className="text-xs text-muted-foreground">{sale.details.length} prod.</span>

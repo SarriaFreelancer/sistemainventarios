@@ -98,7 +98,7 @@ export function ProfileClient({ user }: ProfileClientProps) {
     if (result.success) {
       setSelectedFile(null);
       successAlert("Perfil actualizado", "Tus datos han sido guardados correctamente.");
-      router.refresh();
+      window.location.reload();
     } else {
       errorAlert("Error", result.error || "Error al actualizar el perfil");
     }
@@ -286,7 +286,7 @@ export function ProfileClient({ user }: ProfileClientProps) {
             <div className="space-y-1.5 pt-2 border-t border-border/40 mt-4">
               <label className="text-xs font-bold text-muted-foreground uppercase">O ingresa un enlace (URL)</label>
               <input
-                type="url"
+                type="text"
                 value={!selectedFile ? image : ""}
                 onChange={(e) => {
                   setImage(e.target.value);

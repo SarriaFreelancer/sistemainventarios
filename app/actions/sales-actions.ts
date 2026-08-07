@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { withTenantWhere, withTenantData } from '@/lib/tenant-db';
-import { getSessionCompanyId, resolveActionCompanyId } from '@/lib/session';
+import { getSessionCompanyId, resolveActionCompanyId, resolveActionUserId } from '@/lib/session';
 import { logActivity } from '@/lib/audit';
 import { createNotification } from '@/app/actions/notification-actions';
 
@@ -42,11 +42,13 @@ export async function createSale(data: {
 
     const { userId, client, customerId, discount = 0, paymentMethod = 'EFECTIVO', remarks, status = 'COMPLETED', items } = parsed.data;
 
-    // Aislamiento Tenant: Obtener companyId (con fallback para SUPERADMIN)
+    // Aislamiento Tenant y Usuario Válido
     const companyId = (await getSessionCompanyId()) ?? (await resolveActionCompanyId());
     if (!companyId) {
       return { success: false, error: 'No autorizado o empresa no válida' };
     }
+
+    const validUserId = await resolveActionUserId(userId);
 
     // Si el estado es COMPLETED, validar stock para todos los productos en el tenant actual
     if (status === 'COMPLETED') {
@@ -130,7 +132,7 @@ export async function createSale(data: {
       const createdSale = await tx.sale.create({
         data: {
           saleNumber,
-          userId,
+          userId: validUserId,
           client: client || null,
           customerId: customerId || null,
           discount,

@@ -11,7 +11,7 @@ import { createUser, updateUser, deleteUser } from "@/app/actions/user-actions";
 
 interface Role { id: number; name: string; }
 interface Company { id: number; name: string; }
-interface User { id: number; name: string; email: string; password?: string; role?: Role | null; company?: Company | null; }
+interface User { id: number; name: string; email: string; image?: string | null; password?: string; role?: Role | null; company?: Company | null; }
 
 const inputCls = "bg-background/50 border-border/80 focus:border-primary focus:ring-4 focus:ring-primary/10 text-foreground placeholder:text-muted-foreground/50 h-11 rounded-xl";
 const selectCls = "flex h-11 w-full rounded-xl border border-border/80 bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all duration-300";
@@ -389,7 +389,16 @@ export function UsersClient({
                 {filteredUsers.map((user) => (
                   <tr key={user.id} className="group hover:bg-primary/5 transition-colors duration-200">
                     <td className="px-6 py-4">
-                      <p className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors">{user.name}</p>
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full overflow-hidden border border-primary/20 bg-muted shrink-0 shadow-sm">
+                          <img
+                            src={user.image || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80"}
+                            alt={user.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <p className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors">{user.name}</p>
+                      </div>
                     </td>
                     <td className="px-4 py-4">
                       <p className="text-sm text-muted-foreground truncate max-w-[240px]">{user.email}</p>

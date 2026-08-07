@@ -117,6 +117,21 @@ export const authOptions: AuthOptions = {
         session.user.companyId = token.companyId;
         session.user.companyStatus = token.companyStatus;
         session.user.companyPlan = token.companyPlan;
+
+        if (token.id) {
+          try {
+            const dbUser = await prisma.user.findUnique({
+              where: { id: Number(token.id) },
+              select: { image: true, name: true }
+            });
+            if (dbUser) {
+              if (dbUser.image) session.user.image = dbUser.image;
+              if (dbUser.name) session.user.name = dbUser.name;
+            }
+          } catch (e) {
+            console.error("Error fetching dbUser in session callback", e);
+          }
+        }
       }
       return session;
     },

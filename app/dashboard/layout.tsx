@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getAuthSession } from '../../auth';
 import { DashboardShell } from '@/components/dashboard-shell';
 import { prisma } from '@/lib/prisma';
+import { getSessionCompanyId } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -91,13 +92,20 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   let companyTheme: any = null;
   
   let companyName = '';
-  if (session.user.companyId) {
+  let companyLogo: string | null = null;
+  const tenantId = await getSessionCompanyId();
+  if (tenantId) {
     const company = await prisma.company.findUnique({
-      where: { id: Number(session.user.companyId) },
-      select: { name: true, themeConfig: true }
+      where: { id: tenantId },
+      select: { 
+        name: true, 
+        themeConfig: true,
+        setting: { select: { invoiceConfig: true } }
+      }
     });
     companyTheme = company?.themeConfig;
     companyName = company?.name || '';
+    companyLogo = (company?.setting?.invoiceConfig as any)?.logo || null;
   }
   
   if (session.user.role === 'SUPERADMIN') {
@@ -140,7 +148,13 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
 
   return (
     <InactivityGuard>
-      <DashboardShell session={session} modules={allowedModules} themeConfig={companyTheme} companyName={companyName}>
+      <DashboardShell 
+        session={session} 
+        modules={allowedModules} 
+        themeConfig={companyTheme} 
+        companyName={companyName}
+        companyLogo={companyLogo}
+      >
         {children}
       </DashboardShell>
     </InactivityGuard>
