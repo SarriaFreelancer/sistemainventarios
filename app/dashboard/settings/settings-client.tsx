@@ -6,12 +6,13 @@ import { updateCompanySettings } from "@/app/actions/settings-actions";
 import { generateDemoData, clearDemoData } from "@/app/actions/demo-actions";
 import { successAlert, errorAlert } from "@/lib/sweetalert";
 import { useRouter } from "next/navigation";
-import { ServersManager } from "./servers-manager";
-import { MigrationsManager } from "./migrations-manager";
-import { DatabasesManager } from "./databases-manager";
-import { LicensesManager } from "./licenses-manager";
-import { ImportsManager } from "./imports-manager";
-import { OnboardingManager } from "./onboarding-manager";
+import dynamic from "next/dynamic";
+const ServersManager = dynamic(() => import("./servers-manager").then(m => m.ServersManager), { ssr: false });
+const MigrationsManager = dynamic(() => import("./migrations-manager").then(m => m.MigrationsManager), { ssr: false });
+const DatabasesManager = dynamic(() => import("./databases-manager").then(m => m.DatabasesManager), { ssr: false });
+const LicensesManager = dynamic(() => import("./licenses-manager").then(m => m.LicensesManager), { ssr: false });
+const ImportsManager = dynamic(() => import("./imports-manager").then(m => m.ImportsManager), { ssr: false });
+const OnboardingManager = dynamic(() => import("./onboarding-manager").then(m => m.OnboardingManager), { ssr: false });
 
 interface CompanySetting {
   id: number;
@@ -362,7 +363,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
         {/* PESTAÑA: ONBOARDING */}
         {activeTab === "onboarding" && (
           <div className="bg-card rounded-2xl border border-border p-6 shadow-sm animate-in fade-in zoom-in-95">
-            <OnboardingManager userId={userId} />
+            <OnboardingManager userId={userId} role={role} companies={dedicatedCompanies} />
           </div>
         )}
 

@@ -27,6 +27,7 @@ export default async function SalesPage() {
         }
       },
       orderBy: { createdAt: 'desc' },
+      take: 200,
     }),
     prisma.product.findMany({
       where: whereTenant,

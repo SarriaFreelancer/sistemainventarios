@@ -6,15 +6,21 @@ const prisma = new PrismaClient();
 async function main() {
   const passwordHash = await bcrypt.hash('Admin123', 10);
 
-  // Clear existing data in reverse order of dependencies
+  // Desactivar restricciones de clave foránea temporalmente en MySQL para una limpieza 100% segura
+  await prisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 0;');
+
+  await prisma.notification.deleteMany();
+  await prisma.companySetting.deleteMany();
+  await prisma.invoiceCounter.deleteMany();
   await prisma.auditLog.deleteMany();
+  await prisma.purchaseOrder?.deleteMany().catch(() => {});
   await prisma.saleDetail.deleteMany();
   await prisma.sale.deleteMany();
   await prisma.opportunity.deleteMany();
   await prisma.customer.deleteMany();
   await prisma.product.deleteMany();
-  await prisma.productGroup.deleteMany();
   await prisma.category.deleteMany();
+  await prisma.productGroup.deleteMany();
   await prisma.supplier.deleteMany();
   await prisma.roleModule.deleteMany();
   await prisma.companyModule.deleteMany();
@@ -22,6 +28,8 @@ async function main() {
   await prisma.user.deleteMany();
   await prisma.role.deleteMany();
   await prisma.company.deleteMany();
+
+  await prisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 1;');
 
   // Create roles
   const adminRole = await prisma.role.create({ data: { name: 'ADMIN' } });
@@ -67,6 +75,7 @@ async function main() {
       password: passwordHash,
       roleId: adminRole.id,
       companyId: mainCompany.id,
+      preferences: { plainPassword: 'Admin123' },
     },
   });
 
@@ -78,6 +87,7 @@ async function main() {
       password: passwordHash,
       roleId: superAdminRole.id,
       companyId: globalCompany.id,
+      preferences: { plainPassword: 'Admin123' },
     },
   });
 
@@ -89,6 +99,7 @@ async function main() {
       password: passwordHash,
       roleId: adminRole.id,
       companyId: partnerCompany.id,
+      preferences: { plainPassword: 'Admin123' },
     },
   });
 
@@ -167,6 +178,9 @@ async function main() {
     { name: 'Limpieza Facial', description: 'Aguas micelares, geles limpiadores y tónicos', groupName: 'Skincare' },
     { name: 'Brochas y Esponjas', description: 'Herramientas de aplicación profesional', groupName: 'Accesorios' },
     { name: 'Fragancias Premium', description: 'Perfumes exclusivos de alta fijación', groupName: 'Perfumería' },
+    { name: 'Tratamientos Capilares', description: 'Brumas, óleos y mascarillas reparadoras', groupName: 'Capilar' },
+    { name: 'Exfoliantes y Cremas', description: 'Exfoliantes corporales y cremas hidratantes', groupName: 'Corporal' },
+    { name: 'Artículos de Soporte', description: 'Insumos y accesorios complementarios', groupName: 'Otros' },
   ];
   const createdCategories: any[] = [];
   for (const c of categoryNames) {
@@ -246,9 +260,9 @@ async function main() {
     { name: 'Set Brochas Premium Gold (12 u.)', price: 150000, cost: 70000, catIdx: 5, supIdx: 3, groupName: 'Accesorios', code: 'ACC-001' },
     { name: 'Esponja Microfibra Silk Orchid', price: 18000, cost: 7000, catIdx: 5, supIdx: 3, groupName: 'Accesorios', code: 'ACC-002' },
     { name: 'Perfume Dorelle Nuit Eau de Parfum', price: 240000, cost: 110000, catIdx: 6, supIdx: 2, groupName: 'Perfumería', code: 'FRG-001' },
-    { name: 'Bruma Capilar Destello Morado', price: 42000, cost: 19000, catIdx: 6, supIdx: 1, groupName: 'Capilar', code: 'FRG-002' },
-    { name: 'Óleo Reparador de Argán y Coco', price: 56000, cost: 26000, catIdx: 3, supIdx: 1, groupName: 'Capilar', code: 'CAP-001' },
-    { name: 'Exfoliante Corporal Lavanda y Azúcar', price: 48000, cost: 22000, catIdx: 4, supIdx: 0, groupName: 'Corporal', code: 'BDY-001' },
+    { name: 'Bruma Capilar Destello Morado', price: 42000, cost: 19000, catIdx: 7, supIdx: 1, groupName: 'Capilar', code: 'CAP-002' },
+    { name: 'Óleo Reparador de Argán y Coco', price: 56000, cost: 26000, catIdx: 7, supIdx: 1, groupName: 'Capilar', code: 'CAP-001' },
+    { name: 'Exfoliante Corporal Lavanda y Azúcar', price: 48000, cost: 22000, catIdx: 8, supIdx: 0, groupName: 'Corporal', code: 'BDY-001' },
   ];
 
   const createdProducts = [];

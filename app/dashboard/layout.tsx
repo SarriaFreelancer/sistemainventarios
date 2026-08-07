@@ -6,6 +6,76 @@ import { prisma } from '@/lib/prisma';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+let isModulesInitialized = false;
+
+async function ensureModulesInitialized() {
+  if (isModulesInitialized) return;
+  try {
+    const requiredModules = [
+      { name: 'Auditoría', href: '/dashboard/audit', icon: 'ShieldAlert', description: 'Trazabilidad y registro de actividad' },
+      { name: 'Configuración', href: '/dashboard/settings', icon: 'Settings', description: 'Ajustes generales, seguridad e integraciones' },
+      { name: 'Analíticas', href: '/dashboard/analytics', icon: 'BarChart3', description: 'Métricas SaaS, actividad de usuarios y módulos' },
+      { name: 'RRHH', href: '/dashboard/rrhh', icon: 'Users', description: 'Gestión de personal y nómina' }
+    ];
+
+    const existingModules = await prisma.module.findMany({
+      where: { name: { in: requiredModules.map(m => m.name) } },
+      select: { name: true }
+    });
+    const existingNames = new Set(existingModules.map(m => m.name));
+    const missingModules = requiredModules.filter(m => !existingNames.has(m.name));
+
+    for (const mod of missingModules) {
+      const created = await prisma.module.create({
+        data: {
+          name: mod.name,
+          href: mod.href,
+          icon: mod.icon,
+          description: mod.description,
+          isActive: true
+        }
+      });
+      
+      const [superRole, adminRoleObj] = await Promise.all([
+        prisma.role.findUnique({ where: { name: 'SUPERADMIN' } }),
+        prisma.role.findUnique({ where: { name: 'ADMIN' } })
+      ]);
+      
+      const rolePromises: Promise<any>[] = [];
+      if (superRole) rolePromises.push(prisma.roleModule.create({ data: { roleId: superRole.id, moduleId: created.id } }).catch(() => {}));
+      if (adminRoleObj) rolePromises.push(prisma.roleModule.create({ data: { roleId: adminRoleObj.id, moduleId: created.id } }).catch(() => {}));
+      
+      const companies = await prisma.company.findMany({ select: { id: true } });
+      for (const comp of companies) {
+        rolePromises.push(prisma.companyModule.create({ data: { companyId: comp.id, moduleId: created.id } }).catch(() => {}));
+      }
+      await Promise.all(rolePromises);
+    }
+
+    const userRoleObj = await prisma.role.findUnique({ where: { name: 'USER' } });
+    if (userRoleObj) {
+      const assignedCount = await prisma.roleModule.count({ where: { roleId: userRoleObj.id } });
+      if (assignedCount === 0) {
+        const userModuleNames = ['Dashboard', 'Productos', 'Grupos', 'Categorías', 'Proveedores', 'Ventas', 'CRM', 'Compras', 'Finanzas', 'RRHH', 'Reportes'];
+        const modulesToAssign = await prisma.module.findMany({
+          where: { name: { in: userModuleNames } }
+        });
+        for (const mod of modulesToAssign) {
+          await prisma.roleModule.create({
+            data: { roleId: userRoleObj.id, moduleId: mod.id }
+          }).catch(() => {});
+        }
+      }
+    }
+
+    isModulesInitialized = true;
+  } catch (err) {
+    console.error('[MODULE_INIT_ERROR]', err);
+  }
+}
+
+import { InactivityGuard } from '@/components/security/inactivity-guard';
+
 export default async function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const session = await getAuthSession();
   if (!session?.user) redirect('/auth/login');
@@ -14,66 +84,8 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     redirect('/#planes');
   }
 
-  // Auto-inicialización no destructiva de nuevos módulos SaaS (cacheada en memoria)
-  const requiredModules = [
-    { name: 'Auditoría', href: '/dashboard/audit', icon: 'ShieldAlert', description: 'Trazabilidad y registro de actividad' },
-    { name: 'Configuración', href: '/dashboard/settings', icon: 'Settings', description: 'Ajustes generales, seguridad e integraciones' },
-    { name: 'Analíticas', href: '/dashboard/analytics', icon: 'BarChart3', description: 'Métricas SaaS, actividad de usuarios y módulos' },
-    { name: 'RRHH', href: '/dashboard/rrhh', icon: 'Users', description: 'Gestión de personal y nómina' }
-  ];
-
-  // Solo verificar si los módulos existen con una sola query batch
-  const existingModules = await prisma.module.findMany({
-    where: { name: { in: requiredModules.map(m => m.name) } },
-    select: { name: true }
-  });
-  const existingNames = new Set(existingModules.map(m => m.name));
-  const missingModules = requiredModules.filter(m => !existingNames.has(m.name));
-
-  // Solo crear los módulos que falten (normalmente 0 después del primer deploy)
-  for (const mod of missingModules) {
-    const created = await prisma.module.create({
-      data: {
-        name: mod.name,
-        href: mod.href,
-        icon: mod.icon,
-        description: mod.description,
-        isActive: true
-      }
-    });
-    
-    const [superRole, adminRoleObj] = await Promise.all([
-      prisma.role.findUnique({ where: { name: 'SUPERADMIN' } }),
-      prisma.role.findUnique({ where: { name: 'ADMIN' } })
-    ]);
-    
-    const rolePromises: Promise<any>[] = [];
-    if (superRole) rolePromises.push(prisma.roleModule.create({ data: { roleId: superRole.id, moduleId: created.id } }).catch(() => {}));
-    if (adminRoleObj) rolePromises.push(prisma.roleModule.create({ data: { roleId: adminRoleObj.id, moduleId: created.id } }).catch(() => {}));
-    
-    const companies = await prisma.company.findMany({ select: { id: true } });
-    for (const comp of companies) {
-      rolePromises.push(prisma.companyModule.create({ data: { companyId: comp.id, moduleId: created.id } }).catch(() => {}));
-    }
-    await Promise.all(rolePromises);
-  }
-
-  // Auto-inicialización de permisos del rol USER si están vacíos
-  const userRoleObj = await prisma.role.findUnique({ where: { name: 'USER' } });
-  if (userRoleObj) {
-    const assignedCount = await prisma.roleModule.count({ where: { roleId: userRoleObj.id } });
-    if (assignedCount === 0) {
-      const userModuleNames = ['Dashboard', 'Productos', 'Grupos', 'Categorías', 'Proveedores', 'Ventas', 'CRM', 'Compras', 'Finanzas', 'RRHH', 'Reportes'];
-      const modulesToAssign = await prisma.module.findMany({
-        where: { name: { in: userModuleNames } }
-      });
-      for (const mod of modulesToAssign) {
-        await prisma.roleModule.create({
-          data: { roleId: userRoleObj.id, moduleId: mod.id }
-        }).catch(() => {});
-      }
-    }
-  }
+  // Ejecutar inicialización solo la primera vez en memoria
+  await ensureModulesInitialized();
 
   let allowedModules: any[] = [];
   let companyTheme: any = null;
@@ -94,7 +106,6 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
       orderBy: { createdAt: 'asc' },
     });
   } else if (session.user.role === 'ADMIN') {
-    // ADMIN sees all modules assigned to their company (except SUPERADMIN-only modules like Empresas)
     const companyModules = await prisma.companyModule.findMany({
       where: { companyId: Number(session.user.companyId) || -1 },
       include: { module: true },
@@ -103,7 +114,6 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
       .map(cm => cm.module)
       .filter(m => m.isActive && m.href !== '/dashboard/companies');
   } else {
-    // For regular users, find intersection of role modules AND company modules (excluding SUPERADMIN-only modules)
     const roleModules = await prisma.roleModule.findMany({
       where: { role: { name: session.user.role as any } },
       include: { module: true },
@@ -129,8 +139,10 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   allowedModules = settingsModule ? [...otherModules, settingsModule] : otherModules;
 
   return (
-    <DashboardShell session={session} modules={allowedModules} themeConfig={companyTheme} companyName={companyName}>
-      {children}
-    </DashboardShell>
+    <InactivityGuard>
+      <DashboardShell session={session} modules={allowedModules} themeConfig={companyTheme} companyName={companyName}>
+        {children}
+      </DashboardShell>
+    </InactivityGuard>
   );
 }

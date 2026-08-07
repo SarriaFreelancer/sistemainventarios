@@ -5,8 +5,10 @@
   "type": "module",
   "packageManager": "pnpm@9.15.0",
   "scripts": {
-    "dev": "pnpm exec next dev",
-    "build": "next build",
+    "dev": "npx prisma db push --skip-generate && pnpm exec next dev",
+    "build": "npx prisma db push --skip-generate && next build",
+    "db:push": "prisma db push",
+    "db:generate": "prisma generate",
     "start": "next start",
     "lint": "next lint",
     "prisma:generate": "prisma generate --schema=prisma/platform/schema.prisma && prisma generate --schema=prisma/tenant/schema.prisma",

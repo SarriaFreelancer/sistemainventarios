@@ -25,26 +25,33 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const userId = session?.user?.id;
+  const storageKey = userId ? `gns_user_theme_${userId}` : 'gns_user_theme_guest';
+
+  const [theme, setTheme] = useState<'dark' | 'light'>('light');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem('theme') as 'dark' | 'light' | null;
-    const initialTheme = stored ?? (themeConfig?.mode ? (themeConfig.mode as 'dark' | 'light') : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+    // Si el usuario ya tiene una preferencia guardada ('dark' o 'light'), la respetamos.
+    // Si es la primera vez para este usuario, la regla es iniciar SIEMPRE en modo claro ('light').
+    const stored = window.localStorage.getItem(storageKey) as 'dark' | 'light' | null;
+    const initialTheme = stored ?? 'light';
+
     setTheme(initialTheme);
     document.documentElement.classList.toggle('dark', initialTheme === 'dark');
     setMounted(true);
-  }, []);
+  }, [storageKey]);
 
-  useEffect(() => {
-    if (!mounted) return;
-    document.documentElement.classList.toggle('dark', theme === 'dark');
-    window.localStorage.setItem('theme', theme);
-  }, [theme, mounted]);
+  const handleToggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    document.documentElement.classList.toggle('dark', nextTheme === 'dark');
+    window.localStorage.setItem(storageKey, nextTheme);
+  };
 
   // Prevent flash/hydration mismatch by rendering a skeleton or empty shell until mounted
   if (!mounted) {
-    return <div className="min-h-screen bg-[#17121F]" />;
+    return <div className="min-h-screen bg-background" />;
   }
 
   const isSuperAdmin = session?.user?.role === 'SUPERADMIN';
@@ -104,8 +111,8 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
               })}
           </nav>
 
-          {/* User profile footer info */}
-          <div className="mt-auto border border-border/80 bg-muted/20 p-4 rounded-2xl flex flex-col gap-1">
+          {/* User profile footer info con separación clara */}
+          <div className="mt-6 pt-2 border border-border/80 bg-muted/20 p-4 rounded-2xl flex flex-col gap-1 shrink-0 shadow-sm">
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Sesión Activa</p>
             <p className="text-sm font-bold text-foreground truncate">{session.user?.name ?? 'Usuario GNS'}</p>
             <p className="text-xs text-muted-foreground truncate">{session.user?.email ?? ''}</p>
@@ -119,6 +126,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
           <header className="flex items-center justify-between border-b border-border bg-card px-6 py-4 transition-colors duration-500 min-h-[73px] shrink-0">
             <div className="flex items-center gap-3">
               <button
+                aria-label="Menú principal"
                 className="rounded-xl border border-border bg-card p-2.5 text-foreground hover:bg-muted transition lg:hidden"
                 onClick={() => setIsMenuOpen(true)}
               >
@@ -138,7 +146,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
               <button
                 id="tour-theme-toggle"
                 className="rounded-xl border border-border bg-card p-2.5 text-foreground hover:bg-muted transition-all active:scale-95 shadow-sm"
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                onClick={handleToggleTheme}
                 aria-label="Cambiar Tema"
               >
                 {theme === 'dark' ? <LucideIcons.Sun size={16} className="text-primary" /> : <LucideIcons.Moon size={16} className="text-primary" />}

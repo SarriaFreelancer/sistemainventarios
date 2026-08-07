@@ -8,11 +8,26 @@ import { logActivity } from "@/lib/audit";
 export async function getCompanySettings() {
   try {
     const session = await getAuthSession();
-    if (!session?.user?.companyId) {
+    if (!session?.user) {
       return { success: false, error: "No autorizado o sin empresa vinculada" };
     }
     
-    const companyId = Number(session.user.companyId);
+    let companyId: number | null = session.user.companyId ? Number(session.user.companyId) : null;
+    let targetCompany = companyId
+      ? await prisma.company.findUnique({ where: { id: companyId } })
+      : null;
+
+    // Si la empresa de la sesión no existe en la BD (ej. tras re-sembrar datos), usar la primera empresa activa
+    if (!targetCompany) {
+      targetCompany = await prisma.company.findFirst({ where: { status: 'ACTIVE' }, orderBy: { id: 'asc' } })
+                   || await prisma.company.findFirst({ orderBy: { id: 'asc' } });
+    }
+
+    if (!targetCompany) {
+      return { success: false, error: "No se encontró ninguna empresa activa en el sistema" };
+    }
+
+    companyId = targetCompany.id;
     
     // Intentar obtener la configuración. Si no existe, la creamos (Upsert de seguridad)
     let settings = await prisma.companySetting.findUnique({
@@ -35,7 +50,7 @@ export async function getCompanySettings() {
 export async function updateCompanySettings(data: any) {
   try {
     const session = await getAuthSession();
-    if (!session?.user?.companyId) {
+    if (!session?.user) {
       return { success: false, error: "No autorizado" };
     }
     
@@ -43,7 +58,21 @@ export async function updateCompanySettings(data: any) {
       return { success: false, error: "Permisos insuficientes. Solo los administradores pueden cambiar estos ajustes." };
     }
     
-    const companyId = Number(session.user.companyId);
+    let companyId: number | null = session.user.companyId ? Number(session.user.companyId) : null;
+    let targetCompany = companyId
+      ? await prisma.company.findUnique({ where: { id: companyId } })
+      : null;
+
+    if (!targetCompany) {
+      targetCompany = await prisma.company.findFirst({ where: { status: 'ACTIVE' }, orderBy: { id: 'asc' } })
+                   || await prisma.company.findFirst({ orderBy: { id: 'asc' } });
+    }
+
+    if (!targetCompany) {
+      return { success: false, error: "No se encontró ninguna empresa activa en el sistema" };
+    }
+
+    companyId = targetCompany.id;
     
     const settingsBefore = await prisma.companySetting.findUnique({
       where: { companyId }
@@ -100,5 +129,122 @@ export async function updateCompanySettings(data: any) {
   } catch (error: any) {
     console.error("[UPDATE_SETTINGS]", error);
     return { success: false, error: error.message || "Error al actualizar la configuración" };
+  }
+}
+
+/**
+ * Limpia los datos transaccionales (ventas, productos, clientes, categorías, proveedores)
+ * de la empresa del usuario actual (o de una empresa específica si es SUPERADMIN).
+ * CONSERVA INTACTOS los usuarios, la empresa y sus licencias para mantener el inicio de sesión.
+ */
+export async function resetCompanyData(targetCompanyId?: number) {
+  try {
+    const session = await getAuthSession();
+    if (!session?.user) {
+      return { success: false, error: "No autorizado" };
+    }
+
+    const isSuperAdmin = session.user.role === 'SUPERADMIN';
+    const isAdmin = session.user.role === 'ADMIN';
+
+    if (!isAdmin && !isSuperAdmin) {
+      return { success: false, error: "Solo los administradores pueden realizar esta acción." };
+    }
+
+    const companyId = (isSuperAdmin && targetCompanyId)
+      ? Number(targetCompanyId)
+      : (session.user.companyId ? Number(session.user.companyId) : null);
+
+    if (!companyId) {
+      return { success: false, error: "Empresa no válida o no especificada." };
+    }
+
+    // Verificar que la empresa exista
+    const company = await prisma.company.findUnique({ where: { id: companyId } });
+    if (!company) {
+      return { success: false, error: "Empresa no encontrada." };
+    }
+
+    // Ejecutar borrado transaccional seguro conservando usuarios y licencias
+    await prisma.$transaction(async (tx) => {
+      await tx.notification.deleteMany({ where: { companyId } });
+      await tx.auditLog.deleteMany({ where: { companyId } });
+      await tx.saleDetail.deleteMany({ where: { companyId } });
+      await tx.sale.deleteMany({ where: { companyId } });
+      await tx.opportunity.deleteMany({ where: { companyId } });
+      await tx.customer.deleteMany({ where: { companyId } });
+      await tx.product.deleteMany({ where: { companyId } });
+      await tx.category.deleteMany({ where: { companyId } });
+      await tx.productGroup.deleteMany({ where: { companyId } });
+      await tx.supplier.deleteMany({ where: { companyId } });
+      await tx.invoiceCounter.deleteMany({ where: { companyId } });
+    });
+
+    await logActivity({
+      module: "COMPANY",
+      action: "DELETE",
+      entity: "CompanyData",
+      entityId: companyId,
+      description: `Limpió todos los datos transaccionales de la empresa "${company.name}" (Usuarios y accesos conservados).`
+    });
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/products");
+    revalidatePath("/dashboard/sales");
+    revalidatePath("/dashboard/categories");
+    revalidatePath("/dashboard/groups");
+    revalidatePath("/dashboard/suppliers");
+    return { success: true, message: `Los datos de "${company.name}" fueron limpiados correctamente. Las cuentas de usuario conservan su acceso.` };
+  } catch (error: any) {
+    console.error("[RESET_COMPANY_DATA_ERROR]", error);
+    return { success: false, error: error.message || "Error al limpiar los datos de la empresa." };
+  }
+}
+
+/**
+ * Exclusivo para SUPERADMIN: Limpia los datos transaccionales de TODAS las empresas del sistema.
+ * CONSERVA INTACTOS todos los usuarios, cuentas, licencias y empresas registradas.
+ */
+export async function resetGlobalSystemData() {
+  try {
+    const session = await getAuthSession();
+    if (!session?.user || session.user.role !== 'SUPERADMIN') {
+      return { success: false, error: "Acceso denegado. Solo el SUPERADMIN puede realizar una limpieza global." };
+    }
+
+    await prisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 0;');
+
+    await prisma.notification.deleteMany();
+    await prisma.auditLog.deleteMany();
+    await prisma.saleDetail.deleteMany();
+    await prisma.sale.deleteMany();
+    await prisma.opportunity.deleteMany();
+    await prisma.customer.deleteMany();
+    await prisma.product.deleteMany();
+    await prisma.category.deleteMany();
+    await prisma.productGroup.deleteMany();
+    await prisma.supplier.deleteMany();
+    await prisma.invoiceCounter.deleteMany();
+
+    await prisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 1;');
+
+    await logActivity({
+      module: "SYSTEM",
+      action: "DELETE",
+      entity: "GlobalData",
+      entityId: 0,
+      description: "Realizó una limpieza global de datos transaccionales en todas las empresas (Usuarios y licencias conservados)."
+    });
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/products");
+    revalidatePath("/dashboard/sales");
+    revalidatePath("/dashboard/categories");
+    revalidatePath("/dashboard/groups");
+    revalidatePath("/dashboard/suppliers");
+    return { success: true, message: "Se han limpiado todos los datos transaccionales de la plataforma. Las empresas y los usuarios mantienen su acceso intacto." };
+  } catch (error: any) {
+    console.error("[RESET_GLOBAL_SYSTEM_DATA_ERROR]", error);
+    return { success: false, error: error.message || "Error al realizar la limpieza global." };
   }
 }

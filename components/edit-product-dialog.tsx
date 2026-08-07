@@ -45,17 +45,37 @@ export function EditProductDialog({ product, categories, suppliers, groups }: Ed
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [productType, setProductType] = useState(product.type || 'SALE');
-  const [selectedGroup, setSelectedGroup] = useState(product.productGroupId || '');
+  const [selectedGroup, setSelectedGroup] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
 
-  const filteredCategories = selectedGroup
-    ? categories.filter(c => c.productGroupId === selectedGroup)
-    : categories;
+  const getInitialGroup = useCallback(() => {
+    if (product.productGroupId) return String(product.productGroupId);
+    const cat = categories.find(c => String(c.id) === String(product.categoryId));
+    return cat?.productGroupId ? String(cat.productGroupId) : '';
+  }, [product, categories]);
 
   useEffect(() => {
     if (open) {
       setProductType(product.type || 'SALE');
+      const grp = getInitialGroup();
+      setSelectedGroup(grp);
+      setSelectedCategory(product.categoryId ? String(product.categoryId) : '');
     }
-  }, [open, product.type]);
+  }, [open, product, categories, getInitialGroup]);
+
+  const filteredCategories = selectedGroup
+    ? categories.filter(c => String(c.productGroupId) === String(selectedGroup))
+    : categories;
+
+  const handleGroupChange = (groupId: string) => {
+    setSelectedGroup(groupId);
+    if (groupId) {
+      const isCatInGroup = categories.some(c => String(c.id) === String(selectedCategory) && String(c.productGroupId) === String(groupId));
+      if (!isCatInGroup) {
+        setSelectedCategory('');
+      }
+    }
+  };
 
   const handleAction = useCallback(async (formData: FormData) => {
     startTransition(async () => {
@@ -72,6 +92,7 @@ export function EditProductDialog({ product, categories, suppliers, groups }: Ed
   return (
     <>
       <Button
+        aria-label="Editar producto"
         onClick={() => setOpen(true)}
         variant="ghost"
         size="icon"
@@ -113,7 +134,7 @@ export function EditProductDialog({ product, categories, suppliers, groups }: Ed
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor={`edit-group-${product.id}`} className={labelCls}>Grupo de Producto</Label>
-                <select id={`edit-group-${product.id}`} name="productGroupId" value={selectedGroup} onChange={(e) => setSelectedGroup(e.target.value)} className={selectCls}>
+                <select id={`edit-group-${product.id}`} name="productGroupId" value={selectedGroup} onChange={(e) => handleGroupChange(e.target.value)} className={selectCls}>
                   <option value="">Seleccione un grupo...</option>
                   {groups.map((g) => (
                     <option key={g.id} value={g.id}>{g.name}</option>
@@ -122,7 +143,7 @@ export function EditProductDialog({ product, categories, suppliers, groups }: Ed
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor={`edit-cat-${product.id}`} className={labelCls}>Categoría</Label>
-                <select id={`edit-cat-${product.id}`} name="categoryId" defaultValue={product.categoryId} className={selectCls}>
+                <select id={`edit-cat-${product.id}`} name="categoryId" value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className={selectCls}>
                   <option value="">Seleccione una categoría...</option>
                   {filteredCategories.map((c) => (
                     <option key={c.id} value={c.id}>{c.name}</option>
@@ -148,14 +169,14 @@ export function EditProductDialog({ product, categories, suppliers, groups }: Ed
               </div>
               
               {['SALE', 'FINISHED_GOOD', 'SERVICE'].includes(productType) ? (
-                <div className="space-y-1.5 sm:col-span-2">
+                <div className="space-y-1.5">
                   <Label htmlFor={`edit-price-${product.id}`} className={labelCls}>Precio de Venta (COP)</Label>
                   <Input id={`edit-price-${product.id}`} name="salePrice" type="number" min="0" step="100" defaultValue={product.salePrice} className={inputCls} required />
                 </div>
               ) : (
-                <div className="space-y-1.5 sm:col-span-2 pt-2">
-                  <div className="bg-muted/30 border border-border rounded-xl p-3 text-xs text-muted-foreground flex items-center gap-2">
-                    Este tipo de producto es de uso interno y no requiere un precio de venta para el público.
+                <div className="space-y-1.5 flex items-end pb-0.5">
+                  <div className="bg-muted/30 border border-border rounded-xl p-2.5 text-xs text-muted-foreground">
+                    Uso interno (sin precio de venta).
                   </div>
                 </div>
               )}

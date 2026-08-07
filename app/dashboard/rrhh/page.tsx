@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { Users, Calculator, ArrowRight, Star } from 'lucide-react';
 
 export const metadata = {
-  title: 'Recursos Humanos · GNS',
+  title: 'Recursos Humanos y Nómina · GNS',
+  description: 'Administra la información de tu personal y automatiza el cálculo y pago de nóminas en GNS SarriaTech.',
 };
 
 export default async function RRHHPage() {

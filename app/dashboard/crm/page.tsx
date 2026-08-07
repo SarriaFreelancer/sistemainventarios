@@ -10,8 +10,12 @@ import { CrmPageHeader } from '@/components/crm/crm-page-header';
 import { getSessionCompanyId } from '@/lib/session';
 
 export const metadata = {
-  title: 'CRM · GNS',
-  description: 'Gestión de clientes y oportunidades comerciales.',
+  title: 'CRM y Gestión de Oportunidades Commerciales | GNS SarriaTech',
+  description: 'Gestiona clientes, prospectos y oportunidades comerciales en el módulo CRM de GNS SarriaTech.',
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 // ─── KPI Card ─────────────────────────────────────────────────────────────────

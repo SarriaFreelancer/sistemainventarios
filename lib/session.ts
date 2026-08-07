@@ -11,8 +11,6 @@ import { prisma } from "@/lib/prisma";
 export async function getSessionCompanyId(): Promise<number | undefined | null> {
   const session = await getAuthSession();
   if (!session?.user) return null;
-  // Si el usuario es SUPERADMIN, devolvemos undefined para que los queries (GET) no filtren por empresa y vean todo.
-  if (session.user.role === 'SUPERADMIN') return undefined;
   return session.user.companyId ? Number(session.user.companyId) : undefined;
 }
 

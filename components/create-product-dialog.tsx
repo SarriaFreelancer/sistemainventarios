@@ -135,14 +135,14 @@ export function CreateProductDialog({ categories, suppliers, groups, disabled = 
               </div>
               
               {['SALE', 'FINISHED_GOOD', 'SERVICE'].includes(productType) ? (
-                <div className="space-y-1.5 sm:col-span-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="new-price" className={labelCls}>Precio de Venta (COP)</Label>
                   <Input id="new-price" name="salePrice" type="number" min="0" step="100" defaultValue="0" className={inputCls} required />
                 </div>
               ) : (
-                <div className="space-y-1.5 sm:col-span-2 pt-2">
-                  <div className="bg-muted/30 border border-border rounded-xl p-3 text-xs text-muted-foreground flex items-center gap-2">
-                    Este tipo de producto es de uso interno y no requiere un precio de venta para el público.
+                <div className="space-y-1.5 flex items-end pb-0.5">
+                  <div className="bg-muted/30 border border-border rounded-xl p-2.5 text-xs text-muted-foreground">
+                    Uso interno (sin precio de venta).
                   </div>
                 </div>
               )}

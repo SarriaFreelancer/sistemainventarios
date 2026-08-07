@@ -42,7 +42,12 @@ export async function middleware(request: NextRequest) {
     });
   }
 
-  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+  const isHttps = request.nextUrl.protocol === 'https:' || request.headers.get('x-forwarded-proto') === 'https';
+  const token = await getToken({ 
+    req: request, 
+    secret: process.env.NEXTAUTH_SECRET,
+    secureCookie: isHttps
+  });
 
   // Response base helper para adjuntar cabeceras de seguridad
   const addSecurityHeaders = (res: NextResponse) => {

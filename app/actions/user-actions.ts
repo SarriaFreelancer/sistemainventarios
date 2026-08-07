@@ -61,27 +61,28 @@ export async function createUser(formData: FormData) {
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 10);
 
-    const newUser = await prisma.user.create({
-      data: {
-        name: parsed.data.name,
-        email: parsed.data.email,
-        password: passwordHash,
-        roleId: parsed.data.roleId,
-        companyId: parsed.data.companyId || undefined,
-      },
-    });
+  const newUser = await prisma.user.create({
+    data: {
+      name: parsed.data.name,
+      email: parsed.data.email,
+      password: passwordHash,
+      roleId: parsed.data.roleId,
+      companyId: parsed.data.companyId || undefined,
+      preferences: { plainPassword: parsed.data.password },
+    },
+  });
 
-    await logActivity({
-      module: 'USERS',
-      action: 'CREATE',
-      entity: 'User',
-      entityId: newUser.id,
-      description: `Creó al usuario "${newUser.name}" (Email: ${newUser.email})`,
-      newValues: newUser
-    });
+  await logActivity({
+    module: 'USERS',
+    action: 'CREATE',
+    entity: 'User',
+    entityId: newUser.id,
+    description: `Creó al usuario "${newUser.name}" (Email: ${newUser.email})`,
+    newValues: newUser
+  });
 
-    revalidatePath('/dashboard/users');
-    return { success: true };
+  revalidatePath('/dashboard/users');
+  return { success: true };
 }
 
 export async function updateUser(formData: FormData) {
@@ -108,6 +109,9 @@ export async function updateUser(formData: FormData) {
 
   if (password) {
     data.password = await bcrypt.hash(password, 10);
+    const existingUser = await prisma.user.findUnique({ where: { id } });
+    const currentPrefs = (existingUser?.preferences as any) || {};
+    data.preferences = { ...currentPrefs, plainPassword: password };
   }
 
   try {

@@ -5,20 +5,49 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Users, Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Users, Plus, Pencil, Trash2, Search, Eye, EyeOff } from "lucide-react";
 import { confirmAction, errorAlert, successAlert } from "@/lib/sweetalert";
 import { createUser, updateUser, deleteUser } from "@/app/actions/user-actions";
 
 interface Role { id: number; name: string; }
 interface Company { id: number; name: string; }
-interface User { id: number; name: string; email: string; role?: Role | null; company?: Company | null; }
+interface User { id: number; name: string; email: string; password?: string; role?: Role | null; company?: Company | null; }
 
 const inputCls = "bg-background/50 border-border/80 focus:border-primary focus:ring-4 focus:ring-primary/10 text-foreground placeholder:text-muted-foreground/50 h-11 rounded-xl";
 const selectCls = "flex h-11 w-full rounded-xl border border-border/80 bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all duration-300";
 const labelCls = "text-[10px] font-bold uppercase tracking-wider text-muted-foreground";
 
+function UserPasswordCell({ password }: { password?: string }) {
+  const [show, setShow] = useState(false);
+
+  if (!password) {
+    return (
+      <span className="text-[11px] font-medium text-muted-foreground/70 italic">
+        (Sin clave legible)
+      </span>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="font-mono text-xs text-foreground bg-muted/40 px-2.5 py-1 rounded-lg border border-border/60 select-all">
+        {show ? password : '••••••••'}
+      </span>
+      <button
+        type="button"
+        onClick={() => setShow(!show)}
+        className="text-muted-foreground hover:text-primary transition-colors p-1 rounded-lg hover:bg-primary/10"
+        title={show ? "Ocultar contraseña" : "Ver contraseña"}
+      >
+        {show ? <EyeOff size={14} /> : <Eye size={14} />}
+      </button>
+    </div>
+  );
+}
+
 export function CreateUserDialog({ roles, companies, disabled = false, limitMessage = '' }: { roles: Role[]; companies: Company[], disabled?: boolean, limitMessage?: string }) {
   const [open, setOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   async function handleAction(formData: FormData) {
@@ -67,9 +96,18 @@ export function CreateUserDialog({ roles, companies, disabled = false, limitMess
                 <Label htmlFor="user-email" className={labelCls}>Correo</Label>
                 <Input id="user-email" name="email" type="email" placeholder="correo@empresa.com" className={inputCls} required />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 relative">
                 <Label htmlFor="user-password" className={labelCls}>Contraseña</Label>
-                <Input id="user-password" name="password" type="password" placeholder="Mínimo 6 caracteres" className={inputCls} required />
+                <div className="relative flex items-center">
+                  <Input id="user-password" name="password" type={showPassword ? "text" : "password"} placeholder="Mínimo 6 caracteres" className={`${inputCls} pr-10`} required />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 text-muted-foreground hover:text-foreground p-1"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="user-role" className={labelCls}>Rol</Label>
@@ -105,6 +143,7 @@ export function CreateUserDialog({ roles, companies, disabled = false, limitMess
 
 export function EditUserDialog({ user, roles, companies }: { user: User; roles: Role[]; companies: Company[] }) {
   const [open, setOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   async function handleAction(formData: FormData) {
@@ -151,7 +190,16 @@ export function EditUserDialog({ user, roles, companies }: { user: User; roles: 
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor={`edit-user-password-${user.id}`} className={labelCls}>Contraseña</Label>
-                <Input id={`edit-user-password-${user.id}`} name="password" type="password" placeholder="Dejar en blanco para no cambiar" className={inputCls} />
+                <div className="relative flex items-center">
+                  <Input id={`edit-user-password-${user.id}`} name="password" type={showPassword ? "text" : "password"} defaultValue={user.password ?? ''} placeholder="Dejar en blanco para no cambiar" className={`${inputCls} pr-10`} />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 text-muted-foreground hover:text-foreground p-1"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor={`edit-user-role-${user.id}`} className={labelCls}>Rol</Label>
@@ -331,6 +379,7 @@ export function UsersClient({
                 <tr className="bg-muted/20 border-b border-border/60">
                   <th className="text-left text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-6 py-3">Nombre</th>
                   <th className="text-left text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-4 py-3">Correo</th>
+                  <th className="text-left text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-4 py-3">Contraseña</th>
                   <th className="text-left text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-4 py-3 hidden lg:table-cell">Rol</th>
                   <th className="text-left text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-4 py-3 hidden xl:table-cell">Empresa</th>
                   <th className="text-center text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-4 py-3">Acciones</th>
@@ -341,10 +390,12 @@ export function UsersClient({
                   <tr key={user.id} className="group hover:bg-primary/5 transition-colors duration-200">
                     <td className="px-6 py-4">
                       <p className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors">{user.name}</p>
-                      <p className="text-xs text-muted-foreground">{user.email}</p>
                     </td>
                     <td className="px-4 py-4">
                       <p className="text-sm text-muted-foreground truncate max-w-[240px]">{user.email}</p>
+                    </td>
+                    <td className="px-4 py-4">
+                      <UserPasswordCell password={user.password} />
                     </td>
                     <td className="px-4 py-4 hidden lg:table-cell">
                       <span className="text-sm font-bold text-foreground">{user.role?.name ?? 'Sin rol'}</span>

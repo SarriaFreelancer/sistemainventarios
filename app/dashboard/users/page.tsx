@@ -37,13 +37,17 @@ export default async function UsersPage() {
   // Filter out SUPERADMIN role if the current user is not a SUPERADMIN
   const filteredRoles = isAdmin ? roles.filter(r => r.name !== 'SUPERADMIN') : roles;
 
-  const serializedUsers = users.map((user) => ({
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role ? { id: user.role.id, name: user.role.name } : null,
-    company: user.company ? { id: user.company.id, name: user.company.name } : null,
-  }));
+  const serializedUsers = users.map((user) => {
+    const prefs = (user.preferences as any) || {};
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      password: prefs.plainPassword ? String(prefs.plainPassword) : undefined,
+      role: user.role ? { id: user.role.id, name: user.role.name } : null,
+      company: user.company ? { id: user.company.id, name: user.company.name } : null,
+    };
+  });
 
   const serializedRoles = filteredRoles.map((role) => ({ id: role.id, name: role.name }));
   const serializedCompanies = companies.map((company) => ({ id: company.id, name: company.name }));

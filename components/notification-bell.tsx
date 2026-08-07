@@ -68,13 +68,13 @@ export function NotificationBell() {
   }, []);
 
   useEffect(() => {
-    // Carga inicial usando API Route (no Server Action)
+    // Carga inicial usando API Route
     pollNotifications(false);
     
-    // Polling every 15 seconds usando API Route estable
+    // Polling rápido cada 5 segundos para actualización en tiempo real de notificaciones resueltas
     const interval = setInterval(() => {
       pollNotifications(true);
-    }, 15000);
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [pollNotifications]);
@@ -85,22 +85,25 @@ export function NotificationBell() {
 
   const handleDelete = async (e: React.MouseEvent, id: number) => {
     e.stopPropagation();
+    e.preventDefault();
+    // Remoción optimista e inmediata de la interfaz
+    setNotifications(prev => prev.filter(n => n.id !== id));
     try {
-      const res = await fetch(`/api/notifications/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        setNotifications(prev => prev.filter(n => n.id !== id));
-      }
-    } catch {}
+      await fetch(`/api/notifications/${id}`, { method: 'DELETE' });
+    } catch (err) {
+      console.error('[DELETE_NOTIF_ERROR]', err);
+    }
   };
 
   const handleClearAll = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
+    setNotifications([]);
     try {
-      const res = await fetch('/api/notifications', { method: 'DELETE' });
-      if (res.ok) {
-        setNotifications([]);
-      }
-    } catch {}
+      await fetch('/api/notifications', { method: 'DELETE' });
+    } catch (err) {
+      console.error('[CLEAR_ALL_NOTIFS_ERROR]', err);
+    }
   };
 
   const getNotificationRoute = (title: string, message: string) => {
@@ -151,7 +154,7 @@ export function NotificationBell() {
   return (
     <DropdownMenu open={isOpen} onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative rounded-full h-9 w-9 overflow-visible group">
+        <Button aria-label="Notificaciones" variant="ghost" size="icon" className="relative rounded-full h-9 w-9 overflow-visible group">
           <Bell className={`h-5 w-5 transition-all ${notifications.length > 0 ? 'text-destructive animate-pulse' : 'text-muted-foreground group-hover:text-primary'}`} />
           {notifications.length > 0 && (
             <span className="absolute -top-1 -right-1 flex h-4 w-4">
@@ -209,6 +212,7 @@ export function NotificationBell() {
                   </div>
                   
                   <Button 
+                    aria-label="Eliminar notificación"
                     variant="ghost" 
                     size="icon" 
                     onClick={(e) => handleDelete(e, notif.id)}

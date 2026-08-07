@@ -330,20 +330,34 @@ export async function quickSellProduct(data: {
         : `Venta rápida "${result.saleNumber}" completada automáticamente desde Productos. Stock descontado.`,
     });
 
-    // Enviar notificaciones a los usuarios de la empresa
-    const companyUsers = await prisma.user.findMany({ where: { companyId } });
+    // Enviar notificaciones filtrando por rol (Creador + Admins para pendientes)
+    const companyUsers = await prisma.user.findMany({ 
+      where: { companyId },
+      include: { role: true }
+    });
+
     if (hasSalesModule) {
       for (const user of companyUsers) {
-        await createNotification(
-          user.id,
-          companyId,
-          '⚠️ Venta Pendiente Registrada',
-          `Venta rápida #${result.saleNumber} por $${result.total?.toLocaleString('es-CO')} fue creada como PENDIENTE. Completa el cobro en el módulo de Ventas.`,
-          'WARNING'
-        );
+        const isAdminOrSuper = user.role?.name === 'ADMIN' || user.role?.name === 'SUPERADMIN';
+        const isCreator = user.id === userId;
+
+        if (isCreator || isAdminOrSuper) {
+          const msg = !isCreator && isAdminOrSuper
+            ? `Venta rápida #${result.saleNumber} por $${result.total?.toLocaleString('es-CO')} fue creada como PENDIENTE por un usuario.`
+            : `Has creado la venta rápida #${result.saleNumber} por $${result.total?.toLocaleString('es-CO')} como PENDIENTE. Completa el cobro en el módulo de Ventas.`;
+
+          await createNotification(
+            user.id,
+            companyId,
+            '⚠️ Venta Pendiente Registrada',
+            msg,
+            'WARNING'
+          );
+        }
       }
     } else {
-      for (const user of companyUsers) {
+      const admins = companyUsers.filter(u => u.role?.name === 'ADMIN' || u.role?.name === 'SUPERADMIN');
+      for (const user of admins) {
         await createNotification(
           user.id,
           companyId,

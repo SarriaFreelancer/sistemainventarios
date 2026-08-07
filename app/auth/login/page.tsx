@@ -6,9 +6,9 @@ import { signIn } from 'next-auth/react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Eye, EyeOff, Sparkles, Mail, Lock, Check, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, Sparkles, Mail, Lock, Check, ShieldCheck, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { successAlert, errorAlert, brandAlert } from '@/lib/sweetalert';
+import { successAlert, brandAlert } from '@/lib/sweetalert';
 
 const loginSchema = z.object({
   email: z.string().email('Ingresa un correo electrónico válido'),
@@ -18,13 +18,31 @@ const loginSchema = z.object({
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [authStatus, setAuthStatus] = useState<{
+    type: 'success' | 'error' | null;
+    message: string;
+  }>({ type: null, message: '' });
+
   const router = useRouter();
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: { rememberMe: false }
   });
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('reason') === 'inactivity') {
+        setAuthStatus({
+          type: 'error',
+          message: 'Tu sesión ha finalizado automáticamente tras 30 minutos de inactividad por motivos de seguridad.',
+        });
+      }
+    }
+  }, []);
+
   const onSubmit = async (values: z.infer<typeof loginSchema>) => {
+    setAuthStatus({ type: null, message: '' });
     try {
       const result = await signIn('credentials', {
         redirect: false,
@@ -35,13 +53,24 @@ export default function LoginPage() {
       });
 
       if (result?.ok) {
-        successAlert('Acceso Autorizado', 'Bienvenido al panel de control de GNS');
-        router.push('/dashboard');
+        setAuthStatus({
+          type: 'success',
+          message: '¡Acceso autorizado correctamente! Ingresando al sistema...',
+        });
+        setTimeout(() => {
+          window.location.href = result.url || '/dashboard';
+        }, 500);
         return;
       }
-      errorAlert('Error de Autenticación', result?.error ? 'Credenciales incorrectas.' : 'No fue posible iniciar sesión.');
+      setAuthStatus({
+        type: 'error',
+        message: 'Correo electrónico o contraseña incorrectos. Verifica tus credenciales.',
+      });
     } catch (err) {
-      errorAlert('Error de Conexión', 'Ocurrió un problema al comunicarse con el servidor.');
+      setAuthStatus({
+        type: 'error',
+        message: 'Error de conexión con el servidor. Inténtalo más tarde.',
+      });
     }
   };
 
@@ -175,6 +204,24 @@ export default function LoginPage() {
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            {/* ─── BANNER DE NOTIFICACIÓN INLINE DE ESTADO ─── */}
+            {authStatus.type && (
+              <div
+                className={`p-3.5 rounded-2xl border text-xs font-semibold flex items-center gap-3 transition-all duration-300 ${
+                  authStatus.type === 'success'
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 shadow-sm shadow-emerald-500/10'
+                    : 'bg-red-500/10 border-red-500/30 text-red-600 shadow-sm shadow-red-500/10'
+                }`}
+              >
+                {authStatus.type === 'success' ? (
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+                ) : (
+                  <AlertCircle className="h-5 w-5 text-red-600 shrink-0" />
+                )}
+                <p className="leading-snug">{authStatus.message}</p>
+              </div>
+            )}
+
             {/* Input Email */}
             <div className="space-y-1.5 anim-up delay-2">
               <label className="text-xs font-bold text-slate-700 uppercase tracking-widest ml-1">Correo Electrónico</label>

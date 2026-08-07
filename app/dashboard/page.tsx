@@ -83,16 +83,17 @@ export default async function DashboardHomePage() {
     prisma.sale.count({ where: companyFilter }),
     prisma.product.findMany({
       where: companyFilter,
-      include: { category: true }
+      select: { unitCost: true, salePrice: true, quantityAvailable: true }
     }),
     prisma.sale.findMany({
       where: companyFilter,
-      include: { user: true, details: true },
+      select: { id: true, saleNumber: true, client: true, paymentMethod: true, total: true, createdAt: true, user: { select: { name: true } } },
       orderBy: { createdAt: 'desc' },
       take: 5,
     }),
     prisma.product.findMany({
       where: { ...companyFilter, quantityAvailable: { lte: 0 } },
+      select: { id: true, name: true, code: true, quantityAvailable: true },
       take: 4,
     }),
     prisma.product.findMany({
@@ -103,15 +104,16 @@ export default async function DashboardHomePage() {
           lte: 10,
         }
       },
+      select: { id: true, name: true, code: true, quantityAvailable: true },
       take: 4,
     })
   ]);
 
   // ── Financial Calculations ──
   // Base cost of current inventory = sum(unitCost * quantityAvailable)
-  const totalCostValue = productsData.reduce((sum, p) => sum + (p.unitCost * p.quantityAvailable), 0);
+  const totalCostValue = productsData.reduce((sum, p) => sum + (Number(p.unitCost) * p.quantityAvailable), 0);
   // Sale value of current inventory = sum(salePrice * quantityAvailable)
-  const totalSaleValue = productsData.reduce((sum, p) => sum + (p.salePrice * p.quantityAvailable), 0);
+  const totalSaleValue = productsData.reduce((sum, p) => sum + (Number(p.salePrice) * p.quantityAvailable), 0);
   
   // Total historical revenue from sales
   const salesSummary = await prisma.sale.aggregate({
@@ -133,9 +135,20 @@ export default async function DashboardHomePage() {
 
   const historicalSales = await prisma.sale.findMany({
     where: { ...companyFilter, createdAt: { gte: sixMonthsAgo } },
-    include: {
+    select: {
+      createdAt: true,
+      total: true,
       details: {
-        include: { product: true }
+        select: {
+          quantity: true,
+          unitPrice: true,
+          product: {
+            select: {
+              unitCost: true,
+              category: { select: { name: true } }
+            }
+          }
+        }
       }
     },
     orderBy: { createdAt: 'asc' }

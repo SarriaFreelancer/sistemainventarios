@@ -14,13 +14,20 @@ export async function GET() {
     }
 
     const userId = Number(session.user.id);
+    const userRole = session.user.role;
     const userCompanyId = session.user.companyId ? Number(session.user.companyId) : undefined;
+    const isAdminOrSuper = userRole === 'ADMIN' || userRole === 'SUPERADMIN';
 
-    // 1. Sincronizar automáticamente ventas PENDING activas que no tengan notificación registrada para este usuario
+    // 1. Sincronizar automáticamente ventas PENDING activas:
+    // - Si es USER regular: solo sincroniza ventas pendientes creadas por este usuario (userId === sale.userId)
+    // - Si es ADMIN o SUPERADMIN: sincroniza ventas pendientes de TODOS los usuarios de la empresa
     try {
       const pendingSalesWhere: any = { status: 'PENDING' };
       if (userCompanyId) {
         pendingSalesWhere.companyId = userCompanyId;
+      }
+      if (!isAdminOrSuper) {
+        pendingSalesWhere.userId = userId;
       }
 
       const activePendingSales = await prisma.sale.findMany({
@@ -38,12 +45,17 @@ export async function GET() {
         });
 
         if (!notifExists) {
+          const isOwnSale = sale.userId === userId;
+          const msg = !isOwnSale && isAdminOrSuper
+            ? `Se encuentra pendiente la venta ${sale.saleNumber} por $${sale.total.toLocaleString('es-CO')} registrada por un usuario.`
+            : `Se encuentra pendiente tu venta ${sale.saleNumber} por $${sale.total.toLocaleString('es-CO')}. Completa el cobro en el módulo de Ventas.`;
+
           await prisma.notification.create({
             data: {
               userId,
               companyId: sale.companyId ?? userCompanyId ?? 1,
               title: '⚠️ Venta Pendiente Registrada',
-              message: `Se encuentra pendiente la venta ${sale.saleNumber} por $${sale.total.toLocaleString('es-CO')}. Completa el cobro en el módulo de Ventas.`,
+              message: msg,
               type: 'WARNING',
               isRead: false
             }
@@ -54,12 +66,52 @@ export async function GET() {
       console.error('[SYNC_PENDING_NOTIFS_ERROR]', syncErr);
     }
 
-    // 2. Obtener notificaciones actualizadas
+    // 2. Limpieza automática de notificaciones resueltas (ventas completadas/anuladas o stock repuesto)
     const whereClause: any = { userId };
     if (userCompanyId) {
       whereClause.companyId = userCompanyId;
     }
 
+    try {
+      const userNotifs = await prisma.notification.findMany({
+        where: whereClause,
+        select: { id: true, title: true, message: true }
+      });
+
+      for (const notif of userNotifs) {
+        // a) Si es notificación de venta: verificar si la venta ya no está en PENDING
+        const saleMatch = notif.message.match(/VEN-\d{8}-\d{3,4}/);
+        if (saleMatch) {
+          const saleNumber = saleMatch[0];
+          const sale = await prisma.sale.findFirst({
+            where: { saleNumber },
+            select: { status: true }
+          });
+          if (!sale || sale.status !== 'PENDING') {
+            await prisma.notification.delete({ where: { id: notif.id } });
+          }
+        }
+
+        // b) Si es notificación de stock bajo o agotado: verificar si el stock ya fue repuesto (> 5)
+        if (notif.title.includes('Stock Bajo') || notif.title.includes('Stock Agotado')) {
+          const prodMatch = notif.message.match(/"([^"]+)"/);
+          if (prodMatch) {
+            const prodName = prodMatch[1];
+            const prod = await prisma.product.findFirst({
+              where: { name: prodName, ...(userCompanyId ? { companyId: userCompanyId } : {}) },
+              select: { quantityAvailable: true }
+            });
+            if (prod && prod.quantityAvailable > 5) {
+              await prisma.notification.delete({ where: { id: notif.id } });
+            }
+          }
+        }
+      }
+    } catch (cleanErr) {
+      console.error('[CLEAN_RESOLVED_NOTIFS_ERROR]', cleanErr);
+    }
+
+    // 3. Obtener notificaciones actualizadas
     const notifications = await prisma.notification.findMany({
       where: whereClause,
       orderBy: { createdAt: 'desc' },

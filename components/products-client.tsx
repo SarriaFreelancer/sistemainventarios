@@ -481,6 +481,7 @@ export function ProductsClient(props: {
                           )}
                           <EditProductDialog product={product} categories={categories} suppliers={suppliers} groups={groups} />
                           <Button
+                            aria-label="Eliminar producto"
                             variant="ghost"
                             size="icon"
                             disabled={isPending}
@@ -549,6 +550,7 @@ export function ProductsClient(props: {
                       )}
                       <EditProductDialog product={product} categories={categories} suppliers={suppliers} groups={groups} />
                       <Button
+                        aria-label="Eliminar producto"
                         variant="ghost"
                         size="icon"
                         onClick={() => handleDelete(product.id, product.name)}

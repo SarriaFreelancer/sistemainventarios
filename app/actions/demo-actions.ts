@@ -137,54 +137,71 @@ export async function generateDemoData() {
   }
 }
 
-export async function clearDemoData() {
+export async function clearDemoData(targetCompanyId?: number) {
   try {
     const session = await getAuthSession();
     if (!session?.user?.id) throw new Error("No autenticado");
-    const companyId = await resolveActionCompanyId();
+    
+    const isSuperAdmin = session.user.role === 'SUPERADMIN';
+    const companyId = targetCompanyId || (await resolveActionCompanyId());
     if (!companyId) throw new Error("Compañía no encontrada");
 
-    // The order of deletion matters due to foreign keys.
-    // Sale -> SaleDetails
-    const sales = await prisma.sale.findMany({
-      where: { companyId, client: { startsWith: DEMO_PREFIX } }
-    });
-    const saleIds = sales.map(s => s.id);
-    await prisma.saleDetail.deleteMany({ where: { saleId: { in: saleIds } } });
-    await prisma.sale.deleteMany({ where: { id: { in: saleIds } } });
-
-    // HR
-    await prisma.employee.deleteMany({
-      where: { companyId, firstName: { startsWith: DEMO_PREFIX } }
-    });
-    await prisma.position.deleteMany({
-      where: { companyId, name: { startsWith: DEMO_PREFIX } }
-    });
-
-    // Products
-    await prisma.product.deleteMany({
-      where: { companyId, name: { startsWith: DEMO_PREFIX } }
-    });
-
-    // Supplier
-    await prisma.supplier.deleteMany({
-      where: { companyId, companyName: { startsWith: DEMO_PREFIX } }
-    });
-
-    // Category
-    await prisma.category.deleteMany({
-      where: { companyId, name: { startsWith: DEMO_PREFIX } }
-    });
-
-    // Product Group
-    await prisma.productGroup.deleteMany({
-      where: { companyId, name: { startsWith: DEMO_PREFIX } }
+    // Limpieza completa por empresa conservando usuarios, licencias y la empresa misma
+    await prisma.$transaction(async (tx) => {
+      await tx.notification.deleteMany({ where: { companyId } });
+      await tx.auditLog.deleteMany({ where: { companyId } });
+      await tx.saleDetail.deleteMany({ where: { companyId } });
+      await tx.sale.deleteMany({ where: { companyId } });
+      await tx.opportunity.deleteMany({ where: { companyId } });
+      await tx.customer.deleteMany({ where: { companyId } });
+      await tx.product.deleteMany({ where: { companyId } });
+      await tx.category.deleteMany({ where: { companyId } });
+      await tx.productGroup.deleteMany({ where: { companyId } });
+      await tx.supplier.deleteMany({ where: { companyId } });
+      await tx.invoiceCounter.deleteMany({ where: { companyId } });
+      
+      // Borrar empleados y posiciones de demostración/RRHH de la empresa si existen
+      await tx.employee?.deleteMany({ where: { companyId } }).catch(() => {});
+      await tx.position?.deleteMany({ where: { companyId } }).catch(() => {});
     });
 
     revalidatePath("/", "layout");
-    return { success: true };
+    return { success: true, message: "Datos transaccionales y de catálogo limpiados correctamente. Las cuentas de usuario y licencias fueron conservadas." };
   } catch (error: any) {
-    console.error(error);
+    console.error('[CLEAR_DEMO_DATA_ERROR]', error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function clearGlobalSystemData() {
+  try {
+    const session = await getAuthSession();
+    if (!session?.user?.id || session.user.role !== 'SUPERADMIN') {
+      return { success: false, error: "Solo el SUPERADMIN puede ejecutar una limpieza global del sistema." };
+    }
+
+    await prisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 0;');
+
+    await prisma.notification.deleteMany();
+    await prisma.auditLog.deleteMany();
+    await prisma.saleDetail.deleteMany();
+    await prisma.sale.deleteMany();
+    await prisma.opportunity.deleteMany();
+    await prisma.customer.deleteMany();
+    await prisma.product.deleteMany();
+    await prisma.category.deleteMany();
+    await prisma.productGroup.deleteMany();
+    await prisma.supplier.deleteMany();
+    await prisma.invoiceCounter.deleteMany();
+    await prisma.employee?.deleteMany().catch(() => {});
+    await prisma.position?.deleteMany().catch(() => {});
+
+    await prisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 1;');
+
+    revalidatePath("/", "layout");
+    return { success: true, message: "Se han eliminado todos los productos, ventas y registros de todas las empresas. Todas las cuentas de usuario y empresas se conservan activas para seguir iniciando sesión." };
+  } catch (error: any) {
+    console.error('[CLEAR_GLOBAL_DATA_ERROR]', error);
     return { success: false, error: error.message };
   }
 }

@@ -184,18 +184,28 @@ export async function createSale(data: {
     });
 
     const companyUsers = await prisma.user.findMany({
-      where: { companyId }
+      where: { companyId },
+      include: { role: true }
     });
 
     if (status === 'PENDING') {
       for (const user of companyUsers) {
-        await createNotification(
-          user.id,
-          companyId,
-          '⚠️ Venta Pendiente Registrada',
-          `Se ha registrado la venta pendiente ${result.saleNumber} por $${result.total.toLocaleString('es-CO')}. Requiere ser completada en el módulo de Ventas.`,
-          'WARNING'
-        );
+        const isAdminOrSuper = user.role?.name === 'ADMIN' || user.role?.name === 'SUPERADMIN';
+        const isCreator = user.id === userId;
+
+        if (isCreator || isAdminOrSuper) {
+          const msg = !isCreator && isAdminOrSuper
+            ? `Se ha registrado la venta pendiente ${result.saleNumber} por $${result.total.toLocaleString('es-CO')} por un usuario.`
+            : `Has registrado la venta pendiente ${result.saleNumber} por $${result.total.toLocaleString('es-CO')}. Completa el cobro en el módulo de Ventas.`;
+
+          await createNotification(
+            user.id,
+            companyId,
+            '⚠️ Venta Pendiente Registrada',
+            msg,
+            'WARNING'
+          );
+        }
       }
     } else {
       const admins = companyUsers.filter(u => u.roleId !== null);
@@ -314,6 +324,16 @@ export async function completePendingSale(saleIdInput: any, updateData?: {
 
       return { oldValues: sale, newValues: updated, lowStockProducts, companyId };
     });
+
+    // Auto-eliminar las notificaciones de venta pendiente asociadas
+    try {
+      await prisma.notification.deleteMany({
+        where: {
+          companyId: result.companyId,
+          message: { contains: result.newValues.saleNumber }
+        }
+      });
+    } catch {}
 
     await logActivity({
       module: 'SALES',
