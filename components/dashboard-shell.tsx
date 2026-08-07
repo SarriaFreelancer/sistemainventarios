@@ -82,22 +82,16 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
   }
 
   const isSuperAdmin = session?.user?.role === 'SUPERADMIN';
-  const roleThemeClass = isSuperAdmin ? 'theme-superadmin' : '';
+  const roleThemeClass = (isSuperAdmin && !themeConfig?.primaryColor) ? 'theme-superadmin' : '';
   const roleLabel = session?.user?.role === 'SUPERADMIN' ? 'Super Administrador' : session?.user?.role === 'ADMIN' ? 'Administrador' : 'Colaborador';
 
   return (
     <div className={cn("h-screen w-screen flex flex-col bg-background text-foreground transition-colors duration-500 font-sans overflow-hidden", roleThemeClass)}>
       {themeConfig?.primaryColor && (
         <style dangerouslySetInnerHTML={{ __html: `
-          :root {
-            --primary: ${themeConfig.primaryColor};
-            --ring: ${themeConfig.primaryColor};
-          }
-          .dark {
-            --primary: ${themeConfig.primaryColor};
-            --ring: ${themeConfig.primaryColor};
-            --background: #09090b;
-            --card: #141417;
+          :root, .dark, .theme-superadmin {
+            --primary: ${themeConfig.primaryColor} !important;
+            --ring: ${themeConfig.primaryColor} !important;
           }
         `}} />
       )}
