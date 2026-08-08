@@ -4,6 +4,7 @@ import { getCompanySettings } from "@/app/actions/settings-actions";
 import { SettingsClient } from "./settings-client";
 
 import { getServers } from "@/app/actions/server-actions";
+import { getPlanSettings } from "@/app/actions/license-actions";
 import { prisma } from "@/lib/prisma";
 
 export const metadata = {
@@ -51,6 +52,16 @@ export default async function SettingsPage() {
       console.error(e);
     }
   }
+  
+  let planSettings: any = null;
+  let allModules: any[] = [];
+  if (isSuperAdmin) {
+    const ps = await getPlanSettings();
+    if (ps.success) {
+      planSettings = ps.data;
+      allModules = ps.allModules || [];
+    }
+  }
 
   return (
     <div className="flex-1 space-y-6">
@@ -81,6 +92,8 @@ export default async function SettingsPage() {
             dedicatedCompanies={allCompanies}
             canManageServers={canManageServers}
             userId={session.user.id}
+            planSettings={planSettings}
+            allModules={allModules}
           />
         ) : (
           <div className="rounded-2xl border border-destructive/20 bg-destructive/10 p-6 text-destructive">

@@ -284,6 +284,7 @@ model Company {
   planId      String?
   maxUsers    Int?
   maxProducts Int?
+  maxSalesPerMonth Int?
 
   serverId     String?
   server       Server?  @relation("ServerCompanies", fields: [serverId], references: [id])

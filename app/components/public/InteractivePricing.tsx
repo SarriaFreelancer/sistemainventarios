@@ -5,36 +5,60 @@ import { Star, Crown, Send, Check, CheckCircle, ArrowRight, ArrowLeft, Loader2, 
 import { errorAlert, successAlert } from "@/lib/sweetalert";
 import { signIn, getSession } from "next-auth/react";
 
-const PLANS = [
-  {
-    id: "basico",
-    name: "Plan Básico",
-    price: 49999,
-    features: ['Dashboard de métricas', 'Catálogo de Productos', 'Gestión de Proveedores', 'Grupos y Categorías', 'Reportes de stock'],
-    recommended: false
-  },
-  {
-    id: "intermedio",
-    name: "Plan Intermedio",
-    price: 89999,
-    features: ['Todo el Plan Básico', 'Facturación y Ventas', 'Gestión de Usuarios y Roles', 'Analítica de ingresos', 'Soporte por correo'],
-    recommended: true
-  },
-  {
-    id: "premium",
-    name: "Plan Premium",
-    price: 129999,
-    features: ['Todo el Plan Intermedio', 'Auditoría Inmutable', 'Módulo Financiero', 'Órdenes de Compra', 'CRM de clientes', 'Facturas Personalizadas', 'Soporte 24/7'],
-    recommended: false
-  }
-];
-
-export function InteractivePricing() {
+export function InteractivePricing({ planSettings = {}, allModules = [] }: { planSettings?: any, allModules?: any[] }) {
   const boldContainerRef = useRef<HTMLDivElement>(null);
   
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
   const [step, setStep] = useState<"SELECT_PLAN" | "REGISTER" | "CHECKOUT">("SELECT_PLAN");
   const [authMode, setAuthMode] = useState<"REGISTER" | "LOGIN">("REGISTER");
+
+  // Dynamically build the plans based on the global settings
+  const buildFeatures = (planId: string) => {
+    const rawPlanId = planId.toLowerCase();
+    const maxUsers = planSettings[`plan_${rawPlanId}_max_users`] || (rawPlanId === 'premium' ? '999' : rawPlanId === 'intermedio' ? '5' : '2');
+    const maxProducts = planSettings[`plan_${rawPlanId}_max_products`] || (rawPlanId === 'premium' ? '999999' : rawPlanId === 'intermedio' ? '1000' : '100');
+    const maxSales = planSettings[`plan_${rawPlanId}_max_sales_per_month`] || (rawPlanId === 'premium' ? '999999' : rawPlanId === 'intermedio' ? '999999' : '50');
+    
+    let modulesList: string[] = [];
+    if (planSettings[`plan_${rawPlanId}_modules`]) {
+      try {
+        const moduleIds: number[] = JSON.parse(planSettings[`plan_${rawPlanId}_modules`]);
+        modulesList = allModules.filter(m => moduleIds.includes(m.id)).map(m => m.name);
+      } catch (e) {}
+    }
+
+    const limits = [
+      `Hasta ${maxUsers} Usuarios`,
+      `Hasta ${maxProducts} Productos`,
+      maxSales === '999999' ? `Ventas ilimitadas` : `Hasta ${maxSales} Ventas por mes`
+    ];
+    
+    return [...limits, ...modulesList];
+  };
+
+  const dynamicPlans = [
+    {
+      id: "basico",
+      name: "Plan Básico",
+      price: 49999,
+      features: buildFeatures("basico"),
+      recommended: false
+    },
+    {
+      id: "intermedio",
+      name: "Plan Intermedio",
+      price: 89999,
+      features: buildFeatures("intermedio"),
+      recommended: true
+    },
+    {
+      id: "premium",
+      name: "Plan Premium",
+      price: 129999,
+      features: buildFeatures("premium"),
+      recommended: false
+    }
+  ];
   
   const [formData, setFormData] = useState({
     companyName: "",
@@ -188,7 +212,7 @@ export function InteractivePricing() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-start mx-auto max-w-md md:max-w-4xl xl:max-w-none">
-              {PLANS.map((plan) => (
+              {dynamicPlans.map((plan) => (
                 <div key={plan.id} className={`relative flex flex-col h-full bg-white dark:bg-slate-800 rounded-[20px] p-6 md:p-8 border ${plan.recommended ? 'border-amber-600 dark:border-amber-500 shadow-2xl scale-100 lg:scale-105' : 'border-slate-100 dark:border-slate-700 shadow-sm'}`}>
                   {plan.recommended && (
                     <div className="absolute top-0 left-0 right-0 bg-amber-600 dark:bg-amber-500 text-white text-[11px] font-extrabold py-1.5 text-center rounded-t-[18px] tracking-[0.1em]">
@@ -239,8 +263,8 @@ export function InteractivePricing() {
                   {(() => {
                     const isCurrentPlan = userSession?.companyPlan === plan.id;
                     const isSuspended = userSession?.companyStatus === 'SUSPENDED';
-                    const currentPlanIndex = PLANS.findIndex(p => p.id === userSession?.companyPlan);
-                    const thisPlanIndex = PLANS.findIndex(p => p.id === plan.id);
+                    const currentPlanIndex = dynamicPlans.findIndex(p => p.id === userSession?.companyPlan);
+                    const thisPlanIndex = dynamicPlans.findIndex(p => p.id === plan.id);
                     
                     let btnLabel = `Comenzar Plan ${plan.name.replace('Plan ', '')}`;
                     let btnDisabled = false;

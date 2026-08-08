@@ -8,6 +8,7 @@ import { platformDb } from '@/lib/db-manager';
 import { InteractivePricing } from '@/app/components/public/InteractivePricing';
 
 import { getAuthSession } from '@/auth';
+import { getPlanSettings } from '@/app/actions/license-actions';
 import { LandingAuthNav } from '@/app/components/public/LandingAuthNav';
 import { LandingModules } from '@/app/components/public/LandingModules';
 
@@ -16,6 +17,14 @@ export const revalidate = 0;
 
 export default async function HomePage() {
   const session = await getAuthSession();
+  
+  let planSettings: any = {};
+  let allModulesList: any[] = [];
+  const ps = await getPlanSettings();
+  if (ps.success) {
+    planSettings = ps.data;
+    allModulesList = ps.allModules || [];
+  }
   
   const dbModules = await platformDb.module.findMany({
     where: { isActive: true },
@@ -684,7 +693,7 @@ export default async function HomePage() {
       {/* ══════════════════════════════════════════
           PLANES RESTAURADOS A SU ORDEN Y CONTENIDO ORIGINAL
       ══════════════════════════════════════════ */}
-      <InteractivePricing />
+      <InteractivePricing planSettings={planSettings} allModules={allModulesList} />
 
       {/* ══════════════════════════════════════════
           LOGOS DE EMPRESAS

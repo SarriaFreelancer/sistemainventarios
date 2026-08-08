@@ -1,0 +1,399 @@
+-- Respaldo de Base de Datos GNS SarriaTech
+-- Generado el: 2026-08-08T09:00:00.035Z
+-- Tipo de Respaldo: INQUILINO AUTOMÁTICO (ID: 11)
+
+SET FOREIGN_KEY_CHECKS=0;
+
+-- Datos para la tabla: Company
+LOCK TABLES `Company` WRITE;
+/*!40000 ALTER TABLE `Company` DISABLE KEYS */;
+INSERT INTO `Company` (`id`, `name`, `planId`, `maxUsers`, `maxProducts`, `serverId`, `databaseName`, `databaseType`, `currentVersion`, `address`, `city`, `country`, `status`, `themeConfig`, `createdAt`, `updatedAt`) VALUES 
+(11, 'Dulche Dorelle S.A.S.', 'basic', NULL, NULL, NULL, NULL, NULL, NULL, 'Calle 95 #14-60', 'Bogotá', 'Colombia', 'ACTIVE', '{"mode":"light","bgImage":"/uploads/backgrounds/bg-11-1786138398302.png","primaryColor":"#ef9eff"}', '2026-08-07 18:43:09', '2026-08-08 08:59:51');
+/*!40000 ALTER TABLE `Company` ENABLE KEYS */;
+UNLOCK TABLES;
+
+-- Datos para la tabla: User
+LOCK TABLES `User` WRITE;
+/*!40000 ALTER TABLE `User` DISABLE KEYS */;
+INSERT INTO `User` (`id`, `name`, `email`, `password`, `image`, `roleId`, `companyId`, `position`, `preferences`, `lastLogin`, `rememberMe`, `createdAt`, `updatedAt`) VALUES 
+(12, 'Admin Dulche Dorelle', 'admin@dulchedorelle.com', '$2b$10$UuFIeHxYDORyMCMKngO30Ow1mDJqBaR2ENov8wbpBZG3NnbRGOoS.', NULL, 10, 11, NULL, '{"plainPassword":"Admin123","tourCompleted":true,"notificationsClearedAt":"2026-08-07T22:59:42.758Z"}', '2026-08-08 08:54:07', 0, '2026-08-07 18:43:09', '2026-08-08 08:54:07');
+/*!40000 ALTER TABLE `User` ENABLE KEYS */;
+UNLOCK TABLES;
+
+-- Datos para la tabla: ProductGroup
+LOCK TABLES `ProductGroup` WRITE;
+/*!40000 ALTER TABLE `ProductGroup` DISABLE KEYS */;
+INSERT INTO `ProductGroup` (`id`, `name`, `code`, `status`, `companyId`, `createdAt`, `updatedAt`) VALUES 
+(33, 'Maquillaje Profesional', 'GRP-MAQ', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(34, 'Cuidado Facial & Skincare', 'GRP-SKN', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(35, 'Cuidado Capilar & Estilo', 'GRP-CAP', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(36, 'Cuidado Corporal & Spa', 'GRP-COR', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(37, 'Perfumería & Fragancias', 'GRP-PER', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(38, 'Accesorios & Herramientas', 'GRP-ACC', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(39, 'Materias Primas & Químicos', 'GRP-MPR', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(40, 'Empaques & Suministros', 'GRP-SUM', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(41, 'Servicios & Asesorías', 'GRP-SER', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(42, 'Equipos & Activos Fijos', 'GRP-ACT', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09');
+/*!40000 ALTER TABLE `ProductGroup` ENABLE KEYS */;
+UNLOCK TABLES;
+
+-- Datos para la tabla: Category
+LOCK TABLES `Category` WRITE;
+/*!40000 ALTER TABLE `Category` DISABLE KEYS */;
+INSERT INTO `Category` (`id`, `name`, `code`, `description`, `status`, `companyId`, `createdAt`, `updatedAt`, `productGroupId`) VALUES 
+(44, 'Labiales & Brillos', 'CAT-LAB', 'Labiales líquidos, en barra y gloss voluminizadores', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09', 33),
+(45, 'Sombras & Ojos', 'CAT-EYE', 'Paletas de sombras, delineadores y pestañinas', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09', 33),
+(46, 'Rostro & Cobertura', 'CAT-ROS', 'Bases hidratantes, correctores y polvos sueltos', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09', 33),
+(47, 'Sérums & Ampollas', 'CAT-SER', 'Fórmulas concentradas con ácido hialurónico y niacinamida', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09', 34),
+(48, 'Limpieza & Tónicos', 'CAT-LMP', 'Aguas micelares, geles limpiadores y desmaquillantes', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09', 34),
+(49, 'Protección Solar', 'CAT-SOL', 'Bloqueadores solares SPF 50+ con y sin color', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09', 34),
+(50, 'Tratamientos Capilares', 'CAT-TRT', 'Mascarillas de keratina, óleos y ampollas reparadoras', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09', 35),
+(51, 'Champús & Acondicionadores', 'CAT-SHA', 'Fórmulas libres de sulfatos y parabenos', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09', 35),
+(52, 'Exfoliantes & Cremas', 'CAT-EXF', 'Exfoliantes de café y mantecas hidratantes de cacao', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09', 36),
+(53, 'Aceites & Mantequillas', 'CAT-OIL', 'Aceites secos corporal y mantecas de karité', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09', 36),
+(54, 'Perfumes Luxury', 'CAT-FRG', 'Fragancias exclusivas Eau de Parfum de alta fijación', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09', 37),
+(55, 'Brochas & Aplicadores', 'CAT-BRO', 'Kits de brochas profesionales y esponjas de microfibra', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09', 38),
+(56, 'Ingredientes Orgánicos', 'CAT-ING', 'Aceites puros, mantequillas sin refinar y ceras', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09', 39),
+(57, 'Activos Cosméticos', 'CAT-ACT', 'Polvos de ácido hialurónico, elastina y vitaminas', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09', 39),
+(58, 'Frascos & Contenedores', 'CAT-FRS', 'Frascos gotero de vidrio ámbar y potes acrílicos', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09', 40),
+(59, 'Cajas & Embalajes', 'CAT-CAJ', 'Cajas rígidas de regalo y etiquetas térmicas autoadhesivas', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09', 40),
+(60, 'Asesorías & Cursos', 'CAT-CON', 'Talleres de automaquillaje y diagnóstico capilar 3D', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09', 41),
+(61, 'Servicios de Estética', 'CAT-SPA', 'Servicios de maquillaje para novias y limpieza facial', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09', 41),
+(62, 'Maquinaria de Producción', 'CAT-MAQ', 'Mezcladoras industriales, llenadoras y autoclaves', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09', 42),
+(63, 'Mobiliario & Equipos POS', 'CAT-MOB', 'Muebles exhibidores LED y equipos de cómputo POS', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09', 42);
+/*!40000 ALTER TABLE `Category` ENABLE KEYS */;
+UNLOCK TABLES;
+
+-- Datos para la tabla: Supplier
+LOCK TABLES `Supplier` WRITE;
+/*!40000 ALTER TABLE `Supplier` DISABLE KEYS */;
+INSERT INTO `Supplier` (`id`, `companyName`, `contactName`, `phone`, `email`, `address`, `city`, `country`, `status`, `companyId`, `createdAt`, `updatedAt`, `code`) VALUES 
+(19, 'Dorelle Beauty Corp', 'Isabella Ross', '3104567890', 'isabella@dorellebeauty.com', 'Av. Lujo 123', 'Bogotá', 'Colombia', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09', NULL),
+(20, 'Cosméticos Satin S.A.', 'Alejandro Sanz', '3157891234', 'ventas@satincosmeticos.com', 'Calle Perlada 45', 'Medellín', 'Colombia', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09', NULL),
+(21, 'Esencias & Químicos de Colombia', 'Camille Dupont', '3209876543', 'cdupont@esenciasparis.com', 'Carrera Diamante 89', 'Cali', 'Colombia', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09', NULL),
+(22, 'Empaques Industriales del Valle', 'Carlos Mendoza', '3185554321', 'contacto@empaquesvalle.com', 'Zona Industrial Lote 4', 'Yumbo', 'Colombia', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09', NULL),
+(23, 'Accesorios Glitz & Glam', 'Valeria Gómez', '3001234567', 'valeria@glitzglam.co', 'Diag. Cristal 12', 'Barranquilla', 'Colombia', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09', NULL);
+/*!40000 ALTER TABLE `Supplier` ENABLE KEYS */;
+UNLOCK TABLES;
+
+-- Datos para la tabla: Product
+LOCK TABLES `Product` WRITE;
+/*!40000 ALTER TABLE `Product` DISABLE KEYS */;
+INSERT INTO `Product` (`id`, `code`, `name`, `categoryId`, `supplierId`, `quantityAvailable`, `unitCost`, `salePrice`, `soldQuantity`, `status`, `type`, `productGroupId`, `companyId`, `createdAt`, `updatedAt`) VALUES 
+(146, 'PROD-001', 'Labial Matte Rouge Satin', 44, 19, 45, 22000, 45000, 10, 'AVAILABLE', 'SALE', 33, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(147, 'PROD-002', 'Gloss Voluminizador Rose Gold', 44, 20, 60, 18000, 38000, 13, 'AVAILABLE', 'SALE', 33, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(148, 'PROD-003', 'Labial Humectante Nude Caramel', 44, 21, 30, 20000, 42000, 15, 'AVAILABLE', 'SALE', 33, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(149, 'PROD-004', 'Tinta de Labios y Mejillas Cereza', 44, 22, 85, 14000, 32000, 14, 'AVAILABLE', 'SALE', 33, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(150, 'PROD-005', 'Delineador de Labios Precisión Vino', 44, 23, 40, 11000, 25000, 16, 'AVAILABLE', 'SALE', 33, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:10'),
+(151, 'PROD-006', 'Paleta Amore Lilac 18 Tonos', 45, 19, 25, 60000, 120000, 20, 'AVAILABLE', 'SALE', 33, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:10'),
+(152, 'PROD-007', 'Delineador Liquid Violet Waterproof', 45, 20, 50, 14000, 29000, 20, 'AVAILABLE', 'SALE', 33, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:10'),
+(153, 'PROD-008', 'Pestañina Efecto Alargador Carbon Black', 45, 21, 70, 17000, 39000, 20, 'AVAILABLE', 'SALE', 33, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:10'),
+(154, 'PROD-009', 'Sombra Individual Metalizada Bronze', 45, 22, 90, 9500, 22000, 21, 'AVAILABLE', 'SALE', 33, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:10'),
+(155, 'PROD-010', 'Gel Fijador de Cejas Orgánico Transparente', 45, 23, 65, 12000, 28000, 23, 'AVAILABLE', 'SALE', 33, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:10'),
+(156, 'PROD-011', 'Base Hydra Glow Tono 02 Medium', 46, 19, 35, 32000, 68000, 26, 'AVAILABLE', 'SALE', 33, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:10'),
+(157, 'PROD-012', 'Corrector Velvet Touch Cream Tono Light', 46, 20, 55, 16000, 35000, 27, 'AVAILABLE', 'SALE', 33, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:10'),
+(158, 'PROD-013', 'Polvo Traslúcido Matificante de Arroz', 46, 21, 40, 21000, 48000, 23, 'AVAILABLE', 'SALE', 33, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:10'),
+(159, 'PROD-014', 'Rubor en Crema Durazno Radiante', 46, 22, 48, 15000, 36000, 26, 'AVAILABLE', 'SALE', 33, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:10'),
+(160, 'PROD-015', 'Iluminador Liquido Champagne Glow', 46, 23, 32, 19000, 44000, 30, 'AVAILABLE', 'SALE', 33, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:10'),
+(161, 'PROD-016', 'Sérum Ácido Hialurónico 2% Rejuvenecedor', 47, 19, 50, 40000, 85000, 17, 'AVAILABLE', 'SALE', 34, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:10'),
+(162, 'PROD-017', 'Sérum Vitamina C 15% Iluminador', 47, 20, 28, 42000, 89000, 13, 'AVAILABLE', 'SALE', 34, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:10'),
+(163, 'PROD-018', 'Sérum Niacinamida 10% Antimperfecciones', 47, 21, 42, 36000, 78000, 17, 'AVAILABLE', 'SALE', 34, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:10'),
+(164, 'PROD-019', 'Ampolla Concentrada Botox Effect', 47, 22, 18, 45000, 95000, 19, 'AVAILABLE', 'SALE', 34, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:10'),
+(165, 'PROD-020', 'Agua Micelar Infusión de Rosas 400ml', 48, 23, 75, 12000, 28000, 22, 'AVAILABLE', 'SALE', 34, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:10'),
+(166, 'PROD-021', 'Gel Limpiador Facial Ácido Salicílico', 48, 19, 62, 19000, 42000, 18, 'AVAILABLE', 'SALE', 34, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:10'),
+(167, 'PROD-022', 'Tónico Facial Hidratante Manzanilla', 48, 20, 40, 14500, 34000, 20, 'AVAILABLE', 'SALE', 34, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:10'),
+(168, 'PROD-023', 'Protector Solar Gel SPF 50+ Toque Seco', 49, 21, 58, 29000, 65000, 23, 'AVAILABLE', 'SALE', 34, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:10'),
+(169, 'PROD-024', 'Protector Solar Fluid con Color Tono Dorado', 49, 22, 34, 31000, 69000, 27, 'AVAILABLE', 'SALE', 34, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:10'),
+(170, 'PROD-025', 'Champú Reparador Sin Sulfatos Argán 500ml', 51, 23, 45, 21000, 46000, 20, 'AVAILABLE', 'SALE', 35, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:10'),
+(171, 'PROD-026', 'Acondicionador Nutritivo Aguacate 500ml', 51, 19, 38, 20000, 44000, 23, 'AVAILABLE', 'SALE', 35, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:10'),
+(172, 'PROD-027', 'Óleo Reparador de Argán y Coco 100ml', 50, 20, 52, 26000, 56000, 27, 'AVAILABLE', 'SALE', 35, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:10'),
+(173, 'PROD-028', 'Mascarilla Capilar Keratina Intensiva 300g', 50, 21, 29, 27000, 58000, 29, 'AVAILABLE', 'SALE', 35, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:10'),
+(174, 'PROD-029', 'Bruma Capilar Termoprotectora Destello', 50, 22, 64, 19000, 42000, 25, 'AVAILABLE', 'SALE', 35, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:10'),
+(175, 'PROD-030', 'Exfoliante Corporal Lavanda y Azúcar 250g', 52, 23, 33, 22000, 48000, 29, 'AVAILABLE', 'SALE', 36, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:10'),
+(176, 'PROD-031', 'Crema Corporal Hidratación Profunda Cacao', 52, 19, 41, 24000, 52000, 16, 'AVAILABLE', 'SALE', 36, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:10'),
+(177, 'PROD-032', 'Aceite Seco Corporal Almendras Dulces 200ml', 53, 20, 27, 28000, 62000, 17, 'AVAILABLE', 'SALE', 36, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:10'),
+(178, 'PROD-033', 'Perfume Dorelle Nuit Eau de Parfum 100ml', 54, 21, 15, 110000, 240000, 12, 'AVAILABLE', 'SALE', 37, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(179, 'PROD-034', 'Perfume Satin Floral Rose EDP 100ml', 54, 22, 22, 102000, 225000, 16, 'AVAILABLE', 'SALE', 37, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:10'),
+(180, 'PROD-035', 'Set Brochas Premium Gold (12 unidades)', 55, 23, 20, 70000, 150000, 18, 'AVAILABLE', 'SALE', 38, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:10'),
+(181, 'PROD-036', 'Kit Skincare Rutina Completa Antiedad', 47, 19, 30, 98000, 210000, 4, 'AVAILABLE', 'FINISHED_GOOD', 34, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:10'),
+(182, 'PROD-037', 'Cofre de Regalo Labiales Matte Edición Especial', 44, 20, 25, 62000, 135000, 0, 'AVAILABLE', 'FINISHED_GOOD', 33, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(183, 'PROD-038', 'Lote Mascarilla Keratina Granel (Balde 10kg)', 50, 21, 12, 190000, 420000, 0, 'AVAILABLE', 'FINISHED_GOOD', 35, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(184, 'PROD-039', 'Lote Champú Nutritivo Orgánico (Balde 20L)', 51, 22, 8, 310000, 650000, 1, 'AVAILABLE', 'FINISHED_GOOD', 35, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:10'),
+(185, 'PROD-040', 'Pack Sérum Hialurónico Dúo Día y Noche', 47, 23, 40, 68000, 145000, 1, 'AVAILABLE', 'FINISHED_GOOD', 34, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:10'),
+(186, 'PROD-041', 'Jabón Artesanal Avena & Miel (Caja x 12 u.)', 52, 19, 50, 42000, 96000, 0, 'AVAILABLE', 'FINISHED_GOOD', 36, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(187, 'PROD-042', 'Kit Corporal Exfoliante + Manteca de Karité', 52, 20, 35, 41000, 92000, 0, 'AVAILABLE', 'FINISHED_GOOD', 36, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(188, 'PROD-043', 'Cofre Perfume Nuit + Lotion Perfumada', 54, 21, 18, 130000, 280000, 0, 'AVAILABLE', 'FINISHED_GOOD', 37, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(189, 'PROD-044', 'Set Limpieza Facial Profunda Micelar + Gel', 48, 22, 44, 27000, 62000, 0, 'AVAILABLE', 'FINISHED_GOOD', 34, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(190, 'PROD-045', 'Kit Profesional Maquillaje Novias Completo', 46, 23, 10, 180000, 380000, 0, 'AVAILABLE', 'FINISHED_GOOD', 33, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(191, 'PROD-046', 'Lote Crema Hidratante Lavanda (Balde 5kg)', 52, 19, 14, 140000, 310000, 0, 'AVAILABLE', 'FINISHED_GOOD', 36, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(192, 'PROD-047', 'Pack Ampollas Reconstructoras Capilares x 6', 50, 20, 26, 49000, 110000, 0, 'AVAILABLE', 'FINISHED_GOOD', 35, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(193, 'PROD-048', 'Kit Viajero Skincare Esenciales 50ml', 47, 21, 60, 33000, 75000, 0, 'AVAILABLE', 'FINISHED_GOOD', 34, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(194, 'PROD-049', 'Set Pinceles de Alta Precisión Ojos (8 u.)', 55, 22, 32, 39000, 88000, 0, 'AVAILABLE', 'FINISHED_GOOD', 38, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(195, 'PROD-050', 'Caja Regalo Corporal SPA Relajación Total', 53, 23, 22, 76000, 165000, 0, 'AVAILABLE', 'FINISHED_GOOD', 36, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(196, 'PROD-051', 'Paleta Contorno e Iluminación Profesional', 46, 19, 28, 52000, 115000, 0, 'AVAILABLE', 'FINISHED_GOOD', 33, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(197, 'PROD-052', 'Tratamiento Nocturno Óleo Nutritivo Capilar', 50, 20, 37, 30000, 68000, 0, 'AVAILABLE', 'FINISHED_GOOD', 35, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(198, 'PROD-053', 'Kit Solar Familiar SPF 50+ x 2 Unidades', 49, 21, 19, 54000, 118000, 0, 'AVAILABLE', 'FINISHED_GOOD', 34, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(199, 'PROD-054', 'Edición Limitada Labial Rose Gold + Neceser', 44, 22, 45, 25000, 58000, 0, 'AVAILABLE', 'FINISHED_GOOD', 33, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(200, 'PROD-055', 'Colección Fragancias Miniatura 15ml x 4', 54, 23, 16, 72000, 160000, 0, 'AVAILABLE', 'FINISHED_GOOD', 37, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(201, 'PROD-056', 'Aceite Puro de Argán Marroquí Prensado (Litro)', 56, 19, 50, 180000, 180000, 0, 'AVAILABLE', 'RAW_MATERIAL', 39, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(202, 'PROD-057', 'Manteca de Karité Orgánica Sin Refinar (Kg)', 56, 20, 80, 65000, 65000, 0, 'AVAILABLE', 'RAW_MATERIAL', 39, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(203, 'PROD-058', 'Ácido Hialurónico Puro en Polvo USP (100g)', 57, 21, 25, 240000, 240000, 0, 'AVAILABLE', 'RAW_MATERIAL', 39, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(204, 'PROD-059', 'Elastina Hidrolizada Líquida Grado Cosmético (Litro)', 57, 22, 35, 140000, 140000, 0, 'AVAILABLE', 'RAW_MATERIAL', 39, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(205, 'PROD-060', 'Cera de Abejas Virgen Amarilla en Perlas (Kg)', 56, 23, 100, 42000, 42000, 0, 'AVAILABLE', 'RAW_MATERIAL', 39, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(206, 'PROD-061', 'Extracto Glicólico de Caléndula Concentrado (Litro)', 44, 19, 40, 85000, 85000, 0, 'AVAILABLE', 'RAW_MATERIAL', 39, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(207, 'PROD-062', 'Colágeno Marino Hidrolizado en Polvo (500g)', 57, 20, 30, 195000, 195000, 0, 'AVAILABLE', 'RAW_MATERIAL', 39, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(208, 'PROD-063', 'Vitamina E Líquida Tocoferol USP (Litro)', 57, 21, 45, 160000, 160000, 0, 'AVAILABLE', 'RAW_MATERIAL', 39, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(209, 'PROD-064', 'Pigmento Mineral Mica Rosa Perlado (Kg)', 56, 22, 20, 125000, 125000, 0, 'AVAILABLE', 'RAW_MATERIAL', 39, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(210, 'PROD-065', 'Aceite Esencial de Lavanda Francesa 100% Puro (250ml)', 56, 23, 18, 175000, 175000, 0, 'AVAILABLE', 'RAW_MATERIAL', 39, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(211, 'PROD-066', 'Manteca de Cacao Virgen Pura en Bloque (Kg)', 56, 19, 65, 58000, 58000, 0, 'AVAILABLE', 'RAW_MATERIAL', 39, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(212, 'PROD-067', 'Niacinamida en Polvo Grado Farmacéutico (500g)', 57, 20, 28, 110000, 110000, 0, 'AVAILABLE', 'RAW_MATERIAL', 39, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(213, 'PROD-068', 'Glicerina Vegetal USP 99.7% Pureza (Galón)', 56, 21, 75, 72000, 72000, 0, 'AVAILABLE', 'RAW_MATERIAL', 39, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(214, 'PROD-069', 'Extracto de Áloe Vera Gel Concentrado 10:1 (Litro)', 44, 22, 42, 98000, 98000, 0, 'AVAILABLE', 'RAW_MATERIAL', 39, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(215, 'PROD-070', 'Keratina Hidrolizada Concentrada Líquida (Litro)', 57, 23, 33, 155000, 155000, 0, 'AVAILABLE', 'RAW_MATERIAL', 39, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(216, 'PROD-071', 'Aceite de Coco Nucifera Virgen Extra (Kg)', 56, 19, 90, 48000, 48000, 0, 'AVAILABLE', 'RAW_MATERIAL', 39, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(217, 'PROD-072', 'Óxidos de Hierro Mineral Pigmento Rojo (Kg)', 56, 20, 22, 95000, 95000, 0, 'AVAILABLE', 'RAW_MATERIAL', 39, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(218, 'PROD-073', 'Extracto Oleoso de Romero Silvestre (Litro)', 44, 21, 38, 82000, 82000, 0, 'AVAILABLE', 'RAW_MATERIAL', 39, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(219, 'PROD-074', 'Conservante Natural Eco-Certificado (500ml)', 57, 22, 27, 135000, 135000, 0, 'AVAILABLE', 'RAW_MATERIAL', 39, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(220, 'PROD-075', 'Filtro Solar UV Bisoctrizol Polvo (500g)', 57, 23, 15, 210000, 210000, 0, 'AVAILABLE', 'RAW_MATERIAL', 39, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(221, 'PROD-076', 'Frasco Gotero Vidrio Ámbar 30ml con Ppipeta (Caja x 100)', 58, 19, 150, 120000, 120000, 0, 'AVAILABLE', 'SUPPLY', 40, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(222, 'PROD-077', 'Pote Acrílico Transparente 50g Tapa Dorada (Caja x 100)', 58, 20, 110, 165000, 165000, 0, 'AVAILABLE', 'SUPPLY', 40, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(223, 'PROD-078', 'Envase Airless Blanco 50ml para Sérum (Caja x 50)', 58, 21, 85, 140000, 140000, 0, 'AVAILABLE', 'SUPPLY', 40, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(224, 'PROD-079', 'Tubo Colapsable para Labial 5ml (Caja x 200)', 58, 22, 95, 180000, 180000, 0, 'AVAILABLE', 'SUPPLY', 40, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(225, 'PROD-080', 'Válvula Atomizadora Spray Dorada 24/410 (Caja x 200)', 58, 23, 140, 130000, 130000, 0, 'AVAILABLE', 'SUPPLY', 40, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(226, 'PROD-081', 'Etiqueta Térmica Autoadhesiva 50x30mm (Rollo x 1000)', 59, 19, 300, 28000, 28000, 0, 'AVAILABLE', 'SUPPLY', 40, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(227, 'PROD-082', 'Caja de Cartón Rígido Dorado con Imán (Paquete x 50)', 59, 20, 45, 210000, 210000, 0, 'AVAILABLE', 'SUPPLY', 40, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(228, 'PROD-083', 'Cinta Embellecedora Satinada Negra 25mm (Rollo 100m)', 59, 21, 80, 35000, 35000, 0, 'AVAILABLE', 'SUPPLY', 40, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(229, 'PROD-084', 'Bolsa Ecológica de Lienzo con Logo (Paquete x 100)', 59, 22, 60, 250000, 250000, 0, 'AVAILABLE', 'SUPPLY', 40, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(230, 'PROD-085', 'Papel Seda Protector Impreso con Marca (Paquete 500 h.)', 59, 23, 70, 68000, 68000, 0, 'AVAILABLE', 'SUPPLY', 40, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(231, 'PROD-086', 'Frasco Espumador 150ml con Bomba Lather (Caja x 50)', 58, 19, 90, 155000, 155000, 0, 'AVAILABLE', 'SUPPLY', 40, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(232, 'PROD-087', 'Tapa Rosca de Aluminio 28mm (Caja x 500)', 58, 20, 120, 95000, 95000, 0, 'AVAILABLE', 'SUPPLY', 40, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(233, 'PROD-088', 'Sello de Seguridad Termoencogible para Frasco (Millar)', 59, 21, 200, 45000, 45000, 0, 'AVAILABLE', 'SUPPLY', 40, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(234, 'PROD-089', 'Cinta de Embalaje Transparente 48mmx100m (Paquete x 12)', 59, 22, 110, 54000, 54000, 0, 'AVAILABLE', 'SUPPLY', 40, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(235, 'PROD-090', 'Bolsa Burbuja de Protección para Envíos (Caja x 200)', 59, 23, 130, 78000, 78000, 0, 'AVAILABLE', 'SUPPLY', 40, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(236, 'PROD-091', 'Sesión de Maquillaje Profesional para Novias', 61, 19, 999, 80000, 250000, 0, 'AVAILABLE', 'SERVICE', 41, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(237, 'PROD-092', 'Diagnóstico Capilar 3D con Microcámara', 60, 20, 999, 20000, 80000, 0, 'AVAILABLE', 'SERVICE', 41, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(238, 'PROD-093', 'Taller de Auto-Maquillaje Personalizado (2h)', 60, 21, 999, 40000, 150000, 0, 'AVAILABLE', 'SERVICE', 41, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(239, 'PROD-094', 'Servicio de Limpieza Facial Profunda Hydrafacial', 61, 22, 999, 50000, 180000, 0, 'AVAILABLE', 'SERVICE', 41, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(240, 'PROD-095', 'Asesoría de Colorimetría y Visagismo Facial', 60, 23, 999, 30000, 120000, 0, 'AVAILABLE', 'SERVICE', 41, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(241, 'PROD-096', 'Tratamiento Restaurador de Keratina en Cabina', 61, 19, 999, 70000, 220000, 0, 'AVAILABLE', 'SERVICE', 41, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(242, 'PROD-097', 'Mantenimiento Preventivo de Mezcladoras Cosméticas', 60, 20, 999, 120000, 350000, 0, 'AVAILABLE', 'SERVICE', 41, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(243, 'PROD-098', 'Curso Intensivo Formulaciones Cosméticas Naturales', 60, 21, 999, 150000, 450000, 0, 'AVAILABLE', 'SERVICE', 41, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(244, 'PROD-099', 'Mezcladora Industrial de Cremas 50L Stainless Steel', 62, 22, 2, 8500000, 8500000, 0, 'AVAILABLE', 'FIXED_ASSET', 42, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(245, 'PROD-100', 'Llenadora Neumática de Líquidos y Viscosos 500ml', 62, 23, 3, 4200000, 4200000, 0, 'AVAILABLE', 'FIXED_ASSET', 42, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(246, 'PROD-101', 'Autoclave Digital de Esterilización Cosmética 24L', 62, 19, 0, 3100000, 0, 0, 'OUT_OF_STOCK', 'FIXED_ASSET', 42, 11, '2026-08-07 18:43:09', '2026-08-07 21:41:05'),
+(247, 'PROD-102', 'Mueble Exhibidor de Cristal Templado con Iluminación LED', 63, 20, 6, 1850000, 1850000, 0, 'AVAILABLE', 'FIXED_ASSET', 42, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(248, 'PROD-103', 'Silla Reclinable Hidráulica para Maquillaje y Spa', 63, 21, 8, 1450000, 1450000, 0, 'AVAILABLE', 'FIXED_ASSET', 42, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(249, 'PROD-104', 'Sistema de Cómputo All-in-One POS de Registro 21"', 63, 22, 5, 2900000, 2900000, 0, 'AVAILABLE', 'FIXED_ASSET', 42, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(250, 'PROD-105', 'Lámpara LED Profesional de Anillo con Soporte 18"', 63, 23, 10, 480000, 480000, 0, 'AVAILABLE', 'FIXED_ASSET', 42, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09');
+/*!40000 ALTER TABLE `Product` ENABLE KEYS */;
+UNLOCK TABLES;
+
+-- Datos para la tabla: Customer
+LOCK TABLES `Customer` WRITE;
+/*!40000 ALTER TABLE `Customer` DISABLE KEYS */;
+INSERT INTO `Customer` (`id`, `name`, `email`, `phone`, `company`, `address`, `city`, `country`, `status`, `companyId`, `createdAt`, `updatedAt`, `code`) VALUES 
+(16, 'Juliana Restrepo', 'juliana.restrepo@mail.com', '3101234567', 'Restrepo Boutique', 'Calle 50 #12-34', 'Bogotá', 'Colombia', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09', NULL),
+(17, 'Camila Gómez', 'camila.gomez@mail.com', '3150987654', 'Gómez Beauty', 'Carrera 10 #20-15', 'Medellín', 'Colombia', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09', NULL),
+(18, 'Mariana Mesa', 'mariana.mesa@mail.com', '3123456789', 'Mesa Cosmetics', 'Av. 4 #16-72', 'Cali', 'Colombia', 'PROSPECT', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09', NULL),
+(19, 'Lucía Pérez', 'lucia.perez@mail.com', '3169876543', 'Pérez Estética', 'Calle 80 #22-10', 'Barranquilla', 'Colombia', 'ACTIVE', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09', NULL),
+(20, 'Sofía Vergara', 'sofia.vergara@mail.com', '3132468101', 'Vergara Spa', 'Av. 7 #35-50', 'Cartagena', 'Colombia', 'PROSPECT', 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09', NULL);
+/*!40000 ALTER TABLE `Customer` ENABLE KEYS */;
+UNLOCK TABLES;
+
+-- Datos para la tabla: Opportunity
+LOCK TABLES `Opportunity` WRITE;
+/*!40000 ALTER TABLE `Opportunity` DISABLE KEYS */;
+INSERT INTO `Opportunity` (`id`, `title`, `customerId`, `stage`, `estimatedValue`, `probability`, `companyId`, `createdAt`, `updatedAt`) VALUES 
+(13, 'Suministro mensual de línea de maquillaje', 16, 'QUALIFIED', 950000, 75, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(14, 'Contrato de insumos y empaques', 17, 'CONTACTED', 450000, 40, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(15, 'Taller de capacitación cosmética', 18, 'PROPOSAL', 320000, 55, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09'),
+(16, 'Renovación de exhibidores y activos', 19, 'NEW', 220000, 30, 11, '2026-08-07 18:43:09', '2026-08-07 18:43:09');
+/*!40000 ALTER TABLE `Opportunity` ENABLE KEYS */;
+UNLOCK TABLES;
+
+-- Datos para la tabla: Sale
+LOCK TABLES `Sale` WRITE;
+/*!40000 ALTER TABLE `Sale` DISABLE KEYS */;
+INSERT INTO `Sale` (`id`, `saleNumber`, `userId`, `client`, `discount`, `total`, `paymentMethod`, `status`, `remarks`, `voidedByUserId`, `companyId`, `voidedAt`, `voidedReason`, `createdAt`, `updatedAt`, `customerId`) VALUES 
+(95, 'VEN-20260703-001', 12, 'Camila Gómez', 0, 316000, 'TARJETA', 'COMPLETED', NULL, NULL, 11, NULL, NULL, '2026-07-03 15:15:00', '2026-07-03 15:15:00', NULL),
+(96, 'VEN-20260605-002', 12, 'Mariana Mesa', 0, 417000, 'TRANSFERENCIA', 'COMPLETED', NULL, NULL, 11, NULL, NULL, '2026-06-05 16:30:00', '2026-06-05 16:30:00', NULL),
+(97, 'VEN-20260507-003', 12, 'Lucía Pérez', 0, 191000, 'EFECTIVO', 'COMPLETED', NULL, NULL, 11, NULL, NULL, '2026-05-07 17:45:00', '2026-05-07 17:45:00', NULL),
+(98, 'VEN-20260409-004', 12, NULL, 0, 50000, 'TARJETA', 'COMPLETED', NULL, NULL, 11, NULL, NULL, '2026-04-09 18:00:00', '2026-04-09 18:00:00', NULL),
+(99, 'VEN-20260311-005', 12, 'Paola Turbay', 15000, 429000, 'TRANSFERENCIA', 'COMPLETED', NULL, NULL, 11, NULL, NULL, '2026-03-11 19:15:00', '2026-03-11 19:15:00', NULL),
+(100, 'VEN-20260813-006', 12, 'Juliana Restrepo', 0, 141000, 'EFECTIVO', 'COMPLETED', NULL, NULL, 11, NULL, NULL, '2026-08-13 20:30:00', '2026-08-13 20:30:00', NULL),
+(101, 'VEN-20260715-007', 12, 'Camila Gómez', 0, 374000, 'TARJETA', 'COMPLETED', NULL, NULL, 11, NULL, NULL, '2026-07-15 21:45:00', '2026-07-15 21:45:00', NULL),
+(102, 'VEN-20260617-008', 12, NULL, 0, 66000, 'TRANSFERENCIA', 'COMPLETED', NULL, NULL, 11, NULL, NULL, '2026-06-17 22:00:00', '2026-06-17 22:00:00', NULL),
+(103, 'VEN-20260519-009', 12, 'Lucía Pérez', 0, 64000, 'EFECTIVO', 'COMPLETED', NULL, NULL, 11, NULL, NULL, '2026-05-19 14:15:00', '2026-05-19 14:15:00', NULL),
+(104, 'VEN-20260421-010', 12, 'Sofía Vergara', 15000, 399000, 'TARJETA', 'COMPLETED', NULL, NULL, 11, NULL, NULL, '2026-04-21 15:30:00', '2026-04-21 15:30:00', NULL),
+(105, 'VEN-20260323-011', 12, 'Paola Turbay', 0, 651000, 'TRANSFERENCIA', 'COMPLETED', NULL, NULL, 11, NULL, NULL, '2026-03-23 16:45:00', '2026-03-23 16:45:00', NULL),
+(106, 'VEN-20260825-012', 12, NULL, 0, 48000, 'EFECTIVO', 'COMPLETED', NULL, NULL, 11, NULL, NULL, '2026-08-25 17:00:00', '2026-08-25 17:00:00', NULL),
+(107, 'VEN-20260727-013', 12, 'Camila Gómez', 0, 228000, 'TARJETA', 'COMPLETED', NULL, NULL, 11, NULL, NULL, '2026-07-27 18:15:00', '2026-07-27 18:15:00', NULL),
+(108, 'VEN-20260601-014', 12, 'Mariana Mesa', 0, 612000, 'TRANSFERENCIA', 'COMPLETED', NULL, NULL, 11, NULL, NULL, '2026-06-01 19:30:00', '2026-06-01 19:30:00', NULL),
+(109, 'VEN-20260503-015', 12, 'Lucía Pérez', 15000, 225000, 'EFECTIVO', 'COMPLETED', NULL, NULL, 11, NULL, NULL, '2026-05-03 20:45:00', '2026-05-03 20:45:00', NULL),
+(110, 'VEN-20260405-016', 12, NULL, 0, 178000, 'TARJETA', 'COMPLETED', NULL, NULL, 11, NULL, NULL, '2026-04-05 21:00:00', '2026-04-05 21:00:00', NULL),
+(111, 'VEN-20260307-017', 12, 'Paola Turbay', 0, 336000, 'TRANSFERENCIA', 'COMPLETED', NULL, NULL, 11, NULL, NULL, '2026-03-07 22:15:00', '2026-03-07 22:15:00', NULL),
+(112, 'VEN-20260809-018', 12, 'Juliana Restrepo', 0, 216000, 'EFECTIVO', 'COMPLETED', NULL, NULL, 11, NULL, NULL, '2026-08-09 14:30:00', '2026-08-09 14:30:00', NULL),
+(113, 'VEN-20260711-019', 12, 'Camila Gómez', 0, 434000, 'TARJETA', 'COMPLETED', NULL, NULL, 11, NULL, NULL, '2026-07-11 15:45:00', '2026-07-11 15:45:00', NULL),
+(114, 'VEN-20260613-020', 12, NULL, 15000, 111000, 'TRANSFERENCIA', 'COMPLETED', NULL, NULL, 11, NULL, NULL, '2026-06-13 16:00:00', '2026-06-13 16:00:00', NULL),
+(115, 'VEN-20260515-021', 12, 'Lucía Pérez', 0, 78000, 'EFECTIVO', 'COMPLETED', NULL, NULL, 11, NULL, NULL, '2026-05-15 17:15:00', '2026-05-15 17:15:00', NULL),
+(116, 'VEN-20260417-022', 12, 'Sofía Vergara', 0, 346000, 'TARJETA', 'COMPLETED', NULL, NULL, 11, NULL, NULL, '2026-04-17 18:30:00', '2026-04-17 18:30:00', NULL),
+(117, 'VEN-20260319-023', 12, 'Paola Turbay', 0, 1197000, 'TRANSFERENCIA', 'COMPLETED', NULL, NULL, 11, NULL, NULL, '2026-03-19 19:45:00', '2026-03-19 19:45:00', NULL),
+(118, 'VEN-20260821-024', 12, NULL, 0, 46000, 'EFECTIVO', 'COMPLETED', NULL, NULL, 11, NULL, NULL, '2026-08-21 20:00:00', '2026-08-21 20:00:00', NULL),
+(119, 'VEN-20260723-025', 12, 'Camila Gómez', 15000, 169000, 'TARJETA', 'COMPLETED', NULL, NULL, 11, NULL, NULL, '2026-07-23 21:15:00', '2026-07-23 21:15:00', NULL),
+(120, 'VEN-20260625-026', 12, 'Mariana Mesa', 0, 774000, 'TRANSFERENCIA', 'COMPLETED', NULL, NULL, 11, NULL, NULL, '2026-06-25 22:30:00', '2026-06-25 22:30:00', NULL),
+(121, 'VEN-20260527-027', 12, 'Lucía Pérez', 0, 475000, 'EFECTIVO', 'COMPLETED', NULL, NULL, 11, NULL, NULL, '2026-05-27 14:45:00', '2026-05-27 14:45:00', NULL),
+(122, 'VEN-20260401-028', 12, NULL, 0, 84000, 'TARJETA', 'COMPLETED', NULL, NULL, 11, NULL, NULL, '2026-04-01 15:00:00', '2026-04-01 15:00:00', NULL),
+(123, 'VEN-20260303-029', 12, 'Paola Turbay', 0, 819000, 'TRANSFERENCIA', 'COMPLETED', NULL, NULL, 11, NULL, NULL, '2026-03-03 16:15:00', '2026-03-03 16:15:00', NULL),
+(124, 'VEN-20260805-030', 12, 'Juliana Restrepo', 15000, 837000, 'EFECTIVO', 'COMPLETED', NULL, NULL, 11, NULL, NULL, '2026-08-05 17:30:00', '2026-08-05 17:30:00', NULL);
+/*!40000 ALTER TABLE `Sale` ENABLE KEYS */;
+UNLOCK TABLES;
+
+-- Datos para la tabla: SaleDetail
+LOCK TABLES `SaleDetail` WRITE;
+/*!40000 ALTER TABLE `SaleDetail` DISABLE KEYS */;
+INSERT INTO `SaleDetail` (`id`, `saleId`, `productId`, `quantity`, `unitPrice`, `subtotal`, `discount`, `total`, `companyId`, `createdAt`, `updatedAt`) VALUES 
+(189, 95, 147, 2, 38000, 76000, 0, 76000, 11, '2026-07-03 15:15:00', '2026-07-03 15:15:00'),
+(190, 95, 151, 2, 120000, 240000, 0, 240000, 11, '2026-07-03 15:15:00', '2026-07-03 15:15:00'),
+(191, 96, 148, 3, 42000, 126000, 0, 126000, 11, '2026-06-05 16:30:00', '2026-06-05 16:30:00'),
+(192, 96, 152, 3, 29000, 87000, 0, 87000, 11, '2026-06-05 16:30:00', '2026-06-05 16:30:00'),
+(193, 96, 156, 3, 68000, 204000, 0, 204000, 11, '2026-06-05 16:30:00', '2026-06-05 16:30:00'),
+(194, 97, 149, 1, 32000, 32000, 0, 32000, 11, '2026-05-07 17:45:00', '2026-05-07 17:45:00'),
+(195, 97, 153, 1, 39000, 39000, 0, 39000, 11, '2026-05-07 17:45:00', '2026-05-07 17:45:00'),
+(196, 97, 157, 1, 35000, 35000, 0, 35000, 11, '2026-05-07 17:45:00', '2026-05-07 17:45:00'),
+(197, 97, 161, 1, 85000, 85000, 0, 85000, 11, '2026-05-07 17:45:00', '2026-05-07 17:45:00'),
+(198, 98, 150, 2, 25000, 50000, 0, 50000, 11, '2026-04-09 18:00:00', '2026-04-09 18:00:00'),
+(199, 99, 151, 3, 120000, 360000, 0, 360000, 11, '2026-03-11 19:15:00', '2026-03-11 19:15:00'),
+(200, 99, 155, 3, 28000, 84000, 0, 84000, 11, '2026-03-11 19:15:00', '2026-03-11 19:15:00'),
+(201, 100, 152, 1, 29000, 29000, 0, 29000, 11, '2026-08-13 20:30:00', '2026-08-13 20:30:00'),
+(202, 100, 156, 1, 68000, 68000, 0, 68000, 11, '2026-08-13 20:30:00', '2026-08-13 20:30:00'),
+(203, 100, 160, 1, 44000, 44000, 0, 44000, 11, '2026-08-13 20:30:00', '2026-08-13 20:30:00'),
+(204, 101, 153, 2, 39000, 78000, 0, 78000, 11, '2026-07-15 21:45:00', '2026-07-15 21:45:00'),
+(205, 101, 157, 2, 35000, 70000, 0, 70000, 11, '2026-07-15 21:45:00', '2026-07-15 21:45:00'),
+(206, 101, 161, 2, 85000, 170000, 0, 170000, 11, '2026-07-15 21:45:00', '2026-07-15 21:45:00'),
+(207, 101, 165, 2, 28000, 56000, 0, 56000, 11, '2026-07-15 21:45:00', '2026-07-15 21:45:00'),
+(208, 102, 154, 3, 22000, 66000, 0, 66000, 11, '2026-06-17 22:00:00', '2026-06-17 22:00:00'),
+(209, 103, 155, 1, 28000, 28000, 0, 28000, 11, '2026-05-19 14:15:00', '2026-05-19 14:15:00'),
+(210, 103, 159, 1, 36000, 36000, 0, 36000, 11, '2026-05-19 14:15:00', '2026-05-19 14:15:00'),
+(211, 104, 156, 2, 68000, 136000, 0, 136000, 11, '2026-04-21 15:30:00', '2026-04-21 15:30:00'),
+(212, 104, 160, 2, 44000, 88000, 0, 88000, 11, '2026-04-21 15:30:00', '2026-04-21 15:30:00'),
+(213, 104, 164, 2, 95000, 190000, 0, 190000, 11, '2026-04-21 15:30:00', '2026-04-21 15:30:00'),
+(214, 105, 157, 3, 35000, 105000, 0, 105000, 11, '2026-03-23 16:45:00', '2026-03-23 16:45:00'),
+(215, 105, 161, 3, 85000, 255000, 0, 255000, 11, '2026-03-23 16:45:00', '2026-03-23 16:45:00'),
+(216, 105, 165, 3, 28000, 84000, 0, 84000, 11, '2026-03-23 16:45:00', '2026-03-23 16:45:00'),
+(217, 105, 169, 3, 69000, 207000, 0, 207000, 11, '2026-03-23 16:45:00', '2026-03-23 16:45:00'),
+(218, 106, 158, 1, 48000, 48000, 0, 48000, 11, '2026-08-25 17:00:00', '2026-08-25 17:00:00'),
+(219, 107, 159, 2, 36000, 72000, 0, 72000, 11, '2026-07-27 18:15:00', '2026-07-27 18:15:00'),
+(220, 107, 163, 2, 78000, 156000, 0, 156000, 11, '2026-07-27 18:15:00', '2026-07-27 18:15:00'),
+(221, 108, 160, 3, 44000, 132000, 0, 132000, 11, '2026-06-01 19:30:00', '2026-06-01 19:30:00'),
+(222, 108, 164, 3, 95000, 285000, 0, 285000, 11, '2026-06-01 19:30:00', '2026-06-01 19:30:00'),
+(223, 108, 168, 3, 65000, 195000, 0, 195000, 11, '2026-06-01 19:30:00', '2026-06-01 19:30:00'),
+(224, 109, 161, 1, 85000, 85000, 0, 85000, 11, '2026-05-03 20:45:00', '2026-05-03 20:45:00'),
+(225, 109, 165, 1, 28000, 28000, 0, 28000, 11, '2026-05-03 20:45:00', '2026-05-03 20:45:00'),
+(226, 109, 169, 1, 69000, 69000, 0, 69000, 11, '2026-05-03 20:45:00', '2026-05-03 20:45:00'),
+(227, 109, 173, 1, 58000, 58000, 0, 58000, 11, '2026-05-03 20:45:00', '2026-05-03 20:45:00'),
+(228, 110, 162, 2, 89000, 178000, 0, 178000, 11, '2026-04-05 21:00:00', '2026-04-05 21:00:00'),
+(229, 111, 163, 3, 78000, 234000, 0, 234000, 11, '2026-03-07 22:15:00', '2026-03-07 22:15:00'),
+(230, 111, 167, 3, 34000, 102000, 0, 102000, 11, '2026-03-07 22:15:00', '2026-03-07 22:15:00'),
+(231, 112, 164, 1, 95000, 95000, 0, 95000, 11, '2026-08-09 14:30:00', '2026-08-09 14:30:00'),
+(232, 112, 168, 1, 65000, 65000, 0, 65000, 11, '2026-08-09 14:30:00', '2026-08-09 14:30:00'),
+(233, 112, 172, 1, 56000, 56000, 0, 56000, 11, '2026-08-09 14:30:00', '2026-08-09 14:30:00'),
+(234, 113, 165, 2, 28000, 56000, 0, 56000, 11, '2026-07-11 15:45:00', '2026-07-11 15:45:00'),
+(235, 113, 169, 2, 69000, 138000, 0, 138000, 11, '2026-07-11 15:45:00', '2026-07-11 15:45:00'),
+(236, 113, 173, 2, 58000, 116000, 0, 116000, 11, '2026-07-11 15:45:00', '2026-07-11 15:45:00'),
+(237, 113, 177, 2, 62000, 124000, 0, 124000, 11, '2026-07-11 15:45:00', '2026-07-11 15:45:00'),
+(238, 114, 166, 3, 42000, 126000, 0, 126000, 11, '2026-06-13 16:00:00', '2026-06-13 16:00:00'),
+(239, 115, 167, 1, 34000, 34000, 0, 34000, 11, '2026-05-15 17:15:00', '2026-05-15 17:15:00'),
+(240, 115, 171, 1, 44000, 44000, 0, 44000, 11, '2026-05-15 17:15:00', '2026-05-15 17:15:00'),
+(241, 116, 168, 2, 65000, 130000, 0, 130000, 11, '2026-04-17 18:30:00', '2026-04-17 18:30:00'),
+(242, 116, 172, 2, 56000, 112000, 0, 112000, 11, '2026-04-17 18:30:00', '2026-04-17 18:30:00'),
+(243, 116, 176, 2, 52000, 104000, 0, 104000, 11, '2026-04-17 18:30:00', '2026-04-17 18:30:00'),
+(244, 117, 169, 3, 69000, 207000, 0, 207000, 11, '2026-03-19 19:45:00', '2026-03-19 19:45:00'),
+(245, 117, 173, 3, 58000, 174000, 0, 174000, 11, '2026-03-19 19:45:00', '2026-03-19 19:45:00'),
+(246, 117, 177, 3, 62000, 186000, 0, 186000, 11, '2026-03-19 19:45:00', '2026-03-19 19:45:00'),
+(247, 117, 181, 3, 210000, 630000, 0, 630000, 11, '2026-03-19 19:45:00', '2026-03-19 19:45:00'),
+(248, 118, 170, 1, 46000, 46000, 0, 46000, 11, '2026-08-21 20:00:00', '2026-08-21 20:00:00'),
+(249, 119, 171, 2, 44000, 88000, 0, 88000, 11, '2026-07-23 21:15:00', '2026-07-23 21:15:00'),
+(250, 119, 175, 2, 48000, 96000, 0, 96000, 11, '2026-07-23 21:15:00', '2026-07-23 21:15:00'),
+(251, 120, 172, 3, 56000, 168000, 0, 168000, 11, '2026-06-25 22:30:00', '2026-06-25 22:30:00'),
+(252, 120, 176, 3, 52000, 156000, 0, 156000, 11, '2026-06-25 22:30:00', '2026-06-25 22:30:00'),
+(253, 120, 180, 3, 150000, 450000, 0, 450000, 11, '2026-06-25 22:30:00', '2026-06-25 22:30:00'),
+(254, 121, 173, 1, 58000, 58000, 0, 58000, 11, '2026-05-27 14:45:00', '2026-05-27 14:45:00'),
+(255, 121, 177, 1, 62000, 62000, 0, 62000, 11, '2026-05-27 14:45:00', '2026-05-27 14:45:00'),
+(256, 121, 181, 1, 210000, 210000, 0, 210000, 11, '2026-05-27 14:45:00', '2026-05-27 14:45:00'),
+(257, 121, 185, 1, 145000, 145000, 0, 145000, 11, '2026-05-27 14:45:00', '2026-05-27 14:45:00'),
+(258, 122, 174, 2, 42000, 84000, 0, 84000, 11, '2026-04-01 15:00:00', '2026-04-01 15:00:00'),
+(259, 123, 175, 3, 48000, 144000, 0, 144000, 11, '2026-03-03 16:15:00', '2026-03-03 16:15:00'),
+(260, 123, 179, 3, 225000, 675000, 0, 675000, 11, '2026-03-03 16:15:00', '2026-03-03 16:15:00'),
+(261, 124, 176, 1, 52000, 52000, 0, 52000, 11, '2026-08-05 17:30:00', '2026-08-05 17:30:00'),
+(262, 124, 180, 1, 150000, 150000, 0, 150000, 11, '2026-08-05 17:30:00', '2026-08-05 17:30:00'),
+(263, 124, 184, 1, 650000, 650000, 0, 650000, 11, '2026-08-05 17:30:00', '2026-08-05 17:30:00');
+/*!40000 ALTER TABLE `SaleDetail` ENABLE KEYS */;
+UNLOCK TABLES;
+
+-- Datos para la tabla: AuditLog
+LOCK TABLES `AuditLog` WRITE;
+/*!40000 ALTER TABLE `AuditLog` DISABLE KEYS */;
+INSERT INTO `AuditLog` (`id`, `companyId`, `userId`, `module`, `action`, `entity`, `entityId`, `description`, `oldValues`, `newValues`, `ip`, `browser`, `operatingSystem`, `device`, `country`, `city`, `sessionId`, `createdAt`) VALUES 
+(52, 11, 12, 'COMPANY', 'UPDATE', 'CompanySetting', 7, 'Actualizó los parámetros globales de configuración de la empresa', '{"id":7,"nit":null,"phone":null,"website":null,"currency":"COP","decimals":0,"smtpHost":null,"smtpPass":null,"smtpPort":null,"smtpUser":null,"timezone":"America/Bogota","backupDay":1,"companyId":11,"enable2FA":false,"updatedAt":"2026-08-07T19:09:09.245Z","backupPath":null,"backupTime":"02:00","dateFormat":"YYYY-MM-DD","defaultIva":19,"socialMedia":null,"automaticCode":true,"invoiceConfig":null,"invoicePrefix":"VEN","currencyFormat":"es-CO","purchasePrefix":"COM","backupFrequency":"DAILY","maxLoginAttempts":5,"passwordMinLength":6,"allowNegativeStock":false,"invoiceConsecutive":1,"enableNotifications":true,"purchaseConsecutive":1,"sessionTimeoutMinutes":60}', '{"id":7,"nit":"","phone":"","website":"","currency":"COP","decimals":0,"smtpHost":"","smtpPass":"","smtpPort":null,"smtpUser":"","timezone":"America/Bogota","backupDay":1,"companyId":11,"enable2FA":false,"updatedAt":"2026-08-07T19:10:00.150Z","backupPath":"","backupTime":"02:00","dateFormat":"YYYY-MM-DD","defaultIva":19,"socialMedia":null,"automaticCode":true,"invoiceConfig":{"nit":"","logo":"/uploads/logos/logo-11-1786129795263.png","email":"","phone":"","address":"","website":"","footerText":"Documento equivalente de venta generado de forma electrónica.","companyName":"","primaryColor":"#b91c1c","resolutionText":"","secondaryColor":"#C5A059"},"invoicePrefix":"VEN","currencyFormat":"es-CO","purchasePrefix":"COM","backupFrequency":"DAILY","maxLoginAttempts":5,"passwordMinLength":6,"allowNegativeStock":false,"invoiceConsecutive":1,"enableNotifications":true,"purchaseConsecutive":1,"sessionTimeoutMinutes":60}', '::1', 'Microsoft Edge', 'Windows', 'Desktop', 'Local', 'Localhost', NULL, '2026-08-07 19:10:00'),
+(53, 11, 12, 'COMPANY', 'UPDATE', 'CompanySetting', 7, 'Actualizó los parámetros globales de configuración de la empresa', '{"id":7,"nit":"","phone":"","website":"","currency":"COP","decimals":0,"smtpHost":"","smtpPass":"","smtpPort":null,"smtpUser":"","timezone":"America/Bogota","backupDay":1,"companyId":11,"enable2FA":false,"updatedAt":"2026-08-07T19:10:00.150Z","backupPath":"","backupTime":"02:00","dateFormat":"YYYY-MM-DD","defaultIva":19,"socialMedia":null,"automaticCode":true,"invoiceConfig":{"nit":"","logo":"/uploads/logos/logo-11-1786129795263.png","email":"","phone":"","address":"","website":"","footerText":"Documento equivalente de venta generado de forma electrónica.","companyName":"","primaryColor":"#b91c1c","resolutionText":"","secondaryColor":"#C5A059"},"invoicePrefix":"VEN","currencyFormat":"es-CO","purchasePrefix":"COM","backupFrequency":"DAILY","maxLoginAttempts":5,"passwordMinLength":6,"allowNegativeStock":false,"invoiceConsecutive":1,"enableNotifications":true,"purchaseConsecutive":1,"sessionTimeoutMinutes":60}', '{"id":7,"nit":"","phone":"","website":"","currency":"COP","decimals":0,"smtpHost":"","smtpPass":"","smtpPort":null,"smtpUser":"","timezone":"America/Bogota","backupDay":1,"companyId":11,"enable2FA":false,"updatedAt":"2026-08-07T20:13:33.011Z","backupPath":"","backupTime":"02:00","dateFormat":"YYYY-MM-DD","defaultIva":19,"socialMedia":null,"automaticCode":true,"invoiceConfig":{"nit":"","logo":"/uploads/logos/logo-11-1786129795263.png","email":"","phone":"","address":"","website":"","footerText":"Documento equivalente de venta generado de forma electrónica.","companyName":"","primaryColor":"#b91c1c","resolutionText":"","secondaryColor":"#C5A059"},"invoicePrefix":"VEN","currencyFormat":"es-CO","purchasePrefix":"COM","backupFrequency":"DAILY","maxLoginAttempts":5,"passwordMinLength":6,"allowNegativeStock":false,"invoiceConsecutive":1,"enableNotifications":true,"purchaseConsecutive":1,"sessionTimeoutMinutes":60}', '::1', 'Microsoft Edge', 'Windows', 'Desktop', 'Local', 'Localhost', NULL, '2026-08-07 20:13:33'),
+(54, 11, 12, 'COMPANY', 'UPDATE', 'CompanySetting', 7, 'Actualizó los parámetros globales de configuración de la empresa', '{"id":7,"nit":"","phone":"","website":"","currency":"COP","decimals":0,"smtpHost":"","smtpPass":"","smtpPort":null,"smtpUser":"","timezone":"America/Bogota","backupDay":1,"companyId":11,"enable2FA":false,"updatedAt":"2026-08-07T20:13:33.011Z","backupPath":"","backupTime":"02:00","dateFormat":"YYYY-MM-DD","defaultIva":19,"socialMedia":null,"automaticCode":true,"invoiceConfig":{"nit":"","logo":"/uploads/logos/logo-11-1786129795263.png","email":"","phone":"","address":"","website":"","footerText":"Documento equivalente de venta generado de forma electrónica.","companyName":"","primaryColor":"#b91c1c","resolutionText":"","secondaryColor":"#C5A059"},"invoicePrefix":"VEN","currencyFormat":"es-CO","purchasePrefix":"COM","backupFrequency":"DAILY","maxLoginAttempts":5,"passwordMinLength":6,"allowNegativeStock":false,"invoiceConsecutive":1,"enableNotifications":true,"purchaseConsecutive":1,"sessionTimeoutMinutes":60}', '{"id":7,"nit":"","phone":"","website":"","currency":"COP","decimals":0,"smtpHost":"","smtpPass":"","smtpPort":null,"smtpUser":"","timezone":"America/Bogota","backupDay":1,"companyId":11,"enable2FA":false,"updatedAt":"2026-08-07T20:15:46.189Z","backupPath":"","backupTime":"02:00","dateFormat":"YYYY-MM-DD","defaultIva":19,"socialMedia":null,"automaticCode":true,"invoiceConfig":{"nit":"","logo":"/uploads/logos/logo-11-1786129795263.png","email":"","phone":"","address":"","website":"","footerText":"Documento equivalente de venta generado de forma electrónica.","companyName":"","primaryColor":"#b91c1c","resolutionText":"","secondaryColor":"#C5A059"},"invoicePrefix":"VEN","currencyFormat":"es-CO","purchasePrefix":"COM","backupFrequency":"DAILY","maxLoginAttempts":5,"passwordMinLength":6,"allowNegativeStock":false,"invoiceConsecutive":1,"enableNotifications":true,"purchaseConsecutive":1,"sessionTimeoutMinutes":60}', '::1', 'Microsoft Edge', 'Windows', 'Desktop', 'Local', 'Localhost', NULL, '2026-08-07 20:15:46'),
+(55, 11, 12, 'COMPANY', 'UPDATE', 'CompanySetting', 7, 'Actualizó los parámetros globales de configuración de la empresa', '{"id":7,"nit":"","phone":"","website":"","currency":"COP","decimals":0,"smtpHost":"","smtpPass":"","smtpPort":null,"smtpUser":"","timezone":"America/Bogota","backupDay":1,"companyId":11,"enable2FA":false,"updatedAt":"2026-08-07T20:15:46.189Z","backupPath":"","backupTime":"02:00","dateFormat":"YYYY-MM-DD","defaultIva":19,"socialMedia":null,"automaticCode":true,"invoiceConfig":{"nit":"","logo":"/uploads/logos/logo-11-1786129795263.png","email":"","phone":"","address":"","website":"","footerText":"Documento equivalente de venta generado de forma electrónica.","companyName":"","primaryColor":"#b91c1c","resolutionText":"","secondaryColor":"#C5A059"},"invoicePrefix":"VEN","currencyFormat":"es-CO","purchasePrefix":"COM","backupFrequency":"DAILY","maxLoginAttempts":5,"passwordMinLength":6,"allowNegativeStock":false,"invoiceConsecutive":1,"enableNotifications":true,"purchaseConsecutive":1,"sessionTimeoutMinutes":60}', '{"id":7,"nit":"","phone":"","website":"","currency":"COP","decimals":0,"smtpHost":"","smtpPass":"","smtpPort":null,"smtpUser":"","timezone":"America/Bogota","backupDay":1,"companyId":11,"enable2FA":false,"updatedAt":"2026-08-07T20:17:24.213Z","backupPath":"","backupTime":"02:00","dateFormat":"YYYY-MM-DD","defaultIva":19,"socialMedia":null,"automaticCode":true,"invoiceConfig":{"nit":"","logo":"/uploads/logos/logo-11-1786129795263.png","email":"","phone":"","address":"","website":"","footerText":"Documento equivalente de venta generado de forma electrónica.","companyName":"","primaryColor":"#b91c1c","resolutionText":"","secondaryColor":"#C5A059"},"invoicePrefix":"VEN","currencyFormat":"es-CO","purchasePrefix":"COM","backupFrequency":"DAILY","maxLoginAttempts":5,"passwordMinLength":6,"allowNegativeStock":false,"invoiceConsecutive":1,"enableNotifications":true,"purchaseConsecutive":1,"sessionTimeoutMinutes":60}', '::1', 'Microsoft Edge', 'Windows', 'Desktop', 'Local', 'Localhost', NULL, '2026-08-07 20:17:24'),
+(56, 11, 12, 'COMPANY', 'UPDATE', 'CompanySetting', 7, 'Actualizó los parámetros globales de configuración de la empresa', '{"id":7,"nit":"","phone":"","website":"","currency":"COP","decimals":0,"smtpHost":"","smtpPass":"","smtpPort":null,"smtpUser":"","timezone":"America/Bogota","backupDay":1,"companyId":11,"enable2FA":false,"updatedAt":"2026-08-07T20:17:24.213Z","backupPath":"","backupTime":"02:00","dateFormat":"YYYY-MM-DD","defaultIva":19,"socialMedia":null,"automaticCode":true,"invoiceConfig":{"nit":"","logo":"/uploads/logos/logo-11-1786129795263.png","email":"","phone":"","address":"","website":"","footerText":"Documento equivalente de venta generado de forma electrónica.","companyName":"","primaryColor":"#b91c1c","resolutionText":"","secondaryColor":"#C5A059"},"invoicePrefix":"VEN","currencyFormat":"es-CO","purchasePrefix":"COM","backupFrequency":"DAILY","maxLoginAttempts":5,"passwordMinLength":6,"allowNegativeStock":false,"invoiceConsecutive":1,"enableNotifications":true,"purchaseConsecutive":1,"sessionTimeoutMinutes":60}', '{"id":7,"nit":"","phone":"","website":"","currency":"COP","decimals":0,"smtpHost":"","smtpPass":"","smtpPort":null,"smtpUser":"","timezone":"America/Bogota","backupDay":1,"companyId":11,"enable2FA":false,"updatedAt":"2026-08-07T20:21:12.728Z","backupPath":"","backupTime":"02:00","dateFormat":"YYYY-MM-DD","defaultIva":19,"socialMedia":null,"automaticCode":true,"invoiceConfig":{"nit":"","logo":"/uploads/logos/logo-11-1786129795263.png","email":"","phone":"","address":"","website":"","footerText":"Documento equivalente de venta generado de forma electrónica.","companyName":"","primaryColor":"#b91c1c","resolutionText":"","secondaryColor":"#C5A059"},"invoicePrefix":"VEN","currencyFormat":"es-CO","purchasePrefix":"COM","backupFrequency":"DAILY","maxLoginAttempts":5,"passwordMinLength":6,"allowNegativeStock":false,"invoiceConsecutive":1,"enableNotifications":true,"purchaseConsecutive":1,"sessionTimeoutMinutes":60}', '::1', 'Microsoft Edge', 'Windows', 'Desktop', 'Local', 'Localhost', NULL, '2026-08-07 20:21:12'),
+(57, 11, 12, 'COMPANY', 'UPDATE', 'CompanySetting', 7, 'Actualizó los parámetros globales de configuración de la empresa', '{"id":7,"nit":"","phone":"","website":"","currency":"COP","decimals":0,"smtpHost":"","smtpPass":"","smtpPort":null,"smtpUser":"","timezone":"America/Bogota","backupDay":1,"companyId":11,"enable2FA":false,"updatedAt":"2026-08-07T20:21:12.728Z","backupPath":"","backupTime":"02:00","dateFormat":"YYYY-MM-DD","defaultIva":19,"socialMedia":null,"automaticCode":true,"invoiceConfig":{"nit":"","logo":"/uploads/logos/logo-11-1786129795263.png","email":"","phone":"","address":"","website":"","footerText":"Documento equivalente de venta generado de forma electrónica.","companyName":"","primaryColor":"#b91c1c","resolutionText":"","secondaryColor":"#C5A059"},"invoicePrefix":"VEN","currencyFormat":"es-CO","purchasePrefix":"COM","backupFrequency":"DAILY","maxLoginAttempts":5,"passwordMinLength":6,"allowNegativeStock":false,"invoiceConsecutive":1,"enableNotifications":true,"purchaseConsecutive":1,"sessionTimeoutMinutes":60}', '{"id":7,"nit":"","phone":"","website":"","currency":"COP","decimals":0,"smtpHost":"","smtpPass":"","smtpPort":null,"smtpUser":"","timezone":"America/Bogota","backupDay":1,"companyId":11,"enable2FA":false,"updatedAt":"2026-08-07T20:29:53.730Z","backupPath":"","backupTime":"02:00","dateFormat":"YYYY-MM-DD","defaultIva":19,"socialMedia":null,"automaticCode":true,"invoiceConfig":{"nit":"","logo":"/uploads/logos/logo-11-1786129795263.png","email":"","phone":"","address":"","website":"","footerText":"Documento equivalente de venta generado de forma electrónica.","companyName":"","primaryColor":"#b91c1c","resolutionText":"","secondaryColor":"#C5A059"},"invoicePrefix":"VEN","currencyFormat":"es-CO","purchasePrefix":"COM","backupFrequency":"DAILY","maxLoginAttempts":5,"passwordMinLength":6,"allowNegativeStock":false,"invoiceConsecutive":1,"enableNotifications":true,"purchaseConsecutive":1,"sessionTimeoutMinutes":60}', '::1', 'Microsoft Edge', 'Windows', 'Desktop', 'Local', 'Localhost', NULL, '2026-08-07 20:29:53'),
+(58, 11, 12, 'COMPANY', 'UPDATE', 'CompanySetting', 7, 'Actualizó los parámetros globales de configuración de la empresa', '{"id":7,"nit":"","phone":"","website":"","currency":"COP","decimals":0,"smtpHost":"","smtpPass":"","smtpPort":null,"smtpUser":"","timezone":"America/Bogota","backupDay":1,"companyId":11,"enable2FA":false,"updatedAt":"2026-08-07T20:29:53.730Z","backupPath":"","backupTime":"02:00","dateFormat":"YYYY-MM-DD","defaultIva":19,"socialMedia":null,"automaticCode":true,"invoiceConfig":{"nit":"","logo":"/uploads/logos/logo-11-1786129795263.png","email":"","phone":"","address":"","website":"","footerText":"Documento equivalente de venta generado de forma electrónica.","companyName":"","primaryColor":"#b91c1c","resolutionText":"","secondaryColor":"#C5A059"},"invoicePrefix":"VEN","currencyFormat":"es-CO","purchasePrefix":"COM","backupFrequency":"DAILY","maxLoginAttempts":5,"passwordMinLength":6,"allowNegativeStock":false,"invoiceConsecutive":1,"enableNotifications":true,"purchaseConsecutive":1,"sessionTimeoutMinutes":60}', '{"id":7,"nit":"","phone":"","website":"","currency":"COP","decimals":0,"smtpHost":"","smtpPass":"","smtpPort":null,"smtpUser":"","timezone":"America/Bogota","backupDay":1,"companyId":11,"enable2FA":false,"updatedAt":"2026-08-07T20:30:40.244Z","backupPath":"","backupTime":"02:00","dateFormat":"YYYY-MM-DD","defaultIva":19,"socialMedia":null,"automaticCode":true,"invoiceConfig":{"nit":"","logo":"/uploads/logos/logo-11-1786129795263.png","email":"","phone":"","address":"","website":"","footerText":"Documento equivalente de venta generado de forma electrónica.","companyName":"","primaryColor":"#b91c1c","resolutionText":"","secondaryColor":"#C5A059"},"invoicePrefix":"VEN","currencyFormat":"es-CO","purchasePrefix":"COM","backupFrequency":"DAILY","maxLoginAttempts":5,"passwordMinLength":6,"allowNegativeStock":false,"invoiceConsecutive":1,"enableNotifications":true,"purchaseConsecutive":1,"sessionTimeoutMinutes":60}', '::1', 'Microsoft Edge', 'Windows', 'Desktop', 'Local', 'Localhost', NULL, '2026-08-07 20:30:40'),
+(59, 11, 12, 'COMPANY', 'UPDATE', 'CompanySetting', 7, 'Actualizó los parámetros globales de configuración de la empresa', '{"id":7,"nit":"","phone":"","website":"","currency":"COP","decimals":0,"smtpHost":"","smtpPass":"","smtpPort":null,"smtpUser":"","timezone":"America/Bogota","backupDay":1,"companyId":11,"enable2FA":false,"updatedAt":"2026-08-07T20:30:40.244Z","backupPath":"","backupTime":"02:00","dateFormat":"YYYY-MM-DD","defaultIva":19,"socialMedia":null,"automaticCode":true,"invoiceConfig":{"nit":"","logo":"/uploads/logos/logo-11-1786129795263.png","email":"","phone":"","address":"","website":"","footerText":"Documento equivalente de venta generado de forma electrónica.","companyName":"","primaryColor":"#b91c1c","resolutionText":"","secondaryColor":"#C5A059"},"invoicePrefix":"VEN","currencyFormat":"es-CO","purchasePrefix":"COM","backupFrequency":"DAILY","maxLoginAttempts":5,"passwordMinLength":6,"allowNegativeStock":false,"invoiceConsecutive":1,"enableNotifications":true,"purchaseConsecutive":1,"sessionTimeoutMinutes":60}', '{"id":7,"nit":"","phone":"","website":"","currency":"COP","decimals":0,"smtpHost":"","smtpPass":"","smtpPort":null,"smtpUser":"","timezone":"America/Bogota","backupDay":1,"companyId":11,"enable2FA":false,"updatedAt":"2026-08-07T20:46:09.411Z","backupPath":"","backupTime":"02:00","dateFormat":"YYYY-MM-DD","defaultIva":19,"socialMedia":null,"automaticCode":true,"invoiceConfig":{"nit":"","logo":"/uploads/logos/logo-11-1786129795263.png","email":"","phone":"","address":"","website":"","footerText":"Documento equivalente de venta generado de forma electrónica.","companyName":"","primaryColor":"#b91c1c","resolutionText":"","secondaryColor":"#C5A059"},"invoicePrefix":"VEN","currencyFormat":"es-CO","purchasePrefix":"COM","backupFrequency":"DAILY","maxLoginAttempts":5,"passwordMinLength":6,"allowNegativeStock":false,"invoiceConsecutive":1,"enableNotifications":true,"purchaseConsecutive":1,"sessionTimeoutMinutes":60}', '::1', 'Microsoft Edge', 'Windows', 'Desktop', 'Local', 'Localhost', NULL, '2026-08-07 20:46:09'),
+(60, 11, 12, 'COMPANY', 'UPDATE', 'CompanySetting', 7, 'Actualizó los parámetros globales de configuración de la empresa', '{"id":7,"nit":"","phone":"","website":"","currency":"COP","decimals":0,"smtpHost":"","smtpPass":"","smtpPort":null,"smtpUser":"","timezone":"America/Bogota","backupDay":1,"companyId":11,"enable2FA":false,"updatedAt":"2026-08-07T20:46:09.411Z","backupPath":"","backupTime":"02:00","dateFormat":"YYYY-MM-DD","defaultIva":19,"socialMedia":null,"automaticCode":true,"invoiceConfig":{"nit":"","logo":"/uploads/logos/logo-11-1786129795263.png","email":"","phone":"","address":"","website":"","footerText":"Documento equivalente de venta generado de forma electrónica.","companyName":"","primaryColor":"#b91c1c","resolutionText":"","secondaryColor":"#C5A059"},"invoicePrefix":"VEN","currencyFormat":"es-CO","purchasePrefix":"COM","backupFrequency":"DAILY","maxLoginAttempts":5,"passwordMinLength":6,"allowNegativeStock":false,"invoiceConsecutive":1,"enableNotifications":true,"purchaseConsecutive":1,"sessionTimeoutMinutes":60}', '{"id":7,"nit":"","phone":"","website":"","currency":"COP","decimals":0,"smtpHost":"","smtpPass":"","smtpPort":null,"smtpUser":"","timezone":"America/Bogota","backupDay":1,"companyId":11,"enable2FA":false,"updatedAt":"2026-08-07T21:03:47.219Z","backupPath":"","backupTime":"02:00","dateFormat":"YYYY-MM-DD","defaultIva":19,"socialMedia":null,"automaticCode":true,"invoiceConfig":{"nit":"","logo":"/uploads/logos/logo-11-1786129795263.png","email":"","phone":"","address":"","website":"","footerText":"Documento equivalente de venta generado de forma electrónica.","companyName":"","primaryColor":"#b91c1c","resolutionText":"","secondaryColor":"#C5A059"},"invoicePrefix":"VEN","currencyFormat":"es-CO","purchasePrefix":"COM","backupFrequency":"DAILY","maxLoginAttempts":5,"passwordMinLength":6,"allowNegativeStock":false,"invoiceConsecutive":1,"enableNotifications":true,"purchaseConsecutive":1,"sessionTimeoutMinutes":60}', '::1', 'Microsoft Edge', 'Windows', 'Desktop', 'Local', 'Localhost', NULL, '2026-08-07 21:03:47'),
+(61, 11, 12, 'COMPANY', 'UPDATE', 'CompanySetting', 7, 'Actualizó los parámetros globales de configuración de la empresa', '{"id":7,"nit":"","phone":"","website":"","currency":"COP","decimals":0,"smtpHost":"","smtpPass":"","smtpPort":null,"smtpUser":"","timezone":"America/Bogota","backupDay":1,"companyId":11,"enable2FA":false,"updatedAt":"2026-08-07T21:03:47.219Z","backupPath":"","backupTime":"02:00","dateFormat":"YYYY-MM-DD","defaultIva":19,"socialMedia":null,"automaticCode":true,"invoiceConfig":{"nit":"","logo":"/uploads/logos/logo-11-1786129795263.png","email":"","phone":"","address":"","website":"","footerText":"Documento equivalente de venta generado de forma electrónica.","companyName":"","primaryColor":"#b91c1c","resolutionText":"","secondaryColor":"#C5A059"},"invoicePrefix":"VEN","currencyFormat":"es-CO","purchasePrefix":"COM","backupFrequency":"DAILY","maxLoginAttempts":5,"passwordMinLength":6,"allowNegativeStock":false,"invoiceConsecutive":1,"enableNotifications":true,"purchaseConsecutive":1,"sessionTimeoutMinutes":60}', '{"id":7,"nit":"","phone":"","website":"","currency":"COP","decimals":0,"smtpHost":"","smtpPass":"","smtpPort":null,"smtpUser":"","timezone":"America/Bogota","backupDay":1,"companyId":11,"enable2FA":false,"updatedAt":"2026-08-07T21:32:02.701Z","backupPath":"","backupTime":"02:00","dateFormat":"YYYY-MM-DD","defaultIva":19,"socialMedia":null,"automaticCode":true,"invoiceConfig":{"nit":"","logo":"/uploads/logos/logo-11-1786129795263.png","email":"","phone":"","address":"","website":"","footerText":"Documento equivalente de venta generado de forma electrónica.","companyName":"","primaryColor":"#b91c1c","resolutionText":"","secondaryColor":"#C5A059"},"invoicePrefix":"VEN","currencyFormat":"es-CO","purchasePrefix":"COM","backupFrequency":"DAILY","maxLoginAttempts":5,"passwordMinLength":6,"allowNegativeStock":false,"invoiceConsecutive":1,"enableNotifications":true,"purchaseConsecutive":1,"sessionTimeoutMinutes":60}', '::1', 'Microsoft Edge', 'Windows', 'Desktop', 'Local', 'Localhost', NULL, '2026-08-07 21:32:02'),
+(62, 11, 12, 'COMPANY', 'UPDATE', 'CompanySetting', 7, 'Actualizó los parámetros globales de configuración de la empresa', '{"id":7,"nit":"","phone":"","website":"","currency":"COP","decimals":0,"smtpHost":"","smtpPass":"","smtpPort":null,"smtpUser":"","timezone":"America/Bogota","backupDay":1,"companyId":11,"enable2FA":false,"updatedAt":"2026-08-07T21:32:02.701Z","backupPath":"","backupTime":"02:00","dateFormat":"YYYY-MM-DD","defaultIva":19,"socialMedia":null,"automaticCode":true,"invoiceConfig":{"nit":"","logo":"/uploads/logos/logo-11-1786129795263.png","email":"","phone":"","address":"","website":"","footerText":"Documento equivalente de venta generado de forma electrónica.","companyName":"","primaryColor":"#b91c1c","resolutionText":"","secondaryColor":"#C5A059"},"invoicePrefix":"VEN","currencyFormat":"es-CO","purchasePrefix":"COM","backupFrequency":"DAILY","maxLoginAttempts":5,"passwordMinLength":6,"allowNegativeStock":false,"invoiceConsecutive":1,"enableNotifications":true,"purchaseConsecutive":1,"sessionTimeoutMinutes":60}', '{"id":7,"nit":"","phone":"","website":"","currency":"COP","decimals":0,"smtpHost":"","smtpPass":"","smtpPort":null,"smtpUser":"","timezone":"America/Bogota","backupDay":1,"companyId":11,"enable2FA":false,"updatedAt":"2026-08-07T21:33:22.082Z","backupPath":"","backupTime":"02:00","dateFormat":"YYYY-MM-DD","defaultIva":19,"socialMedia":null,"automaticCode":true,"invoiceConfig":{"nit":"","logo":"/uploads/logos/logo-11-1786129795263.png","email":"","phone":"","address":"","website":"","footerText":"Documento equivalente de venta generado de forma electrónica.","companyName":"","primaryColor":"#b91c1c","resolutionText":"","secondaryColor":"#C5A059"},"invoicePrefix":"VEN","currencyFormat":"es-CO","purchasePrefix":"COM","backupFrequency":"DAILY","maxLoginAttempts":5,"passwordMinLength":6,"allowNegativeStock":false,"invoiceConsecutive":1,"enableNotifications":true,"purchaseConsecutive":1,"sessionTimeoutMinutes":60}', '::1', 'Microsoft Edge', 'Windows', 'Desktop', 'Local', 'Localhost', NULL, '2026-08-07 21:33:22'),
+(63, 11, 12, 'PRODUCTS', 'UPDATE', 'Product', 246, 'Actualizó el producto "Autoclave Digital de Esterilización Cosmética 24L" (Código: PROD-101)', '{"id":246,"code":"PROD-101","name":"Autoclave Digital de Esterilización Cosmética 24L","type":"FIXED_ASSET","status":"AVAILABLE","unitCost":3100000,"companyId":11,"createdAt":"2026-08-07T18:43:09.933Z","salePrice":3100000,"updatedAt":"2026-08-07T18:43:09.933Z","categoryId":62,"supplierId":19,"soldQuantity":0,"productGroupId":42,"quantityAvailable":4}', '{"id":246,"code":"PROD-101","name":"Autoclave Digital de Esterilización Cosmética 24L","type":"FIXED_ASSET","status":"OUT_OF_STOCK","unitCost":3100000,"companyId":11,"createdAt":"2026-08-07T18:43:09.933Z","salePrice":0,"updatedAt":"2026-08-07T21:41:05.271Z","categoryId":62,"supplierId":19,"soldQuantity":0,"productGroupId":42,"quantityAvailable":0}', '::1', 'Microsoft Edge', 'Windows', 'Desktop', 'Local', 'Localhost', NULL, '2026-08-07 21:41:05'),
+(64, 11, 12, 'COMPANY', 'UPDATE', 'CompanySetting', 7, 'Actualizó los parámetros globales de configuración de la empresa', '{"id":7,"nit":"65647567","phone":"","website":"","currency":"COP","decimals":0,"smtpHost":"","smtpPass":"","smtpPort":null,"smtpUser":"","timezone":"America/Bogota","backupDay":1,"companyId":11,"enable2FA":false,"updatedAt":"2026-08-08T07:56:16.644Z","backupPath":"","backupTime":"02:00","dateFormat":"YYYY-MM-DD","defaultIva":19,"socialMedia":null,"automaticCode":true,"invoiceConfig":{"nit":"","logo":"/uploads/logos/logo-11-1786129795263.png","email":"","phone":"","address":"","website":"","footerText":"Documento equivalente de venta generado de forma electrónica.","companyName":"","primaryColor":"#b91c1c","resolutionText":"","secondaryColor":"#C5A059"},"invoicePrefix":"VEN","currencyFormat":"es-CO","purchasePrefix":"COM","backupFrequency":"DAILY","maxLoginAttempts":5,"passwordMinLength":6,"allowNegativeStock":false,"invoiceConsecutive":1,"enableNotifications":true,"purchaseConsecutive":1,"sessionTimeoutMinutes":60}', '{"id":7,"nit":"65647567","phone":"","website":"","currency":"COP","decimals":0,"smtpHost":"","smtpPass":"Admin123","smtpPort":null,"smtpUser":"admin@dulchedorelle.com","timezone":"America/Bogota","backupDay":1,"companyId":11,"enable2FA":false,"updatedAt":"2026-08-08T08:59:51.446Z","backupPath":"C:\\\\Informacion David\\\\Desarrollo\\\\invetario_productos","backupTime":"04:00","dateFormat":"YYYY-MM-DD","defaultIva":19,"socialMedia":null,"automaticCode":true,"invoiceConfig":{"nit":"","logo":"/uploads/logos/logo-11-1786129795263.png","email":"","phone":"","address":"","website":"","footerText":"Documento equivalente de venta generado de forma electrónica.","companyName":"","primaryColor":"#b91c1c","resolutionText":"","secondaryColor":"#C5A059"},"invoicePrefix":"VEN","currencyFormat":"es-CO","purchasePrefix":"COM","backupFrequency":"DAILY","maxLoginAttempts":5,"passwordMinLength":6,"allowNegativeStock":false,"invoiceConsecutive":1,"enableNotifications":true,"purchaseConsecutive":1,"sessionTimeoutMinutes":60}', '::1', 'Microsoft Edge', 'Windows', 'Desktop', 'Local', 'Localhost', NULL, '2026-08-08 08:59:51');
+/*!40000 ALTER TABLE `AuditLog` ENABLE KEYS */;
+UNLOCK TABLES;
+
+-- Datos para la tabla: LoginHistory
+LOCK TABLES `LoginHistory` WRITE;
+/*!40000 ALTER TABLE `LoginHistory` DISABLE KEYS */;
+INSERT INTO `LoginHistory` (`id`, `userId`, `email`, `companyId`, `ip`, `browser`, `operatingSystem`, `device`, `country`, `city`, `status`, `reason`, `createdAt`) VALUES 
+(67, 12, 'admin@dulchedorelle.com', 11, '::1', 'Microsoft Edge', 'Windows', 'Desktop', 'Local', 'Localhost', 'SUCCESS', NULL, '2026-08-07 18:53:01'),
+(68, 12, 'admin@dulchedorelle.com', 11, '::1', 'Microsoft Edge', 'Windows', 'Desktop', 'Local', 'Localhost', 'SUCCESS', NULL, '2026-08-07 22:31:49'),
+(69, 12, 'admin@dulchedorelle.com', 11, '::1', 'Microsoft Edge', 'Windows', 'Desktop', 'Local', 'Localhost', 'SUCCESS', NULL, '2026-08-07 22:38:22'),
+(70, 12, 'admin@dulchedorelle.com', 11, '::1', 'Microsoft Edge', 'Windows', 'Desktop', 'Local', 'Localhost', 'SUCCESS', NULL, '2026-08-08 01:30:59'),
+(71, 12, 'admin@dulchedorelle.com', 11, '::1', 'Microsoft Edge', 'Windows', 'Desktop', 'Local', 'Localhost', 'SUCCESS', NULL, '2026-08-08 07:49:11'),
+(72, 12, 'admin@dulchedorelle.com', 11, '181.54.0.228', 'Microsoft Edge', 'Windows', 'Desktop', 'Colombia', 'Bogotá', 'SUCCESS', NULL, '2026-08-08 07:52:38'),
+(74, 12, 'admin@dulchedorelle.com', 11, '181.54.0.228', 'Microsoft Edge', 'Linux', 'Desktop', 'Colombia', 'Bogotá', 'SUCCESS', NULL, '2026-08-08 08:53:01'),
+(75, 12, 'admin@dulchedorelle.com', 11, '::1', 'Microsoft Edge', 'Windows', 'Desktop', 'Local', 'Localhost', 'SUCCESS', NULL, '2026-08-08 08:54:07');
+/*!40000 ALTER TABLE `LoginHistory` ENABLE KEYS */;
+UNLOCK TABLES;
+
+-- Datos para la tabla: CompanySetting
+LOCK TABLES `CompanySetting` WRITE;
+/*!40000 ALTER TABLE `CompanySetting` DISABLE KEYS */;
+INSERT INTO `CompanySetting` (`id`, `companyId`, `nit`, `phone`, `website`, `socialMedia`, `invoiceConfig`, `currency`, `timezone`, `dateFormat`, `currencyFormat`, `allowNegativeStock`, `automaticCode`, `decimals`, `defaultIva`, `invoicePrefix`, `invoiceConsecutive`, `purchasePrefix`, `purchaseConsecutive`, `passwordMinLength`, `maxLoginAttempts`, `sessionTimeoutMinutes`, `enable2FA`, `enableNotifications`, `smtpHost`, `smtpPort`, `smtpUser`, `smtpPass`, `backupFrequency`, `backupTime`, `backupDay`, `backupPath`, `updatedAt`) VALUES 
+(7, 11, '65647567', '', '', NULL, '{"nit":"","logo":"/uploads/logos/logo-11-1786129795263.png","email":"","phone":"","address":"","website":"","footerText":"Documento equivalente de venta generado de forma electrónica.","companyName":"","primaryColor":"#b91c1c","resolutionText":"","secondaryColor":"#C5A059"}', 'COP', 'America/Bogota', 'YYYY-MM-DD', 'es-CO', 0, 1, 0, 19, 'VEN', 1, 'COM', 1, 6, 5, 60, 0, 1, '', NULL, 'admin@dulchedorelle.com', 'Admin123', 'DAILY', '04:00', 1, 'C:\\Informacion David\\Desarrollo\\invetario_productos', '2026-08-08 08:59:51');
+/*!40000 ALTER TABLE `CompanySetting` ENABLE KEYS */;
+UNLOCK TABLES;
+
+-- Datos para la tabla: CompanyModule
+LOCK TABLES `CompanyModule` WRITE;
+/*!40000 ALTER TABLE `CompanyModule` DISABLE KEYS */;
+INSERT INTO `CompanyModule` (`companyId`, `moduleId`) VALUES 
+(11, 49),
+(11, 50),
+(11, 51),
+(11, 52),
+(11, 53),
+(11, 54),
+(11, 55),
+(11, 56),
+(11, 57),
+(11, 58),
+(11, 59),
+(11, 60),
+(11, 61),
+(11, 62),
+(11, 63),
+(11, 64);
+/*!40000 ALTER TABLE `CompanyModule` ENABLE KEYS */;
+UNLOCK TABLES;
+
+SET FOREIGN_KEY_CHECKS=1;

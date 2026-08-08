@@ -56,9 +56,11 @@ interface SettingsClientProps {
   dedicatedCompanies?: { id: number; name: string }[];
   canManageServers?: boolean;
   userId: string;
+  planSettings?: any;
+  allModules?: any[];
 }
 
-export function SettingsClient({ initialSettings, role, initialServers = [], dedicatedCompanies = [], canManageServers = false, userId }: SettingsClientProps) {
+export function SettingsClient({ initialSettings, role, initialServers = [], dedicatedCompanies = [], canManageServers = false, userId, planSettings, allModules }: SettingsClientProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"company" | "inventory" | "security" | "integrations" | "invoice" | "imports" | "servers" | "databases" | "migrations" | "licenses" | "onboarding">("company");
   const [saving, setSaving] = useState(false);
@@ -360,7 +362,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
 
         {activeTab === "licenses" && isSuperAdmin && (
           <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
-            <LicensesManager companies={dedicatedCompanies as any} />
+            <LicensesManager companies={dedicatedCompanies as any} planSettings={planSettings} allModules={allModules} />
           </div>
         )}
 

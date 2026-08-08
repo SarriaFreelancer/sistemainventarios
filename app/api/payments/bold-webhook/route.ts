@@ -48,21 +48,39 @@ export async function POST(request: Request) {
     // Si el pago es aprobado, activar la empresa y asignar módulos
     if (newStatus === 'COMPLETED') {
       await platformDb.$transaction(async (tx) => {
+        const company = await tx.company.findUnique({ where: { id: payment.companyId } });
+        const rawPlanId = company?.planId ? company.planId.toLowerCase() : 'basico';
+
         await tx.company.update({
           where: { id: payment.companyId },
           data: { status: 'ACTIVE' }
         });
         
-        const allModules = await tx.module.findMany({ where: { isActive: true } });
+        // Fetch modules for this plan from settings
+        const modulesSetting = await tx.setting.findUnique({
+          where: { key: `plan_${rawPlanId}_modules` }
+        });
+
+        let moduleIdsToAssign: number[] = [];
+        if (modulesSetting?.value) {
+          try {
+            moduleIdsToAssign = JSON.parse(modulesSetting.value);
+          } catch (e) {}
+        } else {
+          // Fallback if settings are not configured yet
+          const allModules = await tx.module.findMany({ where: { isActive: true } });
+          moduleIdsToAssign = allModules.map(m => m.id);
+        }
+
         await tx.companyModule.deleteMany({
           where: { companyId: payment.companyId }
         });
         
-        if (allModules.length > 0) {
+        if (moduleIdsToAssign.length > 0) {
           await tx.companyModule.createMany({
-            data: allModules.map(m => ({
+            data: moduleIdsToAssign.map(id => ({
               companyId: payment.companyId,
-              moduleId: m.id
+              moduleId: id
             }))
           });
         }

@@ -41,11 +41,35 @@ export async function POST(request: Request) {
       const orderReference = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
       const result = await platformDb.$transaction(async (tx) => {
+        // Get plan configuration defaults
+        const rawPlanId = planId ? planId.toLowerCase() : 'basico';
+        const settingsKeys = [
+          `plan_${rawPlanId}_max_users`,
+          `plan_${rawPlanId}_max_products`,
+          `plan_${rawPlanId}_max_sales_per_month`
+        ];
+        
+        const settings = await tx.setting.findMany({
+          where: { key: { in: settingsKeys } }
+        });
+        
+        const settingsMap = settings.reduce((acc, curr) => {
+          acc[curr.key] = curr.value;
+          return acc;
+        }, {} as Record<string, string>);
+
+        const maxUsers = settingsMap[`plan_${rawPlanId}_max_users`] ? parseInt(settingsMap[`plan_${rawPlanId}_max_users`]) : (rawPlanId === 'premium' ? 999 : rawPlanId === 'intermedio' ? 5 : 2);
+        const maxProducts = settingsMap[`plan_${rawPlanId}_max_products`] ? parseInt(settingsMap[`plan_${rawPlanId}_max_products`]) : (rawPlanId === 'premium' ? 999999 : rawPlanId === 'intermedio' ? 1000 : 100);
+        const maxSalesPerMonth = settingsMap[`plan_${rawPlanId}_max_sales_per_month`] ? parseInt(settingsMap[`plan_${rawPlanId}_max_sales_per_month`]) : (rawPlanId === 'premium' ? 999999 : rawPlanId === 'intermedio' ? 999999 : 50);
+
         const company = await tx.company.create({
           data: {
             name: companyName,
             planId: planId,
             status: 'SUSPENDED',
+            maxUsers: maxUsers,
+            maxProducts: maxProducts,
+            maxSalesPerMonth: maxSalesPerMonth
           }
         });
 
@@ -102,10 +126,33 @@ export async function POST(request: Request) {
       }
       
       const result = await platformDb.$transaction(async (tx) => {
+        // Get plan configuration defaults (basico by default here)
+        const settingsKeys = [
+          `plan_basico_max_users`,
+          `plan_basico_max_products`,
+          `plan_basico_max_sales_per_month`
+        ];
+        
+        const settings = await tx.setting.findMany({
+          where: { key: { in: settingsKeys } }
+        });
+        
+        const settingsMap = settings.reduce((acc, curr) => {
+          acc[curr.key] = curr.value;
+          return acc;
+        }, {} as Record<string, string>);
+
+        const maxUsers = settingsMap[`plan_basico_max_users`] ? parseInt(settingsMap[`plan_basico_max_users`]) : 2;
+        const maxProducts = settingsMap[`plan_basico_max_products`] ? parseInt(settingsMap[`plan_basico_max_products`]) : 100;
+        const maxSalesPerMonth = settingsMap[`plan_basico_max_sales_per_month`] ? parseInt(settingsMap[`plan_basico_max_sales_per_month`]) : 50;
+
         const company = await tx.company.create({
           data: {
             name: companyName,
             status: 'SUSPENDED',
+            maxUsers: maxUsers,
+            maxProducts: maxProducts,
+            maxSalesPerMonth: maxSalesPerMonth
           }
         });
 
