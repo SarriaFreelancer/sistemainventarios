@@ -41,6 +41,7 @@ export default async function ProductsPage() {
     ? await prisma.companySetting.findUnique({ where: { companyId } })
     : await prisma.companySetting.findFirst();
   const allowNegativeStock = settings?.allowNegativeStock ?? false;
+  const registerInventoryCostAsExpense = settings?.registerInventoryCostAsExpense ?? false;
 
   let planLimits = { maxProducts: 999999, planName: 'Plan Premium' };
   let currentProductsCount = 0;
@@ -83,16 +84,19 @@ export default async function ProductsPage() {
 
   return (
     <div className="p-4 sm:p-6">
-      <ProductsClient 
-        initialProducts={serializedProducts} 
-        categories={serializedCategories} 
-        suppliers={serializedSuppliers} 
+      <ProductsClient
+
+        initialProducts={serializedProducts}
+        categories={serializedCategories}
+        suppliers={serializedSuppliers}
         groups={serializedGroups}
-        userId={String(session.user.id)}
         allowNegativeStock={allowNegativeStock}
+        registerInventoryCostAsExpense={registerInventoryCostAsExpense}
+        userId={session.user.id}
+        role={session.user.role}
+        planName={planLimits.planName}
         maxProducts={planLimits.maxProducts}
         currentProducts={currentProductsCount}
-        planName={planLimits.planName}
       />
     </div>
   );

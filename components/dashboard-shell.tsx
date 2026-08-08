@@ -30,6 +30,7 @@ import {
   Settings,
   BarChart3,
   HelpCircle,
+  Briefcase,
 } from 'lucide-react';
 
 const LucideIcons = {
@@ -59,9 +60,11 @@ const LucideIcons = {
   Settings,
   BarChart3,
   HelpCircle,
+  Briefcase,
 };
 import { cn } from '@/lib/utils';
 import { NotificationBell } from '@/components/notification-bell';
+import { useTheme } from 'next-themes';
 
 interface ModuleConfig {
   id: string;
@@ -83,21 +86,12 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const userId = session?.user?.id;
-  const storageKey = userId ? `gns_user_theme_${userId}` : 'gns_user_theme_guest';
-
-  const [theme, setTheme] = useState<'dark' | 'light'>('light');
+  const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
-    // Si el usuario ya tiene una preferencia guardada ('dark' o 'light'), la respetamos.
-    // Si es la primera vez para este usuario, la regla es iniciar SIEMPRE en modo claro ('light').
-    const stored = window.localStorage.getItem(storageKey) as 'dark' | 'light' | null;
-    const initialTheme = stored ?? 'light';
-
-    setTheme(initialTheme);
-    document.documentElement.classList.toggle('dark', initialTheme === 'dark');
 
     // Cargar preferencia de colapso de la barra lateral
     const storedCollapse = window.localStorage.getItem('gns_sidebar_collapsed');
@@ -106,13 +100,10 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
     }
 
     setMounted(true);
-  }, [storageKey]);
+  }, []);
 
   const handleToggleTheme = () => {
-    const nextTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(nextTheme);
-    document.documentElement.classList.toggle('dark', nextTheme === 'dark');
-    window.localStorage.setItem(storageKey, nextTheme);
+    setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
   const toggleSidebar = () => {

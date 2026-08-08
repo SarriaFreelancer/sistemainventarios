@@ -2,7 +2,8 @@ import { prisma } from '@/lib/prisma';
 import { getAuthSession } from '@/auth';
 import { getSessionCompanyId } from '@/lib/session';
 import { redirect } from 'next/navigation';
-import { TrendingUp, TrendingDown, Package, DollarSign, Wallet, ArrowUpRight } from 'lucide-react';
+import Link from 'next/link';
+import { TrendingUp, TrendingDown, Package, DollarSign, Wallet, ArrowUpRight, PlusCircle } from 'lucide-react';
 
 export const metadata = {
   title: 'Finanzas · GNS',
@@ -16,7 +17,7 @@ export default async function FinanzasPage() {
   const companyId = await getSessionCompanyId();
   const companyFilter = companyId ? { companyId } : {};
 
-  const [expenseSummary, sales, products, recentExpenses] = await Promise.all([
+  const [expenseSummary, sales, products, recentExpenses, incomesSummary] = await Promise.all([
     prisma.expense.aggregate({
       where: companyFilter,
       _sum: { amount: true }
@@ -35,9 +36,14 @@ export default async function FinanzasPage() {
       orderBy: { date: 'desc' },
       take: 5
     }),
+    prisma.income.aggregate({
+      where: companyFilter,
+      _sum: { amount: true }
+    }),
   ]);
 
   const totalExpenses = Number(expenseSummary._sum.amount ?? 0);
+  const totalManualIncomes = Number(incomesSummary._sum.amount ?? 0);
   
   // ── 1. Ganancias y Costo de Ventas (COGS) ──
   let totalRevenue = 0;
@@ -51,6 +57,8 @@ export default async function FinanzasPage() {
       }
     }
   }
+  
+  totalRevenue += totalManualIncomes;
 
   const grossProfit = totalRevenue - totalCOGS; // Ganancia Bruta (Ingresos - Costo de la mercancía vendida)
   const netProfit = grossProfit - totalExpenses; // Ganancia Neta (Ganancia Bruta - Gastos operativos)
@@ -76,9 +84,18 @@ export default async function FinanzasPage() {
     <div className="space-y-8 max-w-7xl mx-auto">
       
       {/* ── Encabezado ── */}
-      <div>
-        <h1 className="text-2xl font-extrabold tracking-tight text-foreground">Estado Financiero</h1>
-        <p className="text-sm text-muted-foreground mt-1">Análisis detallado de costos, ingresos y rentabilidad.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight text-foreground">Estado Financiero</h1>
+          <p className="text-sm text-muted-foreground mt-1">Análisis detallado de costos, ingresos y rentabilidad.</p>
+        </div>
+        <Link 
+          href="/dashboard/finanzas/ingresos-gastos"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary/90 transition-colors"
+        >
+          <PlusCircle size={16} />
+          Movimientos Manuales
+        </Link>
       </div>
 
       {/* ── KPIs Principales: Ganancias y Pérdidas (P&L) ── */}

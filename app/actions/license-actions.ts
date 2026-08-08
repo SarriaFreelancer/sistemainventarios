@@ -3,6 +3,7 @@
 import { platformDb } from "@/lib/db-manager";
 import { revalidatePath } from "next/cache";
 import { getAuthSession } from "@/auth";
+import { prisma } from "@/lib/prisma";
 
 export async function toggleCompanyAccess(companyId: number, currentStatus: string) {
   const session = await getAuthSession();
@@ -67,6 +68,32 @@ export async function savePlanSettings(settings: Record<string, string>) {
         update: { value: value.toString() },
         create: { key, value: value.toString() }
       });
+    }
+
+    // Propagate limits to existing companies
+    const plans = ['basico', 'intermedio', 'premium'];
+    for (const plan of plans) {
+      const maxUsers = settings[`plan_${plan}_max_users`];
+      const maxProducts = settings[`plan_${plan}_max_products`];
+      const maxSales = settings[`plan_${plan}_max_sales_per_month`];
+
+      const dataToUpdate: any = {};
+      if (maxUsers !== undefined) dataToUpdate.maxUsers = parseInt(maxUsers, 10) || null;
+      if (maxProducts !== undefined) dataToUpdate.maxProducts = parseInt(maxProducts, 10) || null;
+      if (maxSales !== undefined) dataToUpdate.maxSalesPerMonth = parseInt(maxSales, 10) || null;
+
+      const aliases: Record<string, string[]> = {
+        'basico': ['basico', 'basic'],
+        'intermedio': ['intermedio', 'intermediate'],
+        'premium': ['premium']
+      };
+
+      if (Object.keys(dataToUpdate).length > 0) {
+        await prisma.company.updateMany({
+          where: { planId: { in: aliases[plan] } },
+          data: dataToUpdate
+        });
+      }
     }
     
     revalidatePath('/dashboard/settings');

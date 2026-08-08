@@ -35,13 +35,14 @@ interface EditProductDialogProps {
   categories: Category[];
   suppliers: Supplier[];
   groups: ProductGroup[];
+  registerInventoryCostAsExpense?: boolean;
 }
 
 const inputCls = "bg-background/50 border-border/80 focus:border-primary focus:ring-4 focus:ring-primary/10 text-foreground placeholder:text-muted-foreground/50 h-11 rounded-xl";
 const selectCls = "flex h-11 w-full rounded-xl border border-border/80 bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all duration-300 disabled:opacity-50";
 const labelCls = "text-[10px] font-bold uppercase tracking-wider text-muted-foreground";
 
-export function EditProductDialog({ product, categories, suppliers, groups }: EditProductDialogProps) {
+export function EditProductDialog({ product, categories, suppliers, groups, registerInventoryCostAsExpense = false }: EditProductDialogProps) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [productType, setProductType] = useState(product.type || 'SALE');
@@ -178,6 +179,20 @@ export function EditProductDialog({ product, categories, suppliers, groups }: Ed
                   <div className="bg-muted/30 border border-border rounded-xl p-2.5 text-xs text-muted-foreground">
                     Uso interno (sin precio de venta).
                   </div>
+                </div>
+              )}
+              
+              {registerInventoryCostAsExpense && (
+                <div className="sm:col-span-2 flex items-center justify-between p-3 border border-border/80 bg-muted/10 rounded-2xl">
+                  <div>
+                    <p className="text-sm font-bold text-foreground">Registrar como gasto</p>
+                    <p className="text-xs text-muted-foreground">Registra automáticamente la <b>diferencia</b> de costo por cantidad añadida como un gasto, si incrementas existencias.</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    name="registerAsExpense"
+                    className="w-4 h-4 text-primary bg-muted rounded border-border focus:ring-primary"
+                  />
                 </div>
               )}
             </div>

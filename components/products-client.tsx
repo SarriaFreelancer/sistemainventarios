@@ -50,10 +50,15 @@ export function ProductsClient(props: {
   maxProducts?: number;
   currentProducts?: number;
   planName?: string;
+  role?: string;
+  planLimits?: any;
+  currentProductsCount?: number;
+  registerInventoryCostAsExpense?: boolean;
 }) {
   const { 
     initialProducts, categories, suppliers, groups, userId, allowNegativeStock = false,
-    maxProducts = 999999, currentProducts = 0, planName = 'Plan Premium'
+    maxProducts = 999999, currentProducts = 0, planName = 'Plan Premium',
+    registerInventoryCostAsExpense = false
   } = props;
   const router = useRouter();
   const [search, setSearch] = useState('');
@@ -280,6 +285,7 @@ export function ProductsClient(props: {
             groups={groups}
             disabled={currentProducts >= maxProducts}
             limitMessage={`Has alcanzado el límite de ${maxProducts} productos de tu ${planName}.`}
+            registerInventoryCostAsExpense={registerInventoryCostAsExpense}
           />
           {maxProducts < 999999 && (
             <p className="text-[10px] font-bold text-muted-foreground uppercase">
@@ -479,7 +485,7 @@ export function ProductsClient(props: {
                               Uso interno
                             </span>
                           )}
-                          <EditProductDialog product={product} categories={categories} suppliers={suppliers} groups={groups} />
+                          <EditProductDialog product={product} categories={categories} suppliers={suppliers} groups={groups} registerInventoryCostAsExpense={registerInventoryCostAsExpense} />
                           <Button
                             aria-label="Eliminar producto"
                             variant="ghost"
@@ -548,7 +554,7 @@ export function ProductsClient(props: {
                           Uso interno
                         </span>
                       )}
-                      <EditProductDialog product={product} categories={categories} suppliers={suppliers} groups={groups} />
+                      <EditProductDialog product={product} categories={categories} suppliers={suppliers} groups={groups} registerInventoryCostAsExpense={registerInventoryCostAsExpense} />
                       <Button
                         aria-label="Eliminar producto"
                         variant="ghost"

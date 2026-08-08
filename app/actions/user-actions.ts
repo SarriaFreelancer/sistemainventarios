@@ -6,11 +6,12 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { logActivity } from '@/lib/audit';
 import { getPlanLimits } from '@/lib/plans';
+import { validatePassword } from '@/lib/password';
 
 const userCreateSchema = z.object({
   name: z.string().min(2, 'El nombre completo es obligatorio'),
   email: z.string().email('Ingresa un correo electrónico válido'),
-  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+  password: z.string().min(1, 'La contraseña es obligatoria'),
   roleId: z.coerce.number().min(1, 'Selecciona un rol'),
   companyId: z.coerce.number().optional(),
 });
@@ -55,6 +56,16 @@ export async function createUser(formData: FormData) {
           success: false, 
           error: `Has alcanzado el límite de usuarios de tu plan (${limits.maxUsers}). Para crear más usuarios, actualiza tu plan.` 
         };
+      }
+    }
+  }
+  
+  if (parsed.data.companyId) {
+    const settings = await prisma.companySetting.findUnique({ where: { companyId: parsed.data.companyId } });
+    if (settings) {
+      const pwdErrors = validatePassword(parsed.data.password, settings);
+      if (pwdErrors.length > 0) {
+        return { success: false, error: pwdErrors.join(" ") };
       }
     }
   }
@@ -108,6 +119,15 @@ export async function updateUser(formData: FormData) {
   };
 
   if (password) {
+    if (parsed.data.companyId) {
+      const settings = await prisma.companySetting.findUnique({ where: { companyId: parsed.data.companyId } });
+      if (settings) {
+        const pwdErrors = validatePassword(password, settings);
+        if (pwdErrors.length > 0) {
+          return { success: false, error: pwdErrors.join(" ") };
+        }
+      }
+    }
     data.password = await bcrypt.hash(password, 10);
     const existingUser = await prisma.user.findUnique({ where: { id } });
     const currentPrefs = (existingUser?.preferences as any) || {};
@@ -162,6 +182,35 @@ export async function deleteUser(formData: FormData) {
 
   revalidatePath('/dashboard/users');
   return { success: true };
+}
+
+export async function unlockUser(id: number) {
+  if (!id || isNaN(id)) return { success: false, error: 'ID inválida' };
+
+  try {
+    const userBefore = await prisma.user.findUnique({ where: { id } });
+    if (!userBefore) return { success: false, error: 'Usuario no encontrado' };
+
+    await prisma.user.update({
+      where: { id },
+      data: { isLocked: false, failedLoginAttempts: 0 }
+    });
+
+    await logActivity({
+      module: 'USERS',
+      action: 'UPDATE',
+      entity: 'User',
+      entityId: id,
+      description: `Desbloqueó al usuario "${userBefore.name}" (Email: ${userBefore.email}) tras múltiples intentos fallidos`,
+      oldValues: userBefore
+    });
+
+    revalidatePath('/dashboard/users');
+    return { success: true };
+  } catch (error) {
+    console.error('Error unlocking user:', error);
+    return { success: false, error: 'Ocurrió un error al desbloquear el usuario' };
+  }
 }
 
 export async function markTourAsCompleted(userId: number) {

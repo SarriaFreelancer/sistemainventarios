@@ -75,6 +75,14 @@ enum ExpenseCategory {
   SUPPLIES
   UTILITIES
   PAYROLL
+  INVENTORY_COST
+  OTHER
+}
+
+enum IncomeCategory {
+  SALES
+  SERVICES
+  INVESTMENT
   OTHER
 }
 
@@ -192,6 +200,20 @@ model Expense {
   @@index([companyId])
 }
 
+model Income {
+  id          Int            @id @default(autoincrement())
+  description String
+  amount      Float
+  category    IncomeCategory @default(OTHER)
+  date        DateTime       @default(now())
+  companyId   Int?
+  company     Company?       @relation(fields: [companyId], references: [id])
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([companyId])
+}
+
 model ProductGroup {
   id         Int        @id @default(autoincrement())
   name       String
@@ -222,6 +244,8 @@ model User {
   preferences          Json? // Preferencias de UI/tema (e.g., {"theme": "dark"})
   lastLogin            DateTime? // Fecha/hora del último inicio de sesión
   rememberMe           Boolean               @default(false)
+  failedLoginAttempts  Int                   @default(0)
+  isLocked             Boolean               @default(false)
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
   auditLogs            AuditLog[]
@@ -310,6 +334,7 @@ model Company {
   notifications            Notification[]
   purchaseOrderLines       PurchaseOrderLine[]
   expenses                 Expense[]
+  incomes                  Income[]
   productGroups            ProductGroup[]
   categories               Category[]
   suppliers                Supplier[]
@@ -730,8 +755,13 @@ model CompanySetting {
   invoiceConsecutive    Int      @default(1)
   purchasePrefix        String   @default("COM")
   purchaseConsecutive   Int      @default(1)
-  passwordMinLength     Int      @default(6)
-  maxLoginAttempts      Int      @default(5)
+  passwordMinLength        Int      @default(6)
+  passwordMaxLength        Int      @default(128)
+  passwordRequireUppercase Boolean  @default(false)
+  passwordRequireLowercase Boolean  @default(false)
+  passwordRequireNumbers   Boolean  @default(false)
+  passwordRequireSymbols   Boolean  @default(false)
+  maxLoginAttempts         Int      @default(5)
   sessionTimeoutMinutes Int      @default(60)
   enable2FA             Boolean  @default(false)
   enableNotifications   Boolean  @default(true)
@@ -743,6 +773,7 @@ model CompanySetting {
   backupTime            String?  @default("02:00")
   backupDay             Int?     @default(1)
   backupPath            String?
+  registerInventoryCostAsExpense Boolean @default(false)
   updatedAt             DateTime @updatedAt
 }
 

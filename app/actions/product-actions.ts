@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import { getAuthSession } from '@/auth';
 import { withTenantWhere, withTenantData } from '@/lib/tenant-db';
 import { getSessionCompanyId, resolveActionCompanyId } from '@/lib/session';
 import { ProductStatus, ProductType } from '@prisma/client';
@@ -89,6 +90,36 @@ export async function createProduct(formData: FormData) {
       newValues: newProduct
     });
 
+    if (formData.get('registerAsExpense') === 'on' && quantity > 0 && parsed.data.unitCost > 0) {
+      const expenseAmount = quantity * parsed.data.unitCost;
+      const expenseCompanyId = companyId || (await resolveActionCompanyId());
+      
+      const expense = await prisma.expense.create({
+        data: {
+          description: `Compra inicial de inventario: ${newProduct.name} (${quantity} unidades)`,
+          amount: expenseAmount,
+          category: 'INVENTORY_COST',
+          date: new Date(),
+          companyId: expenseCompanyId!,
+        }
+      });
+
+      const session = await getAuthSession();
+      if (session?.user?.id) {
+        await prisma.auditLog.create({
+          data: {
+            action: "CREATE",
+            module: "FINANZAS",
+            entity: "Expense",
+            entityId: expense.id,
+            description: `Gasto de inventario registrado automáticamente: ${expense.description} por valor de $${expense.amount}`,
+            userId: Number(session.user.id),
+            companyId: expenseCompanyId!,
+          },
+        });
+      }
+    }
+
     revalidatePath('/dashboard/products');
     return { success: true };
   } catch (error: any) {
@@ -163,6 +194,39 @@ export async function updateProduct(formData: FormData) {
       oldValues: product, // Obtenido en la línea 93
       newValues: updated
     });
+
+    if (formData.get('registerAsExpense') === 'on') {
+      const quantityDiff = quantity - product.quantityAvailable;
+      if (quantityDiff > 0 && parsed.data.unitCost > 0) {
+        const expenseAmount = quantityDiff * parsed.data.unitCost;
+        const companyId = product.companyId;
+
+        const expense = await prisma.expense.create({
+          data: {
+            description: `Reabastecimiento de inventario: ${updated.name} (+${quantityDiff} unidades)`,
+            amount: expenseAmount,
+            category: 'INVENTORY_COST',
+            date: new Date(),
+            companyId: companyId,
+          }
+        });
+
+        const session = await getAuthSession();
+        if (session?.user?.id) {
+          await prisma.auditLog.create({
+            data: {
+              action: "CREATE",
+              module: "FINANZAS",
+              entity: "Expense",
+              entityId: expense.id,
+              description: `Gasto de inventario registrado automáticamente: ${expense.description} por valor de $${expense.amount}`,
+              userId: Number(session.user.id),
+              companyId: companyId,
+            },
+          });
+        }
+      }
+    }
 
     revalidatePath('/dashboard/products');
     return { success: true };

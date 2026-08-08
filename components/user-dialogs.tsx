@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Users, Plus, Pencil, Trash2, Search, Eye, EyeOff } from "lucide-react";
+import { Users, Plus, Pencil, Trash2, Search, Eye, EyeOff, LockOpen } from "lucide-react";
 import { confirmAction, errorAlert, successAlert } from "@/lib/sweetalert";
-import { createUser, updateUser, deleteUser } from "@/app/actions/user-actions";
+import { createUser, updateUser, deleteUser, unlockUser } from "@/app/actions/user-actions";
 
 interface Role { id: number; name: string; }
 interface Company { id: number; name: string; }
-interface User { id: number; name: string; email: string; image?: string | null; password?: string; role?: Role | null; company?: Company | null; }
+interface User { id: number; name: string; email: string; image?: string | null; password?: string; role?: Role | null; company?: Company | null; isLocked?: boolean; }
 
 const inputCls = "bg-background/50 border-border/80 focus:border-primary focus:ring-4 focus:ring-primary/10 text-foreground placeholder:text-muted-foreground/50 h-11 rounded-xl";
 const selectCls = "flex h-11 w-full rounded-xl border border-border/80 bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all duration-300";
@@ -233,40 +233,58 @@ export function EditUserDialog({ user, roles, companies }: { user: User; roles: 
   );
 }
 
-export function DeleteUserButton({ id, name }: { id: number; name: string }) {
+export function DeleteUserButton({ id, name }: { id: number, name: string }) {
   const [isPending, startTransition] = useTransition();
 
-  const handleDelete = async () => {
+  async function handleDelete() {
     const confirmed = await confirmAction(
-      '¿Eliminar Usuario?',
-      `Se eliminará el usuario "${name}" de la plataforma.`,
-      'Sí, eliminar',
-      'Cancelar'
+      '¿Eliminar usuario?',
+      `Esta acción eliminará a "${name}" y es irreversible.`
     );
-    if (!confirmed) return;
-
-    startTransition(async () => {
-      const formData = new FormData();
-      formData.append('id', String(id));
-      const result = await deleteUser(formData);
-      if (result?.success) {
-        successAlert('Usuario eliminado', `El usuario "${name}" fue removido.`);
-      } else {
-        errorAlert('Error al eliminar', result?.error ?? 'No fue posible eliminar el usuario.');
-      }
-    });
-  };
+    if (confirmed) {
+      startTransition(async () => {
+        const formData = new FormData();
+        formData.append('id', String(id));
+        const result = await deleteUser(formData);
+        if (result?.success) {
+          successAlert('Usuario eliminado', 'El usuario ha sido eliminado con éxito.');
+        } else {
+          errorAlert('Error', result?.error ?? 'Hubo un error al eliminar el usuario.');
+        }
+      });
+    }
+  }
 
   return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="icon"
-      disabled={isPending}
-      onClick={handleDelete}
-      className="h-9 w-9 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
-    >
+    <Button variant="ghost" size="icon" onClick={handleDelete} disabled={isPending} className="text-red-500 hover:text-red-600 hover:bg-red-50 rounded-xl">
       <Trash2 className="h-4 w-4" />
+    </Button>
+  );
+}
+
+function UnlockUserButton({ id, name }: { id: number, name: string }) {
+  const [isPending, startTransition] = useTransition();
+
+  async function handleUnlock() {
+    const confirmed = await confirmAction(
+      '¿Desbloquear usuario?',
+      `El usuario "${name}" podrá volver a iniciar sesión.`
+    );
+    if (confirmed) {
+      startTransition(async () => {
+        const result = await unlockUser(id);
+        if (result?.success) {
+          successAlert('Usuario desbloqueado', 'El usuario ha sido desbloqueado con éxito.');
+        } else {
+          errorAlert('Error', result?.error ?? 'Hubo un error al desbloquear el usuario.');
+        }
+      });
+    }
+  }
+
+  return (
+    <Button variant="ghost" size="icon" onClick={handleUnlock} disabled={isPending} className="text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl" title="Desbloquear cuenta">
+      <LockOpen className="h-4 w-4" />
     </Button>
   );
 }
@@ -416,6 +434,7 @@ export function UsersClient({
                       <div className="flex items-center justify-center gap-1">
                         <EditUserDialog user={user} roles={roles} companies={companies} />
                         <DeleteUserButton id={user.id} name={user.name} />
+                        {user.isLocked && <UnlockUserButton id={user.id} name={user.name} />}
                       </div>
                     </td>
                   </tr>

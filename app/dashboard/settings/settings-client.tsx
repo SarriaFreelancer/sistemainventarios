@@ -26,6 +26,7 @@ interface CompanySetting {
   dateFormat: string;
   currencyFormat: string;
   allowNegativeStock: boolean;
+  registerInventoryCostAsExpense: boolean;
   automaticCode: boolean;
   decimals: number;
   defaultIva: number;
@@ -34,6 +35,11 @@ interface CompanySetting {
   purchasePrefix: string;
   purchaseConsecutive: number;
   passwordMinLength: number;
+  passwordMaxLength: number;
+  passwordRequireUppercase: boolean;
+  passwordRequireLowercase: boolean;
+  passwordRequireNumbers: boolean;
+  passwordRequireSymbols: boolean;
   maxLoginAttempts: number;
   sessionTimeoutMinutes: number;
   enable2FA: boolean;
@@ -80,6 +86,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
 
   // Inventario & Ventas
   const [allowNegativeStock, setAllowNegativeStock] = useState(initialSettings.allowNegativeStock);
+  const [registerInventoryCostAsExpense, setRegisterInventoryCostAsExpense] = useState(initialSettings.registerInventoryCostAsExpense ?? false);
   const [automaticCode, setAutomaticCode] = useState(initialSettings.automaticCode);
   const [decimals, setDecimals] = useState(initialSettings.decimals);
   const [defaultIva, setDefaultIva] = useState(initialSettings.defaultIva);
@@ -90,6 +97,11 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
 
   // Seguridad
   const [passwordMinLength, setPasswordMinLength] = useState(initialSettings.passwordMinLength);
+  const [passwordMaxLength, setPasswordMaxLength] = useState(initialSettings.passwordMaxLength ?? 128);
+  const [passwordRequireUppercase, setPasswordRequireUppercase] = useState(initialSettings.passwordRequireUppercase ?? false);
+  const [passwordRequireLowercase, setPasswordRequireLowercase] = useState(initialSettings.passwordRequireLowercase ?? false);
+  const [passwordRequireNumbers, setPasswordRequireNumbers] = useState(initialSettings.passwordRequireNumbers ?? false);
+  const [passwordRequireSymbols, setPasswordRequireSymbols] = useState(initialSettings.passwordRequireSymbols ?? false);
   const [maxLoginAttempts, setMaxLoginAttempts] = useState(initialSettings.maxLoginAttempts);
   const [sessionTimeoutMinutes, setSessionTimeoutMinutes] = useState(initialSettings.sessionTimeoutMinutes);
   const [enable2FA, setEnable2FA] = useState(initialSettings.enable2FA);
@@ -134,6 +146,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
       dateFormat,
       currencyFormat,
       allowNegativeStock,
+      registerInventoryCostAsExpense,
       automaticCode,
       decimals,
       defaultIva,
@@ -142,6 +155,11 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
       purchasePrefix,
       purchaseConsecutive,
       passwordMinLength,
+      passwordMaxLength,
+      passwordRequireUppercase,
+      passwordRequireLowercase,
+      passwordRequireNumbers,
+      passwordRequireSymbols,
       maxLoginAttempts,
       sessionTimeoutMinutes,
       enable2FA,
@@ -598,6 +616,19 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
 
               <div className="flex items-center justify-between p-3 border border-border/80 bg-muted/10 rounded-2xl">
                 <div>
+                  <p className="text-sm font-bold text-foreground">Costo Inventario a Gastos</p>
+                  <p className="text-xs text-muted-foreground">Sugerir descontar costos de mercancía de las ganancias.</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={registerInventoryCostAsExpense}
+                  onChange={(e) => setRegisterInventoryCostAsExpense(e.target.checked)}
+                  className="w-4 h-4 text-primary bg-muted rounded border-border focus:ring-primary"
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-3 border border-border/80 bg-muted/10 rounded-2xl">
+                <div>
                   <p className="text-sm font-bold text-foreground">Códigos de Producto Automáticos</p>
                   <p className="text-xs text-muted-foreground">El sistema genera códigos SKU correlativos.</p>
                 </div>
@@ -706,6 +737,17 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
                 />
               </div>
               <div className="space-y-1.5">
+                <label className="text-xs font-bold text-muted-foreground uppercase">Longitud Contraseña Máxima</label>
+                <input
+                  type="number"
+                  min="6"
+                  max="128"
+                  value={passwordMaxLength}
+                  onChange={(e) => setPasswordMaxLength(Number(e.target.value))}
+                  className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none"
+                />
+              </div>
+              <div className="space-y-1.5">
                 <label className="text-xs font-bold text-muted-foreground uppercase">Intentos fallidos límite</label>
                 <input
                   type="number"
@@ -740,6 +782,46 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
                 onChange={(e) => setEnable2FA(e.target.checked)}
                 className="w-4 h-4 text-primary bg-muted rounded border-border focus:ring-primary"
               />
+            </div>
+
+            <h4 className="text-sm font-semibold text-foreground mt-4 mb-2">Requisitos de Contraseña</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground bg-muted/20 p-3 rounded-xl border border-border">
+                <input
+                  type="checkbox"
+                  checked={passwordRequireUppercase}
+                  onChange={(e) => setPasswordRequireUppercase(e.target.checked)}
+                  className="h-4 w-4 rounded border-border text-primary focus:ring-primary bg-card"
+                />
+                Exigir Mayúsculas
+              </label>
+              <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground bg-muted/20 p-3 rounded-xl border border-border">
+                <input
+                  type="checkbox"
+                  checked={passwordRequireLowercase}
+                  onChange={(e) => setPasswordRequireLowercase(e.target.checked)}
+                  className="h-4 w-4 rounded border-border text-primary focus:ring-primary bg-card"
+                />
+                Exigir Minúsculas
+              </label>
+              <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground bg-muted/20 p-3 rounded-xl border border-border">
+                <input
+                  type="checkbox"
+                  checked={passwordRequireNumbers}
+                  onChange={(e) => setPasswordRequireNumbers(e.target.checked)}
+                  className="h-4 w-4 rounded border-border text-primary focus:ring-primary bg-card"
+                />
+                Exigir Números
+              </label>
+              <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground bg-muted/20 p-3 rounded-xl border border-border">
+                <input
+                  type="checkbox"
+                  checked={passwordRequireSymbols}
+                  onChange={(e) => setPasswordRequireSymbols(e.target.checked)}
+                  className="h-4 w-4 rounded border-border text-primary focus:ring-primary bg-card"
+                />
+                Exigir Símbolos
+              </label>
             </div>
           </div>
         )}

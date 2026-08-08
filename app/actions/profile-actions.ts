@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { logActivity } from "@/lib/audit";
 import fs from "fs";
 import path from "path";
+import { validatePassword } from "@/lib/password";
 
 export async function updateProfile(data: {
   name: string;
@@ -75,7 +76,15 @@ export async function updatePassword(data: {
       return { success: false, error: "La contraseña actual es incorrecta" };
     }
     
-    if (data.newPass.length < 6) {
+    if (user.companyId) {
+      const settings = await prisma.companySetting.findUnique({ where: { companyId: user.companyId } });
+      if (settings) {
+        const pwdErrors = validatePassword(data.newPass, settings);
+        if (pwdErrors.length > 0) {
+          return { success: false, error: pwdErrors.join(" ") };
+        }
+      }
+    } else if (data.newPass.length < 6) {
       return { success: false, error: "La nueva contraseña debe tener al menos 6 caracteres" };
     }
     

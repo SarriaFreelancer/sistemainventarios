@@ -24,7 +24,11 @@ export function InteractivePricing({ planSettings = {}, allModules = [] }: { pla
       try {
         const moduleIds: number[] = JSON.parse(planSettings[`plan_${rawPlanId}_modules`]);
         modulesList = allModules.filter(m => moduleIds.includes(m.id)).map(m => m.name);
-      } catch (e) {}
+      } catch (e) {
+        modulesList = allModules.map(m => m.name);
+      }
+    } else {
+      modulesList = allModules.map(m => m.name);
     }
 
     const limits = [

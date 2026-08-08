@@ -62,9 +62,15 @@ export default function LoginPage() {
         }, 500);
         return;
       }
+      
+      let errorMessage = 'Correo electrónico o contraseña incorrectos. Verifica tus credenciales.';
+      if (result?.error && result.error !== 'CredentialsSignin') {
+        errorMessage = result.error;
+      }
+
       setAuthStatus({
         type: 'error',
-        message: 'Correo electrónico o contraseña incorrectos. Verifica tus credenciales.',
+        message: errorMessage,
       });
     } catch (err) {
       setAuthStatus({

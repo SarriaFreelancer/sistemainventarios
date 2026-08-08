@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, Check, Trash2, X, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ export function NotificationBell() {
   const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const notifiedIds = useRef<Set<number>>(new Set());
 
   // Polling usando API Route estable (no Server Action) para evitar errores de versión
   const pollNotifications = useCallback(async (showToasts = false) => {
@@ -45,20 +46,21 @@ export function NotificationBell() {
         const data = json.data as Notification[];
 
         if (showToasts) {
-          setNotifications((prev) => {
-            const newNotifs = data.filter(n => !n.isRead && !prev.find(old => old.id === n.id));
-            newNotifs.forEach(n => {
-              if (n.type === 'ERROR') {
-                toast.error(n.title, { description: n.message, duration: 5000 });
-              } else if (n.type === 'WARNING') {
-                toast.warning(n.title, { description: n.message, duration: 5000 });
-              } else {
-                toast.success(n.title, { description: n.message, duration: 5000 });
-              }
-            });
-            return data;
+          const newNotifs = data.filter(n => !n.isRead && !notifiedIds.current.has(n.id));
+          newNotifs.forEach(n => {
+            notifiedIds.current.add(n.id);
+            if (n.type === 'ERROR') {
+              toast.error(n.title, { description: n.message, duration: 5000 });
+            } else if (n.type === 'WARNING') {
+              toast.warning(n.title, { description: n.message, duration: 5000 });
+            } else {
+              toast.success(n.title, { description: n.message, duration: 5000 });
+            }
           });
+          setNotifications(data);
         } else {
+          // Si no mostramos toasts (carga inicial), igual registramos los IDs para no mostrarlos luego
+          data.forEach(n => notifiedIds.current.add(n.id));
           setNotifications(data);
         }
       }

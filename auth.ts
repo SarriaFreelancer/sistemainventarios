@@ -37,6 +37,10 @@ export const authOptions: AuthOptions = {
           return null;
         }
 
+        if (user.isLocked) {
+          throw new Error("Tu cuenta ha sido bloqueada por seguridad. Comunícate con tu administrador (o con el administrador global si eres admin).");
+        }
+
         // We no longer throw an error here, so suspended users can login to pay.
         // But we still log the state.
         if (user.company && user.company.status === "SUSPENDED") {
@@ -52,7 +56,37 @@ export const authOptions: AuthOptions = {
             status: "FAILED",
             reason: "WRONG_PASSWORD"
           });
-          return null;
+          
+          let maxAttempts = 5;
+          if (user.companyId) {
+            const settings = await prisma.companySetting.findUnique({ where: { companyId: user.companyId } });
+            if (settings) {
+              maxAttempts = settings.maxLoginAttempts;
+            }
+          }
+          
+          const newFailedAttempts = (user.failedLoginAttempts || 0) + 1;
+          
+          if (newFailedAttempts >= maxAttempts) {
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { isLocked: true, failedLoginAttempts: newFailedAttempts }
+            });
+            throw new Error(`Cuenta bloqueada tras ${maxAttempts} intentos fallidos. Comunícate con el administrador.`);
+          } else {
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { failedLoginAttempts: newFailedAttempts }
+            });
+            throw new Error(`Contraseña incorrecta (Intento ${newFailedAttempts} de ${maxAttempts}). Al último intento tu cuenta será bloqueada.`);
+          }
+        }
+
+        if (user.failedLoginAttempts > 0) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { failedLoginAttempts: 0 }
+          });
         }
 
         await logLoginAttempt({

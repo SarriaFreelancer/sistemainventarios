@@ -46,7 +46,8 @@ export async function POST(request: Request) {
         const settingsKeys = [
           `plan_${rawPlanId}_max_users`,
           `plan_${rawPlanId}_max_products`,
-          `plan_${rawPlanId}_max_sales_per_month`
+          `plan_${rawPlanId}_max_sales_per_month`,
+          `plan_${rawPlanId}_modules`
         ];
         
         const settings = await tx.setting.findMany({
@@ -70,8 +71,36 @@ export async function POST(request: Request) {
             maxUsers: maxUsers,
             maxProducts: maxProducts,
             maxSalesPerMonth: maxSalesPerMonth
-          }
+          } as any
         });
+
+        const modulesKey = `plan_${rawPlanId}_modules`;
+        let moduleIdsToAssign: number[] = [];
+
+        if (settingsMap[modulesKey]) {
+          try {
+            const parsed = JSON.parse(settingsMap[modulesKey]);
+            if (Array.isArray(parsed)) {
+              moduleIdsToAssign = parsed;
+            }
+          } catch (e) {
+            console.error("Error parsing plan modules:", e);
+          }
+        }
+        
+        if (moduleIdsToAssign.length === 0) {
+          const allModules = await tx.module.findMany({ where: { isActive: true }, select: { id: true } });
+          moduleIdsToAssign = allModules.map(m => m.id);
+        }
+
+        if (moduleIdsToAssign.length > 0) {
+          await tx.companyModule.createMany({
+            data: moduleIdsToAssign.map((mId: number) => ({
+              companyId: company.id,
+              moduleId: mId
+            }))
+          });
+        }
 
         const user = await tx.user.create({
           data: {
@@ -130,7 +159,8 @@ export async function POST(request: Request) {
         const settingsKeys = [
           `plan_basico_max_users`,
           `plan_basico_max_products`,
-          `plan_basico_max_sales_per_month`
+          `plan_basico_max_sales_per_month`,
+          `plan_basico_modules`
         ];
         
         const settings = await tx.setting.findMany({
@@ -153,8 +183,36 @@ export async function POST(request: Request) {
             maxUsers: maxUsers,
             maxProducts: maxProducts,
             maxSalesPerMonth: maxSalesPerMonth
-          }
+          } as any
         });
+
+        const modulesKey = `plan_basico_modules`;
+        let moduleIdsToAssign: number[] = [];
+
+        if (settingsMap[modulesKey]) {
+          try {
+            const parsed = JSON.parse(settingsMap[modulesKey]);
+            if (Array.isArray(parsed)) {
+              moduleIdsToAssign = parsed;
+            }
+          } catch (e) {
+            console.error("Error parsing plan modules:", e);
+          }
+        }
+        
+        if (moduleIdsToAssign.length === 0) {
+          const allModules = await tx.module.findMany({ where: { isActive: true }, select: { id: true } });
+          moduleIdsToAssign = allModules.map(m => m.id);
+        }
+
+        if (moduleIdsToAssign.length > 0) {
+          await tx.companyModule.createMany({
+            data: moduleIdsToAssign.map((mId: number) => ({
+              companyId: company.id,
+              moduleId: mId
+            }))
+          });
+        }
 
         const user = await tx.user.create({
           data: {

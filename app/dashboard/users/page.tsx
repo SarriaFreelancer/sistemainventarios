@@ -47,6 +47,7 @@ export default async function UsersPage() {
       password: prefs.plainPassword ? String(prefs.plainPassword) : undefined,
       role: user.role ? { id: user.role.id, name: user.role.name } : null,
       company: user.company ? { id: user.company.id, name: user.company.name } : null,
+      isLocked: user.isLocked,
     };
   });
 
