@@ -14,6 +14,7 @@ export async function DELETE(
     if (!session?.user?.id) {
       return NextResponse.json({ success: false }, { status: 401 });
     }
+    const userId = Number(session.user.id);
 
     const { id: rawId } = await context.params;
     const id = Number(rawId);
@@ -24,8 +25,24 @@ export async function DELETE(
     await prisma.notification.deleteMany({
       where: {
         id,
-        userId: Number(session.user.id), // Asegurar que le pertenece
+        userId,
       },
+    });
+
+    // Guardar la hora de limpieza en las preferencias del usuario
+    const userObj = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { preferences: true }
+    });
+    const currentPrefs = (userObj?.preferences as any) || {};
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        preferences: {
+          ...currentPrefs,
+          notificationsClearedAt: new Date()
+        }
+      }
     });
 
     return NextResponse.json({ success: true });

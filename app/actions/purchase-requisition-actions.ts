@@ -38,11 +38,19 @@ export async function createInternalRequisition(data: z.infer<typeof CreateRequi
 
     const parsedData = CreateRequisitionSchema.parse(data);
 
-    // Generar prefijo de requisición
-    const count = await prisma.internalRequisition.count({
-      where: { companyId },
+    // Generar prefijo de requisición basado en el último registro
+    const lastRequisition = await prisma.internalRequisition.findFirst({
+      where: { companyId, requisitionNum: { startsWith: `REQ-${new Date().getFullYear()}-` } },
+      orderBy: { id: 'desc' }
     });
-    const requisitionNum = `REQ-${new Date().getFullYear()}-${String(count + 1).padStart(4, "0")}`;
+    let nextNum = 1;
+    if (lastRequisition && lastRequisition.requisitionNum) {
+      const parts = lastRequisition.requisitionNum.split('-');
+      if (parts.length === 3) {
+        nextNum = parseInt(parts[2], 10) + 1;
+      }
+    }
+    const requisitionNum = `REQ-${new Date().getFullYear()}-${String(nextNum).padStart(4, "0")}`;
 
     const requisition = await prisma.internalRequisition.create({
       data: {
@@ -78,7 +86,7 @@ export async function createInternalRequisition(data: z.infer<typeof CreateRequi
     });
 
     revalidatePath("/dashboard/compras/requisiciones");
-    return { success: true, requisition };
+    return { success: true };
   } catch (error: any) {
     console.error("Error creating internal requisition:", error);
     return { success: false, error: error.message };
@@ -108,7 +116,7 @@ export async function updateRequisitionStatus(id: number, status: "PENDING_BOSS"
     });
 
     revalidatePath("/dashboard/compras/requisiciones");
-    return { success: true, requisition };
+    return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
   }

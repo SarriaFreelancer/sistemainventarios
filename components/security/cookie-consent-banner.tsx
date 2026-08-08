@@ -4,26 +4,42 @@ import { useState, useEffect } from "react";
 import { ShieldCheck, Cookie, FileText, CheckCircle } from "lucide-react";
 import { PrivacyPolicyModal } from "./privacy-policy-modal";
 
-export function CookieConsentBanner() {
+import { markCookiesAsAccepted } from "@/app/actions/user-actions";
+
+export function CookieConsentBanner({ serverConsent = false, userId }: { serverConsent?: boolean, userId?: number | null }) {
   const [showBanner, setShowBanner] = useState(false);
   const [showPolicyModal, setShowPolicyModal] = useState(false);
 
   useEffect(() => {
-    // Comprobar si ya aceptó las políticas y cookies
-    const consent = localStorage.getItem("gns_privacy_consent_v1");
-    if (!consent) {
+    // Si ya fue aceptado en el servidor, guardarlo localmente por si acaso y no mostrar
+    if (serverConsent) {
+      localStorage.setItem("gns_privacy_consent_v1", JSON.stringify({
+        accepted: true,
+        timestamp: new Date().toISOString()
+      }));
+      return;
+    }
+
+    // Comprobar si ya aceptó las políticas y cookies localmente
+    const localConsent = localStorage.getItem("gns_privacy_consent_v1");
+    if (!localConsent) {
       // Pequeño retardo para dar una animación suave al cargar
       const timer = setTimeout(() => setShowBanner(true), 800);
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [serverConsent]);
 
-  const handleAccept = () => {
+  const handleAccept = async () => {
     localStorage.setItem("gns_privacy_consent_v1", JSON.stringify({
       accepted: true,
       timestamp: new Date().toISOString()
     }));
     setShowBanner(false);
+    
+    // Si el usuario está autenticado, guardar también en la base de datos
+    if (userId) {
+      await markCookiesAsAccepted(userId).catch(console.error);
+    }
   };
 
   // Si no se debe mostrar el banner o si el modal de políticas está abierto, no renderizar el banner

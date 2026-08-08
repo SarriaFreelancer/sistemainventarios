@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Save, CheckCircle } from "lucide-react";
 import { createPurchasePayment } from "@/app/actions/purchase-finance-actions";
@@ -51,7 +52,7 @@ export function PurchasePaymentModal({
   const formatCurrency = (val: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(val);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-background/80 backdrop-blur-sm">
       <div className="w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-lg">
         <h2 className="text-xl font-bold text-foreground">Abonar a Cuenta</h2>
         <p className="text-sm text-muted-foreground mt-1">Factura: {payable.purchaseInvoice.invoiceNumber}</p>

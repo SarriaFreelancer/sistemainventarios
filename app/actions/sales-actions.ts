@@ -166,7 +166,7 @@ export async function createSale(data: {
             
             if (newQty <= 0) {
               lowStockProducts.push({ name: product.name, type: 'CERO', newQty });
-            } else if (newQty <= 5) {
+            } else if (newQty <= 10) {
               lowStockProducts.push({ name: product.name, type: 'BAJO', newQty });
             }
           }
@@ -295,7 +295,7 @@ export async function completePendingSale(saleIdInput: any, updateData?: {
         
         if (newQty <= 0) {
           lowStockProducts.push({ name: detail.product.name, type: 'CERO', newQty });
-        } else if (newQty <= 5) {
+        } else if (newQty <= 10) {
           lowStockProducts.push({ name: detail.product.name, type: 'BAJO', newQty });
         }
       }

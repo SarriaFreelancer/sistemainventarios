@@ -37,11 +37,19 @@ export async function createPurchaseRequest(data: z.infer<typeof CreatePurchaseR
 
     const parsedData = CreatePurchaseRequestSchema.parse(data);
 
-    // Generar prefijo de solicitud
-    const count = await prisma.purchaseRequest.count({
-      where: { companyId },
+    // Generar prefijo de solicitud basado en el último registro
+    const lastRequest = await prisma.purchaseRequest.findFirst({
+      where: { companyId, requestNumber: { startsWith: `PR-${new Date().getFullYear()}-` } },
+      orderBy: { id: 'desc' }
     });
-    const requestNum = `PR-${new Date().getFullYear()}-${String(count + 1).padStart(4, "0")}`;
+    let nextNum = 1;
+    if (lastRequest && lastRequest.requestNumber) {
+      const parts = lastRequest.requestNumber.split('-');
+      if (parts.length === 3) {
+        nextNum = parseInt(parts[2], 10) + 1;
+      }
+    }
+    const requestNum = `PR-${new Date().getFullYear()}-${String(nextNum).padStart(4, "0")}`;
 
     const request = await prisma.purchaseRequest.create({
       data: {
@@ -74,7 +82,7 @@ export async function createPurchaseRequest(data: z.infer<typeof CreatePurchaseR
     });
 
     revalidatePath("/dashboard/compras/solicitudes");
-    return { success: true, request };
+    return { success: true };
   } catch (error: any) {
     console.error("Error creating purchase request:", error);
     return { success: false, error: error.message };
@@ -105,7 +113,7 @@ export async function updatePurchaseRequestStatus(id: number, status: "PENDING_A
     });
 
     revalidatePath("/dashboard/compras/solicitudes");
-    return { success: true, request };
+    return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
   }

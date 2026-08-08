@@ -7,6 +7,8 @@ import Swal from "sweetalert2";
 import { generateDemoData, clearDemoData, clearGlobalSystemData } from "@/app/actions/demo-actions";
 import { useRouter } from "next/navigation";
 
+import { resetTourCompleted } from "@/app/actions/user-actions";
+
 export function OnboardingManager({ 
   userId, 
   role,
@@ -25,7 +27,9 @@ export function OnboardingManager({
 
   const handleRestartTour = async () => {
     localStorage.removeItem(`gns_sarriatech_tour_completed_${userId}`);
+    await resetTourCompleted(Number(userId));
     router.push("/dashboard");
+    router.refresh();
   };
 
   const handleGenerate = async () => {

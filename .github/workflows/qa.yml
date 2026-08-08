@@ -1,0 +1,70 @@
+name: GNS QA Pipeline
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  test:
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: inventario_testing
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install pnpm
+      uses: pnpm/action-setup@v3
+      with:
+        version: 9.15.0
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'pnpm'
+
+    - name: Install dependencies
+      run: pnpm install
+
+    - name: Install Playwright Browsers
+      run: pnpm exec playwright install --with-deps chromium
+
+    - name: Setup test database and generate clients
+      env:
+        DATABASE_URL: "mysql://root:root@127.0.0.1:3306/inventario_testing"
+        PLATFORM_DATABASE_URL: "mysql://root:root@127.0.0.1:3306/inventario_testing"
+        NEXTAUTH_SECRET: "dulche-dorelle-test-secret"
+        NEXTAUTH_URL: "http://localhost:3000"
+        ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      run: |
+        pnpm prisma:generate
+        npx prisma db push --schema=prisma/schema.prisma --skip-generate
+
+    - name: Run E2E Tests
+      env:
+        DATABASE_URL: "mysql://root:root@127.0.0.1:3306/inventario_testing"
+        PLATFORM_DATABASE_URL: "mysql://root:root@127.0.0.1:3306/inventario_testing"
+        NEXTAUTH_SECRET: "dulche-dorelle-test-secret"
+        NEXTAUTH_URL: "http://localhost:3000"
+        ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      run: pnpm test:e2e
+
+    - name: Upload Playwright Report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: playwright-report
+        path: playwright-report/
+        retention-days: 30

@@ -12,6 +12,8 @@ import { CookieConsentBanner } from "@/components/security/cookie-consent-banner
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans', display: 'swap' });
 const hanken = Hanken_Grotesk({ subsets: ['latin'], variable: '--font-hanken', display: 'swap' });
 
+import { getAuthSession } from '@/auth';
+
 export const metadata: Metadata = {
   title: 'GNS | Gestión de Negocios SarriaTech',
   description: 'GNS - Gestión de Negocios SarriaTech',
@@ -22,7 +24,11 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const session = await getAuthSession();
+  const userId = session?.user?.id ? Number(session.user.id) : null;
+  const serverCookieConsent = (session?.user as any)?.cookieConsent === true;
+
   return (
     <html lang="es" suppressHydrationWarning className={cn("font-sans", inter.variable, hanken.variable)}>
       <head>
@@ -42,7 +48,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           <ClientSecurityShield />
           {children}
-          <CookieConsentBanner />
+          <CookieConsentBanner serverConsent={serverCookieConsent} userId={userId} />
           <Toaster richColors position="top-right" />
         </ThemeProvider>
       </body>

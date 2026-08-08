@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "npx prisma db push --skip-generate && pnpm exec next dev",
     "build": "npx prisma db push --skip-generate && next build",
+    "build:e2e": "cross-env NODE_ENV=production DATABASE_URL=$DATABASE_URL NEXTAUTH_URL=$NEXTAUTH_URL NEXTAUTH_SECRET=$NEXTAUTH_SECRET pnpm build",
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "start": "next start",
@@ -16,7 +17,9 @@
     "prisma:deploy:tenant": "prisma migrate deploy --schema=prisma/tenant/schema.prisma",
     "prisma:migrate:platform": "prisma migrate dev --schema=prisma/platform/schema.prisma",
     "prisma:migrate:tenant": "prisma migrate dev --schema=prisma/tenant/schema.prisma",
-    "db:seed": "prisma db seed"
+    "db:seed": "prisma db seed",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -60,6 +63,7 @@
     "zod": "^3.21.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.10.0",
     "@types/node-cron": "^3.0.11",
@@ -69,6 +73,7 @@
     "postcss": "^8.4.49",
     "prisma": "^6.3.0",
     "tailwindcss": "^3.4.16",
+    "cross-env": "^7.0.3",
     "tsx": "^4.19.0",
     "typescript": "^5.7.2"
   }

@@ -122,11 +122,15 @@ export const authOptions: AuthOptions = {
           try {
             const dbUser = await prisma.user.findUnique({
               where: { id: Number(token.id) },
-              select: { image: true, name: true }
+              select: { image: true, name: true, preferences: true }
             });
             if (dbUser) {
               if (dbUser.image) session.user.image = dbUser.image;
               if (dbUser.name) session.user.name = dbUser.name;
+              if (dbUser.preferences) {
+                const prefs = dbUser.preferences as any;
+                session.user.cookieConsent = prefs.cookieConsent === true;
+              }
             }
           } catch (e) {
             console.error("Error fetching dbUser in session callback", e);

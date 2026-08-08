@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { Plus, X } from "lucide-react";
 import { PurchaseInvoiceForm } from "./PurchaseInvoiceForm";
 import { useRouter } from "next/navigation";
@@ -24,8 +25,8 @@ export function NewInvoiceModal({ suppliers }: { suppliers: any[] }) {
         Registrar Factura
       </button>
 
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 sm:p-6">
+      {isOpen && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 sm:p-6">
           <div className="bg-background rounded-3xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-border">
             <div className="sticky top-0 bg-background/95 backdrop-blur z-10 flex items-center justify-between border-b border-border p-6">
               <div>
@@ -48,7 +49,7 @@ export function NewInvoiceModal({ suppliers }: { suppliers: any[] }) {
               />
             </div>
           </div>
-        </div>
+        </div>, document.body
       )}
     </>
   );

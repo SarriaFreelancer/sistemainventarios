@@ -187,3 +187,51 @@ export async function markTourAsCompleted(userId: number) {
     return { success: false, error: 'Ocurrió un error al actualizar preferencias' };
   }
 }
+
+export async function markCookiesAsAccepted(userId: number) {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return { success: false, error: 'Usuario no encontrado' };
+
+    const currentPreferences = user.preferences ? (user.preferences as any) : {};
+    
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        preferences: {
+          ...currentPreferences,
+          cookieConsent: true
+        }
+      }
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error marking cookies as accepted:', error);
+    return { success: false, error: 'Ocurrió un error al actualizar preferencias' };
+  }
+}
+
+export async function resetTourCompleted(userId: number) {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return { success: false, error: 'Usuario no encontrado' };
+
+    const currentPreferences = user.preferences ? (user.preferences as any) : {};
+    
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        preferences: {
+          ...currentPreferences,
+          tourCompleted: false
+        }
+      }
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error resetting tour:', error);
+    return { success: false, error: 'Ocurrió un error' };
+  }
+}

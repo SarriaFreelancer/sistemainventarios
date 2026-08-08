@@ -18,6 +18,19 @@ export async function GET() {
     const userCompanyId = session.user.companyId ? Number(session.user.companyId) : undefined;
     const isAdminOrSuper = userRole === 'ADMIN' || userRole === 'SUPERADMIN';
 
+    // Obtener preferencias y último inicio de sesión del usuario
+    const userObj = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { lastLogin: true, preferences: true }
+    });
+    const lastLogin = userObj?.lastLogin ? new Date(userObj.lastLogin) : null;
+    const preferences = (userObj?.preferences as any) || {};
+
+    let clearedAt: Date | null = preferences.notificationsClearedAt ? new Date(preferences.notificationsClearedAt) : null;
+    if (lastLogin && clearedAt && lastLogin > clearedAt) {
+      clearedAt = null;
+    }
+
     // 1. Sincronizar automáticamente ventas PENDING activas:
     // - Si es USER regular: solo sincroniza ventas pendientes creadas por este usuario (userId === sale.userId)
     // - Si es ADMIN o SUPERADMIN: sincroniza ventas pendientes de TODOS los usuarios de la empresa
@@ -29,6 +42,9 @@ export async function GET() {
       if (!isAdminOrSuper) {
         pendingSalesWhere.userId = userId;
       }
+      if (clearedAt) {
+        pendingSalesWhere.createdAt = { gt: clearedAt };
+      }
 
       const activePendingSales = await prisma.sale.findMany({
         where: pendingSalesWhere,
@@ -37,14 +53,23 @@ export async function GET() {
       });
 
       for (const sale of activePendingSales) {
-        const notifExists = await prisma.notification.findFirst({
+        const existingSalesNotifs = await prisma.notification.findMany({
           where: {
             userId,
             message: { contains: sale.saleNumber }
-          }
+          },
+          orderBy: { createdAt: 'desc' }
         });
 
-        if (!notifExists) {
+        if (existingSalesNotifs.length > 0) {
+          // Eliminar duplicadas si por algún motivo existía más de una
+          if (existingSalesNotifs.length > 1) {
+            const idsToDelete = existingSalesNotifs.slice(1).map(n => n.id);
+            await prisma.notification.deleteMany({
+              where: { id: { in: idsToDelete } }
+            });
+          }
+        } else {
           const isOwnSale = sale.userId === userId;
           const msg = !isOwnSale && isAdminOrSuper
             ? `Se encuentra pendiente la venta ${sale.saleNumber} por $${sale.total.toLocaleString('es-CO')} registrada por un usuario.`
@@ -69,11 +94,14 @@ export async function GET() {
     // 1b. Sincronizar automáticamente productos con stock bajo o agotado
     try {
       const lowStockProductsWhere: any = {
-        quantityAvailable: { lte: 5 },
+        quantityAvailable: { lte: 10 },
         type: { not: 'SERVICE' }
       };
       if (userCompanyId) {
         lowStockProductsWhere.companyId = userCompanyId;
+      }
+      if (clearedAt) {
+        lowStockProductsWhere.updatedAt = { gt: clearedAt };
       }
 
       const lowStockProducts = await prisma.product.findMany({
@@ -84,26 +112,52 @@ export async function GET() {
 
       for (const prod of lowStockProducts) {
         const title = prod.quantityAvailable <= 0 ? '⚠️ Stock Agotado' : '⚠️ Stock Bajo';
-        const notifExists = await prisma.notification.findFirst({
+        const msg = prod.quantityAvailable <= 0
+          ? `El producto "${prod.name}" no tiene unidades disponibles (Stock: 0).`
+          : `El producto "${prod.name}" tiene pocas unidades disponibles (Stock: ${prod.quantityAvailable}).`;
+        const type = prod.quantityAvailable <= 0 ? 'ERROR' : 'WARNING';
+
+        // Buscar todas las notificaciones existentes para este producto
+        const existingNotifs = await prisma.notification.findMany({
           where: {
             userId,
-            title,
-            message: { contains: `"${prod.name}"` }
-          }
+            message: { contains: `"${prod.name}"` },
+            title: { in: ['⚠️ Stock Agotado', '⚠️ Stock Bajo', 'Stock Agotado', 'Stock Bajo'] }
+          },
+          orderBy: { createdAt: 'desc' }
         });
 
-        if (!notifExists) {
-          const msg = prod.quantityAvailable <= 0
-            ? `El producto "${prod.name}" no tiene unidades disponibles (Stock: 0).`
-            : `El producto "${prod.name}" tiene pocas unidades disponibles (Stock: ${prod.quantityAvailable}).`;
+        if (existingNotifs.length > 0) {
+          const mainNotif = existingNotifs[0];
+          // Eliminar duplicadas si hay más de una
+          if (existingNotifs.length > 1) {
+            const idsToDelete = existingNotifs.slice(1).map(n => n.id);
+            await prisma.notification.deleteMany({
+              where: { id: { in: idsToDelete } }
+            });
+          }
 
+          // Si el estado o mensaje cambió, actualizar la principal
+          if (mainNotif.title !== title || mainNotif.message !== msg) {
+            await prisma.notification.update({
+              where: { id: mainNotif.id },
+              data: {
+                title,
+                message: msg,
+                type,
+                isRead: false
+              }
+            });
+          }
+        } else {
+          // Si no existe, crear una nueva
           await prisma.notification.create({
             data: {
               userId,
               companyId: prod.companyId ?? userCompanyId ?? 1,
               title,
               message: msg,
-              type: prod.quantityAvailable <= 0 ? 'ERROR' : 'WARNING',
+              type,
               isRead: false
             }
           });
@@ -112,6 +166,7 @@ export async function GET() {
     } catch (stockSyncErr) {
       console.error('[SYNC_STOCK_NOTIFS_ERROR]', stockSyncErr);
     }
+
 
     // 2. Limpieza automática de notificaciones resueltas (ventas completadas/anuladas o stock repuesto)
     const whereClause: any = { userId };
@@ -148,7 +203,7 @@ export async function GET() {
               where: { name: prodName, ...(userCompanyId ? { companyId: userCompanyId } : {}) },
               select: { quantityAvailable: true }
             });
-            if (prod && prod.quantityAvailable > 5) {
+            if (prod && prod.quantityAvailable > 10) {
               await prisma.notification.delete({ where: { id: notif.id } });
             }
           }
@@ -199,9 +254,26 @@ export async function DELETE() {
     if (!session?.user?.id) {
       return NextResponse.json({ success: false }, { status: 401 });
     }
+    const userId = Number(session.user.id);
 
     await prisma.notification.deleteMany({
-      where: { userId: Number(session.user.id) },
+      where: { userId },
+    });
+
+    // Guardar la hora de limpieza en las preferencias del usuario
+    const userObj = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { preferences: true }
+    });
+    const currentPrefs = (userObj?.preferences as any) || {};
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        preferences: {
+          ...currentPrefs,
+          notificationsClearedAt: new Date()
+        }
+      }
     });
 
     return NextResponse.json({ success: true });

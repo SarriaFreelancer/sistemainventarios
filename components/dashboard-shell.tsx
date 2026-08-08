@@ -3,7 +3,63 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import * as LucideIcons from 'lucide-react';
+import {
+  Folder,
+  ShieldCheck,
+  LogOut,
+  ChevronsLeft,
+  ChevronsRight,
+  Menu,
+  Building2,
+  Sun,
+  Moon,
+  ChevronDown,
+  User,
+  Key,
+  X,
+  LayoutDashboard,
+  Boxes,
+  Tags,
+  Factory,
+  ShoppingCart,
+  Users,
+  Truck,
+  DollarSign,
+  FileText,
+  ShieldAlert,
+  Settings,
+  BarChart3,
+  HelpCircle,
+} from 'lucide-react';
+
+const LucideIcons = {
+  Folder,
+  ShieldCheck,
+  LogOut,
+  ChevronsLeft,
+  ChevronsRight,
+  Menu,
+  Building2,
+  Sun,
+  Moon,
+  ChevronDown,
+  User,
+  Key,
+  X,
+  LayoutDashboard,
+  Boxes,
+  Tags,
+  Factory,
+  ShoppingCart,
+  Users,
+  Truck,
+  DollarSign,
+  FileText,
+  ShieldAlert,
+  Settings,
+  BarChart3,
+  HelpCircle,
+};
 import { cn } from '@/lib/utils';
 import { NotificationBell } from '@/components/notification-bell';
 
@@ -109,7 +165,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
         {/* ── Sidebar (Desktop) ── */}
         {/* ── Sidebar (Desktop) ── */}
         <aside className={cn(
-          "hidden flex-col border-r border-[#24242b]/80 bg-[#141417]/90 backdrop-blur-md text-[#f8fafc] shadow-2xl lg:flex transition-all duration-300 shrink-0 h-full overflow-y-auto overflow-x-hidden dark-scrollbar",
+          "hidden flex-col border-r border-[#24242b]/80 bg-[#141417]/90 backdrop-blur-md text-[#f8fafc] shadow-2xl lg:flex transition-all duration-300 shrink-0 h-full overflow-hidden",
           isCollapsed ? "w-20 p-3 items-center" : "w-72 p-6"
         )}>
           {/* Logo Brand Principal GNS */}
@@ -139,8 +195,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
             )}
           </div>
           
-          {/* Navigation Links - Botones al 100% del color principal de la empresa */}
-          <nav className={cn("space-y-1.5 flex-1 w-full", isCollapsed ? "px-1" : "")}>
+          <nav className={cn("space-y-1.5 flex-1 w-full overflow-y-auto overflow-x-hidden dark-scrollbar pr-1", isCollapsed ? "px-1" : "px-2")}>
             {(modules || []).map((module) => {
                 const IconComponent = module.icon && (LucideIcons as any)[module.icon] ? (LucideIcons as any)[module.icon] : LucideIcons.Folder;
                 const itemHref = module.href || '#';
@@ -394,7 +449,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
           </header>
 
           {/* Main page content wrapper */}
-          <main className={cn("flex-1 overflow-y-auto p-6 transition-colors duration-500 relative z-10", hasBgImage ? "bg-transparent has-bg-image" : "bg-background")}>
+          <main className={cn("flex-1 overflow-y-auto p-6 transition-colors duration-500 relative", hasBgImage ? "bg-transparent has-bg-image" : "bg-background")}>
             {children}
           </main>
         </div>
@@ -404,7 +459,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
       {isMenuOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" onClick={() => setIsMenuOpen(false)}>
           <div
-            className="h-full w-72 bg-[#141417]/90 backdrop-blur-md text-[#f8fafc] p-6 flex flex-col shadow-2xl border-r border-[#24242b]/80 animate-in slide-in-from-left duration-300 dark-scrollbar"
+            className="h-full w-72 bg-[#141417]/90 backdrop-blur-md text-[#f8fafc] p-6 flex flex-col shadow-2xl border-r border-[#24242b]/80 animate-in slide-in-from-left duration-300 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-8 flex items-center justify-between">
@@ -433,7 +488,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
               </button>
             </div>
             
-            <nav className="space-y-1.5 flex-1">
+            <nav className="space-y-1.5 flex-1 overflow-y-auto overflow-x-hidden dark-scrollbar pr-1 px-2">
               {(modules || []).map((item) => {
                 const IconComponent = item.icon && (LucideIcons as any)[item.icon] ? (LucideIcons as any)[item.icon] : LucideIcons.Folder;
                 const itemHref = item.href || '#';

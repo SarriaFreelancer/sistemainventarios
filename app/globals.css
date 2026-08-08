@@ -120,15 +120,14 @@ body {
   --muted-foreground: 200 200 200;
 }
 
-/* h1, h2, párrafos, labels y spans sueltos se vuelven blancos */
+/* h1, h2, h3, párrafos y elementos de texto fuera de tarjetas se vuelven blancos con sombra */
 .has-bg-image h1,
 .has-bg-image h2:not([class*="card"] h2),
-.has-bg-image > div > p,
-.has-bg-image > div > div > p,
-.has-bg-image > div > h1,
-.has-bg-image > div > div > h1 {
+.has-bg-image h3:not([class*="card"] h3),
+.has-bg-image p:not([class*="card"] p):not(.bg-card p),
+.has-bg-image span:not([class*="card"] span):not(.bg-card span) {
   color: white !important;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.7);
 }
 
 /* Restaurar colores normales dentro de tarjetas/paneles con fondo propio */
