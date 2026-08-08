@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Star, Crown, Send, Check, CheckCircle, ArrowRight, ArrowLeft, Loader2, ShieldCheck } from "lucide-react";
+import { Star, Crown, Send, Check, CheckCircle, ArrowRight, ArrowLeft, Loader2, ShieldCheck, X } from "lucide-react";
 import { errorAlert, successAlert } from "@/lib/sweetalert";
 import { signIn, getSession } from "next-auth/react";
 
@@ -17,7 +17,7 @@ export function InteractivePricing({ planSettings = {}, allModules = [] }: { pla
     const rawPlanId = planId.toLowerCase();
     const maxUsers = planSettings[`plan_${rawPlanId}_max_users`] || (rawPlanId === 'premium' ? '999' : rawPlanId === 'intermedio' ? '5' : '2');
     const maxProducts = planSettings[`plan_${rawPlanId}_max_products`] || (rawPlanId === 'premium' ? '999999' : rawPlanId === 'intermedio' ? '1000' : '100');
-    const maxSales = planSettings[`plan_${rawPlanId}_max_sales_per_month`] || (rawPlanId === 'premium' ? '999999' : rawPlanId === 'intermedio' ? '999999' : '50');
+    const maxSales = planSettings[`plan_${rawPlanId}_max_sales_per_month`] || (rawPlanId === 'premium' ? '999999' : rawPlanId === 'intermedio' ? '999999' : '999999');
     
     let modulesList: string[] = [];
     if (planSettings[`plan_${rawPlanId}_modules`]) {
@@ -28,7 +28,13 @@ export function InteractivePricing({ planSettings = {}, allModules = [] }: { pla
         modulesList = allModules.map(m => m.name);
       }
     } else {
-      modulesList = allModules.map(m => m.name);
+      if (rawPlanId === 'basico') {
+        modulesList = allModules.filter(m => ['Dashboard', 'Productos', 'Categorías', 'Grupos'].includes(m.name)).map(m => m.name);
+      } else if (rawPlanId === 'intermedio') {
+        modulesList = allModules.filter(m => !['CRM', 'RRHH', 'Auditoría', 'Reportes'].includes(m.name)).map(m => m.name);
+      } else {
+        modulesList = allModules.map(m => m.name);
+      }
     }
 
     const limits = [
@@ -40,11 +46,34 @@ export function InteractivePricing({ planSettings = {}, allModules = [] }: { pla
     return [...limits, ...modulesList];
   };
 
+  const buildShortFeatures = (planId: string) => {
+    const rawPlanId = planId.toLowerCase();
+    const maxUsers = planSettings[`plan_${rawPlanId}_max_users`] || (rawPlanId === 'premium' ? '999' : rawPlanId === 'intermedio' ? '5' : '2');
+    const maxProducts = planSettings[`plan_${rawPlanId}_max_products`] || (rawPlanId === 'premium' ? '999999' : rawPlanId === 'intermedio' ? '1000' : '100');
+    const maxSales = planSettings[`plan_${rawPlanId}_max_sales_per_month`] || (rawPlanId === 'premium' ? '999999' : rawPlanId === 'intermedio' ? '999999' : '50');
+
+    let base = [
+      maxUsers === '999' ? "Usuarios Ilimitados" : `Hasta ${maxUsers} Usuarios`,
+      maxProducts === '999999' ? "Inventario Ilimitado" : `Inventario (${maxProducts} productos)`,
+      maxSales === '999999' ? "Ventas Ilimitadas" : `Ventas (${maxSales}/mes)`
+    ];
+
+    if (rawPlanId === 'basico') {
+      base.push("Soporte por Email", "Actualizaciones estándar");
+    } else if (rawPlanId === 'intermedio') {
+      base.push("Control de Gastos y Compras", "Soporte Prioritario");
+    } else if (rawPlanId === 'premium') {
+      base.push("Facturación Electrónica DIAN", "Reportes Avanzados e IA", "Soporte VIP 24/7");
+    }
+    return base;
+  };
+
   const dynamicPlans = [
     {
       id: "basico",
       name: "Plan Básico",
       price: 49999,
+      shortFeatures: buildShortFeatures("basico"),
       features: buildFeatures("basico"),
       recommended: false
     },
@@ -52,6 +81,7 @@ export function InteractivePricing({ planSettings = {}, allModules = [] }: { pla
       id: "intermedio",
       name: "Plan Intermedio",
       price: 89999,
+      shortFeatures: buildShortFeatures("intermedio"),
       features: buildFeatures("intermedio"),
       recommended: true
     },
@@ -59,10 +89,13 @@ export function InteractivePricing({ planSettings = {}, allModules = [] }: { pla
       id: "premium",
       name: "Plan Premium",
       price: 129999,
+      shortFeatures: buildShortFeatures("premium"),
       features: buildFeatures("premium"),
       recommended: false
     }
   ];
+  
+  const [showComparison, setShowComparison] = useState(false);
   
   const [formData, setFormData] = useState({
     companyName: "",
@@ -253,8 +286,8 @@ export function InteractivePricing({ planSettings = {}, allModules = [] }: { pla
                     Facturado mensual
                   </div>
 
-                  <ul className="m-0 p-0 list-none flex flex-col gap-3 flex-1 mb-8">
-                    {plan.features.map((item, i) => (
+                  <ul className="m-0 p-0 list-none flex flex-col gap-3 mb-4">
+                    {plan.shortFeatures.map((item: string, i: number) => (
                       <li key={i} className="flex items-start gap-3 text-slate-900 dark:text-slate-200 text-[13px] font-semibold">
                         <div className="w-4 h-4 rounded-full bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center shrink-0 mt-[2px]">
                           <Check size={10} className="text-amber-600 dark:text-amber-500" strokeWidth={3} />
@@ -263,6 +296,8 @@ export function InteractivePricing({ planSettings = {}, allModules = [] }: { pla
                       </li>
                     ))}
                   </ul>
+
+
 
                   {(() => {
                     const isCurrentPlan = userSession?.companyPlan === plan.id;
@@ -328,6 +363,15 @@ export function InteractivePricing({ planSettings = {}, allModules = [] }: { pla
                   Ver todos los planes anuales <ArrowRight size={16} />
                 </button>
               </div>
+            </div>
+
+            <div className="mt-12 text-center">
+              <button 
+                onClick={() => setShowComparison(true)}
+                className="bg-transparent text-slate-900 dark:text-white font-extrabold text-[15px] border-2 border-slate-900 dark:border-white py-3 px-8 rounded-full hover:bg-slate-900 hover:text-white dark:hover:bg-white dark:hover:text-slate-900 transition-colors inline-flex items-center gap-2 cursor-pointer"
+              >
+                Ver comparativa de planes <ArrowRight size={18} />
+              </button>
             </div>
           </>
         )}
@@ -419,6 +463,91 @@ export function InteractivePricing({ planSettings = {}, allModules = [] }: { pla
             >
               Volver a los planes
             </button>
+          </div>
+        )}
+
+        {showComparison && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800">
+              <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900">
+                <h3 className="text-2xl font-black text-slate-900 dark:text-white">Comparativa de Planes</h3>
+                <button onClick={() => setShowComparison(false)} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors">
+                  <X size={24} className="text-slate-500 dark:text-slate-400" />
+                </button>
+              </div>
+              
+              <div className="overflow-auto p-0">
+                <table className="w-full text-left border-collapse">
+                  <thead className="sticky top-0 bg-slate-100 dark:bg-slate-800 shadow-sm z-10">
+                    <tr>
+                      <th className="p-4 font-bold text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700 w-1/4">Característica</th>
+                      {dynamicPlans.map(plan => (
+                        <th key={plan.id} className={`p-4 font-black text-center border-b border-slate-200 dark:border-slate-700 w-1/4 ${plan.recommended ? 'text-amber-600 dark:text-amber-500' : 'text-slate-900 dark:text-white'}`}>
+                          {plan.name.replace('Plan ', '')}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {/* Límites */}
+                    <tr className="bg-slate-50 dark:bg-slate-900/50">
+                      <td colSpan={4} className="p-3 font-bold text-[13px] text-slate-500 uppercase tracking-wider bg-slate-100 dark:bg-slate-800/80">Límites y Capacidades</td>
+                    </tr>
+                    <tr className="border-b border-slate-100 dark:border-slate-800">
+                      <td className="p-4 font-semibold text-slate-700 dark:text-slate-300">Máximo Usuarios</td>
+                      {dynamicPlans.map(plan => {
+                        const rawPlanId = plan.id.toLowerCase();
+                        const val = planSettings[`plan_${rawPlanId}_max_users`] || (rawPlanId === 'premium' ? '999' : rawPlanId === 'intermedio' ? '5' : '2');
+                        return <td key={plan.id} className="p-4 text-center font-medium text-slate-600 dark:text-slate-400">{val === '999' ? 'Ilimitados' : val}</td>;
+                      })}
+                    </tr>
+                    <tr className="border-b border-slate-100 dark:border-slate-800">
+                      <td className="p-4 font-semibold text-slate-700 dark:text-slate-300">Límite Productos</td>
+                      {dynamicPlans.map(plan => {
+                        const rawPlanId = plan.id.toLowerCase();
+                        const val = planSettings[`plan_${rawPlanId}_max_products`] || (rawPlanId === 'premium' ? '999999' : rawPlanId === 'intermedio' ? '1000' : '100');
+                        return <td key={plan.id} className="p-4 text-center font-medium text-slate-600 dark:text-slate-400">{val === '999999' ? 'Ilimitados' : val}</td>;
+                      })}
+                    </tr>
+                    <tr className="border-b border-slate-100 dark:border-slate-800">
+                      <td className="p-4 font-semibold text-slate-700 dark:text-slate-300">Ventas al mes</td>
+                      {dynamicPlans.map(plan => {
+                        const rawPlanId = plan.id.toLowerCase();
+                        const val = planSettings[`plan_${rawPlanId}_max_sales_per_month`] || (rawPlanId === 'premium' ? '999999' : rawPlanId === 'intermedio' ? '999999' : '50');
+                        return <td key={plan.id} className="p-4 text-center font-medium text-slate-600 dark:text-slate-400">{val === '999999' ? 'Ilimitadas' : val}</td>;
+                      })}
+                    </tr>
+
+                    {/* Módulos */}
+                    <tr className="bg-slate-50 dark:bg-slate-900/50">
+                      <td colSpan={4} className="p-3 font-bold text-[13px] text-slate-500 uppercase tracking-wider bg-slate-100 dark:bg-slate-800/80">Módulos del Sistema</td>
+                    </tr>
+                    {allModules.map(mod => (
+                      <tr key={mod.id} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                        <td className="p-4 font-semibold text-slate-700 dark:text-slate-300">{mod.name}</td>
+                        {dynamicPlans.map(plan => {
+                          const hasModule = plan.features.some((f: string) => f.includes(mod.name));
+                          return (
+                            <td key={plan.id} className="p-4 text-center">
+                              {hasModule ? (
+                                <CheckCircle size={20} className="mx-auto text-emerald-500" />
+                              ) : (
+                                <span className="text-slate-300 dark:text-slate-600 font-bold">—</span>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-center">
+                <button onClick={() => setShowComparison(false)} className="px-8 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors">
+                  Cerrar Comparativa
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
