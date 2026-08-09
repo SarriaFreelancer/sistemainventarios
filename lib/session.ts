@@ -29,12 +29,7 @@ export async function getSessionCompanyId(): Promise<number | undefined | null> 
     if (globalCompany) return globalCompany.id;
   }
 
-  const firstCompany = await prisma.company.findFirst({
-    where: { status: "ACTIVE" },
-    orderBy: { id: "asc" }
-  });
-
-  return firstCompany?.id;
+  return undefined;
 }
 
 /**
@@ -53,25 +48,7 @@ export async function resolveActionCompanyId(): Promise<number> {
     }
   }
 
-  // Fallback de seguridad extrema
-  const globalCompany = await prisma.company.findFirst({
-    where: { name: "Global" },
-    orderBy: { id: "asc" }
-  });
-  if (globalCompany) return globalCompany.id;
-
-  const firstActiveCompany = await prisma.company.findFirst({
-    where: { status: "ACTIVE" },
-    orderBy: { id: "asc" }
-  });
-  if (firstActiveCompany) return firstActiveCompany.id;
-
-  const firstAnyCompany = await prisma.company.findFirst({
-    orderBy: { id: "asc" }
-  });
-  if (firstAnyCompany) return firstAnyCompany.id;
-
-  throw new Error("No hay empresas registradas en el sistema para asignar esta operación.");
+  throw new Error("No tienes una empresa válida asociada a tu sesión. Por favor inicia sesión nuevamente o contacta al administrador.");
 }
 
 /**
@@ -104,9 +81,5 @@ export async function resolveActionUserId(inputUserId?: number | string): Promis
     if (user) return user.id;
   }
 
-  // 4. Fallback de seguridad: Primer usuario del sistema
-  const firstUser = await prisma.user.findFirst({ orderBy: { id: "asc" } });
-  if (firstUser) return firstUser.id;
-
-  throw new Error("No hay usuarios registrados en el sistema para asociar esta transacción.");
+  throw new Error("No se pudo resolver tu identidad de usuario. Por favor inicia sesión nuevamente.");
 }

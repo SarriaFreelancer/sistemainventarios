@@ -12,8 +12,7 @@ import { getPlanSettings } from '@/app/actions/license-actions';
 import { LandingAuthNav } from '@/app/components/public/LandingAuthNav';
 import { LandingModules } from '@/app/components/public/LandingModules';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = 3600; // Recalcular (ISR) cada 1 hora
 
 export default async function HomePage() {
   const session = await getAuthSession();

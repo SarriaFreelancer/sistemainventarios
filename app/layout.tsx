@@ -15,8 +15,49 @@ const hanken = Hanken_Grotesk({ subsets: ['latin'], variable: '--font-hanken', d
 import { getAuthSession } from '@/auth';
 
 export const metadata: Metadata = {
-  title: 'GNS | Gestión de Negocios SarriaTech',
-  description: 'GNS - Gestión de Negocios SarriaTech',
+  title: {
+    default: 'GNS | Gestión de Negocios SarriaTech',
+    template: '%s | GNS'
+  },
+  description: 'Sistema integral ERP SaaS en la nube para control de inventario, punto de venta (POS), recursos humanos, contabilidad y facturación. Gestión de Negocios SarriaTech.',
+  keywords: ['ERP', 'SaaS', 'Inventario', 'Punto de Venta', 'POS', 'Contabilidad', 'Facturación', 'Recursos Humanos', 'SarriaTech', 'Gestión de Negocios'],
+  authors: [{ name: 'SarriaTech', url: 'https://sarriatech.com' }],
+  creator: 'SarriaTech',
+  publisher: 'SarriaTech',
+  openGraph: {
+    type: 'website',
+    locale: 'es_CO',
+    url: 'https://gns.sarriatech.com', // Replace with actual production URL
+    siteName: 'Gestión de Negocios SarriaTech (GNS)',
+    title: 'GNS | Gestión de Negocios SarriaTech',
+    description: 'Sistema integral ERP SaaS en la nube para control de inventario, POS, finanzas y más.',
+    images: [
+      {
+        url: '/gns-logo.png', // Ideally a wider OG image (1200x630)
+        width: 800,
+        height: 600,
+        alt: 'GNS Logo',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'GNS | Gestión de Negocios SarriaTech',
+    description: 'Sistema integral ERP SaaS en la nube para control de inventario, POS, finanzas y más.',
+    creator: '@sarriatech',
+    images: ['/gns-logo.png'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
   icons: {
     icon: '/gns-logo.png',
     shortcut: '/gns-logo.png',
