@@ -67,7 +67,11 @@ export default async function DashboardHomePage() {
     recentSales: [],
     outOfStockProducts: [],
     lowStockProducts: [],
-    filterInfo: { preset: 'all' }
+    filterInfo: { preset: 'all' },
+    totalIncomes: 0,
+    totalExpenses: 0,
+    newCustomersCount: 0,
+    totalCustomersCount: 0
   };
 
   return (

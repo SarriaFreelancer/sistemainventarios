@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Download, Loader2, X, Filter, Calendar } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 interface LookupData {
-  categories: { id: number; name: string }[];
+  categories: { id: number; name: string; productGroupId?: number | null }[];
   suppliers: { id: number; companyName: string }[];
   groups: { id: number; name: string }[];
+  productMappings?: { type: string; productGroupId: number | null; categoryId: number; supplierId: number }[];
 }
 
 interface ReportDownloadButtonProps {
@@ -79,6 +81,60 @@ export function ReportDownloadButton({
 
   const hasFilters = isProductReport(reportType) || isDateFilteredReport(reportType);
 
+  // --- Cascading Logic ---
+  const validGroups = useMemo(() => {
+    if (!isProductReport(reportType) || !lookupData) return lookupData?.groups || [];
+    let mappings = lookupData.productMappings || [];
+    if (filters.productType) mappings = mappings.filter(m => m.type === filters.productType);
+    const validGroupIds = new Set(mappings.map(m => m.productGroupId));
+    return lookupData.groups.filter(g => validGroupIds.has(g.id) || !filters.productType); // Fallback if no strict mapping
+  }, [lookupData, filters.productType, reportType]);
+
+  const validCategories = useMemo(() => {
+    if (!isProductReport(reportType) || !lookupData) return lookupData?.categories || [];
+    let cats = lookupData.categories;
+    if (filters.productGroupId) {
+      cats = cats.filter(c => String(c.productGroupId) === String(filters.productGroupId));
+    } else if (filters.productType) {
+       // if a type is selected but no group, show categories that have products of that type
+       const mappings = lookupData.productMappings || [];
+       const validCategoryIds = new Set(mappings.filter(m => m.type === filters.productType).map(m => m.categoryId));
+       cats = cats.filter(c => validCategoryIds.has(c.id));
+    }
+    return cats;
+  }, [lookupData, filters.productGroupId, filters.productType, reportType]);
+
+  const validSuppliers = useMemo(() => {
+    if (reportType !== 'products' || !lookupData) return lookupData?.suppliers || [];
+    let mappings = lookupData.productMappings || [];
+    if (filters.productType) mappings = mappings.filter(m => m.type === filters.productType);
+    if (filters.productGroupId) mappings = mappings.filter(m => String(m.productGroupId) === String(filters.productGroupId));
+    if (filters.categoryId) mappings = mappings.filter(m => String(m.categoryId) === String(filters.categoryId));
+    
+    const validSupplierIds = new Set(mappings.map(m => m.supplierId));
+    // If no filters selected, show all suppliers, otherwise show only valid ones
+    if (!filters.productType && !filters.productGroupId && !filters.categoryId) return lookupData.suppliers;
+    return lookupData.suppliers.filter(s => validSupplierIds.has(s.id));
+  }, [lookupData, filters.productType, filters.productGroupId, filters.categoryId, reportType]);
+
+  // Reset dependent filters when parent changes
+  useEffect(() => {
+    setFilters(prev => {
+      let next = { ...prev };
+      let changed = false;
+      if (prev.productGroupId && !validGroups.some(g => String(g.id) === String(prev.productGroupId))) {
+        next.productGroupId = ''; changed = true;
+      }
+      if (prev.categoryId && !validCategories.some(c => String(c.id) === String(prev.categoryId))) {
+        next.categoryId = ''; changed = true;
+      }
+      if (prev.supplierId && !validSuppliers.some(s => String(s.id) === String(prev.supplierId))) {
+        next.supplierId = ''; changed = true;
+      }
+      return changed ? next : prev;
+    });
+  }, [validGroups, validCategories, validSuppliers]);
+
   const buildUrl = () => {
     const params = new URLSearchParams();
     if (isProductReport(reportType)) {
@@ -149,33 +205,22 @@ export function ReportDownloadButton({
       </button>
 
       {/* ── Filter Modal ── */}
-      {showModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-          onClick={() => setShowModal(false)}
-        >
-          <div
-            className="relative w-full max-w-md mx-4 bg-card border border-border rounded-3xl shadow-2xl p-7"
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10">
-                  <Filter className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-foreground">Filtros del Reporte</h3>
-                  <p className="text-xs text-muted-foreground">Selecciona los criterios de exportación</p>
+      <Dialog open={showModal} onOpenChange={setShowModal}>
+        <DialogContent className="max-w-md p-0 overflow-hidden bg-card border-border rounded-3xl">
+          <div className="p-7">
+            <DialogHeader className="mb-6 text-left">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10">
+                    <Filter className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-base font-bold text-foreground">Filtros del Reporte</DialogTitle>
+                    <DialogDescription className="text-xs text-muted-foreground">Selecciona los criterios de exportación</DialogDescription>
+                  </div>
                 </div>
               </div>
-              <button
-                onClick={() => setShowModal(false)}
-                className="rounded-xl p-2 hover:bg-muted text-muted-foreground transition"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+            </DialogHeader>
 
             <div className="space-y-4">
               {/* ── Product / Stock filters ── */}
@@ -193,6 +238,20 @@ export function ReportDownloadButton({
                       ))}
                     </select>
                   </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Grupo de Producto</label>
+                    <select
+                      value={filters.productGroupId}
+                      onChange={set('productGroupId')}
+                      className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    >
+                      <option value="">Todos los grupos</option>
+                      {validGroups.map(g => (
+                        <option key={g.id} value={g.id}>{g.name}</option>
+                      ))}
+                    </select>
+                  </div>
                   
                   <div>
                     <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Categoría</label>
@@ -202,7 +261,7 @@ export function ReportDownloadButton({
                       className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
                     >
                       <option value="">Todas las categorías</option>
-                      {lookupData?.categories.map(c => (
+                      {validCategories.map(c => (
                         <option key={c.id} value={c.id}>{c.name}</option>
                       ))}
                     </select>
@@ -217,26 +276,12 @@ export function ReportDownloadButton({
                         className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
                       >
                         <option value="">Todos los proveedores</option>
-                        {lookupData?.suppliers.map(s => (
+                        {validSuppliers.map(s => (
                           <option key={s.id} value={s.id}>{s.companyName}</option>
                         ))}
                       </select>
                     </div>
                   )}
-
-                  <div>
-                    <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Grupo de Producto</label>
-                    <select
-                      value={filters.productGroupId}
-                      onChange={set('productGroupId')}
-                      className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                    >
-                      <option value="">Todos los grupos</option>
-                      {lookupData?.groups.map(g => (
-                        <option key={g.id} value={g.id}>{g.name}</option>
-                      ))}
-                    </select>
-                  </div>
                 </>
               )}
 
@@ -307,8 +352,8 @@ export function ReportDownloadButton({
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

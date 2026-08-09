@@ -27,9 +27,6 @@ export async function GET() {
     const preferences = (userObj?.preferences as any) || {};
 
     let clearedAt: Date | null = preferences.notificationsClearedAt ? new Date(preferences.notificationsClearedAt) : null;
-    if (lastLogin && clearedAt && lastLogin > clearedAt) {
-      clearedAt = null;
-    }
 
     // 1. Sincronizar automáticamente ventas PENDING activas:
     // - Si es USER regular: solo sincroniza ventas pendientes creadas por este usuario (userId === sale.userId)

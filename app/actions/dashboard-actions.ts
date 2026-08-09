@@ -81,7 +81,14 @@ export async function getFilteredDashboardData(input: DashboardFilterInput) {
       productsData,
       outOfStockProducts,
       lowStockProducts,
-      groupsWithProducts
+      groupsWithProducts,
+      // New CRM and Finances queries
+      newCustomersCount,
+      totalCustomersCount,
+      expensesAgg,
+      incomesAgg,
+      allExpenses,
+      allIncomes
     ] = await Promise.all([
       prisma.product.count({ where: companyFilter }),
       prisma.category.count({ where: companyFilter }),
@@ -143,10 +150,30 @@ export async function getFilteredDashboardData(input: DashboardFilterInput) {
       prisma.productGroup.findMany({
         where: companyFilter,
         include: { _count: { select: { products: true } } }
+      }),
+      prisma.customer.count({ where: saleDateFilter }),
+      prisma.customer.count({ where: companyFilter }),
+      prisma.expense.aggregate({
+        where: { ...companyFilter, ...(startDate || endDate ? { date: { gte: startDate || undefined, lte: endDate || undefined } } : {}) },
+        _sum: { amount: true }
+      }),
+      prisma.income.aggregate({
+        where: { ...companyFilter, ...(startDate || endDate ? { date: { gte: startDate || undefined, lte: endDate || undefined } } : {}) },
+        _sum: { amount: true }
+      }),
+      prisma.expense.findMany({
+        where: { ...companyFilter, ...(startDate || endDate ? { date: { gte: startDate || undefined, lte: endDate || undefined } } : {}) },
+        select: { date: true, amount: true }
+      }),
+      prisma.income.findMany({
+        where: { ...companyFilter, ...(startDate || endDate ? { date: { gte: startDate || undefined, lte: endDate || undefined } } : {}) },
+        select: { date: true, amount: true }
       })
     ]);
 
     const totalSalesAmount = Number(salesAgg._sum.total ?? 0);
+    const totalExpenses = Number(expensesAgg._sum.amount ?? 0);
+    const totalIncomes = Number(incomesAgg._sum.amount ?? 0);
 
     // Cálculos de costo e inventario
     const totalCostValue = productsData.reduce((sum, p) => sum + (Number(p.unitCost) * p.quantityAvailable), 0);
@@ -222,6 +249,71 @@ export async function getFilteredDashboardData(input: DashboardFilterInput) {
         cost: Math.round(item.cost)
       }));
 
+    // Tendencia de Ingresos vs Gastos
+    const financialTrendMap: Record<string, { label: string; dateObj: Date; incomes: number; expenses: number }> = {};
+    
+    if (startDate && endDate && isShortRange) {
+      const curr = new Date(startDate);
+      while (curr <= endDate) {
+        const key = `${curr.getFullYear()}-${String(curr.getMonth() + 1).padStart(2, '0')}-${String(curr.getDate()).padStart(2, '0')}`;
+        const label = `${curr.getDate()} ${monthNames[curr.getMonth()]}`;
+        financialTrendMap[key] = { label, dateObj: new Date(curr), incomes: 0, expenses: 0 };
+        curr.setDate(curr.getDate() + 1);
+      }
+    } else if (startDate && endDate && !isShortRange) {
+      const curr = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+      while (curr <= endDate) {
+        const key = `${curr.getFullYear()}-${String(curr.getMonth() + 1).padStart(2, '0')}`;
+        const label = `${monthNames[curr.getMonth()]} ${String(curr.getFullYear()).slice(-2)}`;
+        financialTrendMap[key] = { label, dateObj: new Date(curr), incomes: 0, expenses: 0 };
+        curr.setMonth(curr.getMonth() + 1);
+      }
+    } else if (input.preset === 'all' || !startDate) {
+      for (let i = 5; i >= 0; i--) {
+        const curr = new Date();
+        curr.setMonth(curr.getMonth() - i);
+        const key = `${curr.getFullYear()}-${String(curr.getMonth() + 1).padStart(2, '0')}`;
+        const label = `${monthNames[curr.getMonth()]} ${String(curr.getFullYear()).slice(-2)}`;
+        financialTrendMap[key] = { label, dateObj: new Date(curr.getFullYear(), curr.getMonth(), 1), incomes: 0, expenses: 0 };
+      }
+    }
+
+    // Agregar Incomes a financialTrendMap
+    for (const income of allIncomes) {
+      const d = new Date(income.date);
+      let key = (startDate && endDate && isShortRange)
+        ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+        : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+
+      if (!financialTrendMap[key]) {
+        const label = isShortRange ? `${d.getDate()} ${monthNames[d.getMonth()]}` : `${monthNames[d.getMonth()]} ${String(d.getFullYear()).slice(-2)}`;
+        financialTrendMap[key] = { label, dateObj: d, incomes: 0, expenses: 0 };
+      }
+      financialTrendMap[key].incomes += income.amount;
+    }
+
+    // Agregar Gastos a financialTrendMap
+    for (const exp of allExpenses) {
+      const d = new Date(exp.date);
+      let key = (startDate && endDate && isShortRange)
+        ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+        : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+
+      if (!financialTrendMap[key]) {
+        const label = isShortRange ? `${d.getDate()} ${monthNames[d.getMonth()]}` : `${monthNames[d.getMonth()]} ${String(d.getFullYear()).slice(-2)}`;
+        financialTrendMap[key] = { label, dateObj: d, incomes: 0, expenses: 0 };
+      }
+      financialTrendMap[key].expenses += exp.amount;
+    }
+
+    const financialTrendData = Object.values(financialTrendMap)
+      .sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime())
+      .map(item => ({
+        month: item.label,
+        incomes: Math.round(item.incomes),
+        expenses: Math.round(item.expenses)
+      }));
+
     // 4. Calcular Top 5 Productos más Vendidos en este Período Filtrado
     const productSalesMap: Record<string, { name: string; quantity: number; revenue: number }> = {};
 
@@ -263,6 +355,9 @@ export async function getFilteredDashboardData(input: DashboardFilterInput) {
         salesTrendData: salesTrendData.length > 0 ? salesTrendData : [
           { month: 'Sin datos', revenue: 0, cost: 0 }
         ],
+        financialTrendData: financialTrendData.length > 0 ? financialTrendData : [
+          { month: 'Sin datos', incomes: 0, expenses: 0 }
+        ],
         topProducts,
         groupDistribution,
         recentSales: recentSalesList.map(s => ({
@@ -280,7 +375,12 @@ export async function getFilteredDashboardData(input: DashboardFilterInput) {
           preset: input.preset || 'all',
           dateFrom: startDate ? startDate.toISOString().split('T')[0] : null,
           dateTo: endDate ? endDate.toISOString().split('T')[0] : null
-        }
+        },
+        // Extra data for new charts
+        newCustomersCount,
+        totalCustomersCount,
+        totalExpenses,
+        totalIncomes
       }
     };
   } catch (error: any) {

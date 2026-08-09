@@ -38,6 +38,12 @@ interface SalesByMonth {
   cost: number;
 }
 
+interface FinancialTrend {
+  month: string;
+  incomes: number;
+  expenses: number;
+}
+
 interface TopProduct {
   name: string;
   quantity: number;
@@ -51,17 +57,33 @@ interface GroupDistribution {
 
 interface DashboardChartsProps {
   salesByMonth: SalesByMonth[];
+  financialTrendData?: FinancialTrend[];
   topProducts: TopProduct[];
   groupDistribution: GroupDistribution[];
   marginPct: number;
+  totalExpenses?: number;
+  totalIncomes?: number;
+  newCustomersCount?: number;
+  totalCustomersCount?: number;
 }
 
 export function DashboardCharts({
   salesByMonth,
+  financialTrendData = [],
   topProducts,
   groupDistribution,
-  marginPct
+  marginPct,
+  totalExpenses = 0,
+  totalIncomes = 0,
+  newCustomersCount = 0,
+  totalCustomersCount = 0,
 }: DashboardChartsProps) {
+  const financialData = [
+    { name: 'Ingresos', value: totalIncomes, fill: COLORS[1] },
+    { name: 'Egresos', value: totalExpenses, fill: COLORS[2] }
+  ];
+  const totalFinance = totalIncomes + totalExpenses;
+
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       
@@ -118,6 +140,54 @@ export function DashboardCharts({
         </CardContent>
       </Card>
 
+      {/* ── Nuevo Gráfico: Tendencia de Finanzas (BarChart) ── */}
+      <Card className="lg:col-span-1">
+        <CardHeader className="pb-2">
+          <div className="space-y-0.5">
+            <CardTitle className="text-base font-bold flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-primary" />
+              Ingresos vs Egresos
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">Flujo de caja general</p>
+          </div>
+        </CardHeader>
+        <CardContent className="h-[300px] mt-4">
+          {financialTrendData.length === 0 ? (
+            <div className="h-full flex flex-col justify-center items-center text-muted-foreground text-sm italic">
+              Sin datos financieros
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={financialTrendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }} />
+                <YAxis 
+                  width={40}
+                  tickLine={false} 
+                  axisLine={false} 
+                  tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }} 
+                  tickFormatter={(value) => new Intl.NumberFormat('es-CO', { notation: "compact", compactDisplay: "short" }).format(value)}
+                />
+                <Tooltip
+                  cursor={{ fill: 'transparent' }}
+                  contentStyle={{
+                    background: 'var(--card)',
+                    borderColor: 'var(--border)',
+                    borderRadius: '12px',
+                    boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
+                    color: 'var(--foreground)'
+                  }}
+                />
+                <Legend verticalAlign="top" height={36} iconType="circle" />
+                <Bar name="Ingresos" dataKey="incomes" fill={COLORS[1]} radius={[4, 4, 0, 0]} />
+                <Bar name="Egresos" dataKey="expenses" fill={COLORS[2]} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </CardContent>
+      </Card>
+
+
       {/* ── Gráfico 2: Distribución por Grupos (PieChart Donut) ── */}
       <Card>
         <CardHeader className="pb-2">
@@ -168,7 +238,7 @@ export function DashboardCharts({
       </Card>
 
       {/* ── Gráfico 3: Productos más Vendidos (BarChart) ── */}
-      <Card className="lg:col-span-3">
+      <Card className="lg:col-span-2">
         <CardHeader className="pb-2">
           <CardTitle className="text-base font-bold flex items-center gap-2">
             <BarChart3 className="h-4 w-4 text-primary" />
@@ -189,6 +259,7 @@ export function DashboardCharts({
                 <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 10 }} />
                 <YAxis dataKey="name" type="category" width={100} axisLine={false} tickLine={false} tick={{ fill: 'var(--foreground)', fontSize: 10, fontWeight: 500 }} />
                 <Tooltip
+                  cursor={{ fill: 'transparent' }}
                   contentStyle={{
                     background: 'var(--card)',
                     borderColor: 'var(--border)',

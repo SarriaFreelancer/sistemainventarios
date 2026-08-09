@@ -38,6 +38,7 @@ export function LicensesManager({ companies, planSettings = {}, allModules = [] 
     maxUsers: planSettings["plan_basico_max_users"] || "2",
     maxProducts: planSettings["plan_basico_max_products"] || "100",
     maxSales: planSettings["plan_basico_max_sales_per_month"] || "50",
+    price: planSettings["plan_basico_price"] || "49999",
     modules: getModulesArray("plan_basico_modules")
   });
 
@@ -45,6 +46,7 @@ export function LicensesManager({ companies, planSettings = {}, allModules = [] 
     maxUsers: planSettings["plan_intermedio_max_users"] || "5",
     maxProducts: planSettings["plan_intermedio_max_products"] || "1000",
     maxSales: planSettings["plan_intermedio_max_sales_per_month"] || "999999",
+    price: planSettings["plan_intermedio_price"] || "89999",
     modules: getModulesArray("plan_intermedio_modules")
   });
 
@@ -52,6 +54,7 @@ export function LicensesManager({ companies, planSettings = {}, allModules = [] 
     maxUsers: planSettings["plan_premium_max_users"] || "999",
     maxProducts: planSettings["plan_premium_max_products"] || "999999",
     maxSales: planSettings["plan_premium_max_sales_per_month"] || "999999",
+    price: planSettings["plan_premium_price"] || "129999",
     modules: getModulesArray("plan_premium_modules")
   });
 
@@ -84,14 +87,17 @@ export function LicensesManager({ companies, planSettings = {}, allModules = [] 
       "plan_basico_max_users": basico.maxUsers.toString(),
       "plan_basico_max_products": basico.maxProducts.toString(),
       "plan_basico_max_sales_per_month": basico.maxSales.toString(),
+      "plan_basico_price": basico.price.toString(),
       "plan_basico_modules": JSON.stringify(basico.modules),
       "plan_intermedio_max_users": intermedio.maxUsers.toString(),
       "plan_intermedio_max_products": intermedio.maxProducts.toString(),
       "plan_intermedio_max_sales_per_month": intermedio.maxSales.toString(),
+      "plan_intermedio_price": intermedio.price.toString(),
       "plan_intermedio_modules": JSON.stringify(intermedio.modules),
       "plan_premium_max_users": premium.maxUsers.toString(),
       "plan_premium_max_products": premium.maxProducts.toString(),
       "plan_premium_max_sales_per_month": premium.maxSales.toString(),
+      "plan_premium_price": premium.price.toString(),
       "plan_premium_modules": JSON.stringify(premium.modules),
     };
 
@@ -133,6 +139,15 @@ export function LicensesManager({ companies, planSettings = {}, allModules = [] 
             type="number" 
             value={state.maxProducts} 
             onChange={(e) => setState({...state, maxProducts: e.target.value})}
+            className="w-full mt-1 bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
+          />
+        </div>
+        <div className="col-span-2">
+          <label className="text-xs font-bold text-muted-foreground uppercase">Precio (COP)</label>
+          <input 
+            type="number" 
+            value={state.price} 
+            onChange={(e) => setState({...state, price: e.target.value})}
             className="w-full mt-1 bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
           />
         </div>

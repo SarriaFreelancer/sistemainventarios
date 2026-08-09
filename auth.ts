@@ -8,7 +8,11 @@ import { prisma } from './lib/prisma';
 import { logLoginAttempt } from './lib/audit';
 
 export const authOptions: AuthOptions = {
-  session: { strategy: 'jwt' },
+  session: { 
+    strategy: 'jwt',
+    maxAge: 4 * 60 * 60, // 4 horas de inactividad absoluta cierran la sesión
+    updateAge: 60 * 60, // Refresca la sesión cada hora que haya actividad
+  },
   secret: process.env.NEXTAUTH_SECRET,
   providers: [
     Credentials({

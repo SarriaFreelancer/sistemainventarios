@@ -33,19 +33,38 @@ export function InactivityGuard({ children }: { children: React.ReactNode }) {
   // Registrar listeners de actividad del usuario (movimiento del mouse, teclas, clics, scroll)
   useEffect(() => {
     const handleUserActivity = () => {
+      const now = Date.now();
+      // Si ya excedió el tiempo total, cerrar sesión inmediatamente.
+      // Esto evita que un evento touch en móvil reinicie el timer al reanudar una pestaña suspendida.
+      if (now - lastActivityRef.current >= TOTAL_TIMEOUT_MS) {
+        handleLogout();
+        return;
+      }
+
       // Solo reiniciar si el modal de advertencia NO está abierto
       if (!warningOpenRef.current) {
-        lastActivityRef.current = Date.now();
+        lastActivityRef.current = now;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        const now = Date.now();
+        if (now - lastActivityRef.current >= TOTAL_TIMEOUT_MS) {
+          handleLogout();
+        }
       }
     };
 
     const events = ["mousemove", "keydown", "click", "scroll", "touchstart"];
     events.forEach((event) => window.addEventListener(event, handleUserActivity, { passive: true }));
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       events.forEach((event) => window.removeEventListener(event, handleUserActivity));
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, []);
+  }, [handleLogout]);
 
   // Intervalo de comprobación continua cada segundo
   useEffect(() => {

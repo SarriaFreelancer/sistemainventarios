@@ -30,9 +30,9 @@ export async function toggleCompanyAccess(companyId: number, currentStatus: stri
 export async function getPlanSettings() {
   try {
     const keys = [
-      "plan_basico_max_users", "plan_basico_max_products", "plan_basico_modules", "plan_basico_max_sales_per_month",
-      "plan_intermedio_max_users", "plan_intermedio_max_products", "plan_intermedio_modules", "plan_intermedio_max_sales_per_month",
-      "plan_premium_max_users", "plan_premium_max_products", "plan_premium_modules", "plan_premium_max_sales_per_month"
+      "plan_basico_max_users", "plan_basico_max_products", "plan_basico_modules", "plan_basico_max_sales_per_month", "plan_basico_price",
+      "plan_intermedio_max_users", "plan_intermedio_max_products", "plan_intermedio_modules", "plan_intermedio_max_sales_per_month", "plan_intermedio_price",
+      "plan_premium_max_users", "plan_premium_max_products", "plan_premium_modules", "plan_premium_max_sales_per_month", "plan_premium_price"
     ];
     
     const settings = await platformDb.setting.findMany({

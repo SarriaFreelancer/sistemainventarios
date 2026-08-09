@@ -186,13 +186,14 @@ export default async function ReportesPage() {
     ? { companyId } 
     : {};
 
-  const [categories, suppliers, groups] = await Promise.all([
-    prisma.category.findMany({ where: companyFilter, select: { id: true, name: true }, orderBy: { name: 'asc' } }),
+  const [categories, suppliers, groups, productMappings] = await Promise.all([
+    prisma.category.findMany({ where: companyFilter, select: { id: true, name: true, productGroupId: true }, orderBy: { name: 'asc' } }),
     prisma.supplier.findMany({ where: companyFilter, select: { id: true, companyName: true }, orderBy: { companyName: 'asc' } }),
-    prisma.productGroup.findMany({ where: companyFilter, select: { id: true, name: true }, orderBy: { name: 'asc' } })
+    prisma.productGroup.findMany({ where: companyFilter, select: { id: true, name: true }, orderBy: { name: 'asc' } }),
+    prisma.product.findMany({ where: companyFilter, select: { type: true, productGroupId: true, categoryId: true, supplierId: true } })
   ]);
 
-  const lookupData = { categories, suppliers, groups };
+  const lookupData = { categories, suppliers, groups, productMappings };
 
   return (
     <div className="p-4 sm:p-6 space-y-8">

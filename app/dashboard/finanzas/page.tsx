@@ -4,26 +4,58 @@ import { getSessionCompanyId } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { TrendingUp, TrendingDown, Package, DollarSign, Wallet, ArrowUpRight, PlusCircle } from 'lucide-react';
+import { FinanzasFilters } from './components/finanzas-filters';
+import { startOfDay, endOfDay, subDays } from 'date-fns';
 
 export const metadata = {
   title: 'Finanzas · GNS',
   description: 'Vista detallada del estado financiero, costos y ganancias.',
 };
 
-export default async function FinanzasPage() {
+export default async function FinanzasPage(props: { searchParams: Promise<{ preset?: string, from?: string, to?: string }> }) {
+  const searchParams = await props.searchParams;
   const session = await getAuthSession();
   if (!session?.user?.id) redirect('/auth/login');
 
   const companyId = await getSessionCompanyId();
   const companyFilter = companyId ? { companyId } : {};
 
+  // Date filters
+  const preset = searchParams.preset || 'all';
+  let dateFilter: any = {};
+  
+  if (preset !== 'all') {
+    const now = new Date();
+    let startDate: Date;
+    let endDate = endOfDay(now);
+
+    if (preset === 'today') startDate = startOfDay(now);
+    else if (preset === 'yesterday') {
+      startDate = startOfDay(subDays(now, 1));
+      endDate = endOfDay(subDays(now, 1));
+    }
+    else if (preset === '7days') startDate = startOfDay(subDays(now, 7));
+    else if (preset === '30days') startDate = startOfDay(subDays(now, 30));
+    else if (preset === 'custom' && searchParams.from && searchParams.to) {
+      startDate = startOfDay(new Date(searchParams.from));
+      endDate = endOfDay(new Date(searchParams.to));
+    } else {
+      startDate = startOfDay(now);
+    }
+
+    dateFilter = {
+      gte: startDate,
+      lte: endDate,
+    };
+  }
+
   const [expenseSummary, sales, products, recentExpenses, incomesSummary] = await Promise.all([
     prisma.expense.aggregate({
-      where: companyFilter,
+      where: { ...companyFilter, ...(preset !== 'all' ? { date: dateFilter } : {}) },
       _sum: { amount: true }
     }),
     prisma.sale.findMany({
-      where: companyFilter,
+      where: { ...companyFilter, ...(preset !== 'all' ? { createdAt: dateFilter } : {}) },
       include: {
         details: { include: { product: true } }
       }
@@ -32,12 +64,12 @@ export default async function FinanzasPage() {
       where: companyFilter
     }),
     prisma.expense.findMany({
-      where: companyFilter,
+      where: { ...companyFilter, ...(preset !== 'all' ? { date: dateFilter } : {}) },
       orderBy: { date: 'desc' },
       take: 5
     }),
     prisma.income.aggregate({
-      where: companyFilter,
+      where: { ...companyFilter, ...(preset !== 'all' ? { date: dateFilter } : {}) },
       _sum: { amount: true }
     }),
   ]);
@@ -97,6 +129,9 @@ export default async function FinanzasPage() {
           Movimientos Manuales
         </Link>
       </div>
+
+      {/* ── Filtros ── */}
+      <FinanzasFilters />
 
       {/* ── KPIs Principales: Ganancias y Pérdidas (P&L) ── */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

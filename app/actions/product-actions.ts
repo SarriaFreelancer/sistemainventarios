@@ -120,6 +120,20 @@ export async function createProduct(formData: FormData) {
       }
     }
 
+    const sessionForNotif = await getAuthSession();
+    if (sessionForNotif?.user?.id) {
+      const notifCompanyId = companyId || (await resolveActionCompanyId());
+      if (notifCompanyId) {
+        await createNotification(
+          Number(sessionForNotif.user.id),
+          notifCompanyId,
+          '📦 Nuevo Producto Agregado',
+          `Se agregó el producto "${newProduct.name}" con ${quantity} unidades iniciales.`,
+          'SUCCESS'
+        );
+      }
+    }
+
     revalidatePath('/dashboard/products');
     return { success: true };
   } catch (error: any) {
@@ -225,6 +239,20 @@ export async function updateProduct(formData: FormData) {
             },
           });
         }
+      }
+    }
+
+    const quantityDiff = quantity - product.quantityAvailable;
+    if (quantityDiff > 0) {
+      const sessionForNotif = await getAuthSession();
+      if (sessionForNotif?.user?.id) {
+        await createNotification(
+          Number(sessionForNotif.user.id),
+          product.companyId ?? 1,
+          '📈 Cantidad de Productos Actualizada',
+          `Se agregaron ${quantityDiff} unidades al producto "${updated.name}". Nuevo total: ${quantity}.`,
+          'INFO'
+        );
       }
     }
 

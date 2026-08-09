@@ -72,7 +72,7 @@ export function InteractivePricing({ planSettings = {}, allModules = [] }: { pla
     {
       id: "basico",
       name: "Plan Básico",
-      price: 49999,
+      price: Number(planSettings?.plan_basico_price) || 49999,
       shortFeatures: buildShortFeatures("basico"),
       features: buildFeatures("basico"),
       recommended: false
@@ -80,7 +80,7 @@ export function InteractivePricing({ planSettings = {}, allModules = [] }: { pla
     {
       id: "intermedio",
       name: "Plan Intermedio",
-      price: 89999,
+      price: Number(planSettings?.plan_intermedio_price) || 89999,
       shortFeatures: buildShortFeatures("intermedio"),
       features: buildFeatures("intermedio"),
       recommended: true
@@ -88,7 +88,7 @@ export function InteractivePricing({ planSettings = {}, allModules = [] }: { pla
     {
       id: "premium",
       name: "Plan Premium",
-      price: 129999,
+      price: Number(planSettings?.plan_premium_price) || 129999,
       shortFeatures: buildShortFeatures("premium"),
       features: buildFeatures("premium"),
       recommended: false
@@ -241,11 +241,6 @@ export function InteractivePricing({ planSettings = {}, allModules = [] }: { pla
               <h2 className="text-[36px] font-black text-slate-900 dark:text-white m-0 tracking-tight">
                 Planes simples, poderosos y escalables
               </h2>
-              {userSession && (
-                <div className="mt-6 inline-block bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 py-2 px-4 rounded-full font-bold text-[14px]">
-                  Estás autenticado como {userSession.email}. Selecciona tu plan para pagar.
-                </div>
-              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-start mx-auto max-w-md md:max-w-4xl xl:max-w-none">

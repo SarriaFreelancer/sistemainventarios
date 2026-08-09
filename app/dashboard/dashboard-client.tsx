@@ -308,9 +308,14 @@ export function DashboardClient({
       <div id="tour-dashboard-stats" className={`space-y-6 transition-opacity duration-300 ${isPending ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
         <DashboardCharts
           salesByMonth={data.salesTrendData || []}
+          financialTrendData={data.financialTrendData || []}
           topProducts={data.topProducts || []}
           groupDistribution={data.groupDistribution || []}
           marginPct={data.profitMargin || 0}
+          totalExpenses={data.totalExpenses || 0}
+          totalIncomes={data.totalIncomes || 0}
+          newCustomersCount={data.newCustomersCount || 0}
+          totalCustomersCount={data.totalCustomersCount || 0}
         />
       </div>
 
@@ -430,8 +435,64 @@ export function DashboardClient({
             )}
           </CardContent>
         </Card>
-
       </div>
+
+      {/* ── ACCESOS DIRECTOS INTELIGENTES (AL FINAL) ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500 mt-6 pt-6 border-t border-border/50">
+        {allowedModules.some(m => m.name.toLowerCase() === 'ventas' || m.name.toLowerCase() === 'dashboard') && (
+          <Link 
+            href="/dashboard/sales" 
+            className="group relative overflow-hidden p-4 rounded-xl bg-card border border-border shadow-sm hover:shadow-md hover:bg-muted/50 transition-all duration-300"
+          >
+            <div className="relative z-10 flex flex-col gap-2">
+              <div className="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
+                <ShoppingCart size={20} />
+              </div>
+              <span className="font-extrabold text-sm text-foreground tracking-wide">Nueva Venta</span>
+            </div>
+          </Link>
+        )}
+        {allowedModules.some(m => m.name.toLowerCase() === 'productos' || m.name.toLowerCase() === 'dashboard') && (
+          <Link 
+            href="/dashboard/products" 
+            className="group relative overflow-hidden p-4 rounded-xl bg-card border border-border shadow-sm hover:shadow-md hover:bg-muted/50 transition-all duration-300"
+          >
+            <div className="relative z-10 flex flex-col gap-2">
+              <div className="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
+                <Package size={20} />
+              </div>
+              <span className="font-extrabold text-sm text-foreground tracking-wide">Inventario</span>
+            </div>
+          </Link>
+        )}
+        {allowedModules.some(m => m.name.toLowerCase() === 'crm' || m.name.toLowerCase() === 'dashboard') && (
+          <Link 
+            href="/dashboard/crm" 
+            className="group relative overflow-hidden p-4 rounded-xl bg-card border border-border shadow-sm hover:shadow-md hover:bg-muted/50 transition-all duration-300"
+          >
+            <div className="relative z-10 flex flex-col gap-2">
+              <div className="w-10 h-10 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
+                <Factory size={20} />
+              </div>
+              <span className="font-extrabold text-sm text-foreground tracking-wide">Clientes CRM</span>
+            </div>
+          </Link>
+        )}
+        {allowedModules.some(m => m.name.toLowerCase() === 'finanzas' || m.name.toLowerCase() === 'dashboard') && (
+          <Link 
+            href="/dashboard/finanzas" 
+            className="group relative overflow-hidden p-4 rounded-xl bg-card border border-border shadow-sm hover:shadow-md hover:bg-muted/50 transition-all duration-300"
+          >
+            <div className="relative z-10 flex flex-col gap-2">
+              <div className="w-10 h-10 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
+                <AlertCircle size={20} />
+              </div>
+              <span className="font-extrabold text-sm text-foreground tracking-wide">Finanzas</span>
+            </div>
+          </Link>
+        )}
+      </div>
+
     </div>
   );
 }
