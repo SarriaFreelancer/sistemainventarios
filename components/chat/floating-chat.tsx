@@ -21,7 +21,10 @@ export function FloatingChat({ user }: { user: any }) {
   const [activeTab, setActiveTab] = useState<"users" | "chat">("users");
   const [unreadCount, setUnreadCount] = useState(0);
   const [userUnreadCounts, setUserUnreadCounts] = useState<Record<string, number>>({});
+  const [userLastMessage, setUserLastMessage] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState("");
+  const processedMessageIdsRef = useRef<Set<number>>(new Set());
+
   
   // Data
   const [users, setUsers] = useState<any[]>([]);
@@ -30,6 +33,11 @@ export function FloatingChat({ user }: { user: any }) {
   
   // Chat Data
   const [currentConvo, setCurrentConvo] = useState<any>(null);
+  
+  const currentConvoIdRef = useRef<number | null>(null);
+  useEffect(() => {
+    currentConvoIdRef.current = currentConvo?.id || null;
+  }, [currentConvo]);
   const [chatUser, setChatUser] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [loadingChat, setLoadingChat] = useState(false);
@@ -82,7 +90,11 @@ export function FloatingChat({ user }: { user: any }) {
     const userChannelName = `private-user-${user.id}`;
     const userChannel = pusherInstance.subscribe(userChannelName);
 
-    userChannel.bind("new-message", (message: any) => {
+    const handleNewMessage = (message: any) => {
+      // Prevent duplicate processing
+      if (processedMessageIdsRef.current.has(message.id)) return;
+      processedMessageIdsRef.current.add(message.id);
+
       // Always play a sound if it's not from me (shouldn't happen on this channel anyway)
       try {
         // Use a short standard notification sound (base64 encoded short pop)
@@ -90,28 +102,31 @@ export function FloatingChat({ user }: { user: any }) {
         audio.play().catch(() => {}); // ignore autoplay errors
       } catch (e) {}
 
-      // If we are currently looking at this conversation, just append it
-      setCurrentConvo((prevConvo: any) => {
-        if (prevConvo?.id === message.conversationId) {
-          setMessages(prevMsgs => {
-            if (prevMsgs.some(m => m.id === message.id)) return prevMsgs;
-            return [...prevMsgs, message];
-          });
-          return prevConvo;
-        } else {
-          // If not looking at it, increase unread count
-          setUnreadCount(prev => prev + 1);
-          setUserUnreadCounts(prev => ({
-            ...prev,
-            [message.senderId]: (prev[message.senderId] || 0) + 1
-          }));
-          return prevConvo;
-        }
-      });
-    });
+      if (currentConvoIdRef.current === message.conversationId) {
+        setMessages(prevMsgs => {
+          if (prevMsgs.some(m => m.id === message.id)) return prevMsgs;
+          return [...prevMsgs, message];
+        });
+      } else {
+        // If not looking at it, increase unread count
+        setUnreadCount(prev => prev + 1);
+        setUserUnreadCounts(prev => ({
+          ...prev,
+          [message.senderId]: (prev[message.senderId] || 0) + 1
+        }));
+        setUserLastMessage(prev => ({
+          ...prev,
+          [message.senderId]: message.content
+        }));
+      }
+    };
+
+    userChannel.bind("new-message", handleNewMessage);
 
     return () => {
       if (pusherInstance) {
+        userChannel.unbind("new-message", handleNewMessage);
+        presenceChannel.unbind_all();
         pusherInstance.unsubscribe(`presence-company-${companyId}`);
         pusherInstance.unsubscribe(userChannelName);
       }
@@ -170,35 +185,52 @@ export function FloatingChat({ user }: { user: any }) {
     setShowEmojiPicker(false);
   };
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !currentConvo || sending) return;
+  const isSendingRef = useRef(false);
 
+  const submitMessage = async () => {
+    if (!newMessage.trim() || sending || isSendingRef.current || !currentConvo) return;
+    
+    isSendingRef.current = true;
+    setSending(true);
     const tempContent = newMessage.trim();
     setNewMessage(""); // Optimistic clear
     setShowEmojiPicker(false);
-    setSending(true);
 
     // Optimistic UI update
     const optimisticMsg = {
-      id: Date.now(), // temporary
+      id: Date.now(),
+      conversationId: currentConvo.id,
       senderId: Number(user?.id),
       content: tempContent,
-      createdAt: new Date(),
-      sender: { name: user?.name }
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      isRead: false
     };
     setMessages(prev => [...prev, optimisticMsg]);
 
-    const res = await sendMessage(currentConvo.id, tempContent);
-    if (!res.success) {
-      alert(res.error);
+    try {
+      const res = await sendMessage(currentConvo.id, tempContent);
+      if (!res.success) {
+        alert(res.error);
+        setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
+        setNewMessage(tempContent); // Restore input on error
+      } else if (res.data) {
+        // Replace optimistic message with real one
+        setMessages(prev => prev.map(m => m.id === optimisticMsg.id ? res.data : m));
+      }
+    } catch (e: any) {
+      alert("Error de red al enviar mensaje");
       setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
-    } else if (res.data) {
-      // Replace optimistic message with real one
-      setMessages(prev => prev.map(m => m.id === optimisticMsg.id ? res.data : m));
+      setNewMessage(tempContent);
     }
     
     setSending(false);
+    isSendingRef.current = false;
+  };
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    submitMessage();
   };
 
   const handleEmojiSelect = (emoji: any) => {
@@ -264,11 +296,8 @@ export function FloatingChat({ user }: { user: any }) {
             </div>
             
             <div className="flex items-center gap-1 text-muted-foreground">
-              <button className="p-2 hover:text-foreground transition rounded-full hover:bg-muted">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-              </button>
-              <button onClick={() => setIsOpen(false)} className="p-2 hover:text-foreground transition rounded-full hover:bg-muted">
-                <X size={20} />
+              <button onClick={() => setIsOpen(false)} className="p-2 hover:text-foreground transition rounded-full hover:bg-muted" title="Minimizar chat">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
               </button>
             </div>
           </div>
@@ -336,16 +365,20 @@ export function FloatingChat({ user }: { user: any }) {
                                 </div>
                                 <div>
                                   <p className="font-semibold text-[15px] text-foreground">{u.name}</p>
-                                  <p className="text-[13px] text-muted-foreground">{u.position || "Miembro del equipo"}</p>
+                                  <p className="text-[13px] text-muted-foreground truncate max-w-[200px]">
+                                    {unread > 0 && userLastMessage[String(u.id)] ? userLastMessage[String(u.id)] : (u.position || "Miembro del equipo")}
+                                  </p>
                                 </div>
                               </div>
-                              <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                                {unread > 0 ? (
-                                  <span className="font-bold text-sm">{unread}</span>
-                                ) : (
+                              {unread > 0 ? (
+                                <div className="w-7 h-7 rounded-full bg-red-500 flex items-center justify-center text-white font-bold text-xs shadow-sm">
+                                  {unread}
+                                </div>
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                                   <MessageCircle size={18} />
-                                )}
-                              </div>
+                                </div>
+                              )}
                             </button>
                           )
                         })}
@@ -390,16 +423,20 @@ export function FloatingChat({ user }: { user: any }) {
                                   </div>
                                   <div>
                                     <p className="font-semibold text-[15px] text-foreground">{u.name}</p>
-                                    <p className="text-[13px] text-muted-foreground">{u.position || "Miembro del equipo"}</p>
+                                    <p className="text-[13px] text-muted-foreground truncate max-w-[200px]">
+                                      {unread > 0 && userLastMessage[String(u.id)] ? userLastMessage[String(u.id)] : (u.position || "Miembro del equipo")}
+                                    </p>
                                   </div>
                                 </div>
-                                <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
-                                  {unread > 0 ? (
-                                    <span className="font-bold text-sm text-primary">{unread}</span>
-                                  ) : (
+                                {unread > 0 ? (
+                                  <div className="w-7 h-7 rounded-full bg-red-500 flex items-center justify-center text-white font-bold text-xs shadow-sm">
+                                    {unread}
+                                  </div>
+                                ) : (
+                                  <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
                                     <MessageCircle size={18} />
-                                  )}
-                                </div>
+                                  </div>
+                                )}
                               </button>
                             )
                           })}
@@ -483,7 +520,7 @@ export function FloatingChat({ user }: { user: any }) {
 
               {/* Input Area */}
               <div className="p-4 bg-card border-t border-border">
-                <form onSubmit={handleSendMessage} className="flex items-center gap-3 relative">
+                <form onSubmit={handleFormSubmit} className="flex items-center gap-3 relative">
                   <button
                     type="button"
                     onClick={() => setShowEmojiPicker(!showEmojiPicker)}
@@ -498,8 +535,8 @@ export function FloatingChat({ user }: { user: any }) {
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
-                        if (newMessage.trim() && !sending) {
-                          handleSendMessage(e as any);
+                        if (newMessage.trim()) {
+                          submitMessage();
                         }
                       }
                     }}

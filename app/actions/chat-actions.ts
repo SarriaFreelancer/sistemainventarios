@@ -174,27 +174,35 @@ export async function sendMessage(conversationId: number, content: string) {
       }
     };
 
-    // Trigger Pusher event to the conversation channel (if they have it open)
-    await pusher.trigger(`private-chat-${conversationId}`, "new-message", pusherPayload);
+    // Trigger Pusher events (wrapped in try-catch so Pusher network errors don't prevent message sending)
+    try {
+      await pusher.trigger(`private-chat-${conversationId}`, "new-message", pusherPayload);
 
-    // Trigger Pusher event to the specific user channel (for unread badges and sounds)
-    const participants = await prisma.chatParticipant.findMany({
-      where: { conversationId }
-    });
-    
-    for (const p of participants) {
-      if (p.userId !== currentUserId) {
-        await pusher.trigger(`private-user-${p.userId}`, "new-message", {
-          ...pusherPayload,
-          conversationId
-        });
+      const participants = await prisma.chatParticipant.findMany({
+        where: { conversationId }
+      });
+      
+      for (const p of participants) {
+        if (p.userId !== currentUserId) {
+          await pusher.trigger(`private-user-${p.userId}`, "new-message", {
+            ...pusherPayload,
+            conversationId
+          });
+        }
       }
+    } catch (pusherError) {
+      console.error("Pusher notification error (message saved successfully):", pusherError);
     }
 
     return { success: true, data: message };
   } catch (error: any) {
     console.error("Error sending message:", error, error?.body);
-    const detail = error?.body ? String(error.body) : String(error?.message || error);
+    let detail = String(error?.message || error);
+    try {
+      if (error?.body) {
+        detail = typeof error.body === 'object' ? JSON.stringify(error.body) : String(error.body);
+      }
+    } catch (e) {}
     return { success: false, error: "Error interno: " + detail };
   }
 }
