@@ -402,8 +402,8 @@ export function SuppliersClient({ suppliers }: { suppliers: Supplier[] }) {
                 <tbody className="divide-y divide-border/40">
                   {paginatedSuppliers.map((supplier) => (
                     <tr key={supplier.id} className="group hover:bg-primary/5 transition-colors duration-200">
-                      <td className="px-6 py-4">
-                        <span className="font-mono text-xs font-bold text-muted-foreground bg-muted border border-border/80 px-2 py-1 rounded">
+                      <td className="px-6 py-4 max-w-[120px] sm:max-w-none">
+                        <span className="font-mono text-xs font-bold text-muted-foreground bg-muted border border-border/80 px-2 py-1 rounded inline-block truncate max-w-full align-middle">
                           {supplier.code || '—'}
                         </span>
                       </td>

@@ -15,6 +15,7 @@ export function ImportsManager() {
   const [loadingTemplate, setLoadingTemplate] = useState<string | null>(null);
   const [uploading, setUploading] = useState<string | null>(null);
   const [files, setFiles] = useState<Record<string, File | null>>({});
+  const [updateExistingStock, setUpdateExistingStock] = useState(false);
 
   const handleDownloadTemplate = async (id: string, filename: string) => {
     setLoadingTemplate(id);
@@ -49,6 +50,9 @@ export function ImportsManager() {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("type", id);
+    if (id === 'products' && updateExistingStock) {
+      formData.append("updateExistingStock", "true");
+    }
 
     try {
       const res = await fetch(`/api/imports/upload`, {
@@ -59,7 +63,10 @@ export function ImportsManager() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al procesar archivo");
 
-      let msg = `<div class="text-left font-sans text-sm"><p>Se importaron <strong>${data.count}</strong> registros correctamente.</p>`;
+      let msg = `<div class="text-left font-sans text-sm"><p>Se importaron <strong>${data.count}</strong> registros nuevos correctamente.</p>`;
+      if (data.updatedCount && data.updatedCount > 0) {
+        msg += `<p class="mt-1 text-emerald-600 dark:text-emerald-400">Se actualizó el stock de <strong>${data.updatedCount}</strong> productos existentes.</p>`;
+      }
       if (data.skipped && data.skipped.length > 0) {
         msg += `<div class="mt-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
                   <p class="text-amber-700 dark:text-amber-400 font-semibold mb-2 text-xs">Omitidos (${data.skipped.length}) por ya existir:</p>
@@ -73,7 +80,7 @@ export function ImportsManager() {
       brandAlert.fire({
         title: "Resumen de Importación",
         html: msg,
-        icon: data.count > 0 ? "success" : "info",
+        icon: (data.count > 0 || data.updatedCount > 0) ? "success" : "info",
         confirmButtonText: "Entendido",
       });
       setFiles({ ...files, [id]: null });
@@ -125,6 +132,20 @@ export function ImportsManager() {
             </div>
 
             <div className="space-y-3">
+              {t.id === 'products' && (
+                <div className="flex items-start gap-2 mb-2 p-3 bg-muted/30 rounded-lg border border-border/50">
+                  <input
+                    type="checkbox"
+                    id="update-stock"
+                    checked={updateExistingStock}
+                    onChange={(e) => setUpdateExistingStock(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-border text-primary focus:ring-primary/20 shrink-0 cursor-pointer"
+                  />
+                  <label htmlFor="update-stock" className="text-[11px] font-medium text-foreground cursor-pointer">
+                    Sumar cantidad al stock si el producto ya existe <span className="text-muted-foreground block font-normal">Si desmarcas esta opción, los productos que ya existen serán ignorados.</span>
+                  </label>
+                </div>
+              )}
               <button
                 type="button"
                 onClick={() => handleDownloadTemplate(t.id, t.file)}

@@ -61,8 +61,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "El archivo está vacío" }, { status: 400 });
     }
 
+    const updateExistingStock = formData.get("updateExistingStock") === "true";
     let count = 0;
+    let updatedCount = 0;
     const skipped: string[] = [];
+
+    const settings = await prisma.companySetting.findUnique({
+      where: { companyId: Number(companyId) }
+    });
+    const enableNotifications = settings?.enableNotifications !== false;
+    const registerAsExpense = settings?.registerInventoryCostAsExpense === true;
 
     await prisma.$transaction(async (tx) => {
       if (type === "groups") {
@@ -200,7 +208,7 @@ export async function POST(request: NextRequest) {
           });
 
           if (!exists) {
-            await tx.product.create({
+            const newProduct = await tx.product.create({
               data: {
                 code,
                 name,
@@ -216,8 +224,123 @@ export async function POST(request: NextRequest) {
               }
             });
             count++;
+
+            if (session.user.id) {
+              await tx.auditLog.create({
+                data: {
+                  module: 'PRODUCTS',
+                  action: 'CREATE',
+                  entity: 'Product',
+                  entityId: newProduct.id,
+                  description: `Creó el producto "${newProduct.name}" (Código: ${newProduct.code}) masivamente`,
+                  userId: Number(session.user.id),
+                  companyId: Number(companyId),
+                }
+              });
+            }
+
+            if (registerAsExpense && initialQty > 0 && cost > 0) {
+              const expenseAmount = initialQty * cost;
+              const expense = await tx.expense.create({
+                data: {
+                  description: `Compra inicial de inventario (Importación): ${name} (${initialQty} unidades)`,
+                  amount: expenseAmount,
+                  category: 'INVENTORY_COST',
+                  date: new Date(),
+                  companyId: Number(companyId),
+                }
+              });
+              if (session.user.id) {
+                await tx.auditLog.create({
+                  data: {
+                    action: "CREATE",
+                    module: "FINANZAS",
+                    entity: "Expense",
+                    entityId: expense.id,
+                    description: `Gasto de inventario registrado automáticamente: ${expense.description} por valor de $${expense.amount}`,
+                    userId: Number(session.user.id),
+                    companyId: Number(companyId),
+                  }
+                });
+              }
+            }
+
+            if (enableNotifications && session.user.id) {
+              await tx.notification.create({
+                data: {
+                  userId: Number(session.user.id),
+                  companyId: Number(companyId),
+                  title: '📦 Nuevo Producto Importado',
+                  message: `Se importó el producto "${name}" con ${initialQty} unidades iniciales.`,
+                  type: 'SUCCESS'
+                }
+              });
+            }
           } else {
-            skipped.push(`Producto ${code}: Ya existe.`);
+            if (updateExistingStock && initialQty > 0) {
+              const updatedProduct = await tx.product.update({
+                where: { id: exists.id },
+                data: {
+                  quantityAvailable: exists.quantityAvailable + initialQty,
+                  status: "AVAILABLE"
+                }
+              });
+              updatedCount++;
+
+              if (session.user.id) {
+                await tx.auditLog.create({
+                  data: {
+                    module: 'PRODUCTS',
+                    action: 'UPDATE',
+                    entity: 'Product',
+                    entityId: exists.id,
+                    description: `Actualizó el producto "${updatedProduct.name}" masivamente (Stock: +${initialQty})`,
+                    userId: Number(session.user.id),
+                    companyId: Number(companyId),
+                  }
+                });
+              }
+
+              if (registerAsExpense && cost > 0) {
+                const expenseAmount = initialQty * cost;
+                const expense = await tx.expense.create({
+                  data: {
+                    description: `Actualización de inventario (Importación): ${name} (+${initialQty} unidades)`,
+                    amount: expenseAmount,
+                    category: 'INVENTORY_COST',
+                    date: new Date(),
+                    companyId: Number(companyId),
+                  }
+                });
+                if (session.user.id) {
+                  await tx.auditLog.create({
+                    data: {
+                      action: "CREATE",
+                      module: "FINANZAS",
+                      entity: "Expense",
+                      entityId: expense.id,
+                      description: `Gasto de inventario registrado automáticamente: ${expense.description} por valor de $${expense.amount}`,
+                      userId: Number(session.user.id),
+                      companyId: Number(companyId),
+                    }
+                  });
+                }
+              }
+
+              if (enableNotifications && session.user.id) {
+                await tx.notification.create({
+                  data: {
+                    userId: Number(session.user.id),
+                    companyId: Number(companyId),
+                    title: '📦 Stock Actualizado por Importación',
+                    message: `Se sumaron ${initialQty} unidades al producto "${name}".`,
+                    type: 'INFO'
+                  }
+                });
+              }
+            } else {
+              skipped.push(`Producto ${code}: Ya existe.`);
+            }
           }
         }
       } else {
@@ -228,7 +351,7 @@ export async function POST(request: NextRequest) {
       timeout: 30000 // 30s timeout for execution (useful for bulk uploads)
     });
 
-    return NextResponse.json({ success: true, count, skipped }, { status: 200 });
+    return NextResponse.json({ success: true, count, updatedCount, skipped }, { status: 200 });
   } catch (error: any) {
     console.error("[IMPORTS_UPLOAD]", error);
     return NextResponse.json({ error: error.message || "Error al procesar el archivo" }, { status: 500 });

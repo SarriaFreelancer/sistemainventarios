@@ -2,6 +2,8 @@ import ExcelJS from 'exceljs';
 import { getAuthSession } from '@/auth';
 import { prisma } from '@/lib/prisma';
 
+import { getSessionCompanyId } from '@/lib/session';
+
 export async function GET(request: Request) {
   try {
     const session = await getAuthSession();
@@ -9,8 +11,8 @@ export async function GET(request: Request) {
       return new Response(JSON.stringify({ error: 'No autorizado' }), { status: 401 });
     }
 
-    const { companyId, role } = session.user as { companyId?: string; role?: string };
-    const companyFilter = role === 'SUPERADMIN' || !companyId ? {} : { companyId: Number(companyId) };
+    const companyId = await getSessionCompanyId();
+    const companyFilter = companyId ? { companyId } : {};
 
     const { searchParams } = new URL(request.url);
     const categoryId = searchParams.get('categoryId');
@@ -31,6 +33,7 @@ export async function GET(request: Request) {
       include: {
         category: true,
         supplier: true,
+        productGroup: true,
       },
       orderBy: { name: 'asc' },
     });
@@ -44,7 +47,11 @@ export async function GET(request: Request) {
         'Código': p.code,
         'Nombre': p.name,
         'Tipo': p.type === 'SALE' ? 'Venta' : p.type === 'RAW_MATERIAL' ? 'Materia Prima' : p.type === 'FINISHED_GOOD' ? 'Producto Term.' : p.type === 'SUPPLY' ? 'Insumo' : p.type === 'SERVICE' ? 'Servicio' : 'Activo Fijo',
+        'Cód. Grupo': p.productGroup?.code ?? '—',
+        'Grupo': p.productGroup?.name ?? '—',
+        'Cód. Categoría': p.category?.code ?? '—',
         'Categoría': p.category?.name ?? '—',
+        'Cód. Proveedor': p.supplier?.code ?? '—',
         'Proveedor': p.supplier?.companyName ?? '—',
         'Stock Disponible': p.quantityAvailable,
         'Costo Unitario': cost,
