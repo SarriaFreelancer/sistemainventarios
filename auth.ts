@@ -7,6 +7,10 @@ import bcrypt from 'bcryptjs';
 import { prisma } from './lib/prisma';
 import { logLoginAttempt } from './lib/audit';
 
+// Timestamp (seconds) when this server process started.
+// Any JWT issued before this time belongs to a previous process and must be rejected.
+const SERVER_START = Math.floor(Date.now() / 1000);
+
 export const authOptions: AuthOptions = {
   session: { 
     strategy: 'jwt',
@@ -117,12 +121,26 @@ export const authOptions: AuthOptions = {
   },
   callbacks: {
     async jwt({ token, user, trigger, session }: any) {
+      // When user first logs in, stamp the current server start time
       if (user) {
         token.id = user.id;
         token.role = user.role;
         token.companyId = user.companyId;
         token.companyStatus = user.companyStatus;
         token.companyPlan = user.companyPlan;
+        token.serverStartedAt = SERVER_START;
+      }
+
+      // If the token was issued by a previous server instance, invalidate it
+      if (token.serverStartedAt && token.serverStartedAt !== SERVER_START) {
+        // Wipe all user data from the token so session becomes invalid
+        delete token.id;
+        delete token.role;
+        delete token.companyId;
+        delete token.companyStatus;
+        delete token.companyPlan;
+        delete token.serverStartedAt;
+        return token;
       }
 
       if (trigger === 'update' && session) {
@@ -149,6 +167,13 @@ export const authOptions: AuthOptions = {
       return token;
     },
     async session({ session, token }: any) {
+      // If token was invalidated (server restart), return session with no user id
+      // so getAuthSession() can detect it and return null
+      if (!token.id) {
+        session.user = { invalidated: true };
+        return session;
+      }
+
       if (session.user) {
         session.user.id = token.id;
         session.user.role = token.role;
@@ -185,5 +210,11 @@ const authHandler = NextAuth(authOptions);
 export { authHandler as GET, authHandler as POST };
 
 export async function getAuthSession() {
-  return getServerSession(authOptions);
+  const session = await getServerSession(authOptions);
+  // Double-check: if session exists but has no valid user id, the token was
+  // invalidated (e.g. after server restart). Treat as unauthenticated.
+  if (session && !session.user?.id) {
+    return null;
+  }
+  return session;
 }

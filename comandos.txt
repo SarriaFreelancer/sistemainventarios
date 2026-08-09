@@ -1,0 +1,12 @@
+Acción	Comando en la terminal
+Iniciar modo desarrollo	pnpm run pm2:dev
+Iniciar modo producción	pnpm run pm2:prod
+Ver estado del servidor	pm2 status
+Ver logs en tiempo real	pm2 logs gns-dev
+Reiniciar el servidor	pm2 restart gns-dev
+Detener el servidor	pm2 stop gns-dev
+Guardar cambios para el arranque	pm2 save
+
+--Cambios en la base de datos
+pnpm run prisma:generate
+pm2 restart gns-dev
