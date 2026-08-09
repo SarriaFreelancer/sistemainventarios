@@ -260,6 +260,8 @@ model User {
   internalRequisitions InternalRequisition[]
   employee             Employee?
   systemAnnouncements  SystemAnnouncement[]
+  chatParticipants     ChatParticipant[]
+  chatMessages         ChatMessage[]
 
   @@index([email])
   @@index([companyId])
@@ -371,6 +373,7 @@ model Company {
   payrolls                 Payroll[]
   payrollDetails           PayrollDetail[]
   employeeNovelties        EmployeeNovelty[]
+  chatConversations        ChatConversation[]
 
   @@index([name])
 }
@@ -1222,10 +1225,52 @@ model SystemAnnouncement {
   title       String
   message     String   @db.Text
   type        String   @default("INFO") // INFO, WARNING, URGENT
-  expiresAt   DateTime
   isActive    Boolean  @default(true)
+  expiresAt   DateTime
   createdAt   DateTime @default(now())
-  
   createdById Int
   createdBy   User     @relation(fields: [createdById], references: [id])
+
+  @@index([createdById])
+  @@index([isActive])
+}
+
+model ChatConversation {
+  id        Int               @id @default(autoincrement())
+  companyId Int
+  company   Company           @relation(fields: [companyId], references: [id])
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  
+  participants ChatParticipant[]
+  messages     ChatMessage[]
+
+  @@index([companyId])
+}
+
+model ChatParticipant {
+  id             Int              @id @default(autoincrement())
+  conversationId Int
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         Int
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastReadAt     DateTime?        @default(now())
+  joinedAt       DateTime         @default(now())
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+}
+
+model ChatMessage {
+  id             Int              @id @default(autoincrement())
+  conversationId Int
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       Int
+  sender         User             @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  content        String           @db.Text
+  createdAt      DateTime         @default(now())
+  isRead         Boolean          @default(false)
+
+  @@index([conversationId])
+  @@index([senderId])
 }

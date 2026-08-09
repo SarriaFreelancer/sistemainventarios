@@ -120,3 +120,59 @@ export async function deleteAnnouncement(id: number) {
     return { success: false, error: "Error al eliminar el anuncio" };
   }
 }
+
+export async function activateAnnouncement(id: number) {
+  const session = await getAuthSession();
+  if (session?.user?.role !== "SUPERADMIN") {
+    return { success: false, error: "No autorizado" };
+  }
+
+  try {
+    const ann = await prisma.systemAnnouncement.findUnique({ where: { id } });
+    if (!ann) return { success: false, error: "Anuncio no encontrado" };
+
+    // Extend expiration by 24 hours if it has already expired when turning back on
+    let expiresAt = ann.expiresAt;
+    if (new Date(ann.expiresAt) <= new Date()) {
+      expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    }
+
+    await prisma.systemAnnouncement.update({
+      where: { id },
+      data: { isActive: true, expiresAt }
+    });
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: "Error al encender el anuncio" };
+  }
+}
+
+export async function updateAnnouncement(id: number, data: {
+  title: string;
+  message: string;
+  type: string;
+  expiresInHours: number;
+}) {
+  const session = await getAuthSession();
+  if (session?.user?.role !== "SUPERADMIN") {
+    return { success: false, error: "No autorizado" };
+  }
+
+  const expiresAt = new Date(Date.now() + data.expiresInHours * 60 * 60 * 1000);
+
+  try {
+    await prisma.systemAnnouncement.update({
+      where: { id },
+      data: {
+        title: data.title,
+        message: data.message,
+        type: data.type,
+        expiresAt,
+        isActive: true // Make sure it becomes active when updated
+      }
+    });
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: "Error al actualizar el anuncio" };
+  }
+}

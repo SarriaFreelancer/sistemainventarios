@@ -81,6 +81,8 @@ async function ensureModulesInitialized() {
 
 
 
+import { FloatingChat } from '@/components/chat/floating-chat';
+
 export default async function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const session = await getAuthSession();
   if (!session?.user) redirect('/auth/login');
@@ -156,6 +158,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         <SessionMonitor sessionToken={(session.user as any).sessionToken} />
       )}
       <GlobalAnnouncer />
+      <FloatingChat user={session.user} />
       <DashboardShell 
         session={session} 
         modules={allowedModules} 

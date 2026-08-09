@@ -1,14 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Bell, Megaphone, Trash2, Loader2, AlertTriangle, AlertCircle, Clock } from "lucide-react";
-import { createAnnouncement, getAllAnnouncements, deactivateAnnouncement, deleteAnnouncement } from "@/app/actions/announcement-actions";
+import { Bell, Megaphone, Trash2, Loader2, AlertTriangle, AlertCircle, Clock, Edit } from "lucide-react";
+import { createAnnouncement, getAllAnnouncements, deactivateAnnouncement, deleteAnnouncement, activateAnnouncement, updateAnnouncement } from "@/app/actions/announcement-actions";
 import { successAlert, errorAlert } from "@/lib/sweetalert";
 
 export function AnnouncementsManager() {
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     title: "",
     message: "",
@@ -37,16 +38,49 @@ export function AnnouncementsManager() {
     }
     
     setSubmitting(true);
-    const res = await createAnnouncement(formData);
+    
+    let res;
+    if (editingId) {
+      res = await updateAnnouncement(editingId, formData);
+    } else {
+      res = await createAnnouncement(formData);
+    }
+    
     setSubmitting(false);
 
     if (res.success) {
-      successAlert("Publicado", "El anuncio ha sido publicado exitosamente.");
-      setFormData({ title: "", message: "", type: "INFO", expiresInHours: 24, sendToBell: false });
+      successAlert("Publicado", editingId ? "El anuncio ha sido actualizado exitosamente." : "El anuncio ha sido publicado exitosamente.");
+      handleCancelEdit();
       loadAnnouncements();
     } else {
       errorAlert("Error", res.error || "No se pudo publicar el anuncio. Verifica que hayas reiniciado el servidor (pnpm run dev).");
     }
+  };
+
+  const handleEditClick = (ann: any) => {
+    setEditingId(ann.id);
+    
+    // Calculate remaining hours roughly or just default to 24
+    let hours = 24;
+    if (ann.expiresAt) {
+      const diff = new Date(ann.expiresAt).getTime() - new Date().getTime();
+      if (diff > 0) hours = Math.max(1, Math.round(diff / (1000 * 60 * 60)));
+    }
+    
+    setFormData({
+      title: ann.title,
+      message: ann.message,
+      type: ann.type,
+      expiresInHours: hours,
+      sendToBell: false // Can't re-send to bell easily on edit
+    });
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setFormData({ title: "", message: "", type: "INFO", expiresInHours: 24, sendToBell: false });
   };
 
   const handleDeactivate = async (id: number) => {
@@ -67,6 +101,28 @@ export function AnnouncementsManager() {
         loadAnnouncements();
       } else {
         errorAlert("Error", "No se pudo apagar.");
+      }
+    }
+  };
+
+  const handleActivate = async (id: number) => {
+    const Swal = (await import("sweetalert2")).default;
+    const result = await Swal.fire({
+      title: '¿Encender anuncio?',
+      text: "El anuncio volverá a estar visible. Si su tiempo original ya se había agotado, se extenderá automáticamente por 24 horas.",
+      icon: 'info',
+      showCancelButton: true,
+      confirmButtonColor: '#3b82f6',
+      confirmButtonText: 'Sí, encender'
+    });
+
+    if (result.isConfirmed) {
+      const res = await activateAnnouncement(id);
+      if (res.success) {
+        successAlert("Encendido", "El anuncio está activo nuevamente.");
+        loadAnnouncements();
+      } else {
+        errorAlert("Error", "No se pudo encender.");
       }
     }
   };
@@ -183,14 +239,24 @@ export function AnnouncementsManager() {
             </div>
           </div>
 
-          <div className="pt-2 flex justify-end">
+          <div className="pt-2 flex justify-end gap-3">
+            {editingId && (
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                disabled={submitting}
+                className="bg-muted text-muted-foreground px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-muted/80 transition disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+            )}
             <button
               type="submit"
               disabled={submitting}
               className="bg-primary text-primary-foreground px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 hover:opacity-90 transition disabled:opacity-50"
             >
-              {submitting ? <Loader2 size={16} className="animate-spin" /> : <Megaphone size={16} />}
-              Publicar Anuncio Global
+              {submitting ? <Loader2 size={16} className="animate-spin" /> : (editingId ? <Edit size={16} /> : <Megaphone size={16} />)}
+              {editingId ? 'Guardar Cambios' : 'Publicar Anuncio Global'}
             </button>
           </div>
         </form>
@@ -232,13 +298,26 @@ export function AnnouncementsManager() {
                     </p>
                   </div>
                   
-                  <div className="flex items-center gap-2">
-                    {isActive && (
+                  <div className="flex items-center gap-2 flex-wrap justify-end">
+                    <button
+                      onClick={() => handleEditClick(ann)}
+                      className="text-blue-500 bg-blue-500/10 hover:bg-blue-500/20 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition"
+                    >
+                      <Edit size={14} /> Editar
+                    </button>
+                    {isActive ? (
                       <button
                         onClick={() => handleDeactivate(ann.id)}
                         className="text-amber-500 bg-amber-500/10 hover:bg-amber-500/20 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition"
                       >
                         Apagar
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleActivate(ann.id)}
+                        className="text-emerald-500 bg-emerald-500/10 hover:bg-emerald-500/20 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition"
+                      >
+                        Encender
                       </button>
                     )}
                     <button
