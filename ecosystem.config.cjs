@@ -15,8 +15,8 @@ module.exports = {
     },
     {
       name: "gns-dev",
-      script: "pnpm",
-      args: "run dev",
+      script: "node",
+      args: "node_modules/next/dist/bin/next dev",
       cwd: "C:\\Informacion David\\Desarrollo\\invetario_productos",
       autorestart: true,
       watch: false,

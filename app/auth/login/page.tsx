@@ -32,10 +32,16 @@ export default function LoginPage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('reason') === 'inactivity') {
+      const reason = urlParams.get('reason');
+      if (reason === 'inactivity') {
         setAuthStatus({
           type: 'error',
           message: 'Tu sesión ha finalizado automáticamente tras 30 minutos de inactividad por motivos de seguridad.',
+        });
+      } else if (reason === 'admin_disconnect') {
+        setAuthStatus({
+          type: 'error',
+          message: 'Tu sesión ha sido finalizada por un administrador del sistema.',
         });
       }
     }

@@ -5,7 +5,7 @@
   "type": "module",
   "packageManager": "pnpm@9.15.0",
   "scripts": {
-    "dev": "pnpm run prisma:generate && npx prisma db push --skip-generate && pnpm exec next dev",
+    "dev": "pnpm exec prisma db push --skip-generate && pnpm exec next dev",
     "build": "npx prisma db push --skip-generate && next build",
     "build:e2e": "cross-env NODE_ENV=production DATABASE_URL=$DATABASE_URL NEXTAUTH_URL=$NEXTAUTH_URL NEXTAUTH_SECRET=$NEXTAUTH_SECRET pnpm build",
     "db:push": "prisma db push",

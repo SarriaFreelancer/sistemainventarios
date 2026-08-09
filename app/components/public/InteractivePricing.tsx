@@ -118,7 +118,7 @@ export function InteractivePricing({ planSettings = {}, allModules = [] }: { pla
   const startCheckoutProcess = async (plan: any, isPreLoggedIn = false) => {
     setSelectedPlan(plan);
     
-    // Si ya está logueado (antes de darle clic o mediante session guardada), procedemos directo a generar orden
+    // Si la sesión existe, vamos directo a checkout, el backend se encarga de crear la empresa si no existe
     if (isPreLoggedIn || userSession) {
       setStep("CHECKOUT");
       await generateOrderAndShowBold(plan);

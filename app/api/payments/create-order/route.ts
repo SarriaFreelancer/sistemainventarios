@@ -14,16 +14,53 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { planId, amount } = body;
 
-    const companyId = session.user.companyId ? parseInt(session.user.companyId, 10) : null;
+    let companyId = session.user.companyId ? parseInt(session.user.companyId, 10) : null;
+    let company: any = null;
     
-    if (!companyId) {
-      return NextResponse.json({ message: 'Usuario sin empresa asociada' }, { status: 400 });
+    if (companyId) {
+      company = await platformDb.company.findUnique({ where: { id: companyId } });
     }
 
-    // Verify company exists
-    const company = await platformDb.company.findUnique({ where: { id: companyId } });
+    // Si el usuario está registrado pero no tiene empresa asociada aún, la creamos automáticamente
     if (!company) {
-      return NextResponse.json({ message: 'Empresa no encontrada' }, { status: 404 });
+      const userId = session.user.id ? parseInt(session.user.id, 10) : null;
+      let user: any = null;
+
+      if (userId && !isNaN(userId)) {
+        user = await platformDb.user.findUnique({ where: { id: userId } });
+      } else if (session.user.email) {
+        user = await platformDb.user.findUnique({ where: { email: session.user.email } });
+      }
+
+      if (!user) {
+        return NextResponse.json({ message: 'Usuario no encontrado. Por favor inicia sesión de nuevo.' }, { status: 404 });
+      }
+
+      const companyName = user.name ? `Empresa de ${user.name}` : `Empresa ${user.email}`;
+      const rawPlanId = planId ? planId.toLowerCase() : 'basico';
+      
+      const maxUsers = rawPlanId === 'premium' ? 999 : rawPlanId === 'intermedio' ? 5 : 2;
+      const maxProducts = rawPlanId === 'premium' ? 999999 : rawPlanId === 'intermedio' ? 1000 : 100;
+      const maxSalesPerMonth = rawPlanId === 'premium' ? 999999 : rawPlanId === 'intermedio' ? 999999 : 50;
+
+      company = await platformDb.company.create({
+        data: {
+          name: companyName,
+          planId: planId,
+          status: 'SUSPENDED',
+          maxUsers,
+          maxProducts,
+          maxSalesPerMonth
+        } as any
+      });
+
+      await platformDb.user.update({
+        where: { id: user.id },
+        data: {
+          companyId: company.id,
+          role: { connect: { name: 'ADMIN' } }
+        }
+      });
     }
 
     const orderReference = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;

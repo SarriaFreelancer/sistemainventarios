@@ -6,10 +6,15 @@ import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { prisma } from './lib/prisma';
 import { logLoginAttempt } from './lib/audit';
+import { checkSessionLimits, createActiveSession, removeSessionByIdInternal } from './lib/session-core';
 
 // Timestamp (seconds) when this server process started.
 // Any JWT issued before this time belongs to a previous process and must be rejected.
-const SERVER_START = Math.floor(Date.now() / 1000);
+const globalForAuth = globalThis as unknown as { serverStart: number };
+if (!globalForAuth.serverStart) {
+  globalForAuth.serverStart = Math.floor(Date.now() / 1000);
+}
+const SERVER_START = globalForAuth.serverStart;
 
 export const authOptions: AuthOptions = {
   session: { 
@@ -103,6 +108,24 @@ export const authOptions: AuthOptions = {
           status: "SUCCESS"
         });
 
+        // --- SESSION LIMITS LOGIC ---
+        let sessionToken: string | null = null;
+        if (user.companyId) {
+          const limits = await checkSessionLimits(user.id, user.companyId);
+          
+          if (!limits.allowed) {
+            throw new Error(`Límite de licencias alcanzado. Se han utilizado ${limits.activeCount} de ${limits.maxUsers} conexiones permitidas. Comunícate con un administrador.`);
+          }
+          
+          if (limits.closeSessionId) {
+            // User already has an active session, close it to allow this new one
+            await removeSessionByIdInternal(limits.closeSessionId);
+          }
+          
+          // Create new active session record
+          sessionToken = await createActiveSession(user.id, user.companyId, {});
+        }
+
         return {
           id: String(user.id),
           name: user.name,
@@ -111,7 +134,8 @@ export const authOptions: AuthOptions = {
           role: user.role?.name,
           companyId: user.companyId ? String(user.companyId) : null,
           companyStatus: user.company?.status || null,
-          companyPlan: user.company?.planId || null
+          companyPlan: user.company?.planId || null,
+          sessionToken // Add the token
         };
       },
     }),
@@ -129,6 +153,9 @@ export const authOptions: AuthOptions = {
         token.companyStatus = user.companyStatus;
         token.companyPlan = user.companyPlan;
         token.serverStartedAt = SERVER_START;
+        if (user.sessionToken) {
+          token.sessionToken = user.sessionToken;
+        }
       }
 
       // If the token was issued by a previous server instance, invalidate it
@@ -140,6 +167,7 @@ export const authOptions: AuthOptions = {
         delete token.companyStatus;
         delete token.companyPlan;
         delete token.serverStartedAt;
+        delete token.sessionToken;
         return token;
       }
 
@@ -180,6 +208,7 @@ export const authOptions: AuthOptions = {
         session.user.companyId = token.companyId;
         session.user.companyStatus = token.companyStatus;
         session.user.companyPlan = token.companyPlan;
+        session.user.sessionToken = token.sessionToken;
 
         if (token.id) {
           try {

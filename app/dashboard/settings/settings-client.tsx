@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { Building, Boxes, ShieldAlert, SlidersHorizontal, Receipt, Upload, Sparkles, Server, ArrowRightLeft, Database, KeyRound, DownloadCloud, Bell, Mail, Loader2, Save, Image as ImageIcon, Trash2 } from "lucide-react";
+import { Building, Boxes, ShieldAlert, SlidersHorizontal, Receipt, Upload, Sparkles, Server, ArrowRightLeft, Database, KeyRound, DownloadCloud, Bell, Mail, Loader2, Save, Image as ImageIcon, Trash2, Clock, LayoutTemplate, Monitor, Shield } from "lucide-react";
 import { updateCompanySettings, uploadCompanyLogo, uploadCompanyBackgroundImage } from "@/app/actions/settings-actions";
 import { generateDemoData, clearDemoData } from "@/app/actions/demo-actions";
 import { successAlert, errorAlert } from "@/lib/sweetalert";
@@ -13,6 +13,7 @@ const DatabasesManager = dynamic(() => import("./databases-manager").then(m => m
 const LicensesManager = dynamic(() => import("./licenses-manager").then(m => m.LicensesManager), { ssr: false });
 const ImportsManager = dynamic(() => import("./imports-manager").then(m => m.ImportsManager), { ssr: false });
 const OnboardingManager = dynamic(() => import("./onboarding-manager").then(m => m.OnboardingManager), { ssr: false });
+const ActiveSessionsManager = dynamic(() => import("@/components/sessions/active-sessions-manager"), { ssr: false });
 
 interface CompanySetting {
   id: number;
@@ -68,7 +69,7 @@ interface SettingsClientProps {
 
 export function SettingsClient({ initialSettings, role, initialServers = [], dedicatedCompanies = [], canManageServers = false, userId, planSettings, allModules }: SettingsClientProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"company" | "inventory" | "security" | "integrations" | "invoice" | "imports" | "servers" | "databases" | "migrations" | "licenses" | "onboarding">("company");
+  const [activeTab, setActiveTab] = useState<"company" | "inventory" | "security" | "integrations" | "invoice" | "imports" | "servers" | "databases" | "migrations" | "licenses" | "onboarding" | "sessions">("company");
   const [saving, setSaving] = useState(false);
   const isSuperAdmin = role === "SUPERADMIN";
 
@@ -259,8 +260,17 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
             activeTab === "security" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
           }`}
         >
-          <ShieldAlert size={16} />
-          Seguridad & Sesión
+          <Shield size={16} />
+          Seguridad de Accesos
+        </button>
+        <button
+          onClick={() => setActiveTab("sessions")}
+          className={`flex w-full items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold transition ${
+            activeTab === "sessions" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
+          }`}
+        >
+          <Monitor size={16} />
+          Sesiones Activas
         </button>
         <button
           onClick={() => setActiveTab("integrations")}
@@ -360,6 +370,12 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
 
       {/* ── Contenedor del Formulario ── */}
       <div className="lg:col-span-3">
+        {activeTab === "sessions" && (
+          <div className="space-y-6">
+            <ActiveSessionsManager role={role || "USER"} />
+          </div>
+        )}
+
         {activeTab === "servers" && canManageServers && (
           <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
             <ServersManager servers={initialServers} />

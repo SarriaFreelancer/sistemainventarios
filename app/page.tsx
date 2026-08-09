@@ -285,7 +285,7 @@ export default async function HomePage() {
           </nav>
 
           {/* CTA */}
-          <LandingAuthNav user={session?.user || null} />
+          <LandingAuthNav user={session?.user?.id ? session.user : null} />
         </div>
       </header>
 

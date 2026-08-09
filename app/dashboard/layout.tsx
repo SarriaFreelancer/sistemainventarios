@@ -76,6 +76,7 @@ async function ensureModulesInitialized() {
 }
 
 import { InactivityGuard } from '@/components/security/inactivity-guard';
+import SessionMonitor from '@/components/security/session-monitor';
 
 export default async function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const session = await getAuthSession();
@@ -148,6 +149,9 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
 
   return (
     <InactivityGuard>
+      {(session.user as any).sessionToken && (
+        <SessionMonitor sessionToken={(session.user as any).sessionToken} />
+      )}
       <DashboardShell 
         session={session} 
         modules={allowedModules} 
