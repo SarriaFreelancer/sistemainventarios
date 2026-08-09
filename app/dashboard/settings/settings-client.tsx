@@ -14,7 +14,7 @@ const LicensesManager = dynamic(() => import("./licenses-manager").then(m => m.L
 const ImportsManager = dynamic(() => import("./imports-manager").then(m => m.ImportsManager), { ssr: false });
 const OnboardingManager = dynamic(() => import("./onboarding-manager").then(m => m.OnboardingManager), { ssr: false });
 const ActiveSessionsManager = dynamic(() => import("@/components/sessions/active-sessions-manager"), { ssr: false });
-
+const AnnouncementsManager = dynamic(() => import("./announcements-manager").then(m => m.AnnouncementsManager), { ssr: false });
 interface CompanySetting {
   id: number;
   companyId: number;
@@ -69,7 +69,7 @@ interface SettingsClientProps {
 
 export function SettingsClient({ initialSettings, role, initialServers = [], dedicatedCompanies = [], canManageServers = false, userId, planSettings, allModules }: SettingsClientProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"company" | "inventory" | "security" | "integrations" | "invoice" | "imports" | "servers" | "databases" | "migrations" | "licenses" | "onboarding" | "sessions">("company");
+  const [activeTab, setActiveTab] = useState<"company" | "inventory" | "security" | "integrations" | "invoice" | "imports" | "servers" | "databases" | "migrations" | "licenses" | "onboarding" | "sessions" | "announcements">("company");
   const [saving, setSaving] = useState(false);
   const isSuperAdmin = role === "SUPERADMIN";
 
@@ -364,6 +364,15 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
               <KeyRound size={16} />
               Licencias y Suscripciones
             </button>
+            <button
+              onClick={() => setActiveTab("announcements")}
+              className={`flex w-full items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                activeTab === "announcements" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
+              }`}
+            >
+              <Bell size={16} />
+              Anuncios Globales
+            </button>
           </>
         )}
       </div>
@@ -397,6 +406,13 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
         {activeTab === "licenses" && isSuperAdmin && (
           <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
             <LicensesManager companies={dedicatedCompanies as any} planSettings={planSettings} allModules={allModules} />
+          </div>
+        )}
+
+        {/* PESTAÑA: ANUNCIOS GLOBALES (SUPERADMIN) */}
+        {activeTab === "announcements" && isSuperAdmin && (
+          <div className="bg-card rounded-2xl border border-border p-6 shadow-sm animate-in fade-in zoom-in-95">
+            <AnnouncementsManager />
           </div>
         )}
 
@@ -1201,6 +1217,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
         {activeTab === "imports" && (
           <ImportsManager />
         )}
+
 
         {/* ── Botón Guardar Flotante en el Pie ── */}
         <div className="border-t border-border/60 pt-4 flex justify-end">

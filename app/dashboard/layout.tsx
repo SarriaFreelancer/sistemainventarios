@@ -4,6 +4,10 @@ import { DashboardShell } from '@/components/dashboard-shell';
 import { prisma } from '@/lib/prisma';
 import { getSessionCompanyId } from '@/lib/session';
 
+import { InactivityGuard } from '@/components/security/inactivity-guard';
+import SessionMonitor from '@/components/security/session-monitor';
+import { GlobalAnnouncer } from '@/components/global-announcer';
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -75,8 +79,7 @@ async function ensureModulesInitialized() {
   }
 }
 
-import { InactivityGuard } from '@/components/security/inactivity-guard';
-import SessionMonitor from '@/components/security/session-monitor';
+
 
 export default async function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const session = await getAuthSession();
@@ -152,6 +155,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
       {(session.user as any).sessionToken && (
         <SessionMonitor sessionToken={(session.user as any).sessionToken} />
       )}
+      <GlobalAnnouncer />
       <DashboardShell 
         session={session} 
         modules={allowedModules} 

@@ -43,7 +43,41 @@ export default function ActiveSessionsManager({ role, currentSessionToken }: Act
       const res = await fetch('/api/sessions');
       if (!res.ok) throw new Error('Error fetching sessions');
       const result = await res.json();
-      setData(result);
+      
+      const formatSession = (s: any): Session => ({
+        id: s.id,
+        userId: s.userId,
+        userName: s.user?.name || 'Usuario Desconocido',
+        userEmail: s.user?.email || 'Sin correo',
+        userImage: s.user?.image,
+        ipAddress: s.ip || 'Desconocida',
+        browser: s.browser || 'Desconocido',
+        os: s.operatingSystem || 'Desconocido',
+        createdAt: s.createdAt,
+        token: s.token
+      });
+
+      if (role === 'SUPERADMIN' && result.companies) {
+        setData(result.companies.map((c: any) => ({
+          companyId: c.id,
+          companyName: c.name,
+          plan: c.planId || 'basico',
+          activeConnections: c.sessions?.length || 0,
+          maxConnections: c.maxUsers || Infinity,
+          sessions: (c.sessions || []).map(formatSession)
+        })));
+      } else if (role === 'ADMIN' && result.company) {
+        setData({
+          companyId: result.company.id,
+          companyName: result.company.name,
+          plan: result.company.planId || 'basico',
+          activeConnections: result.sessions?.length || 0,
+          maxConnections: result.company.maxUsers || Infinity,
+          sessions: (result.sessions || []).map(formatSession)
+        });
+      } else {
+        setData(result);
+      }
     } catch (error) {
       console.error(error);
       toast.error('Error al cargar las sesiones activas');

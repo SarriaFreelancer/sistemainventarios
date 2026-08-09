@@ -259,6 +259,7 @@ model User {
   purchaseApprovals    PurchaseApproval[]
   internalRequisitions InternalRequisition[]
   employee             Employee?
+  systemAnnouncements  SystemAnnouncement[]
 
   @@index([email])
   @@index([companyId])
@@ -1214,4 +1215,17 @@ model EmployeeNovelty {
   @@index([employeeId])
   @@index([appliedPayrollId])
   @@index([companyId])
+}
+
+model SystemAnnouncement {
+  id          Int      @id @default(autoincrement())
+  title       String
+  message     String   @db.Text
+  type        String   @default("INFO") // INFO, WARNING, URGENT
+  expiresAt   DateTime
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  
+  createdById Int
+  createdBy   User     @relation(fields: [createdById], references: [id])
 }
