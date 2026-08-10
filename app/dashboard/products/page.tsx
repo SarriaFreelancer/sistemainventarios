@@ -42,9 +42,11 @@ export default async function ProductsPage() {
     : await prisma.companySetting.findFirst();
   const allowNegativeStock = settings?.allowNegativeStock ?? false;
   const registerInventoryCostAsExpense = settings?.registerInventoryCostAsExpense ?? false;
+  const trackExpirationDates = settings?.trackExpirationDates ?? false;
 
   let planLimits = { maxProducts: 999999, planName: 'Plan Premium' };
   let currentProductsCount = 0;
+  let allowExpirationTracking = true;
 
   if (companyId) {
     const activeCompany = await prisma.company.findUnique({
@@ -56,10 +58,32 @@ export default async function ProductsPage() {
       const limits = getPlanLimits(activeCompany.planId, { maxUsers: activeCompany.maxUsers, maxProducts: activeCompany.maxProducts });
       planLimits = { maxProducts: limits.maxProducts, planName: limits.name };
       currentProductsCount = activeCompany._count.products;
+      allowExpirationTracking = limits.allowExpirationTracking;
     }
   }
 
-  // Serialize safely (Decimal → number, IDs → string para encajar con el frontend)
+  // If expiration tracking is enabled, fetch batches with products
+  let productBatchesMap: Record<string, any[]> = {};
+  if (trackExpirationDates && allowExpirationTracking) {
+    const batches = await prisma.productBatch.findMany({
+      where: { product: { companyId: companyId || undefined } },
+      orderBy: { expirationDate: 'asc' },
+    });
+    for (const batch of batches) {
+      const pid = String(batch.productId);
+      if (!productBatchesMap[pid]) productBatchesMap[pid] = [];
+      productBatchesMap[pid].push({
+        id: batch.id,
+        batchNumber: batch.batchNumber,
+        expirationDate: batch.expirationDate.toISOString(),
+        quantity: batch.quantity,
+        status: batch.status,
+        notes: batch.notes,
+      });
+    }
+  }
+
+  // Serialize safely
   const serializedProducts = products.map((p) => ({
     id: String(p.id),
     code: p.code,
@@ -76,6 +100,7 @@ export default async function ProductsPage() {
     category: p.category ? { id: String(p.category.id), name: p.category.name } : null,
     supplier: p.supplier ? { id: String(p.supplier.id), companyName: p.supplier.companyName } : null,
     productGroup: p.productGroup ? { id: String(p.productGroup.id), name: p.productGroup.name } : null,
+    batches: productBatchesMap[String(p.id)] || [],
   }));
 
   const serializedCategories = categories.map((c) => ({ id: String(c.id), name: c.name, productGroupId: c.productGroupId ? String(c.productGroupId) : undefined }));
@@ -85,7 +110,6 @@ export default async function ProductsPage() {
   return (
     <div className="p-4 sm:p-6">
       <ProductsClient
-
         initialProducts={serializedProducts}
         categories={serializedCategories}
         suppliers={serializedSuppliers}
@@ -97,6 +121,8 @@ export default async function ProductsPage() {
         planName={planLimits.planName}
         maxProducts={planLimits.maxProducts}
         currentProducts={currentProductsCount}
+        trackExpirationDates={trackExpirationDates && allowExpirationTracking}
+        expirationAlertDays={settings?.expirationAlertDays ?? 30}
       />
     </div>
   );

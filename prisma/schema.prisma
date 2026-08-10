@@ -449,6 +449,7 @@ model Product {
   purchaseReceiptItems     PurchaseReceiptItem[]
   inventoryEntryItems      InventoryEntryItem[]
   internalRequisitionItems InternalRequisitionItem[]
+  batches                  ProductBatch[]
 
   @@unique([code, companyId])
   @@index([name])
@@ -457,6 +458,7 @@ model Product {
   @@index([productGroupId])
   @@index([companyId])
 }
+
 
 model Sale {
   id             Int          @id @default(autoincrement())
@@ -778,6 +780,11 @@ model CompanySetting {
   backupDay             Int?     @default(1)
   backupPath            String?
   registerInventoryCostAsExpense Boolean @default(false)
+  // --- Gestión de Vencimientos ---
+  trackExpirationDates     Boolean  @default(false)
+  expirationAlertDays      Int      @default(30)
+  blockExpiredSales        Boolean  @default(false)
+  expirationAlertFrequency String   @default("DAILY")
   updatedAt             DateTime @updatedAt
 }
 
@@ -1273,4 +1280,29 @@ model ChatMessage {
 
   @@index([conversationId])
   @@index([senderId])
+}
+
+// --- Control de Vencimientos por Lotes ---
+enum BatchStatus {
+  ACTIVE
+  EXPIRED
+  DEPLETED
+}
+
+model ProductBatch {
+  id             Int         @id @default(autoincrement())
+  productId      Int
+  product        Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  batchNumber    String
+  expirationDate DateTime
+  quantity       Int         @default(0)
+  status         BatchStatus @default(ACTIVE)
+  notes          String?     @db.Text
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@unique([productId, batchNumber])
+  @@index([productId])
+  @@index([expirationDate])
+  @@index([status])
 }

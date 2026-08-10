@@ -189,7 +189,12 @@ export async function updateCompanySettings(data: any) {
         backupTime: data.backupTime,
         backupDay: data.backupDay ? Number(data.backupDay) : 1,
         backupPath: data.backupPath,
-        enableNotifications: data.enableNotifications
+        enableNotifications: data.enableNotifications,
+        // Gestión de Vencimientos
+        trackExpirationDates: data.trackExpirationDates !== undefined ? Boolean(data.trackExpirationDates) : undefined,
+        expirationAlertDays: data.expirationAlertDays !== undefined ? Number(data.expirationAlertDays) : undefined,
+        blockExpiredSales: data.blockExpiredSales !== undefined ? Boolean(data.blockExpiredSales) : undefined,
+        expirationAlertFrequency: data.expirationAlertFrequency || undefined,
       }
     });
     

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useMemo, useEffect } from "react";
+import React, { useState, useTransition, useMemo, useEffect } from "react";
 import { deleteProduct, quickSellProduct } from "@/app/actions/product-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,16 @@ interface Product {
   category: Category | null;
   supplier: { id: string; companyName: string } | null;
   productGroup: ProductGroup | null;
+  batches?: ProductBatchInfo[];
+}
+
+interface ProductBatchInfo {
+  id: number;
+  batchNumber: string;
+  expirationDate: string;
+  quantity: number;
+  status: string;
+  notes: string | null;
 }
 
 type SortField = 'name' | 'code' | 'quantityAvailable' | 'salePrice' | 'unitCost';
@@ -54,11 +64,13 @@ export function ProductsClient(props: {
   planLimits?: any;
   currentProductsCount?: number;
   registerInventoryCostAsExpense?: boolean;
+  trackExpirationDates?: boolean;
+  expirationAlertDays?: number;
 }) {
   const { 
     initialProducts, categories, suppliers, groups, userId, allowNegativeStock = false,
     maxProducts = 999999, currentProducts = 0, planName = 'Plan Premium',
-    registerInventoryCostAsExpense = false
+    registerInventoryCostAsExpense = false, trackExpirationDates = false, expirationAlertDays = 30
   } = props;
   const router = useRouter();
   const [search, setSearch] = useState('');
@@ -70,6 +82,8 @@ export function ProductsClient(props: {
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [showFilters, setShowFilters] = useState(false);
+  const [filterExpiration, setFilterExpiration] = useState('ALL');
+  const [expandedBatchProduct, setExpandedBatchProduct] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -106,6 +120,21 @@ export function ProductsClient(props: {
     }
 
     if (filterGroup) list = list.filter(p => p.productGroupId === filterGroup);
+
+    // Expiration filter
+    if (trackExpirationDates && filterExpiration !== 'ALL') {
+      const now = new Date();
+      const alertDate = new Date();
+      alertDate.setDate(alertDate.getDate() + expirationAlertDays);
+      if (filterExpiration === 'EXPIRING') {
+        list = list.filter(p => p.batches?.some(b => {
+          const exp = new Date(b.expirationDate);
+          return b.status === 'ACTIVE' && exp >= now && exp <= alertDate;
+        }));
+      } else if (filterExpiration === 'EXPIRED') {
+        list = list.filter(p => p.batches?.some(b => b.status === 'EXPIRED' || new Date(b.expirationDate) < now));
+      }
+    }
 
     list.sort((a, b) => {
       const av = a[sortField];
@@ -286,6 +315,7 @@ export function ProductsClient(props: {
             disabled={currentProducts >= maxProducts}
             limitMessage={`Has alcanzado el límite de ${maxProducts} productos de tu ${planName}.`}
             registerInventoryCostAsExpense={registerInventoryCostAsExpense}
+            trackExpirationDates={trackExpirationDates}
           />
           {maxProducts < 999999 && (
             <p className="text-[10px] font-bold text-muted-foreground uppercase">
@@ -415,6 +445,9 @@ export function ProductsClient(props: {
                   <th className={`${thCls} hidden xl:table-cell`} onClick={() => toggleSort('unitCost')}>Costo <SortIcon field="unitCost" /></th>
                   <th className={thCls} onClick={() => toggleSort('salePrice')}>Precio <SortIcon field="salePrice" /></th>
                   <th className={`${thCls} hidden sm:table-cell`}>Estado</th>
+                  {trackExpirationDates && (
+                    <th className={`${thCls} hidden md:table-cell`}>Vencimiento</th>
+                  )}
                   <th className="px-4 py-3 text-center text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">Acciones</th>
                 </tr>
               </thead>
@@ -422,7 +455,8 @@ export function ProductsClient(props: {
                 {paginatedProducts.map((product) => {
                   const isOut = product.quantityAvailable <= 0;
                   return (
-                    <tr key={product.id} className="group hover:bg-primary/5 transition-colors duration-200">
+                    <React.Fragment key={product.id}>
+                    <tr className="group hover:bg-primary/5 transition-colors duration-200">
                       <td className="px-4 py-3.5">
                         <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-primary/10 text-primary border border-primary/10 whitespace-nowrap inline-block">
                           {product.code}
@@ -470,6 +504,43 @@ export function ProductsClient(props: {
                           </span>
                         )}
                       </td>
+                      {trackExpirationDates && (
+                        <td className="px-4 py-3.5 hidden md:table-cell">
+                          {(() => {
+                            const batches = (product as any).batches || [];
+                            if (batches.length === 0) return <span className="text-[10px] text-muted-foreground">Sin lotes</span>;
+                            const now = new Date();
+                            const alertDate = new Date();
+                            alertDate.setDate(alertDate.getDate() + expirationAlertDays);
+                            const expired = batches.filter((b: any) => b.status === 'EXPIRED' || new Date(b.expirationDate) < now);
+                            const expiring = batches.filter((b: any) => {
+                              const exp = new Date(b.expirationDate);
+                              return b.status === 'ACTIVE' && exp >= now && exp <= alertDate;
+                            });
+                            if (expired.length > 0) {
+                              return (
+                                <button onClick={() => setExpandedBatchProduct(expandedBatchProduct === product.id ? null : product.id)} className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20 transition">
+                                  🔴 {expired.length} vencido(s)
+                                </button>
+                              );
+                            }
+                            if (expiring.length > 0) {
+                              const nearest = expiring[0];
+                              const daysLeft = Math.ceil((new Date(nearest.expirationDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                              return (
+                                <button onClick={() => setExpandedBatchProduct(expandedBatchProduct === product.id ? null : product.id)} className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full bg-amber-500/10 text-amber-600 border border-amber-500/20 hover:bg-amber-500/20 transition">
+                                  🟡 {daysLeft}d restantes
+                                </button>
+                              );
+                            }
+                            return (
+                              <button onClick={() => setExpandedBatchProduct(expandedBatchProduct === product.id ? null : product.id)} className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-emerald-500/20 transition">
+                                🟢 {batches.length} lote(s)
+                              </button>
+                            );
+                          })()}
+                        </td>
+                      )}
                       <td className="px-4 py-3.5">
                         <div className="flex items-center justify-center gap-1.5">
                           {['SALE', 'FINISHED_GOOD', 'SERVICE'].includes(product.type || 'SALE') ? (
@@ -485,7 +556,14 @@ export function ProductsClient(props: {
                               Uso interno
                             </span>
                           )}
-                          <EditProductDialog product={product} categories={categories} suppliers={suppliers} groups={groups} registerInventoryCostAsExpense={registerInventoryCostAsExpense} />
+                          <EditProductDialog 
+                            product={product} 
+                            categories={categories} 
+                            suppliers={suppliers} 
+                            groups={groups}
+                            registerInventoryCostAsExpense={registerInventoryCostAsExpense}
+                            trackExpirationDates={trackExpirationDates}
+                          />
                           <Button
                             aria-label="Eliminar producto"
                             variant="ghost"
@@ -499,6 +577,47 @@ export function ProductsClient(props: {
                         </div>
                       </td>
                     </tr>
+                    {/* Expandable batch details row */}
+                    {trackExpirationDates && expandedBatchProduct === product.id && (product as any).batches?.length > 0 && (
+                      <tr className="bg-muted/10">
+                        <td colSpan={trackExpirationDates ? 11 : 10} className="px-6 py-4">
+                          <div className="space-y-2">
+                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Lotes de {product.name}</p>
+                            <div className="grid gap-2 max-h-48 overflow-y-auto">
+                              {((product as any).batches as ProductBatchInfo[]).map((batch) => {
+                                const expDate = new Date(batch.expirationDate);
+                                const now = new Date();
+                                const daysLeft = Math.ceil((expDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                                const isExpired = batch.status === 'EXPIRED' || expDate < now;
+                                const isExpiring = !isExpired && daysLeft <= expirationAlertDays;
+                                return (
+                                  <div key={batch.id} className={`flex items-center justify-between p-2.5 rounded-xl border text-xs ${isExpired ? 'bg-red-500/5 border-red-500/20' : isExpiring ? 'bg-amber-500/5 border-amber-500/20' : 'bg-card border-border/60'}`}>
+                                    <div className="flex items-center gap-3">
+                                      <span className="font-mono font-bold text-foreground">{batch.batchNumber}</span>
+                                      <span className="text-muted-foreground">Cant: <strong className="text-foreground">{batch.quantity}</strong></span>
+                                      {batch.notes && <span className="text-muted-foreground italic">({batch.notes})</span>}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className={`font-bold ${isExpired ? 'text-red-500' : isExpiring ? 'text-amber-600' : 'text-emerald-600'}`}>
+                                        {expDate.toLocaleDateString('es-CO')}
+                                      </span>
+                                      {isExpired ? (
+                                        <span className="px-2 py-0.5 rounded-full bg-red-500/10 text-red-500 font-bold text-[10px]">VENCIDO</span>
+                                      ) : isExpiring ? (
+                                        <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 font-bold text-[10px]">{daysLeft}d</span>
+                                      ) : (
+                                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 font-bold text-[10px]">OK</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    </React.Fragment>
                   );
                 })}
               </tbody>

@@ -25,13 +25,14 @@ interface CreateProductDialogProps {
   disabled?: boolean;
   limitMessage?: string;
   registerInventoryCostAsExpense?: boolean;
+  trackExpirationDates?: boolean;
 }
 
 const inputCls = "bg-background/50 border-border/80 focus:border-primary focus:ring-4 focus:ring-primary/10 text-foreground placeholder:text-muted-foreground/50 h-11 rounded-xl";
 const selectCls = "flex h-11 w-full rounded-xl border border-border/80 bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all duration-300 disabled:opacity-50";
 const labelCls = "text-[10px] font-bold uppercase tracking-wider text-muted-foreground";
 
-export function CreateProductDialog({ categories, suppliers, groups, disabled = false, limitMessage = '', registerInventoryCostAsExpense = false }: CreateProductDialogProps) {
+export function CreateProductDialog({ categories, suppliers, groups, disabled = false, limitMessage = '', registerInventoryCostAsExpense = false, trackExpirationDates = false }: CreateProductDialogProps) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [productType, setProductType] = useState('SALE');
@@ -134,6 +135,19 @@ export function CreateProductDialog({ categories, suppliers, groups, disabled = 
                 <Label htmlFor="new-cost" className={labelCls}>Costo Unitario (COP)</Label>
                 <Input id="new-cost" name="unitCost" type="number" min="0" step="100" defaultValue="0" className={inputCls} />
               </div>
+
+              {trackExpirationDates && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="new-batch" className={labelCls}>Lote (Opcional)</Label>
+                    <Input id="new-batch" name="batchNumber" placeholder="Ej. LOTE-001" className={inputCls} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="new-exp" className={labelCls}>Fecha de Vencimiento</Label>
+                    <Input id="new-exp" name="expirationDate" type="date" className={inputCls} />
+                  </div>
+                </>
+              )}
               
               {['SALE', 'FINISHED_GOOD', 'SERVICE'].includes(productType) ? (
                 <div className="space-y-1.5">

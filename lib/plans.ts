@@ -1,7 +1,7 @@
 export const PLANS = {
-  BASIC: { name: 'Plan Básico', maxUsers: 2, maxProducts: 300, price: 49000 },
-  INTERMEDIATE: { name: 'Plan Intermedio', maxUsers: 5, maxProducts: 1000, price: 99000 },
-  PREMIUM: { name: 'Plan Premium', maxUsers: 9999, maxProducts: 999999, price: 199000 }
+  BASIC: { name: 'Plan Básico', maxUsers: 2, maxProducts: 300, price: 49000, allowExpirationTracking: false },
+  INTERMEDIATE: { name: 'Plan Intermedio', maxUsers: 5, maxProducts: 1000, price: 99000, allowExpirationTracking: true },
+  PREMIUM: { name: 'Plan Premium', maxUsers: 9999, maxProducts: 999999, price: 199000, allowExpirationTracking: true }
 };
 
 export function getPlanLimits(planId: string | null | undefined, overrides?: { maxUsers?: number | null, maxProducts?: number | null }) {

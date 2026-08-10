@@ -120,6 +120,12 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
   const [backupCompanyId, setBackupCompanyId] = useState<string>("");
   const [enableNotifications, setEnableNotifications] = useState((initialSettings as any).enableNotifications ?? true);
 
+  // Gestión de Vencimientos
+  const [trackExpirationDates, setTrackExpirationDates] = useState((initialSettings as any).trackExpirationDates ?? false);
+  const [expirationAlertDays, setExpirationAlertDays] = useState((initialSettings as any).expirationAlertDays ?? 30);
+  const [blockExpiredSales, setBlockExpiredSales] = useState((initialSettings as any).blockExpiredSales ?? false);
+  const [expirationAlertFrequency, setExpirationAlertFrequency] = useState((initialSettings as any).expirationAlertFrequency ?? "DAILY");
+
   // Facturación Personalizada
   const initialInvoiceConfig = (initialSettings as any).invoiceConfig || {};
   const [invoiceCompanyName, setInvoiceCompanyName] = useState(initialInvoiceConfig.companyName || "");
@@ -173,6 +179,10 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
       backupDay,
       backupPath,
       enableNotifications,
+      trackExpirationDates,
+      expirationAlertDays,
+      blockExpiredSales,
+      expirationAlertFrequency,
       bgImage,
       invoiceConfig: {
         companyName: invoiceCompanyName,
@@ -745,6 +755,77 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* SUBSECCIÓN DENTRO DE INVENTORY: Control de Vencimientos */}
+        {activeTab === "inventory" && (
+          <div className="space-y-4 border-t border-border/60 pt-6 mt-4">
+            <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+              Control de Vencimientos
+              {!(planSettings || isSuperAdmin) && (
+                <span className="ml-2 px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20">Plan Intermedio+</span>
+              )}
+            </h3>
+            <p className="text-xs text-muted-foreground -mt-2">Gestiona fechas de vencimiento por lotes para productos perecederos (alimentos, farmacia, cosméticos).</p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex items-center justify-between p-3 border border-border/80 bg-muted/10 rounded-2xl">
+                <div>
+                  <p className="text-sm font-bold text-foreground">Habilitar Vencimientos</p>
+                  <p className="text-xs text-muted-foreground">Activa el control de fechas de vencimiento por lotes en productos.</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={trackExpirationDates}
+                  onChange={(e) => setTrackExpirationDates(e.target.checked)}
+                  className="w-4 h-4 text-primary bg-muted rounded border-border focus:ring-primary"
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-3 border border-border/80 bg-muted/10 rounded-2xl">
+                <div>
+                  <p className="text-sm font-bold text-foreground">Bloquear Ventas Vencidas</p>
+                  <p className="text-xs text-muted-foreground">Impide vender productos con lotes expirados.</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={blockExpiredSales}
+                  onChange={(e) => setBlockExpiredSales(e.target.checked)}
+                  disabled={!trackExpirationDates}
+                  className="w-4 h-4 text-primary bg-muted rounded border-border focus:ring-primary disabled:opacity-40"
+                />
+              </div>
+            </div>
+
+            {trackExpirationDates && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-border/40 pt-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-muted-foreground uppercase">Días de anticipación para alertas</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="365"
+                    value={expirationAlertDays}
+                    onChange={(e) => setExpirationAlertDays(Number(e.target.value))}
+                    className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none"
+                  />
+                  <p className="text-[11px] text-muted-foreground">Se notificará cuando un lote esté a {expirationAlertDays} días de vencer.</p>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-muted-foreground uppercase">Frecuencia de revisión</label>
+                  <select
+                    value={expirationAlertFrequency}
+                    onChange={(e) => setExpirationAlertFrequency(e.target.value)}
+                    className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none"
+                  >
+                    <option value="DAILY">Diaria</option>
+                    <option value="WEEKLY">Semanal</option>
+                  </select>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

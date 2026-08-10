@@ -36,13 +36,14 @@ interface EditProductDialogProps {
   suppliers: Supplier[];
   groups: ProductGroup[];
   registerInventoryCostAsExpense?: boolean;
+  trackExpirationDates?: boolean;
 }
 
 const inputCls = "bg-background/50 border-border/80 focus:border-primary focus:ring-4 focus:ring-primary/10 text-foreground placeholder:text-muted-foreground/50 h-11 rounded-xl";
 const selectCls = "flex h-11 w-full rounded-xl border border-border/80 bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all duration-300 disabled:opacity-50";
 const labelCls = "text-[10px] font-bold uppercase tracking-wider text-muted-foreground";
 
-export function EditProductDialog({ product, categories, suppliers, groups, registerInventoryCostAsExpense = false }: EditProductDialogProps) {
+export function EditProductDialog({ product, categories, suppliers, groups, registerInventoryCostAsExpense = false, trackExpirationDates = false }: EditProductDialogProps) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [productType, setProductType] = useState(product.type || 'SALE');
@@ -168,6 +169,25 @@ export function EditProductDialog({ product, categories, suppliers, groups, regi
                 <Label htmlFor={`edit-cost-${product.id}`} className={labelCls}>Costo Unitario (COP)</Label>
                 <Input id={`edit-cost-${product.id}`} name="unitCost" type="number" min="0" step="100" defaultValue={product.unitCost} className={inputCls} />
               </div>
+
+              {trackExpirationDates && (
+                <>
+                  <div className="space-y-1.5 flex items-end pb-0.5 sm:col-span-2">
+                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-2.5 text-xs text-amber-600/90 w-full">
+                      <strong className="block text-amber-600">Añadir existencias a un nuevo lote</strong>
+                      Si vas a aumentar la cantidad, puedes ingresar el lote y fecha de vencimiento de las nuevas unidades.
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor={`edit-batch-${product.id}`} className={labelCls}>Lote (Nuevas uds)</Label>
+                    <Input id={`edit-batch-${product.id}`} name="batchNumber" placeholder="Ej. LOTE-001" className={inputCls} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor={`edit-exp-${product.id}`} className={labelCls}>Vencimiento (Nuevas uds)</Label>
+                    <Input id={`edit-exp-${product.id}`} name="expirationDate" type="date" className={inputCls} />
+                  </div>
+                </>
+              )}
               
               {['SALE', 'FINISHED_GOOD', 'SERVICE'].includes(productType) ? (
                 <div className="space-y-1.5">

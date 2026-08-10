@@ -455,7 +455,10 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
           >
             <div className="mb-8 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full overflow-hidden border-2 border-red-600 bg-black flex items-center justify-center shrink-0 shadow-md">
+                <div 
+                  className="h-10 w-10 rounded-full overflow-hidden border-2 bg-black flex items-center justify-center shrink-0 shadow-md"
+                  style={{ borderColor: themeConfig?.primaryColor || '#dc2626' }}
+                >
                   <img 
                     src="/gns-logo.png" 
                     alt="GNS SarriaTech" 
@@ -466,7 +469,10 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                   <span className="text-xs sm:text-sm font-black text-white uppercase tracking-tight leading-none">
                     GNS SARRIATECH
                   </span>
-                  <span className="text-[9px] font-extrabold text-red-500 uppercase tracking-wider mt-1 leading-none">
+                  <span 
+                    className="text-[9px] font-extrabold uppercase tracking-wider mt-1 leading-none"
+                    style={{ color: themeConfig?.primaryColor || '#ef4444' }}
+                  >
                     GESTIÓN DE NEGOCIOS
                   </span>
                 </div>

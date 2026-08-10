@@ -21,6 +21,8 @@ const productSchema = z.object({
   salePrice: z.coerce.number().min(0).default(0),
   type: z.nativeEnum(ProductType).default(ProductType.SALE),
   productGroupId: z.coerce.number().nullable().optional(),
+  batchNumber: z.string().optional(),
+  expirationDate: z.string().optional(),
 });
 
 export async function createProduct(formData: FormData) {
@@ -35,6 +37,8 @@ export async function createProduct(formData: FormData) {
       salePrice: formData.get('salePrice') || '0',
       type: formData.get('type') || 'SALE',
       productGroupId: formData.get('productGroupId') ? Number(formData.get('productGroupId')) : null,
+      batchNumber: formData.get('batchNumber') || undefined,
+      expirationDate: formData.get('expirationDate') || undefined,
     });
 
     if (!parsed.success) {
@@ -80,6 +84,18 @@ export async function createProduct(formData: FormData) {
     });
 
     const newProduct = await prisma.product.create({ data });
+
+    if (parsed.data.batchNumber && parsed.data.expirationDate && quantity > 0) {
+      await prisma.productBatch.create({
+        data: {
+          productId: newProduct.id,
+          batchNumber: parsed.data.batchNumber.trim(),
+          expirationDate: new Date(parsed.data.expirationDate),
+          quantity: quantity,
+          status: new Date(parsed.data.expirationDate) < new Date() ? 'EXPIRED' : 'ACTIVE',
+        }
+      });
+    }
 
     await logActivity({
       module: 'PRODUCTS',
@@ -157,6 +173,8 @@ export async function updateProduct(formData: FormData) {
       salePrice: formData.get('salePrice') || '0',
       type: formData.get('type') || 'SALE',
       productGroupId: formData.get('productGroupId') ? Number(formData.get('productGroupId')) : null,
+      batchNumber: formData.get('batchNumber') || undefined,
+      expirationDate: formData.get('expirationDate') || undefined,
     });
 
     if (!parsed.success || !id) {
@@ -198,6 +216,19 @@ export async function updateProduct(formData: FormData) {
         productGroupId: parsed.data.productGroupId || null,
       },
     });
+
+    if (parsed.data.batchNumber && parsed.data.expirationDate && quantity > product.quantityAvailable) {
+      const addedQuantity = quantity - product.quantityAvailable;
+      await prisma.productBatch.create({
+        data: {
+          productId: updated.id,
+          batchNumber: parsed.data.batchNumber.trim(),
+          expirationDate: new Date(parsed.data.expirationDate),
+          quantity: addedQuantity,
+          status: new Date(parsed.data.expirationDate) < new Date() ? 'EXPIRED' : 'ACTIVE',
+        }
+      });
+    }
 
     await logActivity({
       module: 'PRODUCTS',

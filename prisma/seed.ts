@@ -9,7 +9,7 @@ async function main() {
   // Desactivar restricciones de clave foránea temporalmente en MySQL para una limpieza 100% segura
   await prisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 0;');
 
-  await prisma.notification.deleteMany();
+  
   await prisma.companySetting.deleteMany();
   await prisma.invoiceCounter.deleteMany();
   await prisma.auditLog.deleteMany();
@@ -83,7 +83,7 @@ async function main() {
   await prisma.user.create({
     data: {
       name: 'Super Admin',
-      email: 'superadmin@dulchedorelle.com',
+      email: 'superadmin@gnsgestion.com',
       password: passwordHash,
       roleId: superAdminRole.id,
       companyId: globalCompany.id,

@@ -55,6 +55,38 @@ export async function createSale(data: {
       const settings = await prisma.companySetting.findUnique({ where: { companyId } });
       const allowNegativeStock = settings?.allowNegativeStock ?? false;
 
+      // Check for expired products if tracking is enabled
+      if (settings?.trackExpirationDates && settings?.blockExpiredSales) {
+        for (const item of items) {
+          const expiredBatches = await prisma.productBatch.findMany({
+            where: {
+              productId: item.productId,
+              status: 'EXPIRED',
+              product: { companyId },
+            },
+            include: { product: { select: { name: true } } },
+          });
+          // Also check batches that are ACTIVE but past expiration date
+          const pastDueBatches = await prisma.productBatch.findMany({
+            where: {
+              productId: item.productId,
+              status: 'ACTIVE',
+              expirationDate: { lt: new Date() },
+              product: { companyId },
+            },
+            include: { product: { select: { name: true } } },
+          });
+          const allExpired = [...expiredBatches, ...pastDueBatches];
+          if (allExpired.length > 0) {
+            const productName = allExpired[0].product.name;
+            return {
+              success: false,
+              error: `No se puede vender "${productName}": tiene ${allExpired.length} lote(s) vencido(s). Retire o actualice los lotes antes de vender.`
+            };
+          }
+        }
+      }
+
       for (const item of items) {
         const whereProduct = await withTenantWhere({ id: item.productId });
         const product = await prisma.product.findFirst({ where: whereProduct });
