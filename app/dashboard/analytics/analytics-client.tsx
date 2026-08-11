@@ -378,8 +378,8 @@ export function AnalyticsClient({ analytics, isSuperAdmin }: AnalyticsClientProp
                 interval={2}
               />
               <YAxis tick={{ fontSize: 9, fill: "var(--muted-foreground)" }} />
-              <Tooltip content={<HoursTooltip />} />
-              <Bar dataKey="eventos" radius={[4, 4, 0, 0]} maxBarSize={18}>
+              <Tooltip content={<HoursTooltip />} cursor={false} />
+              <Bar dataKey="eventos" radius={[4, 4, 0, 0]} maxBarSize={18} cursor={false}>
                 {hourlyData.map((entry, i) => {
                   const max = Math.max(...analytics.hours);
                   const intensity = max > 0 ? entry.eventos / max : 0;

@@ -12,7 +12,7 @@ export const authOptions: AuthOptions = {
   session: { 
     strategy: 'jwt',
     maxAge: 4 * 60 * 60, // 4 horas de inactividad absoluta cierran la sesión
-    updateAge: 60 * 60, // Refresca la sesión cada hora que haya actividad
+    updateAge: 15 * 60, // Refresca la sesión cada 15 minutos que haya actividad
   },
   secret: process.env.NEXTAUTH_SECRET,
   providers: [

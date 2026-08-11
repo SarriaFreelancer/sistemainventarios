@@ -46,7 +46,9 @@ export async function middleware(request: NextRequest) {
   const token = await getToken({ 
     req: request, 
     secret: process.env.NEXTAUTH_SECRET,
-    secureCookie: isHttps
+    // Use secureCookie only in production (HTTPS). In development always false
+    // so localhost works correctly even after using ngrok.
+    secureCookie: process.env.NODE_ENV === 'production',
   });
 
   // Response base helper para adjuntar cabeceras de seguridad

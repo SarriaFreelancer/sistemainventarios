@@ -12,14 +12,28 @@ export default function SessionMonitor({ sessionToken }: SessionMonitorProps) {
 
   useEffect(() => {
     const checkSession = async () => {
+      if (!sessionToken) {
+        console.warn('SessionMonitor: no session token provided');
+        return;
+      }
       if (document.hidden) return;
 
       try {
         const response = await fetch(`/api/session/check?sessionToken=${encodeURIComponent(sessionToken)}`);
-        if (!response.ok) return;
+        if (!response.ok) {
+          const text = await response.text();
+          console.warn('Session check failed', response.status, text);
+          return;
+        }
 
-        const data = await response.json();
-        
+        let data;
+        try {
+          data = await response.json();
+        } catch (jsonErr) {
+          console.warn('Failed to parse JSON from session check', jsonErr);
+          return;
+        }
+
         if (data.valid === false) {
           if (intervalRef.current) {
             clearInterval(intervalRef.current);
@@ -47,7 +61,7 @@ export default function SessionMonitor({ sessionToken }: SessionMonitorProps) {
           signOut({ callbackUrl: '/auth/login?reason=admin_disconnect' });
         }
       } catch (error) {
-        console.error('Error checking session:', error);
+        console.warn('Error checking session:', error);
       }
     };
 

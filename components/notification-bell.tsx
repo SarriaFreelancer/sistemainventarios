@@ -156,7 +156,7 @@ export function NotificationBell() {
   return (
     <DropdownMenu open={isOpen} onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger asChild>
-        <Button aria-label="Notificaciones" variant="ghost" size="icon" className="relative rounded-full h-9 w-9 overflow-visible group">
+        <Button aria-label="Notificaciones" variant="ghost" size="icon" className="relative rounded-full h-9 w-9 overflow-visible bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 transition-colors group">
           <Bell className={`h-5 w-5 transition-all ${notifications.length > 0 ? 'text-destructive animate-pulse' : 'text-muted-foreground group-hover:text-primary'}`} />
           {notifications.length > 0 && (
             <span className="absolute -top-1 -right-1 flex h-4 w-4">
