@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useNotificationSound } from "@/lib/use-notification-sound";
 import { useRouter } from "next/navigation";
 import { Bell, Check, Trash2, X, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ export function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const notifiedIds = useRef<Set<number>>(new Set());
+  const { playNotification } = useNotificationSound();
 
   // Polling usando API Route estable (no Server Action) para evitar errores de versión
   const pollNotifications = useCallback(async (showToasts = false) => {
@@ -47,6 +49,10 @@ export function NotificationBell() {
 
         if (showToasts) {
           const newNotifs = data.filter(n => !n.isRead && !notifiedIds.current.has(n.id));
+          if (newNotifs.length > 0) {
+            // Play notification sound once per new notification
+            playNotification(Math.min(newNotifs.length, 3));
+          }
           newNotifs.forEach(n => {
             notifiedIds.current.add(n.id);
             if (n.type === 'ERROR') {

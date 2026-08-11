@@ -10,6 +10,7 @@ import { es } from "date-fns/locale";
 
 import { getCompanyUsers, getOrCreateConversation, getMessages, sendMessage } from "@/app/actions/chat-actions";
 import { cn } from "@/lib/utils";
+import { useNotificationSound } from "@/lib/use-notification-sound";
 
 // Initialize Pusher outside component to avoid multiple instances
 let pusherInstance: Pusher | null = null;
@@ -23,7 +24,9 @@ export function FloatingChat({ user }: { user: any }) {
   const [userUnreadCounts, setUserUnreadCounts] = useState<Record<string, number>>({});
   const [userLastMessage, setUserLastMessage] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState("");
+  const [showAll, setShowAll] = useState(false);
   const processedMessageIdsRef = useRef<Set<number>>(new Set());
+  const { playMessage } = useNotificationSound();
 
   
   // Data
@@ -95,12 +98,8 @@ export function FloatingChat({ user }: { user: any }) {
       if (processedMessageIdsRef.current.has(message.id)) return;
       processedMessageIdsRef.current.add(message.id);
 
-      // Always play a sound if it's not from me (shouldn't happen on this channel anyway)
-      try {
-        // Use a short standard notification sound (base64 encoded short pop)
-        const audio = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA");
-        audio.play().catch(() => {}); // ignore autoplay errors
-      } catch (e) {}
+      // Play a pop sound for each incoming message
+      playMessage(1);
 
       if (currentConvoIdRef.current === message.conversationId) {
         setMessages(prevMsgs => {
@@ -133,12 +132,37 @@ export function FloatingChat({ user }: { user: any }) {
     };
   }, [companyId, user?.id]);
 
-  // Load users when opened
+  // Load users + initial unread counts when opened
   useEffect(() => {
-    if (isOpen && activeTab === "users" && users.length === 0) {
-      loadUsers();
+    if (isOpen && activeTab === "users") {
+      if (users.length === 0) {
+        loadUsers();
+      }
+      loadInitialUnreadCounts();
     }
   }, [isOpen, activeTab]);
+
+  const loadInitialUnreadCounts = async () => {
+    try {
+      const res = await fetch('/api/chat/unread-counts', { cache: 'no-store' });
+      if (!res.ok) return;
+      const json = await res.json();
+      if (json.success && json.data) {
+        const counts: Record<string, number> = {};
+        const previews: Record<string, string> = {};
+        json.data.forEach((item: { senderId: string; count: number; lastMessage: string }) => {
+          counts[item.senderId] = item.count;
+          previews[item.senderId] = item.lastMessage;
+        });
+        setUserUnreadCounts(counts);
+        setUserLastMessage(previews);
+        const total = Object.values(counts).reduce((a, b) => a + b, 0);
+        if (total > 0) setUnreadCount(total);
+      }
+    } catch {
+      // silently ignore
+    }
+  };
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -160,9 +184,12 @@ export function FloatingChat({ user }: { user: any }) {
     setActiveTab("chat");
     setLoadingChat(true);
 
+    // Clear unread count for this user and recalculate total badge
     setUserUnreadCounts(prev => {
       const next = { ...prev };
-      delete next[targetUser.id];
+      delete next[String(targetUser.id)];
+      const newTotal = Object.values(next).reduce((a, b) => a + b, 0);
+      setUnreadCount(newTotal);
       return next;
     });
 
@@ -173,6 +200,10 @@ export function FloatingChat({ user }: { user: any }) {
       if (msgsRes.success) {
         setMessages(msgsRes.data || []);
       }
+      // Update lastReadAt in DB so counts reset on next load
+      try {
+        await fetch(`/api/chat/mark-read?conversationId=${res.data.id}`, { method: 'POST' });
+      } catch { /* silently ignore */ }
     }
     setLoadingChat(false);
   };
@@ -335,114 +366,169 @@ export function FloatingChat({ user }: { user: any }) {
                   </div>
                 ) : (
                   <>
-                    {/* Conectados */}
-                    <div className="mb-6">
-                      <div className="flex items-center justify-between mb-3 px-1">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-sm"></span>
-                          <span className="text-[13px] font-semibold text-emerald-600 dark:text-emerald-500">Conectados</span>
-                        </div>
-                        <span className="bg-muted text-muted-foreground text-[11px] font-bold px-2 py-0.5 rounded-full">
-                          {users.filter(u => onlineUsers.has(String(u.id))).length}
-                        </span>
-                      </div>
-                      
+                    {showAll ? (
+                      /* ── Ver Todos: lista única ordenada (no leídos → online → offline) ── */
                       <div className="space-y-2">
-                        {users.filter(u => onlineUsers.has(String(u.id)) && u.name.toLowerCase().includes(searchQuery.toLowerCase())).map(u => {
-                          const unread = userUnreadCounts[String(u.id)] || 0;
-                          return (
-                            <button
-                              key={u.id}
-                              onClick={() => openConversation(u)}
-                              className="w-full text-left flex items-center justify-between p-3 bg-card hover:bg-muted/50 border border-primary/20 rounded-[16px] transition group relative shadow-sm"
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className="relative">
-                                  <div className="w-12 h-12 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center text-primary font-bold overflow-hidden">
-                                    {u.image ? <img src={u.image} alt={u.name} className="w-full h-full object-cover" /> : u.name.substring(0, 2).toUpperCase()}
-                                  </div>
-                                  <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-card rounded-full"></div>
-                                </div>
-                                <div>
-                                  <p className="font-semibold text-[15px] text-foreground">{u.name}</p>
-                                  <p className="text-[13px] text-muted-foreground truncate max-w-[200px]">
-                                    {unread > 0 && userLastMessage[String(u.id)] ? userLastMessage[String(u.id)] : (u.position || "Miembro del equipo")}
-                                  </p>
-                                </div>
-                              </div>
-                              {unread > 0 ? (
-                                <div className="w-7 h-7 rounded-full bg-red-500 flex items-center justify-center text-white font-bold text-xs shadow-sm">
-                                  {unread}
-                                </div>
-                              ) : (
-                                <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                                  <MessageCircle size={18} />
-                                </div>
-                              )}
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Offline */}
-                    <div>
-                      <div className="flex items-center justify-between mb-3 px-1">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-muted-foreground"></span>
-                          <span className="text-[13px] font-semibold text-muted-foreground">Offline</span>
+                        <div className="flex items-center justify-between mb-3 px-1">
+                          <span className="text-[13px] font-semibold text-muted-foreground">Todos los usuarios</span>
+                          <span className="bg-muted text-muted-foreground text-[11px] font-bold px-2 py-0.5 rounded-full">{users.length}</span>
                         </div>
-                        <span className="bg-muted text-muted-foreground text-[11px] font-bold px-2 py-0.5 rounded-full">
-                          {users.filter(u => !onlineUsers.has(String(u.id))).length}
-                        </span>
-                      </div>
-                      
-                      {users.filter(u => !onlineUsers.has(String(u.id))).length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-8 opacity-50">
-                          <div className="w-16 h-16 rounded-full border border-muted-foreground flex items-center justify-center text-muted-foreground mb-3">
-                            <Users size={24} />
-                          </div>
-                          <p className="text-foreground font-medium text-sm">No hay usuarios offline</p>
-                          <p className="text-xs text-muted-foreground mt-1">Todos los miembros conectados</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          {users.filter(u => !onlineUsers.has(String(u.id)) && u.name.toLowerCase().includes(searchQuery.toLowerCase())).map(u => {
+                        {[...users]
+                          .filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                          .sort((a, b) => {
+                            const aUnread = userUnreadCounts[String(a.id)] || 0;
+                            const bUnread = userUnreadCounts[String(b.id)] || 0;
+                            if (bUnread !== aUnread) return bUnread - aUnread;
+                            const aOnline = onlineUsers.has(String(a.id)) ? 1 : 0;
+                            const bOnline = onlineUsers.has(String(b.id)) ? 1 : 0;
+                            return bOnline - aOnline;
+                          })
+                          .map(u => {
                             const unread = userUnreadCounts[String(u.id)] || 0;
+                            const isOnline = onlineUsers.has(String(u.id));
                             return (
                               <button
                                 key={u.id}
                                 onClick={() => openConversation(u)}
-                                className="w-full text-left flex items-center justify-between p-3 bg-transparent hover:bg-muted/50 border border-transparent hover:border-border rounded-[16px] transition group relative"
+                                className="w-full text-left flex items-center justify-between p-3 bg-card hover:bg-muted/50 border border-border/50 rounded-[16px] transition group relative shadow-sm"
                               >
-                                <div className="flex items-center gap-3 opacity-70 group-hover:opacity-100 transition-opacity">
+                                <div className="flex items-center gap-3">
                                   <div className="relative">
-                                    <div className="w-12 h-12 rounded-full bg-muted border border-border flex items-center justify-center text-muted-foreground font-bold overflow-hidden">
+                                    <div className="w-12 h-12 rounded-full bg-muted border border-border flex items-center justify-center font-bold overflow-hidden">
                                       {u.image ? <img src={u.image} alt={u.name} className="w-full h-full object-cover" /> : u.name.substring(0, 2).toUpperCase()}
                                     </div>
+                                    {isOnline && <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-card rounded-full" />}
                                   </div>
                                   <div>
                                     <p className="font-semibold text-[15px] text-foreground">{u.name}</p>
-                                    <p className="text-[13px] text-muted-foreground truncate max-w-[200px]">
-                                      {unread > 0 && userLastMessage[String(u.id)] ? userLastMessage[String(u.id)] : (u.position || "Miembro del equipo")}
+                                    <p className={`text-[13px] truncate max-w-[200px] ${unread > 0 ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
+                                      {unread > 0 && userLastMessage[String(u.id)] ? userLastMessage[String(u.id)] : (u.position || (isOnline ? 'En línea' : 'Offline'))}
                                     </p>
                                   </div>
                                 </div>
                                 {unread > 0 ? (
-                                  <div className="w-7 h-7 rounded-full bg-red-500 flex items-center justify-center text-white font-bold text-xs shadow-sm">
+                                  <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-xs shadow-sm shrink-0">
                                     {unread}
                                   </div>
                                 ) : (
-                                  <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                                     <MessageCircle size={18} />
                                   </div>
                                 )}
                               </button>
-                            )
+                            );
                           })}
+                      </div>
+                    ) : (
+                      <>
+                        {/* Conectados */}
+                        <div className="mb-6">
+                          <div className="flex items-center justify-between mb-3 px-1">
+                            <div className="flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-sm"></span>
+                              <span className="text-[13px] font-semibold text-emerald-600 dark:text-emerald-500">Conectados</span>
+                            </div>
+                            <span className="bg-muted text-muted-foreground text-[11px] font-bold px-2 py-0.5 rounded-full">
+                              {users.filter(u => onlineUsers.has(String(u.id))).length}
+                            </span>
+                          </div>
+                          <div className="space-y-2">
+                            {users.filter(u => onlineUsers.has(String(u.id)) && u.name.toLowerCase().includes(searchQuery.toLowerCase())).map(u => {
+                              const unread = userUnreadCounts[String(u.id)] || 0;
+                              return (
+                                <button
+                                  key={u.id}
+                                  onClick={() => openConversation(u)}
+                                  className="w-full text-left flex items-center justify-between p-3 bg-card hover:bg-muted/50 border border-primary/20 rounded-[16px] transition group relative shadow-sm"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <div className="relative">
+                                      <div className="w-12 h-12 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center text-primary font-bold overflow-hidden">
+                                        {u.image ? <img src={u.image} alt={u.name} className="w-full h-full object-cover" /> : u.name.substring(0, 2).toUpperCase()}
+                                      </div>
+                                      <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-card rounded-full"></div>
+                                    </div>
+                                    <div>
+                                      <p className="font-semibold text-[15px] text-foreground">{u.name}</p>
+                                      <p className={`text-[13px] truncate max-w-[200px] ${unread > 0 ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
+                                        {unread > 0 && userLastMessage[String(u.id)] ? userLastMessage[String(u.id)] : (u.position || 'Miembro del equipo')}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  {unread > 0 ? (
+                                    <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-xs shadow-sm shrink-0">
+                                      {unread}
+                                    </div>
+                                  ) : (
+                                    <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors shrink-0">
+                                      <MessageCircle size={18} />
+                                    </div>
+                                  )}
+                                </button>
+                              )
+                            })}
+                          </div>
                         </div>
-                      )}
-                    </div>
+
+                        {/* Offline */}
+                        <div>
+                          <div className="flex items-center justify-between mb-3 px-1">
+                            <div className="flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-muted-foreground"></span>
+                              <span className="text-[13px] font-semibold text-muted-foreground">Offline</span>
+                            </div>
+                            <span className="bg-muted text-muted-foreground text-[11px] font-bold px-2 py-0.5 rounded-full">
+                              {users.filter(u => !onlineUsers.has(String(u.id))).length}
+                            </span>
+                          </div>
+                          {users.filter(u => !onlineUsers.has(String(u.id))).length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-8 opacity-50">
+                              <div className="w-16 h-16 rounded-full border border-muted-foreground flex items-center justify-center text-muted-foreground mb-3">
+                                <Users size={24} />
+                              </div>
+                              <p className="text-foreground font-medium text-sm">No hay usuarios offline</p>
+                              <p className="text-xs text-muted-foreground mt-1">Todos los miembros conectados</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              {users.filter(u => !onlineUsers.has(String(u.id)) && u.name.toLowerCase().includes(searchQuery.toLowerCase())).map(u => {
+                                const unread = userUnreadCounts[String(u.id)] || 0;
+                                return (
+                                  <button
+                                    key={u.id}
+                                    onClick={() => openConversation(u)}
+                                    className="w-full text-left flex items-center justify-between p-3 bg-transparent hover:bg-muted/50 border border-transparent hover:border-border rounded-[16px] transition group relative"
+                                  >
+                                    <div className="flex items-center gap-3 opacity-70 group-hover:opacity-100 transition-opacity">
+                                      <div className="relative">
+                                        <div className="w-12 h-12 rounded-full bg-muted border border-border flex items-center justify-center text-muted-foreground font-bold overflow-hidden">
+                                          {u.image ? <img src={u.image} alt={u.name} className="w-full h-full object-cover" /> : u.name.substring(0, 2).toUpperCase()}
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <p className="font-semibold text-[15px] text-foreground">{u.name}</p>
+                                        <p className={`text-[13px] truncate max-w-[200px] ${unread > 0 ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
+                                          {unread > 0 && userLastMessage[String(u.id)] ? userLastMessage[String(u.id)] : (u.position || 'Miembro del equipo')}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    {unread > 0 ? (
+                                      <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-xs shadow-sm shrink-0">
+                                        {unread}
+                                      </div>
+                                    ) : (
+                                      <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                        <MessageCircle size={18} />
+                                      </div>
+                                    )}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
                   </>
                 )}
               </div>
@@ -455,11 +541,14 @@ export function FloatingChat({ user }: { user: any }) {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-foreground">{onlineUsers.size} miembro{onlineUsers.size !== 1 ? 's' : ''} conectado{onlineUsers.size !== 1 ? 's' : ''}</p>
-                    <p className="text-xs text-muted-foreground">Buen trabajo en equipo 👋</p>
+                    <p className="text-xs text-muted-foreground">{showAll ? `${users.length} usuarios en total` : 'Buen trabajo en equipo 👋'}</p>
                   </div>
                 </div>
-                <button className="text-xs font-medium text-primary border border-primary/30 px-3 py-2 rounded-lg hover:bg-primary/10 transition-colors flex items-center gap-2">
-                  <Users size={14} /> Ver todos
+                <button
+                  onClick={() => setShowAll(prev => !prev)}
+                  className="text-xs font-medium text-primary border border-primary/30 px-3 py-2 rounded-lg hover:bg-primary/10 transition-colors flex items-center gap-2"
+                >
+                  <Users size={14} /> {showAll ? 'Ver secciones' : 'Ver todos'}
                 </button>
               </div>
             </div>
