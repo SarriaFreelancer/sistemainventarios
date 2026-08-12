@@ -602,17 +602,22 @@ export function FloatingChat({ user }: { user: any }) {
 
               {/* Emoji Picker Popup */}
               {showEmojiPicker && (
-                <div className="absolute bottom-20 right-4 z-50 shadow-2xl rounded-2xl border border-border overflow-hidden bg-card max-h-[280px] overflow-y-auto">
+                <div
+                  className="absolute bottom-16 z-50 shadow-2xl rounded-2xl border border-border overflow-hidden"
+                  style={{ left: "50%", transform: "translateX(-50%)" }}
+                >
                   <Picker
                     data={data}
                     onEmojiSelect={handleEmojiSelect}
                     theme="auto"
                     locale="es"
-                    perLine={7}
-                    emojiSize={20}
-                    emojiButtonSize={28}
+                    perLine={8}
+                    emojiSize={22}
+                    emojiButtonSize={32}
                     previewPosition="none"
                     skinTonePosition="none"
+                    maxFrequentRows={1}
+                    style={{ height: "210px" }}
                   />
                 </div>
               )}
