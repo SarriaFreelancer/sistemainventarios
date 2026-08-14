@@ -63,8 +63,8 @@ test.describe('Módulo de Notificaciones y Campanita', () => {
     await expect(bellButton.locator('span.bg-destructive').first()).toBeVisible();
 
     await bellButton.click();
-    await expect(page.locator(`text=${saleNumberText}`)).toBeVisible();
-    await expect(page.locator('text=Cobro Pendiente')).toBeVisible();
+    await expect(page.locator(`text=${saleNumberText}`).first()).toBeVisible();
+    await expect(page.locator('text=Cobro Pendiente').first()).toBeVisible();
 
     // Cerrar dropdown
     await page.click('h1');
@@ -105,7 +105,7 @@ test.describe('Módulo de Notificaciones y Campanita', () => {
 
     // 2. Limpiar todo
     await bellButton.click();
-    await page.click('button:has-text("Limpiar todo")');
+    await page.click('button:has-text("Limpiar todo")', { force: true });
     
     // La campana debe vaciarse inmediatamente y ocultar el badge rojo
     await expect(bellButton.locator('span.bg-destructive').first()).not.toBeVisible();

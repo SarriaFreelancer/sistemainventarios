@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../lib/prisma';
 import bcrypt from 'bcryptjs';
-
-const prisma = new PrismaClient();
 
 export async function clearDatabase() {
   try {
@@ -62,27 +60,35 @@ export async function clearDatabase() {
 export async function seedDatabase() {
   const passwordHash = await bcrypt.hash('Admin123', 10);
 
-  // 1. Crear Roles
-  const adminRole = await prisma.role.create({ data: { name: 'ADMIN' } });
-  const superAdminRole = await prisma.role.create({ data: { name: 'SUPERADMIN' } });
-  const userRole = await prisma.role.create({ data: { name: 'USER' } });
+  // 1. Crear Roles de forma segura (upsert)
+  const adminRole = await prisma.role.upsert({ where: { name: 'ADMIN' }, update: {}, create: { name: 'ADMIN' } });
+  const superAdminRole = await prisma.role.upsert({ where: { name: 'SUPERADMIN' }, update: {}, create: { name: 'SUPERADMIN' } });
+  const userRole = await prisma.role.upsert({ where: { name: 'USER' }, update: {}, create: { name: 'USER' } });
 
-  // 2. Crear Empresas de Prueba
-  const globalCompany = await prisma.company.create({
-    data: { name: 'Global', address: 'N/A', city: 'N/A', country: 'N/A', status: 'ACTIVE' },
+  // 2. Crear Empresas de Prueba (upsert)
+  const globalCompany = await prisma.company.upsert({
+    where: { name: 'Global' },
+    update: {},
+    create: { name: 'Global', address: 'N/A', city: 'N/A', country: 'N/A', status: 'ACTIVE' },
   });
 
-  const companyA = await prisma.company.create({
-    data: { name: 'Empresa A Test', address: 'Calle A #12-34', city: 'Bogota', country: 'Colombia', status: 'ACTIVE' },
+  const companyA = await prisma.company.upsert({
+    where: { name: 'Empresa A Test' },
+    update: {},
+    create: { name: 'Empresa A Test', address: 'Calle A #12-34', city: 'Bogota', country: 'Colombia', status: 'ACTIVE' },
   });
 
-  const companyB = await prisma.company.create({
-    data: { name: 'Empresa B Test', address: 'Carrera B #56-78', city: 'Medellin', country: 'Colombia', status: 'ACTIVE' },
+  const companyB = await prisma.company.upsert({
+    where: { name: 'Empresa B Test' },
+    update: {},
+    create: { name: 'Empresa B Test', address: 'Carrera B #56-78', city: 'Medellin', country: 'Colombia', status: 'ACTIVE' },
   });
 
-  // 3. Crear Usuarios de Prueba
-  const superadmin = await prisma.user.create({
-    data: {
+  // 3. Crear Usuarios de Prueba (upsert)
+  const superadmin = await prisma.user.upsert({
+    where: { email: 'superadmin@gns-test.com' },
+    update: { password: passwordHash, companyId: globalCompany.id, roleId: superAdminRole.id },
+    create: {
       name: 'Super Admin Test',
       email: 'superadmin@gns-test.com',
       password: passwordHash,
@@ -92,8 +98,10 @@ export async function seedDatabase() {
     },
   });
 
-  const adminA = await prisma.user.create({
-    data: {
+  const adminA = await prisma.user.upsert({
+    where: { email: 'adminA@gns-test.com' },
+    update: { password: passwordHash, companyId: companyA.id, roleId: adminRole.id },
+    create: {
       name: 'Admin Empresa A',
       email: 'adminA@gns-test.com',
       password: passwordHash,
@@ -103,8 +111,10 @@ export async function seedDatabase() {
     },
   });
 
-  const userA = await prisma.user.create({
-    data: {
+  const userA = await prisma.user.upsert({
+    where: { email: 'userA@gns-test.com' },
+    update: { password: passwordHash, companyId: companyA.id, roleId: userRole.id },
+    create: {
       name: 'User Empresa A',
       email: 'userA@gns-test.com',
       password: passwordHash,
@@ -114,8 +124,10 @@ export async function seedDatabase() {
     },
   });
 
-  const adminB = await prisma.user.create({
-    data: {
+  const adminB = await prisma.user.upsert({
+    where: { email: 'adminB@gns-test.com' },
+    update: { password: passwordHash, companyId: companyB.id, roleId: adminRole.id },
+    create: {
       name: 'Admin Empresa B',
       email: 'adminB@gns-test.com',
       password: passwordHash,
@@ -126,15 +138,19 @@ export async function seedDatabase() {
   });
 
   // Crear configuración por defecto de la empresa para habilitar/deshabilitar stock negativo
-  await prisma.companySetting.create({
-    data: {
+  await prisma.companySetting.upsert({
+    where: { companyId: companyA.id },
+    update: { allowNegativeStock: false },
+    create: {
       companyId: companyA.id,
       allowNegativeStock: false,
     }
   });
 
-  await prisma.companySetting.create({
-    data: {
+  await prisma.companySetting.upsert({
+    where: { companyId: companyB.id },
+    update: { allowNegativeStock: false },
+    create: {
       companyId: companyB.id,
       allowNegativeStock: false,
     }
@@ -159,8 +175,10 @@ export async function seedDatabase() {
   ];
 
   for (const mod of systemModules) {
-    const createdModule = await prisma.module.create({
-      data: {
+    const createdModule = await prisma.module.upsert({
+      where: { name: mod.name },
+      update: { href: mod.href, icon: mod.icon, description: mod.description },
+      create: {
         name: mod.name,
         href: mod.href,
         icon: mod.icon,

@@ -384,6 +384,7 @@ model Category {
   code           String?
   description    String?
   status         CategoryStatus @default(ACTIVE)
+  isPerishable   Boolean        @default(false)
   companyId      Int?
   company        Company?       @relation(fields: [companyId], references: [id])
   createdAt      DateTime       @default(now())
@@ -771,6 +772,9 @@ model CompanySetting {
   sessionTimeoutMinutes Int      @default(60)
   enable2FA             Boolean  @default(false)
   enableNotifications   Boolean  @default(true)
+  enableBatchWriteOff   Boolean  @default(true)
+  enableBatchDelete     Boolean  @default(false)
+  autoExpenseOnWriteOff Boolean  @default(true)
   smtpHost              String?
   smtpPort              Int?
   smtpUser              String?

@@ -14,7 +14,7 @@ import {
 import { Pencil } from "lucide-react";
 import { successAlert, errorAlert } from "@/lib/sweetalert";
 
-interface Category { id: string; name: string; productGroupId?: string; }
+interface Category { id: string; name: string; productGroupId?: string; isPerishable?: boolean; }
 interface Supplier { id: string; companyName: string; }
 interface ProductGroup { id: string; name: string; }
 interface Product {
@@ -148,7 +148,9 @@ export function EditProductDialog({ product, categories, suppliers, groups, regi
                 <select id={`edit-cat-${product.id}`} name="categoryId" value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className={selectCls}>
                   <option value="">Seleccione una categoría...</option>
                   {filteredCategories.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
+                    <option key={c.id} value={c.id}>
+                      {c.name} {c.isPerishable ? ' (⏱️ Perecedero)' : ''}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -170,25 +172,6 @@ export function EditProductDialog({ product, categories, suppliers, groups, regi
                 <Input id={`edit-cost-${product.id}`} name="unitCost" type="number" min="0" step="100" defaultValue={product.unitCost} className={inputCls} />
               </div>
 
-              {trackExpirationDates && (
-                <>
-                  <div className="space-y-1.5 flex items-end pb-0.5 sm:col-span-2">
-                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-2.5 text-xs text-amber-600/90 w-full">
-                      <strong className="block text-amber-600">Añadir existencias a un nuevo lote</strong>
-                      Si vas a aumentar la cantidad, puedes ingresar el lote y fecha de vencimiento de las nuevas unidades.
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor={`edit-batch-${product.id}`} className={labelCls}>Lote (Nuevas uds)</Label>
-                    <Input id={`edit-batch-${product.id}`} name="batchNumber" placeholder="Ej. LOTE-001" className={inputCls} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor={`edit-exp-${product.id}`} className={labelCls}>Vencimiento (Nuevas uds)</Label>
-                    <Input id={`edit-exp-${product.id}`} name="expirationDate" type="date" className={inputCls} />
-                  </div>
-                </>
-              )}
-              
               {['SALE', 'FINISHED_GOOD', 'SERVICE'].includes(productType) ? (
                 <div className="space-y-1.5">
                   <Label htmlFor={`edit-price-${product.id}`} className={labelCls}>Precio de Venta (COP)</Label>
@@ -196,11 +179,35 @@ export function EditProductDialog({ product, categories, suppliers, groups, regi
                 </div>
               ) : (
                 <div className="space-y-1.5 flex items-end pb-0.5">
-                  <div className="bg-muted/30 border border-border rounded-xl p-2.5 text-xs text-muted-foreground">
+                  <div className="bg-muted/30 border border-border rounded-xl p-2.5 text-xs text-muted-foreground w-full">
                     Uso interno (sin precio de venta).
                   </div>
                 </div>
               )}
+
+              {(() => {
+                const currentCat = categories.find(c => String(c.id) === String(selectedCategory));
+                const showExpiration = trackExpirationDates || (currentCat?.isPerishable ?? false);
+                if (!showExpiration) return null;
+                return (
+                  <>
+                    <div className="space-y-1.5 flex items-end pb-0.5 sm:col-span-2">
+                      <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-2.5 text-xs text-amber-600/90 w-full">
+                        <strong className="block text-amber-600">⏱️ Control de Lotes Activo ({currentCat?.isPerishable ? 'Categoría Perecedera' : 'Global'})</strong>
+                        Si vas a aumentar la cantidad, puedes ingresar el lote y fecha de vencimiento de las nuevas unidades.
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor={`edit-batch-${product.id}`} className={labelCls}>Lote (Nuevas uds)</Label>
+                      <Input id={`edit-batch-${product.id}`} name="batchNumber" placeholder="Ej. LOTE-001" className={inputCls} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor={`edit-exp-${product.id}`} className={labelCls}>Vencimiento (Nuevas uds)</Label>
+                      <Input id={`edit-exp-${product.id}`} name="expirationDate" type="date" className={inputCls} />
+                    </div>
+                  </>
+                );
+              })()}
               
               {registerInventoryCostAsExpense && (
                 <div className="sm:col-span-2 flex items-center justify-between p-3 border border-border/80 bg-muted/10 rounded-2xl">

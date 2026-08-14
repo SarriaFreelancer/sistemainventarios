@@ -125,6 +125,9 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
   const [expirationAlertDays, setExpirationAlertDays] = useState((initialSettings as any).expirationAlertDays ?? 30);
   const [blockExpiredSales, setBlockExpiredSales] = useState((initialSettings as any).blockExpiredSales ?? false);
   const [expirationAlertFrequency, setExpirationAlertFrequency] = useState((initialSettings as any).expirationAlertFrequency ?? "DAILY");
+  const [enableBatchWriteOff, setEnableBatchWriteOff] = useState((initialSettings as any).enableBatchWriteOff ?? true);
+  const [enableBatchDelete, setEnableBatchDelete] = useState((initialSettings as any).enableBatchDelete ?? false);
+  const [autoExpenseOnWriteOff, setAutoExpenseOnWriteOff] = useState((initialSettings as any).autoExpenseOnWriteOff ?? true);
 
   // Facturación Personalizada
   const initialInvoiceConfig = (initialSettings as any).invoiceConfig || {};
@@ -183,6 +186,9 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
       expirationAlertDays,
       blockExpiredSales,
       expirationAlertFrequency,
+      enableBatchWriteOff,
+      enableBatchDelete,
+      autoExpenseOnWriteOff,
       bgImage,
       invoiceConfig: {
         companyName: invoiceCompanyName,
@@ -794,6 +800,48 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
                   checked={blockExpiredSales}
                   onChange={(e) => setBlockExpiredSales(e.target.checked)}
                   disabled={!trackExpirationDates}
+                  className="w-4 h-4 text-primary bg-muted rounded border-border focus:ring-primary disabled:opacity-40"
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-3 border border-border/80 bg-muted/10 rounded-2xl">
+                <div>
+                  <p className="text-sm font-bold text-foreground">Permitir Bajas por Vencimiento</p>
+                  <p className="text-xs text-muted-foreground">Habilita el botón para retirar y dar de baja unidades de lotes vencidos.</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={enableBatchWriteOff}
+                  onChange={(e) => setEnableBatchWriteOff(e.target.checked)}
+                  disabled={!trackExpirationDates}
+                  className="w-4 h-4 text-primary bg-muted rounded border-border focus:ring-primary disabled:opacity-40"
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-3 border border-border/80 bg-muted/10 rounded-2xl">
+                <div>
+                  <p className="text-sm font-bold text-foreground">Permitir Eliminación Directa de Lotes</p>
+                  <p className="text-xs text-muted-foreground">Habilita el botón para eliminar permanentemente lotes y descontar su stock del inventario.</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={enableBatchDelete}
+                  onChange={(e) => setEnableBatchDelete(e.target.checked)}
+                  disabled={!trackExpirationDates}
+                  className="w-4 h-4 text-primary bg-muted rounded border-border focus:ring-primary disabled:opacity-40"
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-3 border border-border/80 bg-muted/10 rounded-2xl">
+                <div>
+                  <p className="text-sm font-bold text-foreground">Contabilizar Bajas como Gasto (Mermas)</p>
+                  <p className="text-xs text-muted-foreground">Registra automáticamente el costo de los productos dados de baja en Finanzas.</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={autoExpenseOnWriteOff}
+                  onChange={(e) => setAutoExpenseOnWriteOff(e.target.checked)}
+                  disabled={!trackExpirationDates || !enableBatchWriteOff}
                   className="w-4 h-4 text-primary bg-muted rounded border-border focus:ring-primary disabled:opacity-40"
                 />
               </div>

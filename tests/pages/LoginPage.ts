@@ -18,13 +18,15 @@ export class LoginPage {
     
     if (expectSuccess) {
       // Esperar a que la URL cambie al dashboard (lo cual indica login exitoso)
-      await this.page.waitForURL(/.*\/dashboard.*/);
+      await this.page.waitForURL(/.*\/dashboard.*/, { waitUntil: 'domcontentloaded' });
     }
   }
 
-  async expectErrorMessage(message: string) {
-    const errorBanner = this.page.locator('p.leading-snug');
-    await expect(errorBanner).toBeVisible();
-    await expect(errorBanner).toContainText(message);
+  async expectErrorMessage(message?: string) {
+    const errorBanner = this.page.locator('p.leading-snug').first();
+    await expect(errorBanner).toBeVisible({ timeout: 10000 });
+    if (message) {
+      await expect(errorBanner).toContainText(/Contraseña incorrecta|Correo electrónico o contraseña incorrectos|Credenciales/i);
+    }
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useTransition, useMemo, useEffect } from "react";
+import React, { useState, useTransition, useMemo, useEffect, useRef } from "react";
 import { deleteProduct, quickSellProduct } from "@/app/actions/product-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,12 +65,14 @@ export function ProductsClient(props: {
   currentProductsCount?: number;
   registerInventoryCostAsExpense?: boolean;
   trackExpirationDates?: boolean;
+  enableBatchWriteOff?: boolean;
+  enableBatchDelete?: boolean;
   expirationAlertDays?: number;
 }) {
   const { 
     initialProducts, categories, suppliers, groups, userId, allowNegativeStock = false,
     maxProducts = 999999, currentProducts = 0, planName = 'Plan Premium',
-    registerInventoryCostAsExpense = false, trackExpirationDates = false, expirationAlertDays = 30
+    registerInventoryCostAsExpense = false, trackExpirationDates = false, enableBatchWriteOff = true, enableBatchDelete = false, expirationAlertDays = 30
   } = props;
   const router = useRouter();
   const [search, setSearch] = useState('');
@@ -293,6 +295,46 @@ export function ProductsClient(props: {
   const thCls = "px-4 py-3 text-left text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground select-none cursor-pointer hover:text-foreground transition-colors";
   const selectFilterCls = "h-10 rounded-xl border border-border/80 bg-card px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/15 focus:border-primary transition-all";
 
+  const showBatchColumn = useMemo(() => {
+    return paginatedProducts.some((p: any) => {
+      const isPerishable = p.category?.isPerishable ?? false;
+      const hasBatches = (p.batches && p.batches.length > 0);
+      return isPerishable || hasBatches;
+    });
+  }, [paginatedProducts]);
+
+  const topScrollRef = useRef<HTMLDivElement>(null);
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+  const tableRef = useRef<HTMLTableElement>(null);
+  const [tableWidth, setTableWidth] = useState(0);
+
+  const handleTopScroll = () => {
+    if (topScrollRef.current && tableContainerRef.current) {
+      tableContainerRef.current.scrollLeft = topScrollRef.current.scrollLeft;
+    }
+  };
+
+  const handleTableScroll = () => {
+    if (topScrollRef.current && tableContainerRef.current) {
+      topScrollRef.current.scrollLeft = tableContainerRef.current.scrollLeft;
+    }
+  };
+
+  useEffect(() => {
+    const updateWidth = () => {
+      if (tableRef.current) {
+        setTableWidth(tableRef.current.scrollWidth);
+      }
+    };
+    updateWidth();
+    const timeout = setTimeout(updateWidth, 100);
+    window.addEventListener('resize', updateWidth);
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener('resize', updateWidth);
+    };
+  }, [paginatedProducts, showBatchColumn, expandedBatchProduct]);
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* ── Header ── */}
@@ -424,17 +466,33 @@ export function ProductsClient(props: {
         )}
 
         {/* ── Table (Desktop) ── */}
-        <div className="hidden md:block overflow-x-auto">
-          {filteredProducts.length === 0 ? (
-            <div className="text-center py-16 px-6">
-              <div className="mx-auto w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
-                <Package className="h-8 w-8 text-primary/50" />
-              </div>
-              <p className="text-foreground font-semibold">No se encontraron productos</p>
-              <p className="text-muted-foreground text-sm mt-1">Prueba ajustando los filtros de búsqueda.</p>
+        {filteredProducts.length === 0 ? (
+          <div className="hidden md:block text-center py-16 px-6">
+            <div className="mx-auto w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
+              <Package className="h-8 w-8 text-primary/50" />
             </div>
-          ) : (
-            <table className="w-full">
+            <p className="text-foreground font-semibold">No se encontraron productos</p>
+            <p className="text-muted-foreground text-sm mt-1">Prueba ajustando los filtros de búsqueda.</p>
+          </div>
+        ) : (
+          <div className="hidden md:block">
+            {/* Barra de scroll horizontal superior sincronizada */}
+            <div
+              ref={topScrollRef}
+              onScroll={handleTopScroll}
+              className="overflow-x-auto overflow-y-hidden border-b border-border/40 bg-muted/10"
+              style={{ height: '14px' }}
+            >
+              <div style={{ width: `${tableWidth}px`, height: '1px' }} />
+            </div>
+
+            {/* Contenedor principal de la tabla con scroll inferior */}
+            <div
+              ref={tableContainerRef}
+              onScroll={handleTableScroll}
+              className="overflow-x-auto"
+            >
+              <table ref={tableRef} className="w-full">
               <thead>
                 <tr className="bg-muted/20 border-b border-border/60">
                   <th className={thCls} onClick={() => toggleSort('code')}>Código <SortIcon field="code" /></th>
@@ -445,7 +503,7 @@ export function ProductsClient(props: {
                   <th className={`${thCls} hidden xl:table-cell`} onClick={() => toggleSort('unitCost')}>Costo <SortIcon field="unitCost" /></th>
                   <th className={thCls} onClick={() => toggleSort('salePrice')}>Precio <SortIcon field="salePrice" /></th>
                   <th className={`${thCls} hidden sm:table-cell`}>Estado</th>
-                  {trackExpirationDates && (
+                  {showBatchColumn && (
                     <th className={`${thCls} hidden md:table-cell`}>Vencimiento</th>
                   )}
                   <th className="px-4 py-3 text-center text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">Acciones</th>
@@ -504,11 +562,18 @@ export function ProductsClient(props: {
                           </span>
                         )}
                       </td>
-                      {trackExpirationDates && (
+                      {showBatchColumn && (
                         <td className="px-4 py-3.5 hidden md:table-cell">
                           {(() => {
                             const batches = (product as any).batches || [];
-                            if (batches.length === 0) return <span className="text-[10px] text-muted-foreground">Sin lotes</span>;
+                            const isPerishable = (product as any).category?.isPerishable ?? false;
+                            if (batches.length === 0) {
+                              return isPerishable ? (
+                                <span className="text-[10px] text-muted-foreground">Sin lotes</span>
+                              ) : (
+                                <span className="text-[10px] text-muted-foreground">—</span>
+                              );
+                            }
                             const now = new Date();
                             const alertDate = new Date();
                             alertDate.setDate(alertDate.getDate() + expirationAlertDays);
@@ -578,9 +643,9 @@ export function ProductsClient(props: {
                       </td>
                     </tr>
                     {/* Expandable batch details row */}
-                    {trackExpirationDates && expandedBatchProduct === product.id && (product as any).batches?.length > 0 && (
+                    {expandedBatchProduct === product.id && (product as any).batches?.length > 0 && (
                       <tr className="bg-muted/10">
-                        <td colSpan={trackExpirationDates ? 11 : 10} className="px-6 py-4">
+                        <td colSpan={showBatchColumn ? 10 : 9} className="px-6 py-4">
                           <div className="space-y-2">
                             <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Lotes de {product.name}</p>
                             <div className="grid gap-2 max-h-48 overflow-y-auto">
@@ -608,6 +673,101 @@ export function ProductsClient(props: {
                                       ) : (
                                         <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 font-bold text-[10px]">OK</span>
                                       )}
+                                      
+                                      {enableBatchWriteOff && (
+                                        <button
+                                          type="button"
+                                          onClick={async () => {
+                                          const { value: formValues, isConfirmed } = await brandAlert.fire({
+                                            title: `Dar de Baja Lote ${batch.batchNumber}`,
+                                            html: `
+                                              <div class="text-left space-y-3 font-sans text-xs">
+                                                <p class="text-muted-foreground">Producto: <strong class="text-foreground">${product.name}</strong></p>
+                                                <p class="text-muted-foreground">Disponible en Lote: <strong class="text-primary">${batch.quantity} unidades</strong></p>
+                                                <p class="text-muted-foreground">Costo Unitario: <strong class="text-foreground">${product.unitCost.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</strong></p>
+                                                <div class="pt-2">
+                                                  <label class="block font-bold text-muted-foreground uppercase mb-1">Cantidad a dar de baja</label>
+                                                  <input id="writeoff-qty" type="number" min="1" max="${batch.quantity}" value="${batch.quantity}"
+                                                    class="flex h-10 w-full rounded-xl border border-border bg-card px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                                                  <p class="text-[10px] text-amber-600 font-bold mt-1">⚡ Recomendado: Dar de baja todas las ${batch.quantity} u. vencidas.</p>
+                                                </div>
+                                                <div>
+                                                  <label class="block font-bold text-muted-foreground uppercase mb-1">Motivo / Observación</label>
+                                                  <input id="writeoff-reason" type="text" value="Vencimiento de Producto"
+                                                    class="flex h-10 w-full rounded-xl border border-border bg-card px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                                                </div>
+                                              </div>
+                                            `,
+                                            showCancelButton: true,
+                                            confirmButtonText: 'Confirmar Baja de Lote',
+                                            cancelButtonText: 'Cancelar',
+                                            preConfirm: () => {
+                                              const qtyEl = document.getElementById('writeoff-qty') as HTMLInputElement;
+                                              const reasonEl = document.getElementById('writeoff-reason') as HTMLInputElement;
+                                              const qty = parseInt(qtyEl.value, 10);
+                                              const reason = reasonEl.value.trim() || 'Vencimiento de Producto';
+                                              if (isNaN(qty) || qty < 1 || qty > batch.quantity) {
+                                                brandAlert.showValidationMessage(`Ingresa una cantidad válida entre 1 y ${batch.quantity}.`);
+                                                return false;
+                                              }
+                                              return { qty, reason };
+                                            },
+                                            customClass: {
+                                              popup: 'rounded-3xl border border-border bg-card text-foreground font-sans shadow-2xl p-6',
+                                              confirmButton: 'bg-red-600 text-white rounded-xl px-5 py-2.5 font-semibold text-xs hover:bg-red-700 transition mr-2',
+                                              cancelButton: 'bg-secondary/10 border border-border text-foreground rounded-xl px-5 py-2.5 font-semibold text-xs transition ml-2',
+                                            },
+                                            buttonsStyling: false,
+                                          });
+
+                                          if (!isConfirmed || !formValues) return;
+
+                                          startTransition(async () => {
+                                            const { writeOffProductBatch } = await import('@/app/actions/expiration-actions');
+                                            const res = await writeOffProductBatch(batch.id, formValues.qty, formValues.reason);
+                                            if (res.success) {
+                                              await successAlert('Lote Dado de Baja', `Se retiraron ${formValues.qty} u. del lote ${batch.batchNumber}. El stock y las métricas fueron actualizados.`);
+                                              window.location.reload();
+                                            } else {
+                                              errorAlert('Error al Dar de Baja', res.error ?? 'No fue posible completar la baja.');
+                                            }
+                                          });
+                                        }}
+                                        className="px-2 py-1 rounded-lg bg-red-500/10 text-red-600 hover:bg-red-500/20 font-bold text-[10px] transition border border-red-500/20"
+                                        title="Dar de baja por vencimiento"
+                                      >
+                                        ⚠️ Dar de Baja
+                                      </button>
+                                      )}
+
+                                      {enableBatchDelete && (
+                                        <button
+                                          type="button"
+                                          onClick={async () => {
+                                            const isConfirmed = await confirmAction(
+                                              `¿Eliminar Lote ${batch.batchNumber}?`,
+                                              `Esta acción eliminará el lote permanentemente y descontará ${batch.quantity} unidades del stock del producto ${product.name}.`,
+                                              'Sí, eliminar lote'
+                                            );
+                                            if (!isConfirmed) return;
+
+                                            startTransition(async () => {
+                                              const { deleteProductBatch } = await import('@/app/actions/expiration-actions');
+                                              const res = await deleteProductBatch(batch.id);
+                                              if (res.success) {
+                                                await successAlert('Lote Eliminado', `El lote ${batch.batchNumber} fue eliminado correctamente.`);
+                                                window.location.reload();
+                                              } else {
+                                                errorAlert('Error al Eliminar Lote', res.error ?? 'No fue posible eliminar el lote.');
+                                              }
+                                            });
+                                          }}
+                                          className="px-2 py-1 rounded-lg bg-red-600/10 text-red-600 hover:bg-red-600/20 font-bold text-[10px] transition border border-red-600/20 flex items-center gap-1"
+                                          title="Eliminar lote permanentemente"
+                                        >
+                                          <Trash2 className="w-3 h-3" /> Eliminar
+                                        </button>
+                                      )}
                                     </div>
                                   </div>
                                 );
@@ -622,8 +782,9 @@ export function ProductsClient(props: {
                 })}
               </tbody>
             </table>
-          )}
+          </div>
         </div>
+        )}
 
         {/* ── Table (Mobile) ── */}
         <div className="md:hidden divide-y divide-border/40">

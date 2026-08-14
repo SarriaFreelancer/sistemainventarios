@@ -10,6 +10,7 @@ const categorySchema = z.object({
   name: z.string().min(2, 'El nombre es obligatorio'),
   description: z.string().optional(),
   status: z.enum(['ACTIVE', 'INACTIVE']).default('ACTIVE'),
+  isPerishable: z.boolean().default(false),
   productGroupId: z.coerce.number().min(1, 'El grupo es obligatorio'),
   code: z.string().optional().nullable(),
 });
@@ -20,6 +21,7 @@ export async function createCategory(formData: FormData) {
       name: formData.get('name'),
       description: formData.get('description') || '',
       status: formData.get('status') ?? 'ACTIVE',
+      isPerishable: formData.get('isPerishable') === 'on' || formData.get('isPerishable') === 'true',
       productGroupId: formData.get('productGroupId'),
       code: formData.get('code') || null,
     });
@@ -46,6 +48,7 @@ export async function createCategory(formData: FormData) {
       name: parsed.data.name,
       description: parsed.data.description ?? '',
       status: parsed.data.status,
+      isPerishable: parsed.data.isPerishable,
       productGroupId: parsed.data.productGroupId,
       code: parsed.data.code,
     });
@@ -80,6 +83,7 @@ export async function updateCategory(formData: FormData) {
       name: formData.get('name'),
       description: formData.get('description') || '',
       status: formData.get('status') ?? 'ACTIVE',
+      isPerishable: formData.get('isPerishable') === 'on' || formData.get('isPerishable') === 'true',
       productGroupId: formData.get('productGroupId'),
       code: formData.get('code') || null,
     });
@@ -123,6 +127,7 @@ export async function updateCategory(formData: FormData) {
         name: parsed.data.name,
         description: parsed.data.description ?? '',
         status: parsed.data.status,
+        isPerishable: parsed.data.isPerishable,
         productGroupId: parsed.data.productGroupId,
         code: parsed.data.code,
       },

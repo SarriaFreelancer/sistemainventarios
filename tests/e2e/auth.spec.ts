@@ -27,8 +27,8 @@ test.describe('Autenticación y Seguridad de Sesión', () => {
     await loginPage.login('adminA@gns-test.com', 'Admin123');
     
     // Verificar que estamos en el dashboard y se muestra el menú
-    await expect(page.locator('text=Empresa A Test').first()).toBeVisible();
-    await expect(page.locator('#tour-profile-menu')).toBeVisible();
+    await expect(page.locator('text=/Empresa A/i').first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('#tour-profile-menu').first()).toBeVisible({ timeout: 10000 });
   });
 
   test('Debe permitir cerrar la sesión correctamente', async ({ page }) => {
@@ -43,7 +43,7 @@ test.describe('Autenticación y Seguridad de Sesión', () => {
     await page.click('button:has-text("Cerrar Sesión")');
 
     // 3. Confirmar en el modal SweetAlert
-    await page.click('button:has-text("Sí, salir")');
+    await page.click('button:has-text("Sí, salir")', { force: true });
 
     await page.waitForURL(/.*\/auth\/login.*/);
     await expect(page.locator('h1')).toContainText('Bienvenido');

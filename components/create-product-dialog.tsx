@@ -14,7 +14,7 @@ import {
 import { Plus } from "lucide-react";
 import { successAlert, errorAlert } from "@/lib/sweetalert";
 
-interface Category { id: string; name: string; productGroupId?: string; }
+interface Category { id: string; name: string; productGroupId?: string; isPerishable?: boolean; }
 interface Supplier { id: string; companyName: string; }
 interface ProductGroup { id: string; name: string; }
 
@@ -37,10 +37,14 @@ export function CreateProductDialog({ categories, suppliers, groups, disabled = 
   const [isPending, startTransition] = useTransition();
   const [productType, setProductType] = useState('SALE');
   const [selectedGroup, setSelectedGroup] = useState('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState('');
 
   const filteredCategories = selectedGroup
     ? categories.filter(c => c.productGroupId === selectedGroup)
     : categories;
+
+  const currentCategory = categories.find(c => String(c.id) === String(selectedCategoryId));
+  const showExpirationFields = trackExpirationDates || (currentCategory?.isPerishable ?? false);
 
   const handleAction = useCallback(async (formData: FormData) => {
     startTransition(async () => {
@@ -102,7 +106,20 @@ export function CreateProductDialog({ categories, suppliers, groups, disabled = 
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="new-group" className={labelCls}>Grupo de Producto</Label>
-                <select id="new-group" name="productGroupId" className={selectCls} value={selectedGroup} onChange={(e) => setSelectedGroup(e.target.value)}>
+                <select id="new-group" name="productGroupId" className={selectCls} value={selectedGroup} onChange={(e) => {
+                  const groupId = e.target.value;
+                  setSelectedGroup(groupId);
+                  if (groupId) {
+                    const firstCat = categories.find(c => String(c.productGroupId) === String(groupId));
+                    if (firstCat) {
+                      setSelectedCategoryId(String(firstCat.id));
+                    } else {
+                      setSelectedCategoryId('');
+                    }
+                  } else {
+                    setSelectedCategoryId('');
+                  }
+                }}>
                   <option value="">Seleccione un grupo...</option>
                   {groups.map((g) => (
                     <option key={g.id} value={g.id}>{g.name}</option>
@@ -111,10 +128,19 @@ export function CreateProductDialog({ categories, suppliers, groups, disabled = 
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="new-categoryId" className={labelCls}>Categoría</Label>
-                <select id="new-categoryId" name="categoryId" className={selectCls}>
+                <select
+                  id="new-categoryId"
+                  name="categoryId"
+                  className={selectCls}
+                  required
+                  value={selectedCategoryId}
+                  onChange={(e) => setSelectedCategoryId(e.target.value)}
+                >
                   <option value="">Seleccione una categoría...</option>
                   {filteredCategories.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
+                    <option key={c.id} value={c.id}>
+                      {c.name} {c.isPerishable ? ' (⏱️ Perecedero)' : ''}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -136,8 +162,27 @@ export function CreateProductDialog({ categories, suppliers, groups, disabled = 
                 <Input id="new-cost" name="unitCost" type="number" min="0" step="100" defaultValue="0" className={inputCls} />
               </div>
 
-              {trackExpirationDates && (
+              {['SALE', 'FINISHED_GOOD', 'SERVICE'].includes(productType) ? (
+                <div className="space-y-1.5">
+                  <Label htmlFor="new-price" className={labelCls}>Precio de Venta (COP)</Label>
+                  <Input id="new-price" name="salePrice" type="number" min="0" step="100" defaultValue="0" className={inputCls} required />
+                </div>
+              ) : (
+                <div className="space-y-1.5 flex items-end pb-0.5">
+                  <div className="bg-muted/30 border border-border rounded-xl p-2.5 text-xs text-muted-foreground w-full">
+                    Uso interno (sin precio de venta).
+                  </div>
+                </div>
+              )}
+
+              {showExpirationFields && (
                 <>
+                  <div className="space-y-1.5 border-t border-amber-500/20 pt-3 sm:col-span-2">
+                    <p className="text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                      ⏱️ Control de Vencimientos por Lote Activo
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">Esta categoría está configurada como perecedera o tiene el control de vencimientos activo.</p>
+                  </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="new-batch" className={labelCls}>Lote (Opcional)</Label>
                     <Input id="new-batch" name="batchNumber" placeholder="Ej. LOTE-001" className={inputCls} />
@@ -147,19 +192,6 @@ export function CreateProductDialog({ categories, suppliers, groups, disabled = 
                     <Input id="new-exp" name="expirationDate" type="date" className={inputCls} />
                   </div>
                 </>
-              )}
-              
-              {['SALE', 'FINISHED_GOOD', 'SERVICE'].includes(productType) ? (
-                <div className="space-y-1.5">
-                  <Label htmlFor="new-price" className={labelCls}>Precio de Venta (COP)</Label>
-                  <Input id="new-price" name="salePrice" type="number" min="0" step="100" defaultValue="0" className={inputCls} required />
-                </div>
-              ) : (
-                <div className="space-y-1.5 flex items-end pb-0.5">
-                  <div className="bg-muted/30 border border-border rounded-xl p-2.5 text-xs text-muted-foreground">
-                    Uso interno (sin precio de venta).
-                  </div>
-                </div>
               )}
               
               {registerInventoryCostAsExpense && (

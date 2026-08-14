@@ -19,6 +19,7 @@ export async function GET(request: Request) {
     const supplierId = searchParams.get('supplierId');
     const productGroupId = searchParams.get('productGroupId');
     const productType = searchParams.get('productType');
+    const includeBatches = searchParams.get('includeBatches') === 'true' || searchParams.get('withBatches') === 'true';
 
     const whereClause = {
       ...companyFilter,
@@ -34,16 +35,19 @@ export async function GET(request: Request) {
         category: true,
         supplier: true,
         productGroup: true,
+        ...(includeBatches ? { batches: { orderBy: { expirationDate: 'asc' as const } } } : {}),
       },
       orderBy: { name: 'asc' },
     });
 
-    const rows = products.map((p) => {
+    const rows: Record<string, any>[] = [];
+
+    products.forEach((p: any) => {
       const cost = Number(p.unitCost);
       const price = Number(p.salePrice);
       const margin = price > 0 ? (((price - cost) / price) * 100).toFixed(2) : '0.00';
 
-      return {
+      const baseInfo = {
         'Código': p.code,
         'Nombre': p.name,
         'Tipo': p.type === 'SALE' ? 'Venta' : p.type === 'RAW_MATERIAL' ? 'Materia Prima' : p.type === 'FINISHED_GOOD' ? 'Producto Term.' : p.type === 'SUPPLY' ? 'Insumo' : p.type === 'SERVICE' ? 'Servicio' : 'Activo Fijo',
@@ -53,13 +57,42 @@ export async function GET(request: Request) {
         'Categoría': p.category?.name ?? '—',
         'Cód. Proveedor': p.supplier?.code ?? '—',
         'Proveedor': p.supplier?.companyName ?? '—',
-        'Stock Disponible': p.quantityAvailable,
+        'Stock Total Disponible': p.quantityAvailable,
         'Costo Unitario': cost,
         'Precio Venta': price,
         'Margen (%)': Number(margin),
         'Vendidos': p.soldQuantity,
-        'Estado': p.status === 'AVAILABLE' ? 'Disponible' : 'Sin Stock',
+        'Estado Producto': p.status === 'AVAILABLE' ? 'Disponible' : 'Sin Stock',
       };
+
+      if (includeBatches) {
+        const batches = p.batches || [];
+        if (batches.length > 0) {
+          batches.forEach((b: any) => {
+            const expStr = b.expirationDate ? new Date(b.expirationDate).toISOString().split('T')[0] : '—';
+            const batchStatus = b.status === 'EXPIRED' ? 'Vencido' : b.status === 'DEPLETED' ? 'Agotado' : 'Activo';
+            rows.push({
+              ...baseInfo,
+              'Nº Lote': b.batchNumber,
+              'Fecha Vencimiento': expStr,
+              'Cant. Lote': b.quantity,
+              'Estado Lote': batchStatus,
+              'Notas Lote': b.notes ?? '—',
+            });
+          });
+        } else {
+          rows.push({
+            ...baseInfo,
+            'Nº Lote': '—',
+            'Fecha Vencimiento': '—',
+            'Cant. Lote': '—',
+            'Estado Lote': '—',
+            'Notas Lote': '—',
+          });
+        }
+      } else {
+        rows.push(baseInfo);
+      }
     });
 
     const workbook = new ExcelJS.Workbook();

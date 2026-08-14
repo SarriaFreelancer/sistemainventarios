@@ -379,21 +379,23 @@ export async function completePendingSale(saleIdInput: any, updateData?: {
       newValues: result.newValues
     });
 
-    const admins = await prisma.user.findMany({
-      where: { companyId: result.companyId, role: { name: 'ADMIN' } }
+    const companyUsers = await prisma.user.findMany({
+      where: { companyId: result.companyId }
     });
-    for (const admin of admins) {
+    
+    // Notificar a todos los usuarios/admins asociados
+    for (const u of companyUsers) {
       await createNotification(
-        admin.id,
+        u.id,
         result.companyId,
         'Venta Confirmada',
-        `Se ha completado la venta pendiente ${result.newValues.saleNumber} por $${result.newValues.total.toLocaleString()}`,
+        `Se ha completado la venta pendiente ${result.newValues.saleNumber} por $${result.newValues.total.toLocaleString('es-CO')}`,
         'SUCCESS'
       );
       
       for (const ls of result.lowStockProducts) {
         await createNotification(
-          admin.id,
+          u.id,
           result.companyId,
           ls.type === 'CERO' ? 'Stock Agotado' : 'Stock Bajo',
           `El producto "${ls.name}" ahora tiene ${ls.newQty} unidades disponibles.`,

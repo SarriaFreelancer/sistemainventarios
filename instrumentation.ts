@@ -8,14 +8,21 @@ export async function register() {
     // Ejecutar cada minuto para revisar configuraciones de respaldos
     cron.schedule('* * * * *', async () => {
       try {
-        const { prisma } = await import('./lib/prisma');
+        let prismaClient: any;
+        try {
+          prismaClient = (await import('./lib/prisma')).prisma;
+        } catch {
+          return;
+        }
+        if (!prismaClient) return;
+
         const now = new Date();
         const currentHour = String(now.getHours()).padStart(2, '0');
         const currentMinute = String(now.getMinutes()).padStart(2, '0');
         const currentTime = `${currentHour}:${currentMinute}`;
         const currentDay = now.getDay() === 0 ? 7 : now.getDay(); // 1=Lunes, 7=Domingo
 
-        const settings = await prisma.companySetting.findMany({
+        const settings = await prismaClient.companySetting.findMany({
           where: {
             OR: [
               { backupFrequency: 'DAILY', backupTime: currentTime },
@@ -42,13 +49,13 @@ export async function register() {
           sqlDump += `-- Tipo de Respaldo: INQUILINO AUTOMÁTICO (ID: ${setting.companyId})\n\n`;
           sqlDump += `SET FOREIGN_KEY_CHECKS=0;\n\n`;
           
-          const company = await prisma.company.findUnique({ where: { id: setting.companyId } });
+          const company = await prismaClient.company.findUnique({ where: { id: setting.companyId } });
           if (company) {
             sqlDump += generateSqlInsert('Company', [company]);
           }
 
           for (const table of tenantTables) {
-            const data = await (prisma as any)[table.charAt(0).toLowerCase() + table.slice(1)].findMany({
+            const data = await (prismaClient as any)[table.charAt(0).toLowerCase() + table.slice(1)].findMany({
               where: { companyId: setting.companyId }
             });
             sqlDump += generateSqlInsert(table, data);
@@ -69,11 +76,11 @@ export async function register() {
             
             // Notificar a los admins
             if (setting.enableNotifications) {
-              const admins = await prisma.user.findMany({
+              const admins = await prismaClient.user.findMany({
                 where: { companyId: setting.companyId, role: { name: 'ADMIN' } }
               });
               for (const admin of admins) {
-                await prisma.notification.create({
+                await prismaClient.notification.create({
                   data: {
                     userId: admin.id,
                     companyId: setting.companyId,
@@ -88,11 +95,11 @@ export async function register() {
             console.error(`[BACKUP ERROR] No se pudo guardar el archivo en la ruta: ${setting.backupPath}`, err);
             // Notificar a los admins sobre el error
             if (setting.enableNotifications) {
-              const admins = await prisma.user.findMany({
+              const admins = await prismaClient.user.findMany({
                 where: { companyId: setting.companyId, role: { name: 'ADMIN' } }
               });
               for (const admin of admins) {
-                await prisma.notification.create({
+                await prismaClient.notification.create({
                   data: {
                     userId: admin.id,
                     companyId: setting.companyId,

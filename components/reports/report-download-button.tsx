@@ -9,6 +9,7 @@ interface LookupData {
   suppliers: { id: number; companyName: string }[];
   groups: { id: number; name: string }[];
   productMappings?: { type: string; productGroupId: number | null; categoryId: number; supplierId: number }[];
+  trackExpirationDates?: boolean;
 }
 
 interface ReportDownloadButtonProps {
@@ -26,6 +27,7 @@ type FiltersState = {
   startDate: string;
   endDate: string;
   status: string;
+  includeBatches: boolean;
 };
 
 const PRODUCT_TYPES = [
@@ -77,6 +79,7 @@ export function ReportDownloadButton({
     startDate: '',
     endDate: '',
     status: '',
+    includeBatches: false,
   });
 
   const hasFilters = isProductReport(reportType) || isDateFilteredReport(reportType);
@@ -142,6 +145,7 @@ export function ReportDownloadButton({
       if (filters.supplierId) params.set('supplierId', filters.supplierId);
       if (filters.productGroupId) params.set('productGroupId', filters.productGroupId);
       if (filters.productType) params.set('productType', filters.productType);
+      if (filters.includeBatches) params.set('includeBatches', 'true');
     }
     if (isDateFilteredReport(reportType)) {
       if (filters.startDate) params.set('startDate', filters.startDate);
@@ -282,6 +286,21 @@ export function ReportDownloadButton({
                       </select>
                     </div>
                   )}
+
+                  {lookupData?.trackExpirationDates && (
+                    <div className="flex items-center gap-2 pt-2 border-t border-border/50">
+                      <input
+                        type="checkbox"
+                        id="report-include-batches"
+                        checked={filters.includeBatches}
+                        onChange={(e) => setFilters(f => ({ ...f, includeBatches: e.target.checked }))}
+                        className="w-4 h-4 text-primary bg-muted rounded border-border focus:ring-primary"
+                      />
+                      <label htmlFor="report-include-batches" className="text-xs font-semibold text-foreground cursor-pointer select-none">
+                        Incluir información de Lotes / Vencimientos (Desglosar por Lote)
+                      </label>
+                    </div>
+                  )}
                 </>
               )}
 
@@ -338,7 +357,7 @@ export function ReportDownloadButton({
             {/* Footer buttons */}
             <div className="mt-6 flex items-center justify-between gap-3">
               <button
-                onClick={() => setFilters({ categoryId: '', supplierId: '', productGroupId: '', productType: '', startDate: '', endDate: '', status: '' })}
+                onClick={() => setFilters({ categoryId: '', supplierId: '', productGroupId: '', productType: '', startDate: '', endDate: '', status: '', includeBatches: false })}
                 className="rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-muted-foreground hover:bg-muted transition"
               >
                 Limpiar filtros

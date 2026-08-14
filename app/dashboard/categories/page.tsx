@@ -34,6 +34,7 @@ export default async function CategoriesPage() {
     description: c.description,
     status: c.status,
     code: c.code ?? '',
+    isPerishable: c.isPerishable,
     productGroupId: c.productGroupId,
     productGroupName: c.productGroup?.name ?? 'Sin Grupo',
     _count: { products: c._count.products },

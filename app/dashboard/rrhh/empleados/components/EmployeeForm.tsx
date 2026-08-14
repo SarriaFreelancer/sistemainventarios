@@ -40,6 +40,7 @@ export function EmployeeForm({ positions, onSuccess, onCancel }: EmployeeFormPro
     });
 
     if (result.success) {
+      window.location.reload();
       if (onSuccess) onSuccess();
     } else {
       alert("Error: " + result.error);

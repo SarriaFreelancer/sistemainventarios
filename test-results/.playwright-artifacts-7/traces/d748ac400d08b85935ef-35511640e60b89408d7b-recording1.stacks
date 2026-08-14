@@ -1,0 +1,1 @@
+{"files":["C:\\Informacion David\\Desarrollo\\invetario_productos\\tests\\pages\\LoginPage.ts","C:\\Informacion David\\Desarrollo\\invetario_productos\\tests\\e2e\\auth.spec.ts"],"stacks":[[27,[[0,11,21,"LoginPage.goto"],[1,19,21,""]]],[29,[[0,15,21,"LoginPage.login"],[1,20,21,""]]],[31,[[0,16,21,"LoginPage.login"],[1,20,5,""]]],[33,[[0,17,21,"LoginPage.login"],[1,20,5,""]]],[

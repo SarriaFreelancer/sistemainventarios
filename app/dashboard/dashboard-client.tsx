@@ -29,7 +29,8 @@ const DashboardCharts = dynamic(
 );
 
 const WelcomeTour = dynamic(
-  () => import("@/components/welcome-tour").then((m) => m.WelcomeTour)
+  () => import("@/components/welcome-tour").then((m) => m.WelcomeTour),
+  { ssr: false }
 );
 
 interface DashboardClientProps {

@@ -1248,7 +1248,7 @@ export function SalesClient(props: {
                           ? 'bg-red-500/10 text-red-500 border-red-500/20'
                           : 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20'
                       }`}>
-                        {sale.status}
+                        {sale.status === 'COMPLETED' ? 'COMPLETADA' : sale.status === 'VOIDED' ? 'ANULADA' : 'PENDIENTE'}
                       </span>
                     </td>
                     <td className="px-4 py-3.5">
@@ -1301,7 +1301,7 @@ export function SalesClient(props: {
                         ? 'bg-red-500/10 text-red-500 border-red-500/20'
                         : 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20'
                     }`}>
-                      {sale.status}
+                      {sale.status === 'COMPLETED' ? 'COMPLETADA' : sale.status === 'VOIDED' ? 'ANULADA' : 'PENDIENTE'}
                     </span>
                   </div>
                 </div>

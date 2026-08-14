@@ -27,14 +27,14 @@ export default defineConfig({
     },
   ],
 
-  // Iniciar el servidor de Next.js automáticamente usando el entorno de test y puerto 3001
+  // Iniciar el servidor de Next.js si no hay uno activo en el puerto 3001
   webServer: {
-    command: 'npx next start -p 3001',
+    command: 'npx next dev -p 3001',
     url: 'http://localhost:3001',
-    reuseExistingServer: false,
+    reuseExistingServer: true,
     timeout: 120 * 1000,
     env: {
-      NODE_ENV: 'production',
+      NODE_ENV: 'development',
       DATABASE_URL: process.env.DATABASE_URL || '',
       PLATFORM_DATABASE_URL: process.env.PLATFORM_DATABASE_URL || '',
       NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || '',

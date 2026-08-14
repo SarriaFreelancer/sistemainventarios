@@ -29,6 +29,10 @@ export async function POST(req: NextRequest) {
     const socketId = data.get("socket_id") as string;
     const channel = data.get("channel_name") as string;
 
+    if (!channel) {
+      return new Response("Bad Request: Missing channel_name", { status: 400 });
+    }
+
     // Security check: Only allow users to subscribe to their company's presence channel
     if (channel.startsWith("presence-company-")) {
       const targetCompanyId = channel.replace("presence-company-", "");

@@ -20,6 +20,7 @@ interface Category {
   code: string | null;
   description: string | null;
   status: string;
+  isPerishable?: boolean;
   productGroupId: number;
   productGroupName: string;
   _count?: { products: number };
@@ -90,6 +91,15 @@ export function CreateCategoryDialog({ groups }: { groups: { id: string; name: s
                 <option value="INACTIVE">Inactivo</option>
               </select>
             </div>
+            <div className="flex items-center gap-3 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20">
+              <input id="cat-isPerishable" name="isPerishable" type="checkbox" className="h-4 w-4 rounded border-amber-500 text-amber-600 focus:ring-amber-500" />
+              <div>
+                <label htmlFor="cat-isPerishable" className="text-xs font-bold text-amber-700 dark:text-amber-400 cursor-pointer">
+                  Categoría de Perecederos / Alimentos
+                </label>
+                <p className="text-[10px] text-muted-foreground">Activa el control de vencimientos y alertas proactivas por lote.</p>
+              </div>
+            </div>
             <div className="flex gap-3 pt-1">
               <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1">Cancelar</Button>
               <Button type="submit" disabled={isPending} className="flex-1">
@@ -107,6 +117,7 @@ export function CreateCategoryDialog({ groups }: { groups: { id: string; name: s
 export function EditCategoryDialog({ category, groups }: { category: Category; groups: { id: string; name: string }[] }) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [isPerishableChecked, setIsPerishableChecked] = useState(!!category.isPerishable);
 
   async function handleAction(formData: FormData) {
     startTransition(async () => {
@@ -123,7 +134,10 @@ export function EditCategoryDialog({ category, groups }: { category: Category; g
   return (
     <>
       <Button
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setIsPerishableChecked(!!category.isPerishable);
+          setOpen(true);
+        }}
         variant="ghost"
         size="icon"
         className="h-9 w-9 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl transition-all"
@@ -168,6 +182,22 @@ export function EditCategoryDialog({ category, groups }: { category: Category; g
                 <option value="ACTIVE">Activo</option>
                 <option value="INACTIVE">Inactivo</option>
               </select>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20">
+              <input
+                id={`edit-cat-isPerishable-${category.id}`}
+                name="isPerishable"
+                type="checkbox"
+                checked={isPerishableChecked}
+                onChange={(e) => setIsPerishableChecked(e.target.checked)}
+                className="h-4 w-4 rounded border-amber-500 text-amber-600 focus:ring-amber-500"
+              />
+              <div>
+                <label htmlFor={`edit-cat-isPerishable-${category.id}`} className="text-xs font-bold text-amber-700 dark:text-amber-400 cursor-pointer">
+                  Categoría de Perecederos / Alimentos
+                </label>
+                <p className="text-[10px] text-muted-foreground">Activa el control de vencimientos y alertas proactivas por lote.</p>
+              </div>
             </div>
             <div className="flex gap-3 pt-1">
               <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1">Cancelar</Button>

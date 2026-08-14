@@ -93,18 +93,167 @@ export async function updateProductBatch(
   }
 }
 
-// ─── Delete a batch ───
+// ─── Write-off a batch (Baja por Vencimiento / Merma) ───
+export async function writeOffProductBatch(
+  batchId: number,
+  quantityToWriteOff: number,
+  reason: string = "Baja por Vencimiento"
+) {
+  const session = await getAuthSession();
+  if (!session?.user) return { success: false, error: "No autorizado" };
+
+  const companyId = await getSessionCompanyId();
+  if (!companyId) return { success: false, error: "Sin empresa autorizada" };
+
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Obtener la configuración de la empresa
+      const settings = await tx.companySetting.findUnique({ where: { companyId } });
+      if (settings && (settings as any).enableBatchWriteOff === false) {
+        throw new Error("La función de baja de lotes por vencimiento está deshabilitada en la configuración de la empresa.");
+      }
+
+      // 2. Obtener el lote con el producto y categoría
+      const batch = await tx.productBatch.findUnique({
+        where: { id: batchId },
+        include: {
+          product: {
+            include: { category: true }
+          }
+        }
+      });
+
+      if (!batch) throw new Error("Lote no encontrado");
+      if (batch.product.companyId !== companyId) throw new Error("Acceso denegado a este lote");
+      if (quantityToWriteOff <= 0 || quantityToWriteOff > batch.quantity) {
+        throw new Error(`La cantidad a dar de baja debe ser entre 1 y ${batch.quantity} u.`);
+      }
+
+      const newBatchQty = batch.quantity - quantityToWriteOff;
+      const isTotalWriteOff = newBatchQty === 0;
+
+      // 3. Actualizar el lote
+      await tx.productBatch.update({
+        where: { id: batchId },
+        data: {
+          quantity: newBatchQty,
+          status: isTotalWriteOff ? BatchStatus.DEPLETED : batch.status,
+        }
+      });
+
+      // 4. Descontar del inventario disponible global del producto
+      const currentProduct = batch.product;
+      const newProductQty = Math.max(0, currentProduct.quantityAvailable - quantityToWriteOff);
+      await tx.product.update({
+        where: { id: currentProduct.id },
+        data: {
+          quantityAvailable: newProductQty,
+          status: newProductQty <= 0 ? 'OUT_OF_STOCK' : currentProduct.status,
+        }
+      });
+
+      // 5. Generar gasto contable si autoExpenseOnWriteOff está activo
+      let createdExpense = null;
+      const autoExpense = (settings as any)?.autoExpenseOnWriteOff ?? true;
+      if (autoExpense) {
+        const totalLossAmount = quantityToWriteOff * currentProduct.unitCost;
+        if (totalLossAmount > 0) {
+          createdExpense = await tx.expense.create({
+            data: {
+              companyId,
+              amount: totalLossAmount,
+              category: 'OTHER',
+              description: `Baja por Vencimiento (${reason}): ${quantityToWriteOff} u. del Lote ${batch.batchNumber} - Producto: ${currentProduct.name}`,
+              date: new Date(),
+            }
+          });
+        }
+      }
+
+      return {
+        batchNumber: batch.batchNumber,
+        productName: currentProduct.name,
+        quantityWrittenOff: quantityToWriteOff,
+        isTotalWriteOff,
+        expenseId: createdExpense?.id ?? null,
+      };
+    });
+
+    // 6. Notificar a los administradores
+    const admins = await prisma.user.findMany({
+      where: { companyId, role: { name: 'ADMIN' } }
+    });
+
+    for (const admin of admins) {
+      await createNotification(
+        admin.id,
+        companyId,
+        '⚠️ Baja de Lote Registrada',
+        `Se dieron de baja ${result.quantityWrittenOff} u. del lote ${result.batchNumber} (${result.productName}). Razón: ${reason}.`,
+        'WARNING'
+      );
+    }
+
+    revalidatePath("/dashboard/products");
+    revalidatePath("/dashboard/finanzas");
+    return { success: true, data: result };
+  } catch (error: any) {
+    console.error("[WRITE_OFF_PRODUCT_BATCH]", error);
+    return { success: false, error: error.message ?? "Error al dar de baja el lote" };
+  }
+}
+
+// ─── Delete a batch permanently ───
 export async function deleteProductBatch(batchId: number) {
   const session = await getAuthSession();
   if (!session?.user) return { success: false, error: "No autorizado" };
 
+  const companyId = await getSessionCompanyId();
+  if (!companyId) return { success: false, error: "Sin empresa autorizada" };
+
   try {
-    await prisma.productBatch.delete({ where: { id: batchId } });
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Verificar configuración de la empresa
+      const settings = await tx.companySetting.findUnique({ where: { companyId } });
+      if (settings && (settings as any).enableBatchDelete === false) {
+        throw new Error("La eliminación directa de lotes está deshabilitada en la configuración de la empresa.");
+      }
+
+      // 2. Obtener el lote con el producto
+      const batch = await tx.productBatch.findUnique({
+        where: { id: batchId },
+        include: { product: true }
+      });
+
+      if (!batch) throw new Error("Lote no encontrado");
+      if (batch.product.companyId !== companyId) throw new Error("Acceso denegado a este lote");
+
+      // 3. Eliminar el lote
+      await tx.productBatch.delete({ where: { id: batchId } });
+
+      // 4. Actualizar el stock disponible global del producto
+      const currentProduct = batch.product;
+      const newProductQty = Math.max(0, currentProduct.quantityAvailable - batch.quantity);
+      await tx.product.update({
+        where: { id: currentProduct.id },
+        data: {
+          quantityAvailable: newProductQty,
+          status: newProductQty <= 0 ? 'OUT_OF_STOCK' : currentProduct.status,
+        }
+      });
+
+      return {
+        batchNumber: batch.batchNumber,
+        productName: currentProduct.name,
+        quantityDeleted: batch.quantity,
+      };
+    });
+
     revalidatePath("/dashboard/products");
-    return { success: true };
+    return { success: true, data: result };
   } catch (error: any) {
     console.error("[DELETE_PRODUCT_BATCH]", error);
-    return { success: false, error: "Error al eliminar el lote" };
+    return { success: false, error: error.message ?? "Error al eliminar el lote" };
   }
 }
 

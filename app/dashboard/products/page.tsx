@@ -62,25 +62,23 @@ export default async function ProductsPage() {
     }
   }
 
-  // If expiration tracking is enabled, fetch batches with products
+  // Fetch batches with products for all products with expiration tracking or perishable categories
   let productBatchesMap: Record<string, any[]> = {};
-  if (trackExpirationDates && allowExpirationTracking) {
-    const batches = await prisma.productBatch.findMany({
-      where: { product: { companyId: companyId || undefined } },
-      orderBy: { expirationDate: 'asc' },
+  const batches = await prisma.productBatch.findMany({
+    where: { product: { companyId: companyId || undefined } },
+    orderBy: { expirationDate: 'asc' },
+  });
+  for (const batch of batches) {
+    const pid = String(batch.productId);
+    if (!productBatchesMap[pid]) productBatchesMap[pid] = [];
+    productBatchesMap[pid].push({
+      id: batch.id,
+      batchNumber: batch.batchNumber,
+      expirationDate: batch.expirationDate.toISOString(),
+      quantity: batch.quantity,
+      status: batch.status,
+      notes: batch.notes,
     });
-    for (const batch of batches) {
-      const pid = String(batch.productId);
-      if (!productBatchesMap[pid]) productBatchesMap[pid] = [];
-      productBatchesMap[pid].push({
-        id: batch.id,
-        batchNumber: batch.batchNumber,
-        expirationDate: batch.expirationDate.toISOString(),
-        quantity: batch.quantity,
-        status: batch.status,
-        notes: batch.notes,
-      });
-    }
   }
 
   // Serialize safely
@@ -97,13 +95,18 @@ export default async function ProductsPage() {
     status: p.status,
     type: p.type,
     productGroupId: p.productGroupId ? String(p.productGroupId) : null,
-    category: p.category ? { id: String(p.category.id), name: p.category.name } : null,
+    category: p.category ? { id: String(p.category.id), name: p.category.name, isPerishable: p.category.isPerishable } : null,
     supplier: p.supplier ? { id: String(p.supplier.id), companyName: p.supplier.companyName } : null,
     productGroup: p.productGroup ? { id: String(p.productGroup.id), name: p.productGroup.name } : null,
     batches: productBatchesMap[String(p.id)] || [],
   }));
 
-  const serializedCategories = categories.map((c) => ({ id: String(c.id), name: c.name, productGroupId: c.productGroupId ? String(c.productGroupId) : undefined }));
+  const serializedCategories = categories.map((c) => ({
+    id: String(c.id),
+    name: c.name,
+    isPerishable: c.isPerishable,
+    productGroupId: c.productGroupId ? String(c.productGroupId) : undefined
+  }));
   const serializedSuppliers = suppliers.map((s) => ({ id: String(s.id), companyName: s.companyName }));
   const serializedGroups = groups.map((g) => ({ id: String(g.id), name: g.name }));
 
@@ -122,6 +125,8 @@ export default async function ProductsPage() {
         maxProducts={planLimits.maxProducts}
         currentProducts={currentProductsCount}
         trackExpirationDates={trackExpirationDates && allowExpirationTracking}
+        enableBatchWriteOff={(settings as any)?.enableBatchWriteOff ?? true}
+        enableBatchDelete={(settings as any)?.enableBatchDelete ?? false}
         expirationAlertDays={settings?.expirationAlertDays ?? 30}
       />
     </div>

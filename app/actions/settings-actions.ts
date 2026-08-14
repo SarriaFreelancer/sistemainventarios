@@ -195,6 +195,9 @@ export async function updateCompanySettings(data: any) {
         expirationAlertDays: data.expirationAlertDays !== undefined ? Number(data.expirationAlertDays) : undefined,
         blockExpiredSales: data.blockExpiredSales !== undefined ? Boolean(data.blockExpiredSales) : undefined,
         expirationAlertFrequency: data.expirationAlertFrequency || undefined,
+        enableBatchWriteOff: data.enableBatchWriteOff !== undefined ? Boolean(data.enableBatchWriteOff) : undefined,
+        enableBatchDelete: data.enableBatchDelete !== undefined ? Boolean(data.enableBatchDelete) : undefined,
+        autoExpenseOnWriteOff: data.autoExpenseOnWriteOff !== undefined ? Boolean(data.autoExpenseOnWriteOff) : undefined,
       }
     });
     

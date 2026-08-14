@@ -64,9 +64,7 @@ export default function LoginPage() {
           message: '¡Acceso autorizado correctamente! Ingresando al sistema...',
         });
         // Use the Next.js router for navigation; this respects the current host (ngrok or localhost)
-        setTimeout(() => {
-          router.replace('/dashboard');
-        }, 500);
+        router.replace('/dashboard');
         return;
       }
       
