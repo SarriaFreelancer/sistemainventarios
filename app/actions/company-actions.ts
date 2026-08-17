@@ -13,6 +13,10 @@ const companySchema = z.object({
   status: z.enum(['ACTIVE', 'INACTIVE']).default('ACTIVE'),
   themeColor: z.string().optional(),
   themeMode: z.string().optional(),
+  darkBgColor: z.string().optional(),
+  darkCardBg: z.string().optional(),
+  darkSidebarBg: z.string().optional(),
+  darkTextColor: z.string().optional(),
   modules: z.array(z.number()).optional(),
   nit: z.string().optional(),
   planId: z.string().optional(),
@@ -35,6 +39,10 @@ export async function createCompany(formData: FormData) {
     status: formData.get('status') ?? 'ACTIVE',
     themeColor: formData.get('themeColor') || undefined,
     themeMode: formData.get('themeMode') || undefined,
+    darkBgColor: formData.get('darkBgColor') || undefined,
+    darkCardBg: formData.get('darkCardBg') || undefined,
+    darkSidebarBg: formData.get('darkSidebarBg') || undefined,
+    darkTextColor: formData.get('darkTextColor') || undefined,
     modules: modulesIds.length > 0 ? modulesIds : undefined,
     nit: formData.get('nit') || undefined,
     planId: formData.get('planId') || undefined,
@@ -60,10 +68,14 @@ export async function createCompany(formData: FormData) {
         planId: parsed.data.planId,
         maxUsers: parsed.data.maxUsers,
         maxProducts: parsed.data.maxProducts,
-        themeConfig: (parsed.data.themeColor || parsed.data.themeMode) ? {
+        themeConfig: {
           primaryColor: parsed.data.themeColor,
-          mode: parsed.data.themeMode
-        } : undefined,
+          mode: parsed.data.themeMode,
+          darkBgColor: parsed.data.darkBgColor,
+          darkCardBg: parsed.data.darkCardBg,
+          darkSidebarBg: parsed.data.darkSidebarBg,
+          darkTextColor: parsed.data.darkTextColor,
+        },
         modules: parsed.data.modules ? {
           create: parsed.data.modules.map(moduleId => ({
             module: { connect: { id: moduleId } }
@@ -113,7 +125,11 @@ export async function updateCompany(formData: FormData) {
     status: formData.get('status') ?? 'ACTIVE',
     themeColor: formData.get('themeColor') || undefined,
     themeMode: formData.get('themeMode') || undefined,
-    modules: modulesIds,
+    darkBgColor: formData.get('darkBgColor') || undefined,
+    darkCardBg: formData.get('darkCardBg') || undefined,
+    darkSidebarBg: formData.get('darkSidebarBg') || undefined,
+    darkTextColor: formData.get('darkTextColor') || undefined,
+    modules: modulesIds.length > 0 ? modulesIds : undefined,
     nit: formData.get('nit') || undefined,
     planId: formData.get('planId') || undefined,
     maxUsers: formData.get('maxUsers') ? Number(formData.get('maxUsers')) : null,
@@ -152,9 +168,13 @@ export async function updateCompany(formData: FormData) {
         maxUsers: session.user.role === 'SUPERADMIN' ? parsed.data.maxUsers : undefined,
         maxProducts: session.user.role === 'SUPERADMIN' ? parsed.data.maxProducts : undefined,
         themeConfig: {
-          ...currentTheme,                                        // preserva bgImage y todo lo existente
-          ...(parsed.data.themeColor ? { primaryColor: parsed.data.themeColor } : {}),
-          ...(parsed.data.themeMode  ? { mode: parsed.data.themeMode }          : {}),
+          ...currentTheme,
+          ...(parsed.data.themeColor !== undefined ? { primaryColor: parsed.data.themeColor } : {}),
+          ...(parsed.data.themeMode !== undefined ? { mode: parsed.data.themeMode } : {}),
+          ...(parsed.data.darkBgColor !== undefined ? { darkBgColor: parsed.data.darkBgColor } : {}),
+          ...(parsed.data.darkCardBg !== undefined ? { darkCardBg: parsed.data.darkCardBg } : {}),
+          ...(parsed.data.darkSidebarBg !== undefined ? { darkSidebarBg: parsed.data.darkSidebarBg } : {}),
+          ...(parsed.data.darkTextColor !== undefined ? { darkTextColor: parsed.data.darkTextColor } : {}),
         },
         modules: {
           deleteMany: {},

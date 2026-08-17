@@ -7,9 +7,6 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ['node-cron'],
   experimental: {
     optimizePackageImports: ['lucide-react', 'date-fns', 'recharts'],
-    serverActions: {
-      bodySizeLimit: '10mb',
-    },
   },
   async headers() {
     return [

@@ -11,6 +11,7 @@ import { getAuthSession } from '@/auth';
 import { getPlanSettings } from '@/app/actions/license-actions';
 import { LandingAuthNav } from '@/app/components/public/LandingAuthNav';
 import { LandingModules } from '@/app/components/public/LandingModules';
+import { WhatsAppButton } from '@/app/components/public/WhatsAppButton';
 
 export const revalidate = 3600; // Recalcular (ISR) cada 1 hora
 
@@ -257,12 +258,13 @@ export default async function HomePage() {
       >
         <div className="max-w-[1280px] mx-auto px-4 md:px-6 flex items-center justify-between h-[68px] md:h-[76px]">
           {/* Logo */}
-          <div className="flex items-center gap-2 md:gap-3">
-            <div
-              className="pulse-btn w-9 h-9 md:w-11 md:h-11 rounded-xl md:rounded-2xl flex items-center justify-center shadow-[0_4px_20px_rgba(220,38,38,0.4)]"
-              style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}
-            >
-              <Sparkles className="w-4 h-4 md:w-5 md:h-5 text-white" />
+          <a href="#inicio" className="flex items-center gap-2 md:gap-3 cursor-pointer no-underline group">
+            <div className="h-9 w-9 md:h-11 md:w-11 rounded-full overflow-hidden border-2 border-red-600 bg-black flex items-center justify-center shrink-0 shadow-lg shadow-red-600/20 group-hover:scale-105 transition-transform">
+              <img
+                src="/gns-logo.png"
+                alt="GNS SarriaTech"
+                className="h-full w-full object-cover rounded-full aspect-square"
+              />
             </div>
             <div>
               <div className="font-black text-[15px] md:text-lg tracking-wider text-slate-900 dark:text-white leading-none md:leading-tight">
@@ -272,7 +274,7 @@ export default async function HomePage() {
                 SARRIA
               </div>
             </div>
-          </div>
+          </a>
 
           {/* Nav links */}
           <nav className="hidden lg:flex items-center gap-6">
@@ -292,7 +294,7 @@ export default async function HomePage() {
           HERO — BLANCO CON ACENTOS ROJOS Y SLATE
       ══════════════════════════════════════════ */}
       <main>
-      <section className="pt-[100px] md:pt-[140px] pb-[60px] md:pb-[100px] relative overflow-hidden bg-white dark:bg-slate-900">
+      <section id="inicio" className="pt-[100px] md:pt-[140px] pb-[60px] md:pb-[100px] relative overflow-hidden bg-white dark:bg-slate-900">
         {/* Background Gradients */}
         <div className="absolute -top-[10%] -right-[5%] w-[300px] md:w-[600px] h-[300px] md:h-[600px] rounded-full pointer-events-none bg-[radial-gradient(circle,rgba(220,38,38,0.04)_0%,rgba(255,255,255,0)_70%)] dark:bg-[radial-gradient(circle,rgba(220,38,38,0.1)_0%,rgba(15,23,42,0)_70%)]" />
         <div className="absolute -bottom-[10%] -left-[5%] w-[250px] md:w-[500px] h-[250px] md:h-[500px] rounded-full pointer-events-none bg-[radial-gradient(circle,rgba(15,23,42,0.03)_0%,rgba(255,255,255,0)_70%)] dark:bg-[radial-gradient(circle,rgba(255,255,255,0.03)_0%,rgba(15,23,42,0)_70%)]" />
@@ -527,7 +529,7 @@ export default async function HomePage() {
       {/* ══════════════════════════════════════════
           ARQUITECTURA MULTI-TENANT
       ══════════════════════════════════════════ */}
-      <section className="py-[100px] px-6 bg-white dark:bg-slate-900 overflow-hidden" style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 600px' }}>
+      <section id="nosotros" className="py-[100px] px-6 bg-white dark:bg-slate-900 overflow-hidden" style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 600px' }}>
         <div className="max-w-[1280px] mx-auto flex flex-wrap gap-10 items-center">
           
           {/* Left Column - Text */}
@@ -911,6 +913,7 @@ export default async function HomePage() {
           </div>
         </div>
       </footer>
+      <WhatsAppButton />
     </div>
   );
 }

@@ -126,7 +126,7 @@ test.describe('Pruebas E2E - Descarga de Reportes con Lotes y Eliminación de Lo
     await page.waitForLoadState('networkidle');
 
     // Hacer clic en el botón de descarga del Catálogo de Productos
-    const downloadBtn = page.locator('button:has-text("Descargar Excel")').first();
+    const downloadBtn = page.locator('button:has-text("Excel")').first();
     await downloadBtn.click();
 
     // Debe abrirse el modal de filtros

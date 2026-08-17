@@ -258,6 +258,7 @@ model User {
   purchaseRequests     PurchaseRequest[]
   purchaseApprovals    PurchaseApproval[]
   internalRequisitions InternalRequisition[]
+  reportPresets        ReportPreset[]
   employee             Employee?
   systemAnnouncements  SystemAnnouncement[]
   chatParticipants     ChatParticipant[]
@@ -374,6 +375,7 @@ model Company {
   payrollDetails           PayrollDetail[]
   employeeNovelties        EmployeeNovelty[]
   chatConversations        ChatConversation[]
+  reportPresets            ReportPreset[]
 
   @@index([name])
 }
@@ -1310,3 +1312,21 @@ model ProductBatch {
   @@index([expirationDate])
   @@index([status])
 }
+
+model ReportPreset {
+  id          Int      @id @default(autoincrement())
+  companyId   Int?
+  company     Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userId      Int?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reportType  String
+  name        String
+  fields      Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([userId])
+  @@index([reportType])
+}
+

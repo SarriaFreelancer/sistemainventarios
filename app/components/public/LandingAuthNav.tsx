@@ -39,8 +39,8 @@ export function LandingAuthNav({ user }: LandingAuthNavProps) {
             Iniciar Sesión
           </button>
         </Link>
-        <Link href="/auth/login?register=true" className="no-underline">
-          <button className="px-4 sm:px-6 py-2 sm:py-2.5 text-[12px] sm:text-[13px] rounded-lg bg-red-600 hover:bg-red-700 text-white shadow-none transition-colors whitespace-nowrap">
+        <Link href="/auth/register" className="no-underline">
+          <button className="px-4 sm:px-6 py-2 sm:py-2.5 text-[12px] sm:text-[13px] font-bold rounded-lg bg-red-600 hover:bg-red-700 text-white shadow-none transition-colors whitespace-nowrap cursor-pointer">
             Registrarse
           </button>
         </Link>

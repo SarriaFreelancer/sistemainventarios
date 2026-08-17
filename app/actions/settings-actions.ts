@@ -201,7 +201,14 @@ export async function updateCompanySettings(data: any) {
       }
     });
     
-    if (data.themeColor !== undefined || data.bgImage !== undefined) {
+    if (
+      data.themeColor !== undefined ||
+      data.bgImage !== undefined ||
+      data.darkBgColor !== undefined ||
+      data.darkCardBg !== undefined ||
+      data.darkSidebarBg !== undefined ||
+      data.darkTextColor !== undefined
+    ) {
       const existingCompany = await prisma.company.findUnique({ where: { id: companyId } });
       const currentTheme = (existingCompany?.themeConfig as any) || {};
       await prisma.company.update({
@@ -210,7 +217,11 @@ export async function updateCompanySettings(data: any) {
           themeConfig: {
             ...currentTheme,
             ...(data.themeColor !== undefined ? { primaryColor: data.themeColor } : {}),
-            ...(data.bgImage !== undefined ? { bgImage: data.bgImage } : {})
+            ...(data.bgImage !== undefined ? { bgImage: data.bgImage } : {}),
+            ...(data.darkBgColor !== undefined ? { darkBgColor: data.darkBgColor } : {}),
+            ...(data.darkCardBg !== undefined ? { darkCardBg: data.darkCardBg } : {}),
+            ...(data.darkSidebarBg !== undefined ? { darkSidebarBg: data.darkSidebarBg } : {}),
+            ...(data.darkTextColor !== undefined ? { darkTextColor: data.darkTextColor } : {}),
           }
         }
       });

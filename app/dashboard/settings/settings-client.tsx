@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { Building, Boxes, ShieldAlert, SlidersHorizontal, Receipt, Upload, Sparkles, Server, ArrowRightLeft, Database, KeyRound, DownloadCloud, Bell, Mail, Loader2, Save, Image as ImageIcon, Trash2, Clock, LayoutTemplate, Monitor, Shield } from "lucide-react";
+import { Building, Boxes, ShieldAlert, SlidersHorizontal, Receipt, Upload, Sparkles, Server, ArrowRightLeft, Database, KeyRound, DownloadCloud, Bell, Mail, Loader2, Save, Image as ImageIcon, Trash2, Clock, LayoutTemplate, Monitor, Shield, Palette } from "lucide-react";
 import { updateCompanySettings, uploadCompanyLogo, uploadCompanyBackgroundImage } from "@/app/actions/settings-actions";
 import { generateDemoData, clearDemoData } from "@/app/actions/demo-actions";
 import { successAlert, errorAlert } from "@/lib/sweetalert";
@@ -143,6 +143,41 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
   const [invoiceResolutionText, setInvoiceResolutionText] = useState(initialInvoiceConfig.resolutionText || "");
   const [invoiceFooterText, setInvoiceFooterText] = useState(initialInvoiceConfig.footerText || "Documento equivalente de venta generado de forma electrónica.");
 
+  // Personalización Tema Oscuro & Fuentes
+  const initialTheme = (initialSettings as any).themeConfig || {};
+  const [darkBgColor, setDarkBgColor] = useState(initialTheme.darkBgColor || "#0a192f");
+  const [darkCardBg, setDarkCardBg] = useState(initialTheme.darkCardBg || "#0f2744");
+  const [darkSidebarBg, setDarkSidebarBg] = useState(initialTheme.darkSidebarBg || "#0d1f38");
+  const [darkTextColor, setDarkTextColor] = useState(initialTheme.darkTextColor || "#93c5fd");
+
+  const applyDarkPreset = (presetKey: string) => {
+    if (presetKey === 'BLUE') {
+      setInvoicePrimaryColor('#3b82f6');
+      setDarkBgColor('#0a192f');
+      setDarkCardBg('#0f2744');
+      setDarkSidebarBg('#0d1f38');
+      setDarkTextColor('#93c5fd');
+    } else if (presetKey === 'PURPLE') {
+      setInvoicePrimaryColor('#8b5cf6');
+      setDarkBgColor('#130d2b');
+      setDarkCardBg('#1e1442');
+      setDarkSidebarBg('#1a1038');
+      setDarkTextColor('#c084fc');
+    } else if (presetKey === 'EMERALD') {
+      setInvoicePrimaryColor('#10b981');
+      setDarkBgColor('#062319');
+      setDarkCardBg('#0d3829');
+      setDarkSidebarBg('#0a2e22');
+      setDarkTextColor('#34d399');
+    } else if (presetKey === 'AMBER') {
+      setInvoicePrimaryColor('#f59e0b');
+      setDarkBgColor('#1c1917');
+      setDarkCardBg('#2b241c');
+      setDarkSidebarBg('#241e17');
+      setDarkTextColor('#fbbf24');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -182,6 +217,12 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
       backupDay,
       backupPath,
       enableNotifications,
+      themeColor: invoicePrimaryColor,
+      bgImage,
+      darkBgColor,
+      darkCardBg,
+      darkSidebarBg,
+      darkTextColor,
       trackExpirationDates,
       expirationAlertDays,
       blockExpiredSales,
@@ -189,7 +230,6 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
       enableBatchWriteOff,
       enableBatchDelete,
       autoExpenseOnWriteOff,
-      bgImage,
       invoiceConfig: {
         companyName: invoiceCompanyName,
         address: invoiceAddress,
@@ -606,6 +646,169 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* ── Personalización de Tema Oscuro & Fuentes ── */}
+            <div className="space-y-4 border-t border-border/60 pt-5">
+              <div>
+                <label className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-1.5">
+                  <Palette size={14} className="text-primary" />
+                  Personalización del Tema Oscuro & Colores de Fuente
+                </label>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Selecciona una de las 4 combinaciones predefinidas o personaliza manualmente los colores de fondo, paneles y tipografía en modo oscuro.
+                </p>
+              </div>
+
+              {/* Grid de 4 Opciones Predefinidas */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {/* OPCIÓN 1: AZUL PROFUNDO */}
+                <button
+                  type="button"
+                  onClick={() => applyDarkPreset('BLUE')}
+                  className={`p-3 rounded-2xl border text-left transition-all relative overflow-hidden cursor-pointer ${
+                    darkBgColor === '#0a192f' ? 'ring-2 ring-blue-500 border-transparent shadow-lg' : 'border-border hover:border-blue-500/50'
+                  }`}
+                  style={{ backgroundColor: '#0a192f', color: '#93c5fd' }}
+                >
+                  <div className="text-[10px] font-black tracking-wider uppercase text-blue-400 mb-1">OPCIÓN 1</div>
+                  <div className="text-xs font-extrabold text-white mb-2">AZUL PROFUNDO</div>
+                  <div className="flex gap-1.5 items-center">
+                    <div className="w-4 h-4 rounded-full bg-[#3b82f6]" />
+                    <div className="w-4 h-4 rounded-full bg-[#0a192f] border border-blue-400/30" />
+                    <div className="w-4 h-4 rounded-full bg-[#0f2744]" />
+                  </div>
+                </button>
+
+                {/* OPCIÓN 2: PÚRPURA PREMIUM */}
+                <button
+                  type="button"
+                  onClick={() => applyDarkPreset('PURPLE')}
+                  className={`p-3 rounded-2xl border text-left transition-all relative overflow-hidden cursor-pointer ${
+                    darkBgColor === '#130d2b' ? 'ring-2 ring-purple-500 border-transparent shadow-lg' : 'border-border hover:border-purple-500/50'
+                  }`}
+                  style={{ backgroundColor: '#130d2b', color: '#c084fc' }}
+                >
+                  <div className="text-[10px] font-black tracking-wider uppercase text-purple-400 mb-1">OPCIÓN 2</div>
+                  <div className="text-xs font-extrabold text-white mb-2">PÚRPURA PREMIUM</div>
+                  <div className="flex gap-1.5 items-center">
+                    <div className="w-4 h-4 rounded-full bg-[#8b5cf6]" />
+                    <div className="w-4 h-4 rounded-full bg-[#130d2b] border border-purple-400/30" />
+                    <div className="w-4 h-4 rounded-full bg-[#1e1442]" />
+                  </div>
+                </button>
+
+                {/* OPCIÓN 3: VERDE ESMERALDA */}
+                <button
+                  type="button"
+                  onClick={() => applyDarkPreset('EMERALD')}
+                  className={`p-3 rounded-2xl border text-left transition-all relative overflow-hidden cursor-pointer ${
+                    darkBgColor === '#062319' ? 'ring-2 ring-emerald-500 border-transparent shadow-lg' : 'border-border hover:border-emerald-500/50'
+                  }`}
+                  style={{ backgroundColor: '#062319', color: '#34d399' }}
+                >
+                  <div className="text-[10px] font-black tracking-wider uppercase text-emerald-400 mb-1">OPCIÓN 3</div>
+                  <div className="text-xs font-extrabold text-white mb-2">VERDE ESMERALDA</div>
+                  <div className="flex gap-1.5 items-center">
+                    <div className="w-4 h-4 rounded-full bg-[#10b981]" />
+                    <div className="w-4 h-4 rounded-full bg-[#062319] border border-emerald-400/30" />
+                    <div className="w-4 h-4 rounded-full bg-[#0d3829]" />
+                  </div>
+                </button>
+
+                {/* OPCIÓN 4: ÁMBAR DORADO */}
+                <button
+                  type="button"
+                  onClick={() => applyDarkPreset('AMBER')}
+                  className={`p-3 rounded-2xl border text-left transition-all relative overflow-hidden cursor-pointer ${
+                    darkBgColor === '#1c1917' ? 'ring-2 ring-amber-500 border-transparent shadow-lg' : 'border-border hover:border-amber-500/50'
+                  }`}
+                  style={{ backgroundColor: '#1c1917', color: '#fbbf24' }}
+                >
+                  <div className="text-[10px] font-black tracking-wider uppercase text-amber-400 mb-1">OPCIÓN 4</div>
+                  <div className="text-xs font-extrabold text-white mb-2">ÁMBAR DORADO</div>
+                  <div className="flex gap-1.5 items-center">
+                    <div className="w-4 h-4 rounded-full bg-[#f59e0b]" />
+                    <div className="w-4 h-4 rounded-full bg-[#1c1917] border border-amber-400/30" />
+                    <div className="w-4 h-4 rounded-full bg-[#2b241c]" />
+                  </div>
+                </button>
+              </div>
+
+              {/* Pickers Manuales de Color */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-muted/20 p-4 rounded-2xl border border-border/50">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-muted-foreground uppercase">Fondo Principal</label>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="color"
+                      value={darkBgColor}
+                      onChange={(e) => setDarkBgColor(e.target.value)}
+                      className="w-9 h-8 border border-border rounded-lg cursor-pointer bg-transparent"
+                    />
+                    <input
+                      type="text"
+                      value={darkBgColor}
+                      onChange={(e) => setDarkBgColor(e.target.value)}
+                      className="w-full bg-card border border-border rounded-lg px-2.5 py-1 text-xs font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-muted-foreground uppercase">Fondo Tarjetas</label>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="color"
+                      value={darkCardBg}
+                      onChange={(e) => setDarkCardBg(e.target.value)}
+                      className="w-9 h-8 border border-border rounded-lg cursor-pointer bg-transparent"
+                    />
+                    <input
+                      type="text"
+                      value={darkCardBg}
+                      onChange={(e) => setDarkCardBg(e.target.value)}
+                      className="w-full bg-card border border-border rounded-lg px-2.5 py-1 text-xs font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-muted-foreground uppercase">Barra Lateral</label>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="color"
+                      value={darkSidebarBg}
+                      onChange={(e) => setDarkSidebarBg(e.target.value)}
+                      className="w-9 h-8 border border-border rounded-lg cursor-pointer bg-transparent"
+                    />
+                    <input
+                      type="text"
+                      value={darkSidebarBg}
+                      onChange={(e) => setDarkSidebarBg(e.target.value)}
+                      className="w-full bg-card border border-border rounded-lg px-2.5 py-1 text-xs font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-muted-foreground uppercase">Color Fuente / Texto</label>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="color"
+                      value={darkTextColor}
+                      onChange={(e) => setDarkTextColor(e.target.value)}
+                      className="w-9 h-8 border border-border rounded-lg cursor-pointer bg-transparent"
+                    />
+                    <input
+                      type="text"
+                      value={darkTextColor}
+                      onChange={(e) => setDarkTextColor(e.target.value)}
+                      className="w-full bg-card border border-border rounded-lg px-2.5 py-1 text-xs font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-border/60 pt-4">

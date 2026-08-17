@@ -55,11 +55,32 @@ export async function GET(request: Request) {
       'Estado Stock': getStockStatus(p.quantityAvailable),
     }));
 
+    const fieldsParam = searchParams.get('fields');
+    let finalRows = rows;
+    if (fieldsParam) {
+      const selectedFields = fieldsParam.split(',').map(f => f.trim()).filter(Boolean);
+      if (selectedFields.length > 0) {
+        finalRows = rows.map(r => {
+          const filteredRow: any = {};
+          selectedFields.forEach(fieldKey => {
+            if (fieldKey in r) {
+              filteredRow[fieldKey] = (r as any)[fieldKey];
+            }
+          });
+          return filteredRow;
+        });
+      }
+    }
+
+    if (searchParams.get('format') === 'json') {
+      return Response.json({ rows: finalRows, title: 'Reporte de Stock' });
+    }
+
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Stock');
 
-    if (rows.length > 0) {
-      const headers = Object.keys(rows[0]);
+    if (finalRows.length > 0) {
+      const headers = Object.keys(finalRows[0]);
       worksheet.addRow(headers);
       
       const headerRow = worksheet.getRow(1);
@@ -77,7 +98,7 @@ export async function GET(request: Request) {
         to: { row: 1, column: headers.length }
       };
 
-      rows.forEach(r => worksheet.addRow(Object.values(r)));
+      finalRows.forEach(r => worksheet.addRow(Object.values(r)));
 
       worksheet.columns.forEach(col => {
         col.width = 20;
