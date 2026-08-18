@@ -42,6 +42,7 @@ export function FloatingChat({ user }: { user: any }) {
     currentConvoIdRef.current = currentConvo?.id || null;
   }, [currentConvo]);
   const [chatUser, setChatUser] = useState<any>(null);
+  const [showUserInfoModal, setShowUserInfoModal] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
   const [loadingChat, setLoadingChat] = useState(false);
   
@@ -296,37 +297,64 @@ export function FloatingChat({ user }: { user: any }) {
         <div className="bg-card text-foreground w-[380px] sm:w-[420px] h-[650px] max-h-[85vh] rounded-[24px] shadow-2xl border border-border flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
           
           {/* Header */}
-          <div className="p-5 flex items-start justify-between">
-            <div className="flex items-center gap-4">
+          <div className="p-5 flex items-start justify-between border-b border-border/80">
+            <div className="flex items-center gap-3 min-w-0">
               {activeTab === "chat" ? (
-                <button onClick={backToUsers} className="text-muted-foreground hover:text-foreground transition p-2 hover:bg-muted rounded-full">
-                  <ChevronLeft size={24} />
-                </button>
+                <>
+                  <button onClick={backToUsers} className="text-muted-foreground hover:text-foreground transition p-1.5 hover:bg-muted rounded-full shrink-0">
+                    <ChevronLeft size={22} />
+                  </button>
+                  {/* Foto de Perfil Clicable en la cabecera del Chat */}
+                  <button
+                    onClick={() => setShowUserInfoModal(true)}
+                    className="relative shrink-0 group focus:outline-none"
+                    title="Ver perfil del usuario"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-muted border border-border flex items-center justify-center font-bold overflow-hidden transition group-hover:scale-105 group-hover:border-primary">
+                      {chatUser?.image ? (
+                        <img src={chatUser.image} alt={chatUser.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-xs text-foreground font-bold">{chatUser?.name?.substring(0, 2).toUpperCase()}</span>
+                      )}
+                    </div>
+                    {onlineUsers.has(String(chatUser?.id)) && (
+                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-card rounded-full" />
+                    )}
+                  </button>
+                </>
               ) : (
-                <div className="w-12 h-12 rounded-[16px] bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-sm">
-                  <Users size={24} />
+                <div className="w-11 h-11 rounded-[16px] bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-sm shrink-0">
+                  <Users size={22} />
                 </div>
               )}
               
-              <div>
-                <h3 className="font-semibold text-lg text-foreground tracking-tight">
-                  {activeTab === "users" ? "Chat de Empresa" : chatUser?.name}
-                </h3>
-                {activeTab === "users" ? (
-                  <p className="text-[13px] text-muted-foreground">Comunícate con tu equipo</p>
+              <div className="min-w-0 flex-1">
+                {activeTab === "chat" ? (
+                  <button
+                    onClick={() => setShowUserInfoModal(true)}
+                    className="text-left group w-full"
+                  >
+                    <h3 className="font-bold text-base text-foreground tracking-tight truncate group-hover:text-primary transition-colors">
+                      {chatUser?.name}
+                    </h3>
+                    <p className="text-[11.5px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                      {onlineUsers.has(String(chatUser?.id)) ? (
+                        <><span className="w-2 h-2 rounded-full bg-emerald-500 shadow-sm"></span> En línea</>
+                      ) : (
+                        <><span className="w-2 h-2 rounded-full bg-muted-foreground"></span> Desconectado</>
+                      )}
+                    </p>
+                  </button>
                 ) : (
-                  <p className="text-[12px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
-                    {onlineUsers.has(String(chatUser?.id)) ? (
-                      <><span className="w-2 h-2 rounded-full bg-emerald-500 shadow-sm"></span> En línea</>
-                    ) : (
-                      <><span className="w-2 h-2 rounded-full bg-muted-foreground"></span> Desconectado</>
-                    )}
-                  </p>
+                  <>
+                    <h3 className="font-semibold text-lg text-foreground tracking-tight">Chat de Empresa</h3>
+                    <p className="text-[13px] text-muted-foreground">Comunícate con tu equipo</p>
+                  </>
                 )}
               </div>
             </div>
             
-            <div className="flex items-center gap-1 text-muted-foreground">
+            <div className="flex items-center gap-1 text-muted-foreground shrink-0">
               <button onClick={() => setIsOpen(false)} className="p-2 hover:text-foreground transition rounded-full hover:bg-muted" title="Minimizar chat">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
               </button>
@@ -558,7 +586,7 @@ export function FloatingChat({ user }: { user: any }) {
           {activeTab === "chat" && (
             <div className="flex-1 flex flex-col overflow-hidden bg-card relative">
               {/* Messages Area */}
-              <div className="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar">
+              <div className="flex-1 overflow-y-auto px-5 pt-3 pb-5 space-y-4 custom-scrollbar">
                 {loadingChat ? (
                   <div className="flex justify-center items-center h-full">
                     <Loader2 className="animate-spin text-primary" />
@@ -579,7 +607,7 @@ export function FloatingChat({ user }: { user: any }) {
                     return (
                       <React.Fragment key={msg.id}>
                         {showDate && (
-                          <div className="flex justify-center my-5">
+                          <div className="flex justify-center mt-0 mb-3">
                             <span className="text-[11px] bg-muted/80 text-muted-foreground px-3 py-1 rounded-full font-semibold">
                               {format(new Date(msg.createdAt), "d 'de' MMMM", { locale: es })}
                             </span>
@@ -661,6 +689,73 @@ export function FloatingChat({ user }: { user: any }) {
             </div>
           )}
 
+        </div>
+      )}
+
+      {/* ── Modal de Información de Usuario ── */}
+      {showUserInfoModal && chatUser && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-card border border-border text-foreground w-full max-w-sm rounded-3xl p-6 shadow-2xl relative flex flex-col items-center text-center animate-in zoom-in-95 duration-200">
+            
+            {/* Botón cerrar */}
+            <button
+              onClick={() => setShowUserInfoModal(false)}
+              className="absolute top-4 right-4 p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition"
+            >
+              <X size={18} />
+            </button>
+
+            {/* Avatar Grande */}
+            <div className="relative mb-4">
+              <div className="w-24 h-24 rounded-full border-4 border-primary/20 bg-muted overflow-hidden shadow-lg flex items-center justify-center font-bold text-2xl">
+                {chatUser.image ? (
+                  <img src={chatUser.image} alt={chatUser.name} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-primary">{chatUser.name.substring(0, 2).toUpperCase()}</span>
+                )}
+              </div>
+              <div className={cn(
+                "absolute bottom-1 right-1 w-5 h-5 border-2 border-card rounded-full shadow-sm",
+                onlineUsers.has(String(chatUser.id)) ? "bg-emerald-500" : "bg-muted-foreground"
+              )} />
+            </div>
+
+            {/* Nombre y Estado */}
+            <h3 className="text-lg font-extrabold text-foreground tracking-tight">{chatUser.name}</h3>
+            <span className={cn(
+              "inline-block text-[11px] font-bold px-3 py-0.5 rounded-full mt-1 border",
+              onlineUsers.has(String(chatUser.id)) 
+                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                : "bg-muted text-muted-foreground border-border"
+            )}>
+              {onlineUsers.has(String(chatUser.id)) ? "Conectado ahora" : "Desconectado"}
+            </span>
+
+            {/* Detalles Corporativos */}
+            <div className="w-full border-t border-border/60 mt-5 pt-4 space-y-3 text-left">
+              <div>
+                <p className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider">Cargo / Puesto</p>
+                <p className="text-xs font-semibold text-foreground mt-0.5">{chatUser.position || "Colaborador del equipo"}</p>
+              </div>
+
+              <div>
+                <p className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider">Correo Electrónico</p>
+                <p className="text-xs font-semibold text-foreground mt-0.5 truncate">{chatUser.email || "No disponible"}</p>
+              </div>
+
+              <div>
+                <p className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider">Empresa</p>
+                <p className="text-xs font-semibold text-foreground mt-0.5">{chatUser.company?.name || user?.company?.name || "Global / GNS"}</p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowUserInfoModal(false)}
+              className="mt-6 w-full py-2.5 bg-primary text-primary-foreground font-bold text-xs rounded-xl shadow-md hover:opacity-90 active:scale-95 transition"
+            >
+              Entendido
+            </button>
+          </div>
         </div>
       )}
     </div>

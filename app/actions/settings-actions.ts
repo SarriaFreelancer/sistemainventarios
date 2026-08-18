@@ -218,10 +218,10 @@ export async function updateCompanySettings(data: any) {
             ...currentTheme,
             ...(data.themeColor !== undefined ? { primaryColor: data.themeColor } : {}),
             ...(data.bgImage !== undefined ? { bgImage: data.bgImage } : {}),
-            ...(data.darkBgColor !== undefined ? { darkBgColor: data.darkBgColor } : {}),
-            ...(data.darkCardBg !== undefined ? { darkCardBg: data.darkCardBg } : {}),
-            ...(data.darkSidebarBg !== undefined ? { darkSidebarBg: data.darkSidebarBg } : {}),
-            ...(data.darkTextColor !== undefined ? { darkTextColor: data.darkTextColor } : {}),
+            darkBgColor: data.darkBgColor || undefined,
+            darkCardBg: data.darkCardBg || undefined,
+            darkSidebarBg: data.darkSidebarBg || undefined,
+            darkTextColor: data.darkTextColor || undefined,
           }
         }
       });

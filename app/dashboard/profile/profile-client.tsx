@@ -66,9 +66,9 @@ export function ProfileClient({ user }: ProfileClientProps) {
       try {
         const base64Data = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
-          reader.readAsDataURL(selectedFile);
           reader.onload = () => resolve(reader.result as string);
           reader.onerror = error => reject(error);
+          reader.readAsDataURL(selectedFile);
         });
 
         const uploadResult = await uploadProfileImage(base64Data);
@@ -80,8 +80,8 @@ export function ProfileClient({ user }: ProfileClientProps) {
           setSavingProfile(false);
           return;
         }
-      } catch (err) {
-        errorAlert("Error al procesar foto", "No se pudo leer el archivo seleccionado.");
+      } catch (err: any) {
+        errorAlert("Error al procesar foto", err?.message || "No se pudo leer el archivo seleccionado.");
         setSavingProfile(false);
         return;
       }

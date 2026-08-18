@@ -151,7 +151,12 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
   const [darkTextColor, setDarkTextColor] = useState(initialTheme.darkTextColor || "#93c5fd");
 
   const applyDarkPreset = (presetKey: string) => {
-    if (presetKey === 'BLUE') {
+    if (presetKey === 'NONE') {
+      setDarkBgColor('');
+      setDarkCardBg('');
+      setDarkSidebarBg('');
+      setDarkTextColor('');
+    } else if (presetKey === 'BLUE') {
       setInvoicePrimaryColor('#3b82f6');
       setDarkBgColor('#0a192f');
       setDarkCardBg('#0f2744');
@@ -660,8 +665,20 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
                 </p>
               </div>
 
-              {/* Grid de 4 Opciones Predefinidas */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Grid de 5 Opciones Predefinidas */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                {/* OPCIÓN POR DEFECTO: SIN FONDO PERSONALIZADO */}
+                <button
+                  type="button"
+                  onClick={() => applyDarkPreset('NONE')}
+                  className={`p-3 rounded-2xl border text-left transition-all relative overflow-hidden cursor-pointer bg-card ${
+                    !darkBgColor ? 'ring-2 ring-primary border-transparent shadow-lg' : 'border-border hover:border-primary/50'
+                  }`}
+                >
+                  <div className="text-[10px] font-black tracking-wider uppercase text-muted-foreground mb-1">POR DEFECTO</div>
+                  <div className="text-xs font-extrabold text-foreground mb-2">DISEÑO ESTÁNDAR</div>
+                  <div className="text-[9.5px] text-muted-foreground leading-tight">Usa solo el color principal sin tema de fondo.</div>
+                </button>
                 {/* OPCIÓN 1: AZUL PROFUNDO */}
                 <button
                   type="button"

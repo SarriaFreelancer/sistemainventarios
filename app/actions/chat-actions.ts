@@ -35,7 +35,12 @@ export async function getCompanyUsers() {
         name: true,
         image: true,
         email: true,
-        position: true
+        position: true,
+        company: {
+          select: {
+            name: true
+          }
+        }
       }
     });
     return { success: true, data: users };

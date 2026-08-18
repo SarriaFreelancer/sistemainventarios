@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { Server, Plus, Edit2, Trash2, X } from "lucide-react";
-import { createServer, updateServer, deleteServer } from "@/app/actions/server-actions";
+import { Server, Plus, Edit2, Trash2, X, Loader2, Wifi, CheckCircle2 } from "lucide-react";
+import { createServer, updateServer, deleteServer, testServerConnection } from "@/app/actions/server-actions";
 import { successAlert, errorAlert, confirmAction } from "@/lib/sweetalert";
 import { useRouter } from "next/navigation";
 
@@ -21,9 +21,14 @@ export function ServersManager({ servers }: { servers: any[] }) {
   const [ssl, setSsl] = useState(false);
   const [active, setActive] = useState(true);
 
+  // Connection testing state
+  const [isTesting, setIsTesting] = useState(false);
+  const [connectionTested, setConnectionTested] = useState(false);
+
   // Update default port based on engine
   const handleEngineChange = (selectedEngine: string) => {
     setEngine(selectedEngine);
+    setConnectionTested(false);
     switch (selectedEngine) {
       case "MYSQL":
       case "AWS_SQL":
@@ -44,6 +49,7 @@ export function ServersManager({ servers }: { servers: any[] }) {
   const [isSaving, setIsSaving] = useState(false);
 
   const openModal = (server: any = null) => {
+    setConnectionTested(false);
     if (server) {
       setEditingServer(server);
       setName(server.name);
@@ -68,9 +74,59 @@ export function ServersManager({ servers }: { servers: any[] }) {
     setIsModalOpen(true);
   };
 
+  const handleTestConnection = async () => {
+    if (!host || !port || !username) {
+      errorAlert("Faltan Datos", "Por favor completa el Host, Puerto y Usuario de la base de datos.");
+      return;
+    }
+    setIsTesting(true);
+    const res = await testServerConnection({
+      engine,
+      host,
+      port: Number(port),
+      username,
+      password,
+      ssl
+    });
+    setIsTesting(false);
+
+    if (res.success) {
+      setConnectionTested(true);
+      successAlert("Conexión Exitosa", res.message || "¡Conexión verificada correctamente con el servidor!");
+    } else {
+      setConnectionTested(false);
+      errorAlert("Fallo de Conexión", res.error || "No se pudo conectar al servidor.");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!editingServer && !password) {
+      errorAlert("Error", "La contraseña es requerida para nuevos servidores");
+      return;
+    }
+
     setIsSaving(true);
+
+    // Probar conexión previamente si es un servidor nuevo o si el usuario no ha hecho la prueba manual
+    if (!editingServer && !connectionTested) {
+      const connTest = await testServerConnection({
+        engine,
+        host,
+        port: Number(port),
+        username,
+        password,
+        ssl
+      });
+
+      if (!connTest.success) {
+        setIsSaving(false);
+        setConnectionTested(false);
+        errorAlert("Prueba de Conexión Fallida", connTest.error || "Debe lograr una conexión exitosa con el servidor antes de crearlo.");
+        return;
+      }
+    }
     
     const payload = {
       name, engine, host, port: Number(port), username, password, ssl, active
@@ -80,11 +136,6 @@ export function ServersManager({ servers }: { servers: any[] }) {
     if (editingServer) {
       result = await updateServer(editingServer.id, payload);
     } else {
-      if (!password) {
-        errorAlert("Error", "La contraseña es requerida para nuevos servidores");
-        setIsSaving(false);
-        return;
-      }
       result = await createServer(payload);
     }
 
@@ -95,7 +146,7 @@ export function ServersManager({ servers }: { servers: any[] }) {
       await successAlert("Éxito", `Servidor ${editingServer ? 'actualizado' : 'registrado'} correctamente.`);
       window.location.reload();
     } else {
-      errorAlert("Error", result.error || "Ocurrió un error");
+      errorAlert("Error al Crear Servidor", result.error || "Ocurrió un error");
     }
   };
 
@@ -133,45 +184,75 @@ export function ServersManager({ servers }: { servers: any[] }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {servers.map((s) => (
-          <div key={s.id} className="bg-muted/30 border border-border rounded-xl p-4 flex flex-col gap-3 relative">
-            <div className="flex justify-between items-start">
-              <div>
-                <h4 className="font-bold text-sm text-foreground">{s.name}</h4>
-                <p className="text-xs text-muted-foreground">{s.host}:{s.port}</p>
+        {servers.map((s) => {
+          const isOnline = s.isOnline && s.active;
+          return (
+            <div key={s.id} className="bg-card border border-border/80 rounded-2xl p-4 flex flex-col gap-3 relative shadow-sm hover:border-primary/40 transition">
+              <div className="flex justify-between items-start">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    {/* Indicador con pulso de Encendido u Oscuro de Apagado */}
+                    <span className="relative flex h-2.5 w-2.5">
+                      {isOnline && (
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      )}
+                      <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
+                        !s.active 
+                          ? 'bg-amber-500' 
+                          : isOnline 
+                            ? 'bg-emerald-500' 
+                            : 'bg-rose-500'
+                      }`}></span>
+                    </span>
+                    <h4 className="font-extrabold text-sm text-foreground tracking-tight">{s.name}</h4>
+                  </div>
+                  <p className="text-[11px] font-mono text-muted-foreground">{s.host}:{s.port}</p>
+                </div>
+
+                <div className="flex gap-1.5 items-center">
+                  {/* Badge de Estado del Servidor */}
+                  <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${
+                    !s.active
+                      ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                      : isOnline
+                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                        : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
+                  }`}>
+                    {!s.active ? 'Inactivo' : isOnline ? 'Encendido / En línea' : 'Apagado / Desconectado'}
+                  </span>
+
+                  <button onClick={() => openModal(s)} className="text-muted-foreground hover:text-primary transition p-1 rounded-lg hover:bg-muted" title="Editar Servidor">
+                    <Edit2 size={15} />
+                  </button>
+                  <button onClick={() => handleDelete(s.id)} className="text-muted-foreground hover:text-destructive transition p-1 rounded-lg hover:bg-muted" title="Eliminar Servidor">
+                    <Trash2 size={15} />
+                  </button>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <button onClick={() => openModal(s)} className="text-muted-foreground hover:text-primary transition">
-                  <Edit2 size={16} />
-                </button>
-                <button onClick={() => handleDelete(s.id)} className="text-muted-foreground hover:text-destructive transition">
-                  <Trash2 size={16} />
-                </button>
+              
+              <div className="grid grid-cols-2 gap-2 text-xs pt-1">
+                <div className="bg-muted/40 border border-border/50 p-2 rounded-xl flex flex-col">
+                  <span className="text-[10px] text-muted-foreground font-semibold uppercase">Motor DB</span>
+                  <span className="font-extrabold text-foreground">{s.engine}</span>
+                </div>
+                <div className="bg-muted/40 border border-border/50 p-2 rounded-xl flex flex-col">
+                  <span className="text-[10px] text-muted-foreground font-semibold uppercase">Conectividad</span>
+                  <span className={`font-extrabold ${isOnline ? 'text-emerald-500' : 'text-rose-500'}`}>
+                    {isOnline ? 'Conectado' : 'Sin respuesta'}
+                  </span>
+                </div>
+                <div className="bg-muted/40 border border-border/50 p-2 rounded-xl flex flex-col">
+                  <span className="text-[10px] text-muted-foreground font-semibold uppercase">Empresas</span>
+                  <span className="font-extrabold text-foreground">{s._count?.companies || 0} alojadas</span>
+                </div>
+                <div className="bg-muted/40 border border-border/50 p-2 rounded-xl flex flex-col">
+                  <span className="text-[10px] text-muted-foreground font-semibold uppercase">Cifrado SSL</span>
+                  <span className="font-extrabold text-foreground">{s.ssl ? 'Activado' : 'Desactivado'}</span>
+                </div>
               </div>
             </div>
-            
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="bg-card border border-border p-2 rounded-lg flex flex-col">
-                <span className="text-muted-foreground">Motor</span>
-                <span className="font-semibold">{s.engine}</span>
-              </div>
-              <div className="bg-card border border-border p-2 rounded-lg flex flex-col">
-                <span className="text-muted-foreground">Estado</span>
-                <span className={`font-semibold ${s.active ? 'text-green-500' : 'text-red-500'}`}>
-                  {s.active ? 'Activo' : 'Inactivo'}
-                </span>
-              </div>
-              <div className="bg-card border border-border p-2 rounded-lg flex flex-col">
-                <span className="text-muted-foreground">Empresas</span>
-                <span className="font-semibold">{s._count?.companies || 0} alojadas</span>
-              </div>
-              <div className="bg-card border border-border p-2 rounded-lg flex flex-col">
-                <span className="text-muted-foreground">SSL</span>
-                <span className="font-semibold">{s.ssl ? 'Activado' : 'Desactivado'}</span>
-              </div>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {isModalOpen && (
@@ -231,17 +312,55 @@ export function ServersManager({ servers }: { servers: any[] }) {
                 </div>
 
                 <div className="flex items-center gap-2 pt-2">
-                  <input type="checkbox" id="active" checked={active} onChange={e=>setActive(e.target.checked)} className="rounded border-gray-300" />
-                  <label htmlFor="active" className="text-xs font-bold text-muted-foreground">Activo</label>
+                  <input type="checkbox" id="active" checked={active} onChange={e=>setActive(e.target.checked)} className="rounded border-gray-300 cursor-pointer" />
+                  <label htmlFor="active" className="text-xs font-bold text-muted-foreground cursor-pointer">Activo</label>
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-4 py-2 rounded-xl text-sm font-semibold bg-muted hover:bg-muted/80 transition">
+              {/* Botón de Probar Conexión */}
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={handleTestConnection}
+                  disabled={isTesting || !host || !port || !username}
+                  className={`w-full py-2.5 px-4 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm ${
+                    connectionTested
+                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                      : 'bg-blue-500/10 border-blue-500/30 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {isTesting ? (
+                    <>
+                      <Loader2 size={15} className="animate-spin" />
+                      <span>Probando conexión con el servidor...</span>
+                    </>
+                  ) : connectionTested ? (
+                    <>
+                      <CheckCircle2 size={15} />
+                      <span>Conexión probada con éxito (Click para volver a probar)</span>
+                    </>
+                  ) : (
+                    <>
+                      <Wifi size={15} />
+                      <span>Probar Conexión de Red / Servidor</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <div className="flex gap-3 pt-3 border-t border-border/50">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-4 py-2.5 rounded-xl text-xs font-bold bg-muted hover:bg-muted/80 transition">
                   Cancelar
                 </button>
-                <button type="submit" disabled={isSaving} className="flex-1 px-4 py-2 rounded-xl text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition disabled:opacity-50">
-                  {isSaving ? "Guardando..." : "Guardar"}
+                <button type="submit" disabled={isSaving || isTesting} className="flex-1 px-4 py-2.5 rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition disabled:opacity-50 shadow-md flex items-center justify-center gap-2">
+                  {isSaving ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>Validando y Guardando...</span>
+                    </>
+                  ) : (
+                    editingServer ? "Actualizar Servidor" : "Probar y Crear Servidor"
+                  )}
                 </button>
               </div>
             </form>

@@ -140,13 +140,24 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
       roleThemeClass
     )}>
 
-      {themeConfig && (
+      {themeConfig?.primaryColor && (
         <style dangerouslySetInnerHTML={{ __html: `
-          .dark, :root.dark, .theme-superadmin {
-            ${themeConfig.primaryColor ? `--primary: ${themeConfig.primaryColor} !important; --ring: ${themeConfig.primaryColor} !important;` : ''}
+          :root, body, html, .dark, :root.dark, .theme-superadmin {
+            --primary: ${themeConfig.primaryColor} !important;
+            --ring: ${themeConfig.primaryColor} !important;
             ${(themeConfig as any).darkBgColor ? `--background: ${(themeConfig as any).darkBgColor} !important; background-color: ${(themeConfig as any).darkBgColor} !important;` : ''}
             ${(themeConfig as any).darkCardBg ? `--card: ${(themeConfig as any).darkCardBg} !important;` : ''}
             ${(themeConfig as any).darkTextColor ? `--foreground: ${(themeConfig as any).darkTextColor} !important; color: ${(themeConfig as any).darkTextColor} !important;` : ''}
+          }
+          .swal2-confirm,
+          .swal2-styled.swal2-confirm,
+          button.swal2-confirm {
+            background-color: ${themeConfig.primaryColor} !important;
+            color: #ffffff !important;
+          }
+          ::-webkit-scrollbar-thumb,
+          .dark ::-webkit-scrollbar-thumb {
+            background: ${themeConfig.primaryColor} !important;
           }
         `}} />
       )}

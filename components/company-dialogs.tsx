@@ -160,11 +160,11 @@ export function CreateCompanyDialog({ modules }: { modules: Module[] }) {
                 </select>
               </div>
 
-              {/* Campos de Tema Oscuro Personalizable */}
-              <input type="hidden" name="darkBgColor" value="#0a192f" />
-              <input type="hidden" name="darkCardBg" value="#0f2744" />
-              <input type="hidden" name="darkSidebarBg" value="#0d1f38" />
-              <input type="hidden" name="darkTextColor" value="#93c5fd" />
+              {/* Campos de Tema Oscuro Personalizable (Vacíos por defecto para usar diseño plano estándar) */}
+              <input type="hidden" name="darkBgColor" value="" />
+              <input type="hidden" name="darkCardBg" value="" />
+              <input type="hidden" name="darkSidebarBg" value="" />
+              <input type="hidden" name="darkTextColor" value="" />
               <div className="sm:col-span-2 space-y-2 mt-2">
                 <Label className={labelCls}>Módulos Asignados</Label>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 bg-background/50 rounded-xl border border-border/80">
@@ -203,7 +203,8 @@ export function EditCompanyDialog({ company, modules }: { company: Company; modu
   const [isPending, startTransition] = useTransition();
 
   const applyPreset = (key: string) => {
-    if (key === 'BLUE') { setPrimaryColor('#3b82f6'); setDarkBgColor('#0a192f'); setDarkCardBg('#0f2744'); setDarkSidebarBg('#0d1f38'); setDarkTextColor('#93c5fd'); }
+    if (key === 'NONE') { setDarkBgColor(''); setDarkCardBg(''); setDarkSidebarBg(''); setDarkTextColor(''); }
+    else if (key === 'BLUE') { setPrimaryColor('#3b82f6'); setDarkBgColor('#0a192f'); setDarkCardBg('#0f2744'); setDarkSidebarBg('#0d1f38'); setDarkTextColor('#93c5fd'); }
     else if (key === 'PURPLE') { setPrimaryColor('#8b5cf6'); setDarkBgColor('#130d2b'); setDarkCardBg('#1e1442'); setDarkSidebarBg('#1a1038'); setDarkTextColor('#c084fc'); }
     else if (key === 'EMERALD') { setPrimaryColor('#10b981'); setDarkBgColor('#062319'); setDarkCardBg('#0d3829'); setDarkSidebarBg('#0a2e22'); setDarkTextColor('#34d399'); }
     else if (key === 'AMBER') { setPrimaryColor('#f59e0b'); setDarkBgColor('#1c1917'); setDarkCardBg('#2b241c'); setDarkSidebarBg('#241e17'); setDarkTextColor('#fbbf24'); }
@@ -329,12 +330,18 @@ export function EditCompanyDialog({ company, modules }: { company: Company; modu
               <input type="hidden" name="darkTextColor" value={darkTextColor} />
 
               <div className="sm:col-span-2 space-y-2 pt-2 border-t border-border/40">
-                <Label className={labelCls}>Combinaciones de Tema Oscuro</Label>
-                <div className="grid grid-cols-4 gap-2">
-                  <button type="button" onClick={() => applyPreset('BLUE')} className="p-2 rounded-xl border border-blue-500/30 bg-[#0a192f] text-[#93c5fd] text-[10px] font-bold text-center cursor-pointer">Azul</button>
-                  <button type="button" onClick={() => applyPreset('PURPLE')} className="p-2 rounded-xl border border-purple-500/30 bg-[#130d2b] text-[#c084fc] text-[10px] font-bold text-center cursor-pointer">Púrpura</button>
-                  <button type="button" onClick={() => applyPreset('EMERALD')} className="p-2 rounded-xl border border-emerald-500/30 bg-[#062319] text-[#34d399] text-[10px] font-bold text-center cursor-pointer">Verde</button>
-                  <button type="button" onClick={() => applyPreset('AMBER')} className="p-2 rounded-xl border border-amber-500/30 bg-[#1c1917] text-[#fbbf24] text-[10px] font-bold text-center cursor-pointer">Ámbar</button>
+                <div className="flex justify-between items-center">
+                  <Label className={labelCls}>Combinaciones de Tema Oscuro</Label>
+                  <button type="button" onClick={() => applyPreset('NONE')} className="text-[10px] font-extrabold text-primary hover:underline cursor-pointer">
+                    Restablecer (Sin Fondo)
+                  </button>
+                </div>
+                <div className="grid grid-cols-5 gap-1.5">
+                  <button type="button" onClick={() => applyPreset('NONE')} className="p-1.5 rounded-xl border border-border bg-background text-muted-foreground text-[9.5px] font-extrabold text-center cursor-pointer hover:border-primary">Sin Fondo</button>
+                  <button type="button" onClick={() => applyPreset('BLUE')} className="p-1.5 rounded-xl border border-blue-500/30 bg-[#0a192f] text-[#93c5fd] text-[9.5px] font-bold text-center cursor-pointer">Azul</button>
+                  <button type="button" onClick={() => applyPreset('PURPLE')} className="p-1.5 rounded-xl border border-purple-500/30 bg-[#130d2b] text-[#c084fc] text-[9.5px] font-bold text-center cursor-pointer">Púrpura</button>
+                  <button type="button" onClick={() => applyPreset('EMERALD')} className="p-1.5 rounded-xl border border-emerald-500/30 bg-[#062319] text-[#34d399] text-[9.5px] font-bold text-center cursor-pointer">Verde</button>
+                  <button type="button" onClick={() => applyPreset('AMBER')} className="p-1.5 rounded-xl border border-amber-500/30 bg-[#1c1917] text-[#fbbf24] text-[9.5px] font-bold text-center cursor-pointer">Ámbar</button>
                 </div>
               </div>
               <div className="sm:col-span-2 space-y-2 mt-2">
