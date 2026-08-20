@@ -263,6 +263,9 @@ model User {
   systemAnnouncements  SystemAnnouncement[]
   chatParticipants     ChatParticipant[]
   chatMessages         ChatMessage[]
+  warehouseMovements   WarehouseMovement[]
+  warehouseTransfers   WarehouseTransfer[]
+  warehouseTimelines   WarehouseTimeline[]
 
   @@index([email])
   @@index([companyId])
@@ -307,11 +310,11 @@ model Server {
 }
 
 model Company {
-  id          Int     @id @default(autoincrement())
-  name        String  @unique
-  planId      String?
-  maxUsers    Int?
-  maxProducts Int?
+  id               Int     @id @default(autoincrement())
+  name             String  @unique
+  planId           String?
+  maxUsers         Int?
+  maxProducts      Int?
   maxSalesPerMonth Int?
 
   serverId     String?
@@ -331,6 +334,7 @@ model Company {
   createdAt                DateTime                  @default(now())
   updatedAt                DateTime                  @updatedAt
   users                    User[]
+  apiKeys                  ApiKey[]
   modules                  CompanyModule[]
   customers                Customer[]
   opportunities            Opportunity[]
@@ -376,6 +380,8 @@ model Company {
   employeeNovelties        EmployeeNovelty[]
   chatConversations        ChatConversation[]
   reportPresets            ReportPreset[]
+  warehouses               Warehouse[]
+  warehouseTransfers       WarehouseTransfer[]
 
   @@index([name])
 }
@@ -402,7 +408,9 @@ model Category {
 
 model Supplier {
   id                 Int                 @id @default(autoincrement())
+  code               String?
   companyName        String
+  nit                String?
   contactName        String
   phone              String
   email              String
@@ -416,7 +424,6 @@ model Supplier {
   updatedAt          DateTime            @updatedAt
   products           Product[]
   purchaseOrders     PurchaseOrder[]
-  code               String?
   purchaseQuotations PurchaseQuotation[]
   purchaseInvoices   PurchaseInvoice[]
 
@@ -453,6 +460,9 @@ model Product {
   inventoryEntryItems      InventoryEntryItem[]
   internalRequisitionItems InternalRequisitionItem[]
   batches                  ProductBatch[]
+  warehouseStocks          WarehouseStock[]
+  warehouseMovementItems   WarehouseMovementItem[]
+  warehouseTransferItems   WarehouseTransferItem[]
 
   @@unique([code, companyId])
   @@index([name])
@@ -462,29 +472,33 @@ model Product {
   @@index([companyId])
 }
 
-
 model Sale {
-  id             Int          @id @default(autoincrement())
-  saleNumber     String
-  userId         Int
-  client         String?
-  discount       Float        @default(0)
-  total          Float        @default(0)
-  paymentMethod  String       @default("EFECTIVO")
-  status         SaleStatus   @default(PENDING)
-  remarks        String?
-  voidedByUserId Int?
-  companyId      Int?
-  company        Company?     @relation(fields: [companyId], references: [id])
-  voidedByUser   User?        @relation("VoidedSales", fields: [voidedByUserId], references: [id])
-  voidedAt       DateTime?
-  voidedReason   String?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  user           User         @relation(fields: [userId], references: [id])
-  details        SaleDetail[]
-  customerId     Int?
-  customer       Customer?    @relation(fields: [customerId], references: [id])
+  id                  Int                 @id @default(autoincrement())
+  saleNumber          String
+  userId              Int
+  client              String?
+  discount            Float               @default(0)
+  total               Float               @default(0)
+  paymentMethod       String              @default("EFECTIVO")
+  status              SaleStatus          @default(PENDING)
+  remarks             String?
+  voidedByUserId      Int?
+  companyId           Int?
+  company             Company?            @relation(fields: [companyId], references: [id])
+  voidedByUser        User?               @relation("VoidedSales", fields: [voidedByUserId], references: [id])
+  voidedAt            DateTime?
+  voidedReason        String?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  user                User                @relation(fields: [userId], references: [id])
+  details             SaleDetail[]
+  customerId          Int?
+  customer            Customer?           @relation(fields: [customerId], references: [id])
+  requiresDispatch    Boolean             @default(false)
+  dispatchStatus      String?             @default("NOT_REQUIRED")
+  dispatchWarehouseId Int?
+  dispatchWarehouse   Warehouse?          @relation(fields: [dispatchWarehouseId], references: [id])
+  timelineEvents      WarehouseTimeline[]
 
   @@unique([saleNumber, companyId])
   @@index([userId])
@@ -743,55 +757,76 @@ model UserSession {
   @@index([userId])
 }
 
+model ApiKey {
+  id          String    @id @default(cuid())
+  name        String
+  key         String    @unique
+  companyId   Int
+  company     Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  permissions Json // Ej: { products: { read: true, create: true, update: true, delete: false }, ... }
+  active      Boolean   @default(true)
+  lastUsedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([companyId])
+  @@index([key])
+}
+
 model CompanySetting {
-  id                    Int      @id @default(autoincrement())
-  companyId             Int      @unique
-  company               Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  nit                   String?
-  phone                 String?
-  website               String?
-  socialMedia           Json? // Redes sociales (Facebook, Instagram, etc.)
-  invoiceConfig         Json? // Parámetros de facturación personalizada (colores, logo, pie de página, etc.)
-  currency              String   @default("COP")
-  timezone              String   @default("America/Bogota")
-  dateFormat            String   @default("YYYY-MM-DD")
-  currencyFormat        String   @default("es-CO")
-  allowNegativeStock    Boolean  @default(false)
-  automaticCode         Boolean  @default(true)
-  decimals              Int      @default(0)
-  defaultIva            Float    @default(19.0)
-  invoicePrefix         String   @default("VEN")
-  invoiceConsecutive    Int      @default(1)
-  purchasePrefix        String   @default("COM")
-  purchaseConsecutive   Int      @default(1)
-  passwordMinLength        Int      @default(6)
-  passwordMaxLength        Int      @default(128)
-  passwordRequireUppercase Boolean  @default(false)
-  passwordRequireLowercase Boolean  @default(false)
-  passwordRequireNumbers   Boolean  @default(false)
-  passwordRequireSymbols   Boolean  @default(false)
-  maxLoginAttempts         Int      @default(5)
-  sessionTimeoutMinutes Int      @default(60)
-  enable2FA             Boolean  @default(false)
-  enableNotifications   Boolean  @default(true)
-  enableBatchWriteOff   Boolean  @default(true)
-  enableBatchDelete     Boolean  @default(false)
-  autoExpenseOnWriteOff Boolean  @default(true)
-  smtpHost              String?
-  smtpPort              Int?
-  smtpUser              String?
-  smtpPass              String?
-  backupFrequency       String   @default("DAILY") // MANUAL, DAILY, WEEKLY
-  backupTime            String?  @default("02:00")
-  backupDay             Int?     @default(1)
-  backupPath            String?
-  registerInventoryCostAsExpense Boolean @default(false)
+  id                             Int      @id @default(autoincrement())
+  companyId                      Int      @unique
+  company                        Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  nit                            String?
+  phone                          String?
+  website                        String?
+  socialMedia                    Json? // Redes sociales (Facebook, Instagram, etc.)
+  invoiceConfig                  Json? // Parámetros de facturación personalizada (colores, logo, pie de página, etc.)
+  currency                       String   @default("COP")
+  timezone                       String   @default("America/Bogota")
+  dateFormat                     String   @default("YYYY-MM-DD")
+  currencyFormat                 String   @default("es-CO")
+  allowNegativeStock             Boolean  @default(false)
+  automaticCode                  Boolean  @default(true)
+  decimals                       Int      @default(0)
+  defaultIva                     Float    @default(19.0)
+  invoicePrefix                  String   @default("VEN")
+  invoiceConsecutive             Int      @default(1)
+  purchasePrefix                 String   @default("COM")
+  purchaseConsecutive            Int      @default(1)
+  passwordMinLength              Int      @default(6)
+  passwordMaxLength              Int      @default(128)
+  passwordRequireUppercase       Boolean  @default(false)
+  passwordRequireLowercase       Boolean  @default(false)
+  passwordRequireNumbers         Boolean  @default(false)
+  passwordRequireSymbols         Boolean  @default(false)
+  maxLoginAttempts               Int      @default(5)
+  sessionTimeoutMinutes          Int      @default(60)
+  enable2FA                      Boolean  @default(false)
+  allowAuditDeletion             Boolean  @default(false)
+  enableNotifications            Boolean  @default(true)
+  enableBatchWriteOff            Boolean  @default(true)
+  enableBatchDelete              Boolean  @default(false)
+  autoExpenseOnWriteOff          Boolean  @default(true)
+  smtpHost                       String?
+  smtpPort                       Int?
+  smtpUser                       String?
+  smtpPass                       String?
+  backupFrequency                String   @default("DAILY") // MANUAL, DAILY, WEEKLY
+  backupTime                     String?  @default("02:00")
+  backupDay                      Int?     @default(1)
+  backupPath                     String?
+  registerInventoryCostAsExpense Boolean  @default(false)
   // --- Gestión de Vencimientos ---
-  trackExpirationDates     Boolean  @default(false)
-  expirationAlertDays      Int      @default(30)
-  blockExpiredSales        Boolean  @default(false)
-  expirationAlertFrequency String   @default("DAILY")
-  updatedAt             DateTime @updatedAt
+  trackExpirationDates           Boolean  @default(false)
+  expirationAlertDays            Int      @default(30)
+  blockExpiredSales              Boolean  @default(false)
+  expirationAlertFrequency       String   @default("DAILY")
+  // --- Módulo WMS Bodegas ---
+  enableWarehouses               Boolean  @default(false)
+  defaultSaleMode                String   @default("DIRECT")
+  allowAutoInlineTransfer        Boolean  @default(true)
+  updatedAt                      DateTime @updatedAt
 }
 
 enum PurchaseRequestStatus {
@@ -1071,6 +1106,146 @@ model InternalRequisition {
   @@index([userId])
 }
 
+// ==========================================
+// MÓDULO WMS BODEGA & GESTIÓN FÍSICA
+// ==========================================
+
+model Warehouse {
+  id          Int      @id @default(autoincrement())
+  code        String?
+  name        String
+  type        String   @default("GENERAL") // GENERAL, RAW_MATERIAL, FINISHED_GOODS, RETURNS
+  address     String?
+  city        String?
+  responsible String?
+  isDefault   Boolean  @default(false)
+  status      String   @default("ACTIVE")
+  companyId   Int?
+  company     Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  locations     WarehouseLocation[]
+  stocks        WarehouseStock[]
+  transfersFrom WarehouseTransfer[] @relation("OriginWarehouse")
+  transfersTo   WarehouseTransfer[] @relation("DestinationWarehouse")
+  sales         Sale[]
+
+  @@unique([name, companyId])
+  @@index([companyId])
+}
+
+model WarehouseLocation {
+  id          Int              @id @default(autoincrement())
+  warehouseId Int
+  warehouse   Warehouse        @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  code        String // Ej. A01-E02-N01
+  zone        String?
+  aisle       String?
+  shelf       String?
+  level       String?
+  status      String           @default("ACTIVE")
+  stocks      WarehouseStock[]
+
+  @@unique([code, warehouseId])
+}
+
+model WarehouseStock {
+  id          Int                @id @default(autoincrement())
+  productId   Int
+  product     Product            @relation(fields: [productId], references: [id], onDelete: Cascade)
+  warehouseId Int
+  warehouse   Warehouse          @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  locationId  Int?
+  location    WarehouseLocation? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  physical    Int                @default(0)
+  reserved    Int                @default(0)
+  damaged     Int                @default(0)
+  inTransit   Int                @default(0)
+  companyId   Int?
+
+  @@unique([productId, warehouseId, locationId])
+  @@index([productId])
+  @@index([warehouseId])
+}
+
+model WarehouseMovement {
+  id             Int                     @id @default(autoincrement())
+  code           String                  @unique
+  type           String // RECEIPT, DISPATCH, INVENTORY_ADJUSTMENT
+  status         String                  @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, CANCELLED
+  originId       Int?
+  destinationId  Int?
+  relatedDocRef  String?
+  assignedUserId Int?
+  assignedUser   User?                   @relation(fields: [assignedUserId], references: [id], onDelete: SetNull)
+  notes          String?                 @db.Text
+  companyId      Int
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  items          WarehouseMovementItem[]
+
+  @@index([companyId])
+  @@index([type])
+}
+
+model WarehouseMovementItem {
+  id           Int               @id @default(autoincrement())
+  movementId   Int
+  movement     WarehouseMovement @relation(fields: [movementId], references: [id], onDelete: Cascade)
+  productId    Int
+  product      Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  requestedQty Int
+  processedQty Int               @default(0)
+  damagedQty   Int               @default(0)
+  locationCode String?
+}
+
+model WarehouseTransfer {
+  id                     Int                     @id @default(autoincrement())
+  transferNumber         String                  @unique
+  originWarehouseId      Int
+  originWarehouse        Warehouse               @relation("OriginWarehouse", fields: [originWarehouseId], references: [id])
+  destinationWarehouseId Int
+  destinationWarehouse   Warehouse               @relation("DestinationWarehouse", fields: [destinationWarehouseId], references: [id])
+  notes                  String?                 @db.Text
+  status                 String                  @default("REQUESTED") // REQUESTED, APPROVED, IN_TRANSIT, RECEIVED, CANCELLED
+  companyId              Int
+  company                Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdById            Int?
+  createdBy              User?                   @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  items                  WarehouseTransferItem[]
+
+  @@index([companyId])
+}
+
+model WarehouseTransferItem {
+  id         Int               @id @default(autoincrement())
+  transferId Int
+  transfer   WarehouseTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  productId  Int
+  product    Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity   Int
+}
+
+model WarehouseTimeline {
+  id          Int      @id @default(autoincrement())
+  saleId      Int?
+  sale        Sale?    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  transferId  Int?
+  movementId  Int?
+  title       String
+  description String?
+  status      String
+  userId      Int?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+
+  @@index([saleId])
+}
+
 model InternalRequisitionItem {
   id                    Int                 @id @default(autoincrement())
   internalRequisitionId Int
@@ -1249,12 +1424,12 @@ model SystemAnnouncement {
 }
 
 model ChatConversation {
-  id        Int               @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   companyId Int
-  company   Company           @relation(fields: [companyId], references: [id])
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
-  
+  company   Company  @relation(fields: [companyId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   participants ChatParticipant[]
   messages     ChatMessage[]
 
@@ -1314,19 +1489,18 @@ model ProductBatch {
 }
 
 model ReportPreset {
-  id          Int      @id @default(autoincrement())
-  companyId   Int?
-  company     Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  userId      Int?
-  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  reportType  String
-  name        String
-  fields      Json
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         Int      @id @default(autoincrement())
+  companyId  Int?
+  company    Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userId     Int?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reportType String
+  name       String
+  fields     Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@index([companyId])
   @@index([userId])
   @@index([reportType])
 }
-

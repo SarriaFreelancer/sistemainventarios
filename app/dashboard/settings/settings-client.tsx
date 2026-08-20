@@ -1,20 +1,21 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { Building, Boxes, ShieldAlert, SlidersHorizontal, Receipt, Upload, Sparkles, Server, ArrowRightLeft, Database, KeyRound, DownloadCloud, Bell, Mail, Loader2, Save, Image as ImageIcon, Trash2, Clock, LayoutTemplate, Monitor, Shield, Palette } from "lucide-react";
+import { Building, Boxes, ShieldAlert, SlidersHorizontal, Receipt, Upload, Sparkles, Server, ArrowRightLeft, Database, KeyRound, DownloadCloud, Bell, Mail, Loader2, Save, Image as ImageIcon, Trash2, Clock, LayoutTemplate, Monitor, Shield, Palette, Code2 } from "lucide-react";
 import { updateCompanySettings, uploadCompanyLogo, uploadCompanyBackgroundImage } from "@/app/actions/settings-actions";
 import { generateDemoData, clearDemoData } from "@/app/actions/demo-actions";
 import { successAlert, errorAlert } from "@/lib/sweetalert";
 import { useRouter } from "next/navigation";
-import dynamic from "next/dynamic";
-const ServersManager = dynamic(() => import("./servers-manager").then(m => m.ServersManager), { ssr: false });
-const MigrationsManager = dynamic(() => import("./migrations-manager").then(m => m.MigrationsManager), { ssr: false });
-const DatabasesManager = dynamic(() => import("./databases-manager").then(m => m.DatabasesManager), { ssr: false });
-const LicensesManager = dynamic(() => import("./licenses-manager").then(m => m.LicensesManager), { ssr: false });
-const ImportsManager = dynamic(() => import("./imports-manager").then(m => m.ImportsManager), { ssr: false });
-const OnboardingManager = dynamic(() => import("./onboarding-manager").then(m => m.OnboardingManager), { ssr: false });
-const ActiveSessionsManager = dynamic(() => import("@/components/sessions/active-sessions-manager"), { ssr: false });
-const AnnouncementsManager = dynamic(() => import("./announcements-manager").then(m => m.AnnouncementsManager), { ssr: false });
+import { ServersManager } from "./servers-manager";
+import { MigrationsManager } from "./migrations-manager";
+import { DatabasesManager } from "./databases-manager";
+import { LicensesManager } from "./licenses-manager";
+import { ImportsManager } from "./imports-manager";
+import { OnboardingManager } from "./onboarding-manager";
+import ActiveSessionsManager from "@/components/sessions/active-sessions-manager";
+import { AnnouncementsManager } from "./announcements-manager";
+import { ApiIntegrationsManager } from "./api-integrations-manager";
+
 interface CompanySetting {
   id: number;
   companyId: number;
@@ -60,6 +61,7 @@ interface SettingsClientProps {
   initialSettings: CompanySetting;
   role?: string;
   initialServers?: any[];
+  initialApiKeys?: any[];
   dedicatedCompanies?: { id: number; name: string }[];
   canManageServers?: boolean;
   userId: string;
@@ -67,9 +69,9 @@ interface SettingsClientProps {
   allModules?: any[];
 }
 
-export function SettingsClient({ initialSettings, role, initialServers = [], dedicatedCompanies = [], canManageServers = false, userId, planSettings, allModules }: SettingsClientProps) {
+export function SettingsClient({ initialSettings, role, initialServers = [], initialApiKeys = [], dedicatedCompanies = [], canManageServers = false, userId, planSettings, allModules }: SettingsClientProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"company" | "inventory" | "security" | "integrations" | "invoice" | "imports" | "servers" | "databases" | "migrations" | "licenses" | "onboarding" | "sessions" | "announcements">("company");
+  const [activeTab, setActiveTab] = useState<"company" | "inventory" | "security" | "integrations" | "invoice" | "imports" | "servers" | "databases" | "migrations" | "licenses" | "onboarding" | "sessions" | "announcements" | "apiKeys">("company");
   const [saving, setSaving] = useState(false);
   const isSuperAdmin = role === "SUPERADMIN";
 
@@ -106,6 +108,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
   const [maxLoginAttempts, setMaxLoginAttempts] = useState(initialSettings.maxLoginAttempts);
   const [sessionTimeoutMinutes, setSessionTimeoutMinutes] = useState(initialSettings.sessionTimeoutMinutes);
   const [enable2FA, setEnable2FA] = useState(initialSettings.enable2FA);
+  const [allowAuditDeletion, setAllowAuditDeletion] = useState((initialSettings as any).allowAuditDeletion ?? false);
 
   // Integraciones & SMTP
   const [smtpHost, setSmtpHost] = useState(initialSettings.smtpHost || "");
@@ -128,6 +131,8 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
   const [enableBatchWriteOff, setEnableBatchWriteOff] = useState((initialSettings as any).enableBatchWriteOff ?? true);
   const [enableBatchDelete, setEnableBatchDelete] = useState((initialSettings as any).enableBatchDelete ?? false);
   const [autoExpenseOnWriteOff, setAutoExpenseOnWriteOff] = useState((initialSettings as any).autoExpenseOnWriteOff ?? true);
+  // Módulo WMS Bodegas
+  const [enableWarehouses, setEnableWarehouses] = useState((initialSettings as any).enableWarehouses ?? false);
 
   // Facturación Personalizada
   const initialInvoiceConfig = (initialSettings as any).invoiceConfig || {};
@@ -213,6 +218,8 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
       maxLoginAttempts,
       sessionTimeoutMinutes,
       enable2FA,
+      allowAuditDeletion,
+      enableWarehouses,
       smtpHost,
       smtpPort: smtpPort ? Number(smtpPort) : null,
       smtpUser,
@@ -222,7 +229,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
       backupDay,
       backupPath,
       enableNotifications,
-      themeColor: invoicePrimaryColor,
+      themeColor: undefined,
       bgImage,
       darkBgColor,
       darkCardBg,
@@ -341,6 +348,15 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
         >
           <SlidersHorizontal size={16} />
           Respaldos & SMTP
+        </button>
+        <button
+          onClick={() => setActiveTab("apiKeys")}
+          className={`flex w-full items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold transition ${
+            activeTab === "apiKeys" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
+          }`}
+        >
+          <Code2 size={16} />
+          Integraciones API REST
         </button>
         <button
           onClick={() => setActiveTab("invoice")}
@@ -481,6 +497,13 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
         {activeTab === "onboarding" && (
           <div className="bg-card rounded-2xl border border-border p-6 shadow-sm animate-in fade-in zoom-in-95">
             <OnboardingManager userId={userId} role={role} companies={dedicatedCompanies} />
+          </div>
+        )}
+
+        {/* PESTAÑA: INTEGRACIONES API REST */}
+        {activeTab === "apiKeys" && (
+          <div className="bg-card rounded-2xl border border-border p-6 shadow-sm animate-in fade-in zoom-in-95">
+            <ApiIntegrationsManager apiData={initialApiKeys as any} companies={dedicatedCompanies} />
           </div>
         )}
 
@@ -1094,6 +1117,28 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
                 </div>
               </div>
             )}
+
+            {/* SECCIÓN MÓDULO WMS BODEGAS */}
+            <div className="space-y-4 border-t border-border/60 pt-6 mt-4">
+              <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                <Building size={18} className="text-primary" />
+                Módulo WMS Multibodega & Gestión Física de Almacenes (Premium)
+              </h3>
+              <p className="text-xs text-muted-foreground -mt-2">Permite controlar pasillos/ubicaciones, traslados en tránsito, recepciones y despachos con picking.</p>
+
+              <div className="flex items-center justify-between p-4 border border-border/80 bg-muted/10 rounded-2xl">
+                <div>
+                  <p className="text-sm font-bold text-foreground">Habilitar Módulo Multibodega</p>
+                  <p className="text-xs text-muted-foreground">Muestra la pestaña de 'Bodegas' en el menú principal y activa el control físico de sedes.</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={enableWarehouses}
+                  onChange={(e) => setEnableWarehouses(e.target.checked)}
+                  className="w-4 h-4 text-primary bg-muted rounded border-border focus:ring-primary cursor-pointer"
+                />
+              </div>
+            </div>
           </div>
         )}
 
@@ -1152,17 +1197,32 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ded
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-4 border border-border/80 bg-muted/10 rounded-2xl border-t border-border/60 pt-4">
-              <div>
-                <p className="text-sm font-bold text-foreground">Forzar Doble Factor (2FA)</p>
-                <p className="text-xs text-muted-foreground">Exige autenticación extra a través de correo electrónico o Google Authenticator.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-border/60 pt-4">
+              <div className="flex items-center justify-between p-4 border border-border/80 bg-muted/10 rounded-2xl">
+                <div>
+                  <p className="text-sm font-bold text-foreground">Forzar Doble Factor (2FA)</p>
+                  <p className="text-xs text-muted-foreground">Exige autenticación extra a través de correo electrónico o Google Authenticator.</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={enable2FA}
+                  onChange={(e) => setEnable2FA(e.target.checked)}
+                  className="w-4 h-4 text-primary bg-muted rounded border-border focus:ring-primary cursor-pointer"
+                />
               </div>
-              <input
-                type="checkbox"
-                checked={enable2FA}
-                onChange={(e) => setEnable2FA(e.target.checked)}
-                className="w-4 h-4 text-primary bg-muted rounded border-border focus:ring-primary"
-              />
+
+              <div className="flex items-center justify-between p-4 border border-border/80 bg-muted/10 rounded-2xl">
+                <div>
+                  <p className="text-sm font-bold text-foreground">Permitir Limpieza de Auditoría</p>
+                  <p className="text-xs text-muted-foreground">Permite al Administrador vaciar o depurar registros del Log de Auditoría.</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={allowAuditDeletion}
+                  onChange={(e) => setAllowAuditDeletion(e.target.checked)}
+                  className="w-4 h-4 text-primary bg-muted rounded border-border focus:ring-primary cursor-pointer"
+                />
+              </div>
             </div>
 
             <h4 className="text-sm font-semibold text-foreground mt-4 mb-2">Requisitos de Contraseña</h4>

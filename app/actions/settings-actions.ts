@@ -197,6 +197,8 @@ export async function updateCompanySettings(data: any) {
         expirationAlertFrequency: data.expirationAlertFrequency || undefined,
         enableBatchWriteOff: data.enableBatchWriteOff !== undefined ? Boolean(data.enableBatchWriteOff) : undefined,
         enableBatchDelete: data.enableBatchDelete !== undefined ? Boolean(data.enableBatchDelete) : undefined,
+        allowAuditDeletion: data.allowAuditDeletion !== undefined ? Boolean(data.allowAuditDeletion) : undefined,
+        enableWarehouses: data.enableWarehouses !== undefined ? Boolean(data.enableWarehouses) : undefined,
         autoExpenseOnWriteOff: data.autoExpenseOnWriteOff !== undefined ? Boolean(data.autoExpenseOnWriteOff) : undefined,
       }
     });
@@ -204,10 +206,10 @@ export async function updateCompanySettings(data: any) {
     if (
       data.themeColor !== undefined ||
       data.bgImage !== undefined ||
-      data.darkBgColor !== undefined ||
-      data.darkCardBg !== undefined ||
-      data.darkSidebarBg !== undefined ||
-      data.darkTextColor !== undefined
+      data.darkBgColor ||
+      data.darkCardBg ||
+      data.darkSidebarBg ||
+      data.darkTextColor
     ) {
       const existingCompany = await prisma.company.findUnique({ where: { id: companyId } });
       const currentTheme = (existingCompany?.themeConfig as any) || {};
@@ -218,10 +220,10 @@ export async function updateCompanySettings(data: any) {
             ...currentTheme,
             ...(data.themeColor !== undefined ? { primaryColor: data.themeColor } : {}),
             ...(data.bgImage !== undefined ? { bgImage: data.bgImage } : {}),
-            darkBgColor: data.darkBgColor || undefined,
-            darkCardBg: data.darkCardBg || undefined,
-            darkSidebarBg: data.darkSidebarBg || undefined,
-            darkTextColor: data.darkTextColor || undefined,
+            ...(data.darkBgColor ? { darkBgColor: data.darkBgColor } : {}),
+            ...(data.darkCardBg ? { darkCardBg: data.darkCardBg } : {}),
+            ...(data.darkSidebarBg ? { darkSidebarBg: data.darkSidebarBg } : {}),
+            ...(data.darkTextColor ? { darkTextColor: data.darkTextColor } : {}),
           }
         }
       });

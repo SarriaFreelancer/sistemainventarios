@@ -100,7 +100,7 @@ if (process.env.NODE_ENV !== 'production') globalForMonolith.monolithDb = monoli
  * Función centralizada que los módulos de negocio llamarán.
  * Determina si la empresa ya fue migrada a la arquitectura Tenant o si sigue en el Monolito.
  */
-export async function getDatabaseClient(companyId: string | number) {
+export async function getDatabaseClient(companyId: string | number): Promise<any> {
   const cId = Number(companyId);
   const company = await platformDb.company.findUnique({
     where: { id: cId }

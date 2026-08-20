@@ -7,6 +7,8 @@ import { getServers } from "@/app/actions/server-actions";
 import { getPlanSettings } from "@/app/actions/license-actions";
 import { prisma } from "@/lib/prisma";
 
+import { getApiKeys } from "@/app/actions/api-key-actions";
+
 export const metadata = {
   title: "Configuración del Sistema - GNS SarriaTech",
   description: "Ajustes de localización, inventario, facturación y seguridad.",
@@ -36,6 +38,7 @@ export default async function SettingsPage() {
   const canManageServers = isSuperAdmin || (isAdmin && isPremium);
   const result = await getCompanySettings();
   const servers = canManageServers ? await getServers() : [];
+  const apiKeys = await getApiKeys();
   
   // Obtener empresas para licencias y mapeo si es superadmin
   let allCompanies: any[] = [];
@@ -89,6 +92,7 @@ export default async function SettingsPage() {
             initialSettings={finalSettings as any} 
             role={session.user.role} 
             initialServers={servers}
+            initialApiKeys={apiKeys as any}
             dedicatedCompanies={allCompanies}
             canManageServers={canManageServers}
             userId={session.user.id}

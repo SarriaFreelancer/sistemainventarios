@@ -18,6 +18,7 @@ async function ensureModulesInitialized() {
   try {
     const requiredModules = [
       { name: 'Auditoría', href: '/dashboard/audit', icon: 'ShieldAlert', description: 'Trazabilidad y registro de actividad' },
+      { name: 'Bodegas', href: '/dashboard/warehouses', icon: 'Building2', description: 'Gestión WMS multibodega, ubicaciones y traslados' },
       { name: 'Configuración', href: '/dashboard/settings', icon: 'Settings', description: 'Ajustes generales, seguridad e integraciones' },
       { name: 'Analíticas', href: '/dashboard/analytics', icon: 'BarChart3', description: 'Métricas SaaS, actividad de usuarios y módulos' },
       { name: 'RRHH', href: '/dashboard/rrhh', icon: 'Users', description: 'Gestión de personal y nómina' }

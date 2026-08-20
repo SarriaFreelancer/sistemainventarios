@@ -142,12 +142,9 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
 
       {themeConfig?.primaryColor && (
         <style dangerouslySetInnerHTML={{ __html: `
-          :root, body, html, .dark, :root.dark, .theme-superadmin {
+          :root, .dark, .theme-superadmin {
             --primary: ${themeConfig.primaryColor} !important;
             --ring: ${themeConfig.primaryColor} !important;
-            ${(themeConfig as any).darkBgColor ? `--background: ${(themeConfig as any).darkBgColor} !important; background-color: ${(themeConfig as any).darkBgColor} !important;` : ''}
-            ${(themeConfig as any).darkCardBg ? `--card: ${(themeConfig as any).darkCardBg} !important;` : ''}
-            ${(themeConfig as any).darkTextColor ? `--foreground: ${(themeConfig as any).darkTextColor} !important; color: ${(themeConfig as any).darkTextColor} !important;` : ''}
           }
           .swal2-confirm,
           .swal2-styled.swal2-confirm,
@@ -164,9 +161,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
       <div className="flex flex-1 overflow-hidden h-full relative z-10">
         
         {/* ── Sidebar (Desktop) ── */}
-        <aside 
-          style={{ backgroundColor: (themeConfig as any)?.darkSidebarBg || undefined }}
-          className={cn(
+        <aside className={cn(
           "hidden flex-col border-r border-[#24242b]/80 bg-[#141417]/90 backdrop-blur-md text-[#f8fafc] shadow-2xl lg:flex transition-all duration-300 shrink-0 h-full overflow-hidden",
           isCollapsed ? "w-20 p-3 items-center" : "w-72 p-6"
         )}>

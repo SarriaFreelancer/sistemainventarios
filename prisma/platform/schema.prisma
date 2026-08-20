@@ -74,6 +74,7 @@ model Company {
   loginHistories       LoginHistory[]
   sessions             UserSession[]
   subscriptionPayments SubscriptionPayment[]
+  apiKeys              ApiKey[]
 }
 
 model User {
@@ -249,6 +250,7 @@ model CompanySetting {
   maxLoginAttempts      Int      @default(5)
   sessionTimeoutMinutes Int      @default(60)
   enable2FA             Boolean  @default(false)
+  allowAuditDeletion    Boolean  @default(false)
   smtpHost              String?
   smtpPort              Int?
   smtpUser              String?
@@ -274,4 +276,20 @@ model SubscriptionPayment {
   updatedAt         DateTime @updatedAt
 
   @@index([companyId])
+}
+
+model ApiKey {
+  id          String   @id @default(cuid())
+  name        String
+  key         String   @unique
+  companyId   Int
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  permissions Json     // Ej: { products: { read: true, create: true, update: true, delete: false }, ... }
+  active      Boolean  @default(true)
+  lastUsedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([key])
 }
