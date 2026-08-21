@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CheckCircle2, Plus, Pencil, Trash2, XCircle, Folder, Search } from "lucide-react";
+import { CheckCircle2, Plus, Pencil, Trash2, XCircle, Folder, Search, Building2, Users, FileText, SlidersHorizontal, ChevronDown, RotateCw, ChevronsUpDown } from "lucide-react";
 import { confirmAction, errorAlert, successAlert } from "@/lib/sweetalert";
 import { createCompany, deleteCompany, updateCompany } from "@/app/actions/company-actions";
 import { SearchableSelect } from "@/components/ui/searchable-select";
@@ -410,140 +410,321 @@ export function DeleteCompanyButton({ id, name }: { id: number; name: string }) 
 
 export function CompaniesClient({ companies, modules }: { companies: Company[]; modules: Module[] }) {
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
-  const active = companies.filter((company) => company.status === 'ACTIVE').length;
-  const inactive = companies.filter((company) => company.status === 'INACTIVE').length;
+  const activeCount = companies.filter((company) => company.status === 'ACTIVE').length;
+  const inactiveCount = companies.filter((company) => company.status === 'INACTIVE').length;
+  const totalUsersCount = companies.reduce((acc, curr) => acc + (curr._count?.users || 0), 0);
 
   const filteredCompanies = companies.filter(company => {
     const term = searchTerm.toLowerCase();
     const nameMatch = company.name.toLowerCase().includes(term);
     const nitMatch = company.nit?.toLowerCase().includes(term);
-    const idMatch = String(company.id).includes(term); // Treated as "code"
-    return nameMatch || nitMatch || idMatch;
+    const cityMatch = company.city?.toLowerCase().includes(term);
+    const addressMatch = company.address?.toLowerCase().includes(term);
+    const idMatch = String(company.id).includes(term);
+    return nameMatch || nitMatch || cityMatch || addressMatch || idMatch;
   });
+
+  const totalPages = Math.ceil(filteredCompanies.length / pageSize) || 1;
+  const paginatedCompanies = filteredCompanies.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  // Iconos o tonos aleatorios ordenados para la estética de las tarjetas de lista
+  const companyIconColors = [
+    "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400",
+    "bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400",
+    "bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400",
+    "bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400",
+  ];
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between p-7 rounded-[32px] bg-card border border-border shadow-md shadow-primary/5 relative overflow-hidden">
-        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/10 blur-[60px]" />
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="p-2.5 bg-gradient-to-tr from-primary to-[#C5A059] rounded-2xl text-white shadow-lg shadow-primary/25">
-            <Folder className="h-5 w-5" />
+      
+      {/* ── 1. Encabezado Módulo Empresas ── */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-card border border-border/60 rounded-3xl p-6 shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-sm shrink-0">
+            <Building2 className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-extrabold text-foreground">Empresas</h1>
-            <p className="text-sm text-muted-foreground">Administra las empresas y sus usuarios dentro del ERP.</p>
+            <h1 className="text-xl font-extrabold text-foreground tracking-tight">Empresas</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">Administra las empresas y sus usuarios dentro del ERP.</p>
           </div>
         </div>
-        <div className="relative z-10">
+
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <CreateCompanyDialog modules={modules} />
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        {[
-          { label: 'Total', value: String(companies.length), color: 'text-foreground' },
-          { label: 'Activas', value: String(active), color: 'text-emerald-600' },
-          { label: 'Inactivas', value: String(inactive), color: 'text-muted-foreground' },
-        ].map(({ label, value, color }) => (
-          <div key={label} className="p-5 rounded-[24px] bg-card border border-border shadow-sm flex flex-col gap-2 hover:border-primary/20 hover:shadow-md transition-all duration-300">
-            <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">{label}</p>
-            <p className={`text-3xl font-black ${color}`}>{value}</p>
-            <p className="text-[10px] text-muted-foreground">{label.toLowerCase()}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="relative">
-        <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-          <Search className="w-5 h-5 text-muted-foreground" />
-        </div>
-        <Input
-          type="text"
-          placeholder="Buscar empresa por nombre, NIT o código..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-12 h-12 bg-card border-border shadow-sm rounded-2xl w-full text-base focus:ring-primary/20"
-        />
-      </div>
-
-      <div className="rounded-[24px] bg-card border border-border shadow-sm overflow-hidden">
-        <div className="px-6 py-5 border-b border-border/60 flex items-center justify-between">
-          <h2 className="text-base font-extrabold text-foreground">Listado de empresas</h2>
-          <span className="text-xs text-muted-foreground font-medium">{filteredCompanies.length} registros</span>
-        </div>
-
-        {filteredCompanies.length === 0 ? (
-          <div className="text-center py-16 px-6">
-            <div className="mx-auto w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
-              <Folder className="h-8 w-8 text-primary/50" />
+      {/* ── 2. Tarjetas de Estadísticas Principales (Sparklines) ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        {/* Total Empresas */}
+        <div className="bg-card border border-border/60 rounded-3xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between hover:shadow-md transition">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">TOTAL EMPRESAS</p>
+              <h3 className="text-3xl font-black text-foreground mt-1">{companies.length}</h3>
+              <p className="text-[11px] text-muted-foreground font-medium mt-1">Empresas registradas</p>
             </div>
-            <p className="text-foreground font-semibold">No hay empresas registradas</p>
-            <p className="text-muted-foreground text-sm mt-1">Agrega tu primera empresa con el botón superior.</p>
+            <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <Building2 className="w-5 h-5" />
+            </div>
+          </div>
+          {/* Wave SVG */}
+          <div className="w-full h-8 mt-2">
+            <svg className="w-full h-full text-emerald-500/30" viewBox="0 0 100 25" preserveAspectRatio="none">
+              <path d="M0 20 Q 25 5, 50 15 T 100 10 L 100 25 L 0 25 Z" fill="currentColor" />
+              <path d="M0 20 Q 25 5, 50 15 T 100 10" fill="none" stroke="currentColor" strokeWidth="2" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Activas */}
+        <div className="bg-card border border-border/60 rounded-3xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between hover:shadow-md transition">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">ACTIVAS</p>
+              <h3 className="text-3xl font-black text-foreground mt-1">{activeCount}</h3>
+              <p className="text-[11px] text-muted-foreground font-medium mt-1">Empresas activas</p>
+            </div>
+            <div className="w-10 h-10 rounded-2xl bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 flex items-center justify-center shrink-0">
+              <FileText className="w-5 h-5" />
+            </div>
+          </div>
+          <div className="w-full h-8 mt-2">
+            <svg className="w-full h-full text-blue-500/30" viewBox="0 0 100 25" preserveAspectRatio="none">
+              <path d="M0 15 Q 30 22, 60 8 T 100 12 L 100 25 L 0 25 Z" fill="currentColor" />
+              <path d="M0 15 Q 30 22, 60 8 T 100 12" fill="none" stroke="currentColor" strokeWidth="2" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Inactivas */}
+        <div className="bg-card border border-border/60 rounded-3xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between hover:shadow-md transition">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">INACTIVAS</p>
+              <h3 className="text-3xl font-black text-amber-500 dark:text-amber-400 mt-1">{inactiveCount}</h3>
+              <p className="text-[11px] text-muted-foreground font-medium mt-1">Empresas inactivas</p>
+            </div>
+            <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <FileText className="w-5 h-5" />
+            </div>
+          </div>
+          <div className="w-full h-8 mt-2">
+            <svg className="w-full h-full text-amber-500/30" viewBox="0 0 100 25" preserveAspectRatio="none">
+              <path d="M0 18 Q 20 10, 50 18 T 100 14 L 100 25 L 0 25 Z" fill="currentColor" />
+              <path d="M0 18 Q 20 10, 50 18 T 100 14" fill="none" stroke="currentColor" strokeWidth="2" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Usuarios Totales */}
+        <div className="bg-card border border-border/60 rounded-3xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between hover:shadow-md transition">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">USUARIOS TOTALES</p>
+              <h3 className="text-3xl font-black text-foreground mt-1">{totalUsersCount}</h3>
+              <p className="text-[11px] text-muted-foreground font-medium mt-1">Usuarios en todas las empresas</p>
+            </div>
+            <div className="w-10 h-10 rounded-2xl bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400 flex items-center justify-center shrink-0">
+              <Users className="w-5 h-5" />
+            </div>
+          </div>
+          <div className="w-full h-8 mt-2">
+            <svg className="w-full h-full text-purple-500/30" viewBox="0 0 100 25" preserveAspectRatio="none">
+              <path d="M0 22 Q 35 6, 70 18 T 100 8 L 100 25 L 0 25 Z" fill="currentColor" />
+              <path d="M0 22 Q 35 6, 70 18 T 100 8" fill="none" stroke="currentColor" strokeWidth="2" />
+            </svg>
+          </div>
+        </div>
+
+      </div>
+
+      {/* ── 3. Buscador y Filtros ── */}
+      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+        <div className="relative flex-1 w-full">
+          <Search className="w-4 h-4 text-muted-foreground absolute left-4 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Buscar empresa por nombre, NIT o código..."
+            value={searchTerm}
+            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+            className="w-full pl-11 pr-4 py-3 bg-card border border-border/60 rounded-2xl text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm transition"
+          />
+        </div>
+        <button
+          type="button"
+          className="w-full sm:w-auto px-4 py-3 bg-card border border-border/60 rounded-2xl text-xs font-bold text-foreground flex items-center justify-center gap-2 hover:bg-muted/60 shadow-sm transition cursor-pointer"
+        >
+          <SlidersHorizontal className="w-4 h-4 text-muted-foreground" />
+          Filtros
+          <ChevronDown className="w-3.5 h-3.5 text-muted-foreground ml-1" />
+        </button>
+      </div>
+
+      {/* ── 4. Tabla / Listado de Empresas ── */}
+      <div className="bg-card border border-border/60 rounded-3xl p-6 shadow-sm space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-border/50">
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-4 bg-emerald-500 rounded-full" />
+            <h2 className="text-sm font-black text-foreground tracking-tight">Listado de empresas</h2>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-muted-foreground font-bold">{filteredCompanies.length} registros</span>
+            <button
+              onClick={() => window.location.reload()}
+              className="p-1.5 rounded-xl border border-border/60 hover:bg-muted text-muted-foreground hover:text-foreground transition cursor-pointer"
+              title="Refrescar listado"
+            >
+              <RotateCw className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
+        {paginatedCompanies.length === 0 ? (
+          <div className="text-center py-16 px-6">
+            <div className="mx-auto w-14 h-14 bg-muted/50 rounded-2xl flex items-center justify-center mb-3 text-muted-foreground">
+              <Building2 className="h-7 w-7" />
+            </div>
+            <p className="text-foreground font-bold text-sm">No se encontraron empresas</p>
+            <p className="text-muted-foreground text-xs mt-1">Intenta ajustando el término de búsqueda o crea una nueva empresa.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full text-left border-separate border-spacing-y-2">
               <thead>
-                <tr className="bg-muted/20 border-b border-border/60">
-                  <th className="text-left text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-6 py-3">Empresa</th>
-                  <th className="text-left text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-4 py-3 hidden md:table-cell">Dirección</th>
-                  <th className="text-left text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-4 py-3 hidden lg:table-cell">Ciudad</th>
-                  <th className="text-left text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-4 py-3">Usuarios</th>
-                  <th className="text-center text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-4 py-3">Estado</th>
-                  <th className="text-center text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground px-6 py-3">Acciones</th>
+                <tr className="text-[10px] font-black uppercase tracking-wider text-muted-foreground border-b border-border/40">
+                  <th className="py-2.5 px-4">
+                    <span className="flex items-center gap-1">EMPRESA <ChevronsUpDown className="w-3 h-3 opacity-50" /></span>
+                  </th>
+                  <th className="py-2.5 px-4">
+                    <span className="flex items-center gap-1">DIRECCIÓN <ChevronsUpDown className="w-3 h-3 opacity-50" /></span>
+                  </th>
+                  <th className="py-2.5 px-4">
+                    <span className="flex items-center gap-1">CIUDAD <ChevronsUpDown className="w-3 h-3 opacity-50" /></span>
+                  </th>
+                  <th className="py-2.5 px-4">
+                    <span className="flex items-center gap-1">USUARIOS <ChevronsUpDown className="w-3 h-3 opacity-50" /></span>
+                  </th>
+                  <th className="py-2.5 px-4 text-center">ESTADO</th>
+                  <th className="py-2.5 px-4 text-center">ACCIONES</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/40">
-                {filteredCompanies.map((company) => (
-                  <tr key={company.id} className="group hover:bg-primary/5 transition-colors duration-200">
-                    <td className="px-6 py-4">
-                      <p className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors">{company.name}</p>
-                      <p className="text-xs text-muted-foreground">{company.country} {company.nit ? `• NIT: ${company.nit}` : ''}</p>
-                    </td>
-                    <td className="px-4 py-4 hidden md:table-cell">
-                      <p className="text-sm text-muted-foreground truncate max-w-xs">{company.address ?? '—'}</p>
-                    </td>
-                    <td className="px-4 py-4 hidden lg:table-cell">
-                      <p className="text-sm text-muted-foreground">{company.city ?? '—'}</p>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className="text-sm text-muted-foreground font-medium">{company._count.users} usuarios</span>
-                    </td>
-                    <td className="px-4 py-4 text-center">
-                      {company.status === 'ACTIVE' ? (
-                        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-                          <CheckCircle2 className="h-3 w-3" />
-                          Activo
+              <tbody>
+                {paginatedCompanies.map((company, idx) => {
+                  const iconColor = companyIconColors[idx % companyIconColors.length];
+                  return (
+                    <tr key={company.id} className="bg-muted/20 hover:bg-muted/50 transition border border-border/40 rounded-2xl group">
+                      {/* Nombre & NIT */}
+                      <td className="py-3 px-4 rounded-l-2xl">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border border-border/40 ${iconColor}`}>
+                            <Building2 className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h3 className="font-extrabold text-xs text-foreground group-hover:text-primary transition">{company.name}</h3>
+                            <p className="text-[11px] text-muted-foreground font-medium mt-0.5">
+                              {company.country || 'Colombia'} {company.nit ? `• NIT: ${company.nit}` : ''}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Dirección */}
+                      <td className="py-3 px-4 text-xs font-medium text-foreground/80">
+                        {company.address || '—'}
+                      </td>
+
+                      {/* Ciudad */}
+                      <td className="py-3 px-4 text-xs font-medium text-foreground/80">
+                        {company.city || '—'}
+                      </td>
+
+                      {/* Usuarios */}
+                      <td className="py-3 px-4 text-xs font-semibold text-foreground/80">
+                        <span className="inline-flex items-center gap-1.5">
+                          <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                          {company._count?.users || 0} {company._count?.users === 1 ? 'usuario' : 'usuarios'}
                         </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full bg-secondary/20 text-muted-foreground border border-border">
-                          <XCircle className="h-3 w-3" />
-                          Inactivo
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-center gap-1">
-                        <EditCompanyDialog company={company} modules={modules} />
-                        <DeleteCompanyButton id={company.id} name={company.name} />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+
+                      {/* Estado */}
+                      <td className="py-3 px-4 text-center">
+                        {company.status === 'ACTIVE' ? (
+                          <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Activo
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                            Inactivo
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Acciones */}
+                      <td className="py-3 px-4 text-center rounded-r-2xl">
+                        <div className="flex items-center justify-center gap-1">
+                          <EditCompanyDialog company={company} modules={modules} />
+                          <DeleteCompanyButton id={company.id} name={company.name} />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
+
+        {/* ── 5. Paginación Inferior ── */}
+        {filteredCompanies.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-border/50">
+            <p className="text-xs text-muted-foreground font-medium">
+              Mostrando {Math.min((currentPage - 1) * pageSize + 1, filteredCompanies.length)} a {Math.min(currentPage * pageSize, filteredCompanies.length)} de {filteredCompanies.length} registros
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                className="w-8 h-8 rounded-xl border border-border/60 flex items-center justify-center text-xs font-bold text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+              >
+                &lt;
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setCurrentPage(p)}
+                  className={`w-8 h-8 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    currentPage === p
+                      ? "bg-emerald-500 text-white shadow-sm"
+                      : "border border-border/60 text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+              <button
+                type="button"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                className="w-8 h-8 rounded-xl border border-border/60 flex items-center justify-center text-xs font-bold text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+              >
+                &gt;
+              </button>
+            </div>
+          </div>
+        )}
+
       </div>
 
-      <datalist id="countries-list">
-        {POPULAR_COUNTRIES.map(c => <option key={c} value={c} />)}
-      </datalist>
-
-      <datalist id="cities-list">
-        {POPULAR_CITIES.map(c => <option key={c} value={c} />)}
-      </datalist>
     </div>
   );
 }
