@@ -820,15 +820,14 @@ export function ProductsClient(props: {
                     )}
                     <div className="flex gap-2 justify-end">
                       {['SALE', 'FINISHED_GOOD', 'SERVICE'].includes(product.type || 'SALE') ? (
-                        <Button
-                          variant="secondary"
-                          size="sm"
+                        <button
                           onClick={() => handleQuickSell(product)}
-                          className="h-8 text-xs font-semibold px-3"
+                          className="h-8 px-3 text-xs font-bold text-white bg-gradient-to-tr from-primary to-[#C5A059] hover:opacity-90 rounded-xl transition-all shadow-sm flex items-center gap-1.5"
                           disabled={product.quantityAvailable === 0 || isPending}
                         >
-                          Venta rápida
-                        </Button>
+                          <ShoppingCart className="h-3.5 w-3.5" />
+                          Vender
+                        </button>
                       ) : (
                         <span className="inline-flex items-center h-8 text-xs font-medium text-muted-foreground px-3 bg-muted/30 rounded-md">
                           Uso interno

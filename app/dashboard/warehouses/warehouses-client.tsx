@@ -214,46 +214,46 @@ export default function WarehousesManagerClient({
       </div>
 
       {/* Tabs Nomenclatura */}
-      <div className="flex border-b border-border space-x-4">
+      <div className="flex border-b border-border space-x-2 bg-card p-2 rounded-2xl border shadow-sm overflow-x-auto">
         <button
           onClick={() => setActiveTab("warehouses")}
-          className={`pb-3 text-xs font-black transition flex items-center gap-2 border-b-2 ${
+          className={`pb-2.5 pt-2.5 px-4 text-xs font-extrabold transition rounded-xl flex items-center gap-2 border-b-2 whitespace-nowrap cursor-pointer ${
             activeTab === "warehouses"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
+              ? "border-primary text-primary bg-primary/10 shadow-sm"
+              : "border-transparent text-foreground hover:bg-muted"
           }`}
         >
-          <Building2 size={16} /> Bodegas & Ubicaciones ({initialWarehouses.length})
+          <Building2 size={16} className={activeTab === "warehouses" ? "text-primary" : "text-foreground/70"} /> Bodegas & Ubicaciones <span className="px-2 py-0.5 rounded-full text-[10px] bg-muted border border-border text-foreground font-bold">{initialWarehouses.length}</span>
         </button>
         <button
           onClick={() => setActiveTab("transfers")}
-          className={`pb-3 text-xs font-black transition flex items-center gap-2 border-b-2 ${
+          className={`pb-2.5 pt-2.5 px-4 text-xs font-extrabold transition rounded-xl flex items-center gap-2 border-b-2 whitespace-nowrap cursor-pointer ${
             activeTab === "transfers"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
+              ? "border-primary text-primary bg-primary/10 shadow-sm"
+              : "border-transparent text-foreground hover:bg-muted"
           }`}
         >
-          <Truck size={16} /> Traslados en Tránsito ({initialTransfers.length})
+          <Truck size={16} className={activeTab === "transfers" ? "text-primary" : "text-foreground/70"} /> Traslados en Tránsito <span className="px-2 py-0.5 rounded-full text-[10px] bg-muted border border-border text-foreground font-bold">{initialTransfers.length}</span>
         </button>
         <button
           onClick={() => setActiveTab("stocks")}
-          className={`pb-3 text-xs font-black transition flex items-center gap-2 border-b-2 ${
+          className={`pb-2.5 pt-2.5 px-4 text-xs font-extrabold transition rounded-xl flex items-center gap-2 border-b-2 whitespace-nowrap cursor-pointer ${
             activeTab === "stocks"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
+              ? "border-primary text-primary bg-primary/10 shadow-sm"
+              : "border-transparent text-foreground hover:bg-muted"
           }`}
         >
-          <Layers size={16} /> Existencias por Bodega ({initialStocks.length})
+          <Layers size={16} className={activeTab === "stocks" ? "text-primary" : "text-foreground/70"} /> Existencias por Bodega <span className="px-2 py-0.5 rounded-full text-[10px] bg-muted border border-border text-foreground font-bold">{initialStocks.length}</span>
         </button>
         <button
           onClick={() => setActiveTab("timeline")}
-          className={`pb-3 text-xs font-black transition flex items-center gap-2 border-b-2 ${
+          className={`pb-2.5 pt-2.5 px-4 text-xs font-extrabold transition rounded-xl flex items-center gap-2 border-b-2 whitespace-nowrap cursor-pointer ${
             activeTab === "timeline"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
+              ? "border-primary text-primary bg-primary/10 shadow-sm"
+              : "border-transparent text-foreground hover:bg-muted"
           }`}
         >
-          <Clock size={16} /> Línea de Tiempo / Auditoría ({initialTimelines.length})
+          <Clock size={16} className={activeTab === "timeline" ? "text-primary" : "text-foreground/70"} /> Línea de Tiempo / Auditoría <span className="px-2 py-0.5 rounded-full text-[10px] bg-muted border border-border text-foreground font-bold">{initialTimelines.length}</span>
         </button>
       </div>
 
