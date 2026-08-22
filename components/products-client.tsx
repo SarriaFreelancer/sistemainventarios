@@ -10,7 +10,7 @@ const EditProductDialog = dynamic(() => import('@/components/edit-product-dialog
 const CreateProductDialog = dynamic(() => import('@/components/create-product-dialog').then(mod => mod.CreateProductDialog), { ssr: false });
 import {
   Package, Trash2, TrendingUp, Archive, DollarSign, ShoppingCart,
-  Search, SlidersHorizontal, ChevronUp, ChevronDown, ChevronsUpDown, Folder
+  Search, SlidersHorizontal, ChevronUp, ChevronDown, ChevronsUpDown, Folder, RotateCcw, X
 } from "lucide-react";
 import { confirmAction, successAlert, errorAlert, brandAlert } from "@/lib/sweetalert";
 import { useRouter } from "next/navigation";
@@ -94,6 +94,44 @@ export function ProductsClient(props: {
   useEffect(() => {
     setCurrentPage(1);
   }, [search, filterCategory, filterSupplier, filterStatus, filterGroup, filterType, sortField, sortDir]);
+
+  // Grupos filtrados según el Proveedor seleccionado
+  const availableGroups = useMemo(() => {
+    if (!filterSupplier) return groups;
+    const groupIdsForSupplier = new Set(
+      initialProducts
+        .filter(p => p.supplierId === filterSupplier && p.productGroupId)
+        .map(p => p.productGroupId!)
+    );
+    return groups.filter(g => groupIdsForSupplier.has(g.id));
+  }, [groups, initialProducts, filterSupplier]);
+
+  // Categorías filtradas según el Grupo seleccionado (o Proveedor)
+  const availableCategories = useMemo(() => {
+    let filtered = initialProducts;
+    if (filterSupplier) {
+      filtered = filtered.filter(p => p.supplierId === filterSupplier);
+    }
+    if (filterGroup) {
+      filtered = filtered.filter(p => p.productGroupId === filterGroup);
+    }
+    const catIds = new Set(filtered.map(p => p.categoryId));
+    return categories.filter(c => catIds.has(c.id));
+  }, [categories, initialProducts, filterSupplier, filterGroup]);
+
+  // Auto-limpiar grupo si deja de pertenecer al proveedor seleccionado
+  useEffect(() => {
+    if (filterGroup && !availableGroups.some(g => g.id === filterGroup)) {
+      setFilterGroup('');
+    }
+  }, [availableGroups, filterGroup]);
+
+  // Auto-limpiar categoría si deja de pertenecer al grupo/proveedor seleccionado
+  useEffect(() => {
+    if (filterCategory && !availableCategories.some(c => c.id === filterCategory)) {
+      setFilterCategory('');
+    }
+  }, [availableCategories, filterCategory]);
 
   const filteredProducts = useMemo(() => {
     let list = [...initialProducts];
@@ -337,7 +375,7 @@ export function ProductsClient(props: {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      {/* ── Header ── */}
+      {/* ── Header (Tarjeta contenedora) ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-7 rounded-[32px] bg-card border border-border shadow-md shadow-primary/5 relative overflow-hidden">
         <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/10 blur-[60px]" />
         <div className="relative z-10 flex items-center gap-3">
@@ -361,7 +399,7 @@ export function ProductsClient(props: {
           />
           {maxProducts < 999999 && (
             <p className="text-[10px] font-bold text-muted-foreground uppercase">
-              {currentProducts} / {maxProducts} Productos ({planName})
+              Actualizado: {currentProducts} / {maxProducts} Productos ({planName})
             </p>
           )}
         </div>
@@ -390,78 +428,138 @@ export function ProductsClient(props: {
         ))}
       </div>
 
-      {/* ── Type Tabs ── */}
-      <div className="flex gap-2 flex-wrap p-1 bg-card border border-border rounded-2xl shadow-sm">
-        {[
-          { value: 'ALL',          label: 'Todos' },
-          { value: 'SALE',         label: 'Para Venta' },
-          { value: 'FINISHED_GOOD',label: 'Prod. Terminado' },
-          { value: 'SERVICE',      label: 'Servicios' },
-          { value: 'RAW_MATERIAL', label: 'Materia Prima' },
-          { value: 'SUPPLY',       label: 'Insumos' },
-          { value: 'FIXED_ASSET',  label: 'Activos Fijos' },
-        ].map(({ value, label }) => (
-          <button
-            key={value}
-            onClick={() => setFilterType(value)}
-            className={`px-3.5 py-1.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
-              filterType === value
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'text-foreground hover:bg-muted hover:text-foreground'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {/* ── Search & Filters ── */}
-      <div className="rounded-[24px] bg-card border border-border shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-border/60 flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
-            <input
-              type="text"
-              placeholder="Buscar por nombre o código..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="flex h-11 w-full rounded-xl border border-border/80 bg-background/50 pl-10 pr-4 py-2 text-sm text-foreground focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all placeholder:text-muted-foreground/50"
-            />
-          </div>
-          <Button
-            variant="outline"
-            onClick={() => setShowFilters(!showFilters)}
-            className="h-11 gap-2 shrink-0"
-          >
-            <SlidersHorizontal className="h-4 w-4" />
-            Filtros
-            {(filterCategory || filterSupplier || filterStatus || filterGroup) && (
-              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
-                {[filterCategory, filterSupplier, filterStatus, filterGroup].filter(Boolean).length}
-              </span>
-            )}
-          </Button>
+      {/* ── Main Table Card with Connected Type Tabs & Filters ── */}
+      <div className="rounded-[24px] bg-card border border-border shadow-sm overflow-hidden space-y-0">
+        
+        {/* ── Type Tabs (Conectadas directamente a la tabla arriba) ── */}
+        <div className="flex gap-2 overflow-x-auto p-3 bg-muted/20 border-b border-border/60">
+          {[
+            { value: 'ALL',          label: 'Todos' },
+            { value: 'SALE',         label: 'Para Venta' },
+            { value: 'FINISHED_GOOD',label: 'Prod. Terminado' },
+            { value: 'SERVICE',      label: 'Servicios' },
+            { value: 'RAW_MATERIAL', label: 'Materia Prima' },
+            { value: 'SUPPLY',       label: 'Insumos' },
+            { value: 'FIXED_ASSET',  label: 'Activos Fijos' },
+          ].map(({ value, label }) => (
+            <button
+              key={value}
+              onClick={() => setFilterType(value)}
+              className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap cursor-pointer ${
+                filterType === value
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-foreground/80 hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
 
-        {showFilters && (
-          <div className="px-5 py-4 bg-muted/10 border-b border-border/60 grid grid-cols-2 md:grid-cols-4 gap-3 animate-in slide-in-from-top-2 duration-200">
-            <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className={selectFilterCls}>
-              <option value="">Todas las categorías</option>
-              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        {/* ── Search Bar & Filter Controls ── */}
+        <div className="p-4 space-y-3 border-b border-border/60">
+          <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+            <div className="relative flex-1 w-full">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
+              <input
+                type="text"
+                placeholder="Buscar por nombre o código..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="flex h-11 w-full rounded-xl border border-border/80 bg-background/50 pl-10 pr-4 py-2 text-sm text-foreground focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all placeholder:text-muted-foreground/50"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowFilters(!showFilters)}
+              className="h-11 px-4 border border-border/80 bg-card rounded-xl text-xs font-bold text-foreground flex items-center justify-center gap-2 hover:bg-muted/60 transition cursor-pointer shrink-0"
+            >
+              <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
+              Filtros
+              {(filterCategory || filterSupplier || filterStatus || filterGroup || filterExpiration !== 'ALL') && (
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-black">
+                  {[filterCategory, filterSupplier, filterStatus, filterGroup, filterExpiration !== 'ALL'].filter(Boolean).length}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* ── Fila Horizontal de Filtros en la misma línea (Proveedores -> Grupos -> Categorías) ── */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2.5 items-center">
+            {/* Filtro Orden */}
+            <select
+              value={sortField}
+              onChange={e => setSortField(e.target.value as SortField)}
+              className={selectFilterCls}
+            >
+              <option value="name">Fecha: Más reciente</option>
+              <option value="code">Por Código</option>
+              <option value="salePrice">Por Precio</option>
+              <option value="quantityAvailable">Por Stock</option>
             </select>
+
+            {/* 1. Filtro Proveedores */}
             <select value={filterSupplier} onChange={e => setFilterSupplier(e.target.value)} className={selectFilterCls}>
               <option value="">Todos los proveedores</option>
               {suppliers.map(s => <option key={s.id} value={s.id}>{s.companyName}</option>)}
             </select>
-            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className={selectFilterCls}>
-              <option value="">Todos los estados</option>
-              <option value="AVAILABLE">Disponible</option>
-              <option value="OUT_OF_STOCK">Sin Stock</option>
-            </select>
+
+            {/* 2. Filtro Grupos (Cascada según proveedor) */}
             <select value={filterGroup} onChange={e => setFilterGroup(e.target.value)} className={selectFilterCls}>
               <option value="">Todos los grupos</option>
-              {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+              {availableGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
             </select>
+
+            {/* 3. Filtro Categorías (Cascada según grupo o proveedor) */}
+            <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className={selectFilterCls}>
+              <option value="">Todas las categorías</option>
+              {availableCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+
+            {/* Botón Limpiar Filtros al final de la misma línea */}
+            <button
+              type="button"
+              onClick={() => {
+                setSearch('');
+                setFilterCategory('');
+                setFilterSupplier('');
+                setFilterStatus('');
+                setFilterGroup('');
+                setFilterType('ALL');
+                setFilterExpiration('ALL');
+              }}
+              className="h-10 px-3 border border-border/60 bg-card hover:bg-muted rounded-xl text-xs font-extrabold text-foreground flex items-center justify-center gap-2 transition cursor-pointer w-full"
+              title="Limpiar todos los filtros"
+            >
+              <RotateCcw className="h-3.5 w-3.5 text-muted-foreground" />
+              Limpiar filtros
+            </button>
+          </div>
+        </div>
+
+        {/* ── Expandable Filters Panel ── */}
+        {showFilters && (
+          <div className="px-5 py-4 bg-muted/10 border-b border-border/60 space-y-3 animate-in slide-in-from-top-2 duration-200">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <select value={filterSupplier} onChange={e => setFilterSupplier(e.target.value)} className={selectFilterCls}>
+                <option value="">Todos los proveedores</option>
+                {suppliers.map(s => <option key={s.id} value={s.id}>{s.companyName}</option>)}
+              </select>
+              <select value={filterGroup} onChange={e => setFilterGroup(e.target.value)} className={selectFilterCls}>
+                <option value="">Todos los grupos</option>
+                {availableGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+              </select>
+              <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className={selectFilterCls}>
+                <option value="">Todas las categorías</option>
+                {availableCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className={selectFilterCls}>
+                <option value="">Todos los estados</option>
+                <option value="AVAILABLE">Disponible</option>
+                <option value="OUT_OF_STOCK">Sin Stock</option>
+              </select>
+            </div>
           </div>
         )}
 
