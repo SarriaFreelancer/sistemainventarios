@@ -22,28 +22,37 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: 'ID inválido' }, { status: 400 });
     }
 
-    await prisma.notification.deleteMany({
-      where: {
-        id,
-        userId,
-      },
+    const notifToDelete = await prisma.notification.findUnique({
+      where: { id },
+      select: { title: true, message: true, userId: true }
     });
 
-    // Guardar la hora de limpieza en las preferencias del usuario
-    const userObj = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { preferences: true }
-    });
-    const currentPrefs = (userObj?.preferences as any) || {};
-    await prisma.user.update({
-      where: { id: userId },
-      data: {
-        preferences: {
-          ...currentPrefs,
-          notificationsClearedAt: new Date()
-        }
+    if (notifToDelete && notifToDelete.userId === userId) {
+      await prisma.notification.delete({ where: { id } });
+
+      const userObj = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { preferences: true }
+      });
+      const currentPrefs = (userObj?.preferences as any) || {};
+      const dismissedTitles: string[] = currentPrefs.dismissedNotificationTitles || [];
+
+      // Record message signature to prevent recreation
+      const signature = `${notifToDelete.title}::${notifToDelete.message}`;
+      if (!dismissedTitles.includes(signature)) {
+        dismissedTitles.push(signature);
       }
-    });
+
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          preferences: {
+            ...currentPrefs,
+            dismissedNotificationTitles: dismissedTitles.slice(-100)
+          }
+        }
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

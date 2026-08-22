@@ -26,3 +26,6 @@ Thumbs.db
 # Prisma (solo si usas SQLite)
 # prisma/dev.db
 # prisma/dev.db-journal
+
+# Herramientas externas
+strix/

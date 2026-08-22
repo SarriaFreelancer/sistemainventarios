@@ -109,7 +109,7 @@ export async function createProduct(formData: FormData) {
     if (formData.get('registerAsExpense') === 'on' && quantity > 0 && parsed.data.unitCost > 0) {
       const expenseAmount = quantity * parsed.data.unitCost;
       const expenseCompanyId = companyId || (await resolveActionCompanyId());
-      
+
       const expense = await prisma.expense.create({
         data: {
           description: `Compra inicial de inventario: ${newProduct.name} (${quantity} unidades)`,
@@ -199,7 +199,6 @@ export async function updateProduct(formData: FormData) {
     const quantity = parsed.data.quantityAvailable;
     const status = quantity === 0 ? ProductStatus.OUT_OF_STOCK : ProductStatus.AVAILABLE;
 
-    console.log('[DEBUG] updateProduct payload:', parsed.data);
 
     const updated = await prisma.product.update({
       where: { id },
@@ -371,7 +370,7 @@ export async function quickSellProduct(data: {
 
     const now = new Date();
     const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-    
+
     const unitPrice = product.salePrice;
     const subtotal = unitPrice * quantity;
     const total = Math.max(0, subtotal - discount);
@@ -379,7 +378,7 @@ export async function quickSellProduct(data: {
     // Ejecutar transaccionalidad segura ante concurrencia
     const result = await prisma.$transaction(async (tx) => {
       const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      
+
       const counter = await tx.invoiceCounter.upsert({
         where: {
           companyId_date: {
@@ -423,9 +422,9 @@ export async function quickSellProduct(data: {
 
       // Si no tiene módulo Ventas: descontar stock inmediatamente
       if (!hasSalesModule) {
-        const settings = await prisma.companySetting.findUnique({ where: { companyId: product.companyId! } });
+        // Reutilizar settings ya obtenidos antes de la transacción (evita query duplicada)
         const allowNegativeStock = settings?.allowNegativeStock ?? false;
-        
+
         let newQty = product.quantityAvailable - quantity;
         if (!allowNegativeStock && newQty < 0) {
           newQty = 0;
@@ -454,7 +453,7 @@ export async function quickSellProduct(data: {
     });
 
     // Enviar notificaciones filtrando por rol (Creador + Admins para pendientes)
-    const companyUsers = await prisma.user.findMany({ 
+    const companyUsers = await prisma.user.findMany({
       where: { companyId },
       include: { role: true }
     });
@@ -500,4 +499,3 @@ export async function quickSellProduct(data: {
     return { success: false, error: error.message ?? 'Error al registrar la venta rápida' };
   }
 }
-

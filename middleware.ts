@@ -43,8 +43,8 @@ export async function middleware(request: NextRequest) {
   }
 
   const isHttps = request.nextUrl.protocol === 'https:' || request.headers.get('x-forwarded-proto') === 'https';
-  const token = await getToken({ 
-    req: request, 
+  const token = await getToken({
+    req: request,
     secret: process.env.NEXTAUTH_SECRET,
     // Use secureCookie only in production (HTTPS). In development always false
     // so localhost works correctly even after using ngrok.
@@ -62,9 +62,9 @@ export async function middleware(request: NextRequest) {
   };
 
   // Public routes that do not require authentication
-  const publicPaths = ['/auth', '/api/auth', '/_next', '/static'];
+  const publicPaths = ['/auth', '/api/auth', '/pagos', '/api/payments', '/_next', '/static'];
   if (
-    request.nextUrl.pathname === '/' || 
+    request.nextUrl.pathname === '/' ||
     publicPaths.some((p) => request.nextUrl.pathname.startsWith(p))
   ) {
     return addSecurityHeaders(NextResponse.next());
@@ -81,11 +81,13 @@ export async function middleware(request: NextRequest) {
     const companyStatus = token.companyStatus as string | undefined;
     const role = token.role as string | undefined;
 
-    if (companyStatus === "SUSPENDED" || companyStatus === "INACTIVE") {
+    // Solo el SUPERADMIN puede acceder sin importar el estado de empresa.
+    // Cualquier otro rol (ADMIN o USER) debe tener una empresa con estado 'ACTIVE'.
+    if (role !== "SUPERADMIN" && companyStatus !== "ACTIVE") {
       const url = request.nextUrl.clone();
-      if (role === "ADMIN" || role === "SUPERADMIN") {
+      if (role === "ADMIN" || !role) {
         url.pathname = '/';
-        url.hash = '#planes';
+        url.hash = 'planes';
       } else {
         url.pathname = '/auth/login';
         url.searchParams.set('error', 'suspended');
@@ -102,5 +104,3 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 };
-
-

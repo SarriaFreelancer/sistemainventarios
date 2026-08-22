@@ -103,7 +103,7 @@ export async function updateCompany(formData: FormData) {
   if (!session?.user) {
     return { success: false, error: "No autorizado" };
   }
-  
+
   const id = Number(formData.get('id'));
 
   if (session.user.role === 'ADMIN') {
@@ -179,7 +179,7 @@ export async function updateCompany(formData: FormData) {
         modules: {
           deleteMany: {},
           create: parsed.data.modules?.map((moduleId: number) => ({
-             moduleId: moduleId 
+             moduleId: moduleId
           })) || []
         },
         setting: {
@@ -210,12 +210,98 @@ export async function deleteCompany(formData: FormData) {
   const id = Number(formData.get('id'));
   if (!id || isNaN(id)) return { success: false, error: 'ID inválida' };
 
-  const usersCount = await prisma.user.count({ where: { companyId: id } });
-  if (usersCount > 0) {
-    return { success: false, error: 'No se puede eliminar la empresa porque tiene usuarios asignados' };
-  }
+  try {
+    await prisma.$transaction(async (tx) => {
+      // 1. Sesiones y pagos de suscripción
+      await tx.userSession.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.subscriptionPayment.deleteMany({ where: { companyId: id } }).catch(() => {});
 
-  await prisma.company.delete({ where: { id } });
-  revalidatePath('/dashboard/companies');
-  return { success: true };
+      // 2. Módulos y configuraciones
+      await tx.companyModule.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.companySetting.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.apiKey.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.notification.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.auditLog.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.loginHistory.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.reportPreset.deleteMany({ where: { companyId: id } }).catch(() => {});
+
+      // 3. Chat
+      await tx.chatMessage.deleteMany({ where: { conversation: { companyId: id } } }).catch(() => {});
+      await tx.chatParticipant.deleteMany({ where: { conversation: { companyId: id } } }).catch(() => {});
+      await tx.chatConversation.deleteMany({ where: { companyId: id } }).catch(() => {});
+
+      // 4. Ventas
+      await tx.saleDetail.deleteMany({ where: { sale: { companyId: id } } }).catch(() => {});
+      await tx.sale.deleteMany({ where: { companyId: id } }).catch(() => {});
+
+      // 5. Compras
+      await tx.purchaseOrderLine.deleteMany({ where: { purchaseOrder: { companyId: id } } }).catch(() => {});
+      await tx.purchaseOrder.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.purchaseReceiptItem.deleteMany({ where: { purchaseReceipt: { companyId: id } } }).catch(() => {});
+      await tx.purchaseReceipt.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.purchaseInvoice.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.purchasePayment.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.accountsPayable.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.purchaseQuotationItem.deleteMany({ where: { purchaseQuotation: { companyId: id } } }).catch(() => {});
+      await tx.purchaseQuotation.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.purchaseRequestItem.deleteMany({ where: { purchaseRequest: { companyId: id } } }).catch(() => {});
+      await tx.purchaseRequest.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.purchaseApproval.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.purchaseApprovalConfig.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.internalRequisitionItem.deleteMany({ where: { internalRequisition: { companyId: id } } }).catch(() => {});
+      await tx.internalRequisition.deleteMany({ where: { companyId: id } }).catch(() => {});
+
+      // 6. RRHH
+      await tx.employeeNovelty.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.payrollDetail.deleteMany({ where: { payroll: { companyId: id } } }).catch(() => {});
+      await tx.payroll.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.employee.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.position.deleteMany({ where: { companyId: id } }).catch(() => {});
+
+      // 7. Finanzas
+      await tx.expense.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.income.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.invoiceCounter.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.discount.deleteMany({ where: { companyId: id } }).catch(() => {});
+
+      // 8. CRM
+      await tx.activity.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.quote.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.opportunity.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.contact.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.lead.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.customer.deleteMany({ where: { companyId: id } }).catch(() => {});
+
+      // 9. Bodegas e inventario
+      await tx.warehouseTransferItem.deleteMany({ where: { warehouseTransfer: { companyId: id } } }).catch(() => {});
+      await tx.warehouseTransfer.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.warehouseTimeline.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.warehouseStock.deleteMany({ where: { warehouse: { companyId: id } } }).catch(() => {});
+      await tx.warehouseLocation.deleteMany({ where: { warehouse: { companyId: id } } }).catch(() => {});
+      await tx.warehouseMovement.deleteMany({ where: { warehouse: { companyId: id } } }).catch(() => {});
+      await tx.inventoryEntryItem.deleteMany({ where: { inventoryEntry: { companyId: id } } }).catch(() => {});
+      await tx.inventoryEntry.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.warehouse.deleteMany({ where: { companyId: id } }).catch(() => {});
+
+      // 10. Productos y Proveedores
+      await tx.productBatch.deleteMany({ where: { product: { companyId: id } } }).catch(() => {});
+      await tx.product.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.category.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.productGroup.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.supplier.deleteMany({ where: { companyId: id } }).catch(() => {});
+
+      // 11. Usuarios pertenecientes a la empresa
+      await tx.user.deleteMany({ where: { companyId: id } }).catch(() => {});
+
+      // 12. Finalmente la Empresa
+      await tx.company.delete({ where: { id } });
+    });
+
+    revalidatePath('/dashboard/companies');
+    revalidatePath('/', 'layout');
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error eliminando empresa:', error);
+    return { success: false, error: 'Ocurrió un error al eliminar la empresa: ' + (error.message || '') };
+  }
 }

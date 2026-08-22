@@ -102,7 +102,7 @@ export async function createSale(data: {
 
     // Calcular totales
     const subtotalBeforeDiscount = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
-    
+
     // Distribuir descuento global de forma proporcional o sumar los de fila
     let finalItems = items.map(item => {
       const rowSubtotal = item.quantity * item.unitPrice;
@@ -181,7 +181,7 @@ export async function createSale(data: {
       const lowStockProducts: any[] = [];
       const settings = await tx.companySetting.findUnique({ where: { companyId } });
       const allowNegativeStock = settings?.allowNegativeStock ?? false;
-      
+
       if (status === 'COMPLETED') {
         for (const item of finalItems) {
           const product = await tx.product.findUnique({ where: { id: item.productId } });
@@ -195,7 +195,7 @@ export async function createSale(data: {
                 status: newQty <= 0 ? 'OUT_OF_STOCK' : 'AVAILABLE',
               }
             });
-            
+
             if (newQty <= 0) {
               lowStockProducts.push({ name: product.name, type: 'CERO', newQty });
             } else if (newQty <= 10) {
@@ -222,44 +222,49 @@ export async function createSale(data: {
       include: { role: true }
     });
 
-    if (status === 'PENDING') {
-      for (const user of companyUsers) {
-        const isAdminOrSuper = user.role?.name === 'ADMIN' || user.role?.name === 'SUPERADMIN';
-        const isCreator = user.id === userId;
-
-        if (isCreator || isAdminOrSuper) {
-          const msg = !isCreator && isAdminOrSuper
-            ? `Se ha registrado la venta pendiente ${result.saleNumber} por $${result.total.toLocaleString('es-CO')} por un usuario.`
-            : `Has registrado la venta pendiente ${result.saleNumber} por $${result.total.toLocaleString('es-CO')}. Completa el cobro en el módulo de Ventas.`;
-
-          await createNotification(
-            user.id,
-            companyId,
-            '⚠️ Venta Pendiente Registrada',
-            msg,
-            'WARNING'
-          );
-        }
-      }
-    } else {
-      const admins = companyUsers.filter(u => u.roleId !== null);
-      for (const admin of admins) {
-        await createNotification(
-          admin.id,
-          companyId,
-          'Venta Confirmada',
-          `Se ha completado la venta ${result.saleNumber} por un total de $${result.total.toLocaleString('es-CO')}`,
-          'SUCCESS'
-        );
-        
-        for (const ls of result.lowStockProducts) {
-          await createNotification(
-            admin.id,
-            companyId,
-            ls.type === 'CERO' ? 'Stock Agotado' : 'Stock Bajo',
-            `El producto "${ls.name}" ahora tiene ${ls.newQty} unidades disponibles.`,
-            ls.type === 'CERO' ? 'ERROR' : 'WARNING'
-          );
+    // Verificar si las notificaciones están activas para la empresa (una sola query)
+    const companySettings = await prisma.companySetting.findUnique({ where: { companyId } });
+    if (companySettings?.enableNotifications !== false) {
+      if (status === 'PENDING') {
+        const recipients = companyUsers.filter(u => {
+          const isAdminOrSuper = u.role?.name === 'ADMIN' || u.role?.name === 'SUPERADMIN';
+          return u.id === userId || isAdminOrSuper;
+        });
+        await prisma.notification.createMany({
+          data: recipients.map(user => {
+            const isCreator = user.id === userId;
+            const isAdminOrSuper = user.role?.name === 'ADMIN' || user.role?.name === 'SUPERADMIN';
+            const msg = !isCreator && isAdminOrSuper
+              ? `Se ha registrado la venta pendiente ${result.saleNumber} por $${result.total.toLocaleString('es-CO')} por un usuario.`
+              : `Has registrado la venta pendiente ${result.saleNumber} por $${result.total.toLocaleString('es-CO')}. Completa el cobro en el módulo de Ventas.`;
+            return { userId: user.id, companyId, title: '⚠️ Venta Pendiente Registrada', message: msg, type: 'WARNING' as const };
+          }),
+        });
+      } else {
+        const admins = companyUsers.filter(u => u.roleId !== null);
+        // Notificaciones de venta confirmada (batch)
+        if (admins.length > 0) {
+          await prisma.notification.createMany({
+            data: admins.map(u => ({
+              userId: u.id,
+              companyId,
+              title: 'Venta Confirmada',
+              message: `Se ha completado la venta ${result.saleNumber} por un total de $${result.total.toLocaleString('es-CO')}`,
+              type: 'SUCCESS' as const,
+            })),
+          });
+          // Notificaciones de stock bajo (batch por cada producto de bajo stock)
+          for (const ls of result.lowStockProducts) {
+            await prisma.notification.createMany({
+              data: admins.map(u => ({
+                userId: u.id,
+                companyId,
+                title: ls.type === 'CERO' ? 'Stock Agotado' : 'Stock Bajo',
+                message: `El producto "${ls.name}" ahora tiene ${ls.newQty} unidades disponibles.`,
+                type: ls.type === 'CERO' ? ('ERROR' as const) : ('WARNING' as const),
+              })),
+            });
+          }
         }
       }
     }
@@ -324,7 +329,7 @@ export async function completePendingSale(saleIdInput: any, updateData?: {
             status: newQty <= 0 ? 'OUT_OF_STOCK' : 'AVAILABLE',
           }
         });
-        
+
         if (newQty <= 0) {
           lowStockProducts.push({ name: detail.product.name, type: 'CERO', newQty });
         } else if (newQty <= 10) {
@@ -382,25 +387,29 @@ export async function completePendingSale(saleIdInput: any, updateData?: {
     const companyUsers = await prisma.user.findMany({
       where: { companyId: result.companyId }
     });
-    
-    // Notificar a todos los usuarios/admins asociados
-    for (const u of companyUsers) {
-      await createNotification(
-        u.id,
-        result.companyId,
-        'Venta Confirmada',
-        `Se ha completado la venta pendiente ${result.newValues.saleNumber} por $${result.newValues.total.toLocaleString('es-CO')}`,
-        'SUCCESS'
-      );
-      
+
+    // Notificar a usuarios relevantes usando batch insert
+    const companySettingsForNotif = await prisma.companySetting.findUnique({ where: { companyId: result.companyId } });
+    if (companySettingsForNotif?.enableNotifications !== false && companyUsers.length > 0) {
+      await prisma.notification.createMany({
+        data: companyUsers.map(u => ({
+          userId: u.id,
+          companyId: result.companyId,
+          title: 'Venta Confirmada',
+          message: `Se ha completado la venta pendiente ${result.newValues.saleNumber} por $${result.newValues.total.toLocaleString('es-CO')}`,
+          type: 'SUCCESS' as const,
+        })),
+      });
       for (const ls of result.lowStockProducts) {
-        await createNotification(
-          u.id,
-          result.companyId,
-          ls.type === 'CERO' ? 'Stock Agotado' : 'Stock Bajo',
-          `El producto "${ls.name}" ahora tiene ${ls.newQty} unidades disponibles.`,
-          ls.type === 'CERO' ? 'ERROR' : 'WARNING'
-        );
+        await prisma.notification.createMany({
+          data: companyUsers.map(u => ({
+            userId: u.id,
+            companyId: result.companyId,
+            title: ls.type === 'CERO' ? 'Stock Agotado' : 'Stock Bajo',
+            message: `El producto "${ls.name}" ahora tiene ${ls.newQty} unidades disponibles.`,
+            type: ls.type === 'CERO' ? ('ERROR' as const) : ('WARNING' as const),
+          })),
+        });
       }
     }
 

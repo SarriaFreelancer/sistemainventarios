@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getAuthSession } from '@/auth';
 import { prisma } from '@/lib/prisma';
-import { revalidatePath } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
 
-// GET: Obtener notificaciones del usuario (sincronizando ventas pendientes)
+// GET: Obtener notificaciones del usuario y sincronizar nuevos eventos (respetando eliminaciones)
 export async function GET() {
   try {
     const session = await getAuthSession();
@@ -18,201 +17,93 @@ export async function GET() {
     const userCompanyId = session.user.companyId ? Number(session.user.companyId) : undefined;
     const isAdminOrSuper = userRole === 'ADMIN' || userRole === 'SUPERADMIN';
 
-    // Obtener preferencias y último inicio de sesión del usuario
+    // Obtener preferencias del usuario
     const userObj = await prisma.user.findUnique({
       where: { id: userId },
-      select: { lastLogin: true, preferences: true }
+      select: { preferences: true }
     });
-    const lastLogin = userObj?.lastLogin ? new Date(userObj.lastLogin) : null;
     const preferences = (userObj?.preferences as any) || {};
+    const clearedAt: Date | null = preferences.notificationsClearedAt
+      ? new Date(preferences.notificationsClearedAt)
+      : null;
+    const dismissedTitles: string[] = preferences.dismissedNotificationTitles || [];
 
-    let clearedAt: Date | null = preferences.notificationsClearedAt ? new Date(preferences.notificationsClearedAt) : null;
+    const notifWhere: any = { userId };
+    if (userCompanyId) notifWhere.companyId = userCompanyId;
 
-    // 1. Sincronizar automáticamente ventas PENDING activas:
-    // - Si es USER regular: solo sincroniza ventas pendientes creadas por este usuario (userId === sale.userId)
-    // - Si es ADMIN o SUPERADMIN: sincroniza ventas pendientes de TODOS los usuarios de la empresa
-    try {
-      const pendingSalesWhere: any = { status: 'PENDING' };
-      if (userCompanyId) {
-        pendingSalesWhere.companyId = userCompanyId;
-      }
-      if (!isAdminOrSuper) {
-        pendingSalesWhere.userId = userId;
-      }
-      if (clearedAt) {
-        pendingSalesWhere.createdAt = { gt: clearedAt };
-      }
+    const existingNotifs = await prisma.notification.findMany({ where: notifWhere });
+    const existingSignatures = new Set(existingNotifs.map(n => `${n.title}::${n.message}`));
 
-      const activePendingSales = await prisma.sale.findMany({
-        where: pendingSalesWhere,
-        orderBy: { createdAt: 'desc' },
-        take: 20
-      });
+    // Sincronizar stock bajo nuevo o actualizado después de clearedAt
+    const lowStockWhere: any = {
+      quantityAvailable: { lte: 10 },
+      type: { not: 'SERVICE' },
+    };
+    if (userCompanyId) lowStockWhere.companyId = userCompanyId;
+    if (clearedAt) lowStockWhere.updatedAt = { gt: clearedAt };
 
-      for (const sale of activePendingSales) {
-        const existingSalesNotifs = await prisma.notification.findMany({
-          where: {
-            userId,
-            message: { contains: sale.saleNumber }
-          },
-          orderBy: { createdAt: 'desc' }
+    const lowStockProducts = await prisma.product.findMany({
+      where: lowStockWhere,
+      take: 15
+    });
+
+    const stockToCreate: any[] = [];
+    for (const prod of lowStockProducts) {
+      const title = prod.quantityAvailable <= 0 ? '⚠️ Stock Agotado' : '⚠️ Stock Bajo';
+      const message = prod.quantityAvailable <= 0
+        ? `El producto "${prod.name}" no tiene unidades disponibles (Stock: 0).`
+        : `El producto "${prod.name}" tiene pocas unidades disponibles (Stock: ${prod.quantityAvailable}).`;
+      const signature = `${title}::${message}`;
+
+      if (!existingSignatures.has(signature) && !dismissedTitles.includes(signature)) {
+        stockToCreate.push({
+          userId,
+          companyId: prod.companyId ?? userCompanyId ?? 1,
+          title,
+          message,
+          type: prod.quantityAvailable <= 0 ? 'ERROR' : 'WARNING',
+          isRead: false
         });
-
-        if (existingSalesNotifs.length > 0) {
-          // Eliminar duplicadas si por algún motivo existía más de una
-          if (existingSalesNotifs.length > 1) {
-            const idsToDelete = existingSalesNotifs.slice(1).map(n => n.id);
-            await prisma.notification.deleteMany({
-              where: { id: { in: idsToDelete } }
-            });
-          }
-        } else {
-          const isOwnSale = sale.userId === userId;
-          const msg = !isOwnSale && isAdminOrSuper
-            ? `Se encuentra pendiente la venta ${sale.saleNumber} por $${sale.total.toLocaleString('es-CO')} registrada por un usuario.`
-            : `Se encuentra pendiente tu venta ${sale.saleNumber} por $${sale.total.toLocaleString('es-CO')}. Completa el cobro en el módulo de Ventas.`;
-
-          await prisma.notification.create({
-            data: {
-              userId,
-              companyId: sale.companyId ?? userCompanyId ?? 1,
-              title: '⚠️ Venta Pendiente Registrada',
-              message: msg,
-              type: 'WARNING',
-              isRead: false
-            }
-          });
-        }
+        existingSignatures.add(signature);
       }
-    } catch (syncErr) {
-      console.error('[SYNC_PENDING_NOTIFS_ERROR]', syncErr);
     }
 
-    // 1b. Sincronizar automáticamente productos con stock bajo o agotado
-    try {
-      const lowStockProductsWhere: any = {
-        quantityAvailable: { lte: 10 },
-        type: { not: 'SERVICE' }
-      };
-      if (userCompanyId) {
-        lowStockProductsWhere.companyId = userCompanyId;
-      }
-      if (clearedAt) {
-        lowStockProductsWhere.updatedAt = { gt: clearedAt };
-      }
+    if (stockToCreate.length > 0) {
+      await prisma.notification.createMany({ data: stockToCreate });
+    }
 
-      const lowStockProducts = await prisma.product.findMany({
-        where: lowStockProductsWhere,
-        orderBy: { quantityAvailable: 'asc' },
-        take: 20
+    // Auto-remover notificaciones de productos que ya fueron reabastecidos (> 10)
+    const stockProdNames = [...new Set(
+      existingNotifs
+        .filter(n => n.title.includes('Stock Bajo') || n.title.includes('Stock Agotado'))
+        .map(n => n.message.match(/"([^"]+)"/)?.[1])
+        .filter(Boolean) as string[]
+    )];
+
+    if (stockProdNames.length > 0) {
+      const replenished = await prisma.product.findMany({
+        where: {
+          name: { in: stockProdNames },
+          quantityAvailable: { gt: 10 },
+          ...(userCompanyId ? { companyId: userCompanyId } : {})
+        },
+        select: { name: true }
       });
+      const repNames = new Set(replenished.map(p => p.name));
+      const repIds = existingNotifs
+        .filter(n => {
+          const match = n.message.match(/"([^"]+)"/);
+          return match && repNames.has(match[1]);
+        })
+        .map(n => n.id);
 
-      for (const prod of lowStockProducts) {
-        const title = prod.quantityAvailable <= 0 ? '⚠️ Stock Agotado' : '⚠️ Stock Bajo';
-        const msg = prod.quantityAvailable <= 0
-          ? `El producto "${prod.name}" no tiene unidades disponibles (Stock: 0).`
-          : `El producto "${prod.name}" tiene pocas unidades disponibles (Stock: ${prod.quantityAvailable}).`;
-        const type = prod.quantityAvailable <= 0 ? 'ERROR' : 'WARNING';
-
-        // Buscar todas las notificaciones existentes para este producto
-        const existingNotifs = await prisma.notification.findMany({
-          where: {
-            userId,
-            message: { contains: `"${prod.name}"` },
-            title: { in: ['⚠️ Stock Agotado', '⚠️ Stock Bajo', 'Stock Agotado', 'Stock Bajo'] }
-          },
-          orderBy: { createdAt: 'desc' }
-        });
-
-        if (existingNotifs.length > 0) {
-          const mainNotif = existingNotifs[0];
-          // Eliminar duplicadas si hay más de una
-          if (existingNotifs.length > 1) {
-            const idsToDelete = existingNotifs.slice(1).map(n => n.id);
-            await prisma.notification.deleteMany({
-              where: { id: { in: idsToDelete } }
-            });
-          }
-
-          // Si el estado o mensaje cambió, actualizar la principal
-          if (mainNotif.title !== title || mainNotif.message !== msg) {
-            await prisma.notification.update({
-              where: { id: mainNotif.id },
-              data: {
-                title,
-                message: msg,
-                type,
-                isRead: false
-              }
-            });
-          }
-        } else {
-          // Si no existe, crear una nueva
-          await prisma.notification.create({
-            data: {
-              userId,
-              companyId: prod.companyId ?? userCompanyId ?? 1,
-              title,
-              message: msg,
-              type,
-              isRead: false
-            }
-          });
-        }
+      if (repIds.length > 0) {
+        await prisma.notification.deleteMany({ where: { id: { in: repIds } } });
       }
-    } catch (stockSyncErr) {
-      console.error('[SYNC_STOCK_NOTIFS_ERROR]', stockSyncErr);
     }
 
-
-    // 2. Limpieza automática de notificaciones resueltas (ventas completadas/anuladas o stock repuesto)
-    const whereClause: any = { userId };
-    if (userCompanyId) {
-      whereClause.companyId = userCompanyId;
-    }
-
-    try {
-      const userNotifs = await prisma.notification.findMany({
-        where: whereClause,
-        select: { id: true, title: true, message: true }
-      });
-
-      for (const notif of userNotifs) {
-        // a) Si es notificación de venta: verificar si la venta ya no está en PENDING
-        const saleMatch = notif.message.match(/VEN-\d{8}-\d{3,4}/);
-        if (saleMatch) {
-          const saleNumber = saleMatch[0];
-          const sale = await prisma.sale.findFirst({
-            where: { saleNumber },
-            select: { status: true }
-          });
-          if (!sale || sale.status !== 'PENDING') {
-            await prisma.notification.delete({ where: { id: notif.id } });
-          }
-        }
-
-        // b) Si es notificación de stock bajo o agotado: verificar si el stock ya fue repuesto (> 5)
-        if (notif.title.includes('Stock Bajo') || notif.title.includes('Stock Agotado')) {
-          const prodMatch = notif.message.match(/"([^"]+)"/);
-          if (prodMatch) {
-            const prodName = prodMatch[1];
-            const prod = await prisma.product.findFirst({
-              where: { name: prodName, ...(userCompanyId ? { companyId: userCompanyId } : {}) },
-              select: { quantityAvailable: true }
-            });
-            if (prod && prod.quantityAvailable > 10) {
-              await prisma.notification.delete({ where: { id: notif.id } });
-            }
-          }
-        }
-      }
-    } catch (cleanErr) {
-      console.error('[CLEAN_RESOLVED_NOTIFS_ERROR]', cleanErr);
-    }
-
-    // 3. Obtener notificaciones actualizadas
     const notifications = await prisma.notification.findMany({
-      where: whereClause,
+      where: notifWhere,
       orderBy: { createdAt: 'desc' },
       take: 50,
     });
@@ -253,11 +144,8 @@ export async function DELETE() {
     }
     const userId = Number(session.user.id);
 
-    await prisma.notification.deleteMany({
-      where: { userId },
-    });
+    await prisma.notification.deleteMany({ where: { userId } });
 
-    // Guardar la hora de limpieza en las preferencias del usuario
     const userObj = await prisma.user.findUnique({
       where: { id: userId },
       select: { preferences: true }
@@ -266,10 +154,7 @@ export async function DELETE() {
     await prisma.user.update({
       where: { id: userId },
       data: {
-        preferences: {
-          ...currentPrefs,
-          notificationsClearedAt: new Date()
-        }
+        preferences: { ...currentPrefs, notificationsClearedAt: new Date() }
       }
     });
 

@@ -1,15 +1,26 @@
 "use client";
 
 import React, { useEffect, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 
 function PaymentResultContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const { update } = useSession();
   const [status, setStatus] = useState<"LOADING" | "SUCCESS" | "ERROR">("LOADING");
 
   useEffect(() => {
+    // Si el usuario inició el pago desde localhost y Bold retornó por ngrok debido a HTTPS,
+    // devolver inmediatamente el navegador a su origen original (ej. http://localhost:3000)
+    const originalOrigin = typeof window !== 'undefined' ? localStorage.getItem('gns_checkout_origin') : null;
+    if (originalOrigin && originalOrigin !== window.location.origin && typeof window !== 'undefined') {
+      window.location.href = `${originalOrigin}/pagos/resultado${window.location.search}`;
+      return;
+    }
+
     const paymentStatus = searchParams.get("bold-transaction-status") || searchParams.get("status");
     const orderId = searchParams.get("bold-order-id") || searchParams.get("order-id");
 
@@ -22,26 +33,35 @@ function PaymentResultContent() {
           body: JSON.stringify({ orderId, status: paymentStatus })
         })
         .then(res => res.json())
-        .then(data => {
+        .then(async data => {
           if (data.ok) {
             setStatus("SUCCESS");
+            await update(); // Actualizar token de sesión a ACTIVE
           } else {
             setStatus("ERROR");
           }
         })
-        .catch(err => {
+        .catch(async err => {
           console.error(err);
           setStatus("SUCCESS"); // Fallback en caso de que el webhook de Bold lo resuelva
+          await update();
         });
       } else {
         setStatus("SUCCESS");
+        update();
       }
     } else if (paymentStatus === "REJECTED" || paymentStatus === "error") {
       setStatus("ERROR");
     } else {
       setStatus("SUCCESS");
+      update();
     }
-  }, [searchParams]);
+  }, [searchParams, update]);
+
+  const handleGoToDashboard = () => {
+    const originalOrigin = (typeof window !== 'undefined' && localStorage.getItem('gns_checkout_origin')) || window.location.origin;
+    window.location.href = `${originalOrigin}/dashboard`;
+  };
 
   return (
     <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl text-center border border-slate-200">
@@ -62,9 +82,9 @@ function PaymentResultContent() {
           <p className="text-slate-600 mb-8">
             Tu cuenta ha sido activada correctamente. Ahora puedes ingresar al sistema y comenzar a disfrutar de todos los beneficios.
           </p>
-          <button 
-            onClick={() => window.location.href = '/dashboard'}
-            className="w-full py-4 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition shadow-lg"
+          <button
+            onClick={handleGoToDashboard}
+            className="w-full py-4 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition shadow-lg cursor-pointer"
           >
             Ir al Dashboard
           </button>
@@ -80,7 +100,13 @@ function PaymentResultContent() {
           <p className="text-slate-600 mb-8">
             Hubo un problema al procesar tu pago. Tu cuenta sigue inactiva. Por favor intenta nuevamente.
           </p>
-          <button onClick={() => window.history.back()} className="w-full py-4 rounded-xl bg-slate-100 text-slate-800 font-bold hover:bg-slate-200 transition">
+          <button
+            onClick={() => {
+              const originalOrigin = (typeof window !== 'undefined' && localStorage.getItem('gns_checkout_origin')) || window.location.origin;
+              window.location.href = `${originalOrigin}/#planes`;
+            }}
+            className="w-full py-4 rounded-xl bg-slate-100 text-slate-800 font-bold hover:bg-slate-200 transition cursor-pointer"
+          >
             Volver a intentar
           </button>
         </div>

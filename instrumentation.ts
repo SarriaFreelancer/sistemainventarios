@@ -4,9 +4,9 @@ export async function register() {
     const fs = await import('fs');
     const path = await import('path');
     const { generateSqlInsert } = await import('./lib/sql-generator');
-    
-    // Ejecutar cada minuto para revisar configuraciones de respaldos
-    cron.schedule('* * * * *', async () => {
+
+    // Ejecutar cada 5 minutos para revisar configuraciones de respaldos
+    cron.schedule('*/5 * * * *', async () => {
       try {
         let prismaClient: any;
         try {
@@ -35,37 +35,42 @@ export async function register() {
           if (!setting.backupPath) continue;
 
           console.log(`[BACKUP] Generando respaldo automático para la empresa ${setting.companyId}...`);
-          
+
           const tenantTables = [
-            'User', 'ProductGroup', 'Category', 'Supplier', 'Product', 
-            'Customer', 'Opportunity', 'PurchaseOrder', 'PurchaseOrderLine', 
-            'Expense', 'Sale', 'SaleDetail', 'AuditLog', 'LoginHistory', 
-            'UserSession', 'Discount', 'Lead', 'Contact', 'Activity', 'Quote', 
+            'User', 'ProductGroup', 'Category', 'Supplier', 'Product',
+            'Customer', 'Opportunity', 'PurchaseOrder', 'PurchaseOrderLine',
+            'Expense', 'Sale', 'SaleDetail', 'AuditLog', 'LoginHistory',
+            'UserSession', 'Discount', 'Lead', 'Contact', 'Activity', 'Quote',
             'InvoiceCounter', 'CompanySetting', 'CompanyModule'
           ];
-          
+
           let sqlDump = `-- Respaldo de Base de Datos GNS SarriaTech\n`;
           sqlDump += `-- Generado el: ${new Date().toISOString()}\n`;
           sqlDump += `-- Tipo de Respaldo: INQUILINO AUTOMÁTICO (ID: ${setting.companyId})\n\n`;
           sqlDump += `SET FOREIGN_KEY_CHECKS=0;\n\n`;
-          
+
           const company = await prismaClient.company.findUnique({ where: { id: setting.companyId } });
           if (company) {
             sqlDump += generateSqlInsert('Company', [company]);
           }
 
-          for (const table of tenantTables) {
-            const data = await (prismaClient as any)[table.charAt(0).toLowerCase() + table.slice(1)].findMany({
-              where: { companyId: setting.companyId }
-            });
-            sqlDump += generateSqlInsert(table, data);
+          // Obtener datos de todas las tablas en paralelo para acelerar el backup
+          const tableResults = await Promise.all(
+            tenantTables.map(table =>
+              (prismaClient as any)[table.charAt(0).toLowerCase() + table.slice(1)].findMany({
+                where: { companyId: setting.companyId }
+              })
+            )
+          );
+          for (let i = 0; i < tenantTables.length; i++) {
+            sqlDump += generateSqlInsert(tenantTables[i], tableResults[i]);
           }
 
           sqlDump += `SET FOREIGN_KEY_CHECKS=1;\n`;
 
           const fileName = `backup_tenant_${setting.companyId}_${new Date().toISOString().slice(0,10).replace(/-/g, '')}_${currentHour}${currentMinute}.sql`;
           const filePath = path.join(setting.backupPath, fileName);
-          
+
           try {
             // Asegurarse de que el directorio existe
             if (!fs.existsSync(setting.backupPath)) {
@@ -73,7 +78,7 @@ export async function register() {
             }
             fs.writeFileSync(filePath, sqlDump, 'utf8');
             console.log(`[BACKUP] Respaldo guardado exitosamente en: ${filePath}`);
-            
+
             // Notificar a los admins
             if (setting.enableNotifications) {
               const admins = await prismaClient.user.findMany({
@@ -116,7 +121,7 @@ export async function register() {
         console.error('[BACKUP CRON ERROR]', error);
       }
     });
-    
+
     console.log('[CRON] Tareas programadas de respaldo inicializadas.');
   }
 }

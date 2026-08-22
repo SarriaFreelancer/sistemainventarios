@@ -1,6 +1,5 @@
 "use server";
 
-import { platformDb } from "@/lib/db-manager";
 import { revalidatePath } from "next/cache";
 import { getAuthSession } from "@/auth";
 import { prisma } from "@/lib/prisma";
@@ -13,8 +12,8 @@ export async function toggleCompanyAccess(companyId: number, currentStatus: stri
 
   try {
     const newStatus = currentStatus === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
-    
-    await platformDb.company.update({
+
+    await prisma.company.update({
       where: { id: companyId },
       data: { status: newStatus }
     });
@@ -34,19 +33,19 @@ export async function getPlanSettings() {
       "plan_intermedio_max_users", "plan_intermedio_max_products", "plan_intermedio_modules", "plan_intermedio_max_sales_per_month", "plan_intermedio_price",
       "plan_premium_max_users", "plan_premium_max_products", "plan_premium_modules", "plan_premium_max_sales_per_month", "plan_premium_price"
     ];
-    
-    const settings = await platformDb.setting.findMany({
+
+    const settings = await prisma.setting.findMany({
       where: { key: { in: keys } }
     });
-    
+
     const settingsMap = settings.reduce((acc, curr) => {
       acc[curr.key] = curr.value;
       return acc;
     }, {} as Record<string, string>);
 
     // Fetch all available modules for the UI
-    const allModules = await platformDb.module.findMany({ where: { isActive: true } });
-    
+    const allModules = await prisma.module.findMany({ where: { isActive: true } });
+
     return { success: true, data: settingsMap, allModules };
   } catch (error) {
     console.error("Error fetching plan settings:", error);
@@ -63,7 +62,7 @@ export async function savePlanSettings(settings: Record<string, string>) {
   try {
     // Save each key using upsert
     for (const [key, value] of Object.entries(settings)) {
-      await platformDb.setting.upsert({
+      await prisma.setting.upsert({
         where: { key },
         update: { value: value.toString() },
         create: { key, value: value.toString() }
@@ -95,7 +94,7 @@ export async function savePlanSettings(settings: Record<string, string>) {
         });
       }
     }
-    
+
     revalidatePath('/dashboard/settings');
     revalidatePath('/');
     return { success: true };

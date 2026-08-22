@@ -40,9 +40,20 @@ export default function SessionMonitor({ sessionToken }: SessionMonitorProps) {
           }
 
           const Swal = (await import('sweetalert2')).default;
-          
+
           let text = 'Tu sesión ya no es válida.';
-          if (data.reason === 'TERMINATED_BY_ADMIN') {
+          let redirectUrl = '/auth/login?reason=admin_disconnect';
+          let btnText = 'Ir al Login';
+
+          if (data.reason === 'USER_DELETED' || data.reason === 'COMPANY_DELETED') {
+            text = 'Tu usuario o empresa ha sido eliminada del sistema. Para continuar, por favor regístrate nuevamente y selecciona un plan.';
+            redirectUrl = '/auth/login?reason=deleted';
+            btnText = 'Entendido';
+          } else if (data.reason === 'COMPANY_SUSPENDED') {
+            text = 'La suscripción de tu empresa se encuentra inactiva o suspendida. Por favor, selecciona y paga tu plan para acceder al sistema.';
+            redirectUrl = '/#planes';
+            btnText = 'Ver Planes';
+          } else if (data.reason === 'TERMINATED_BY_ADMIN') {
             text = 'Tu sesión fue finalizada por un administrador del sistema.';
           } else if (data.reason === 'EXPIRED') {
             text = 'Tu sesión ha expirado por inactividad.';
@@ -50,15 +61,15 @@ export default function SessionMonitor({ sessionToken }: SessionMonitorProps) {
 
           await Swal.fire({
             icon: 'warning',
-            title: 'Sesión Finalizada',
+            title: 'Acceso Restringido',
             text,
-            confirmButtonText: 'Ir al Login',
+            confirmButtonText: btnText,
             confirmButtonColor: '#dc2626',
             allowOutsideClick: false,
             allowEscapeKey: false,
           });
 
-          signOut({ callbackUrl: '/auth/login?reason=admin_disconnect' });
+          signOut({ callbackUrl: redirectUrl });
         }
       } catch (error) {
         console.warn('Error checking session:', error);
@@ -80,7 +91,7 @@ export default function SessionMonitor({ sessionToken }: SessionMonitorProps) {
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     // Initial check and start
     checkSession();
     startPolling();

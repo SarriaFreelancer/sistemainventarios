@@ -1,6 +1,7 @@
 import NextAuth from 'next-auth';
 import type { AuthOptions } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
+import GoogleProvider from 'next-auth/providers/google';
 import { getServerSession } from 'next-auth/next';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
@@ -9,14 +10,33 @@ import { logLoginAttempt } from './lib/audit';
 import { checkSessionLimits, createActiveSession, removeSessionByIdInternal } from './lib/session-core';
 
 export const authOptions: AuthOptions = {
-  session: { 
+  useSecureCookies: process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_URL?.includes('localhost'),
+  cookies: {
+    state: {
+      name: 'next-auth.state',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_URL?.includes('localhost'),
+        maxAge: 900,
+      }
+    }
+  },
+  session: {
     strategy: 'jwt',
     maxAge: 4 * 60 * 60, // 4 horas de inactividad absoluta cierran la sesión
     updateAge: 15 * 60, // Refresca la sesión cada 15 minutos que haya actividad
   },
   secret: process.env.NEXTAUTH_SECRET,
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID || '',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+      checks: ['pkce', 'state'],
+    }),
     Credentials({
+
       credentials: {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
@@ -28,9 +48,9 @@ export const authOptions: AuthOptions = {
           return null;
         }
 
-        const user = await prisma.user.findUnique({ 
-          where: { email: parsed.data.email }, 
-          include: { role: true, company: true } 
+        const user = await prisma.user.findUnique({
+          where: { email: parsed.data.email },
+          include: { role: true, company: true }
         });
         console.log('authorize: found user', !!user, parsed.data.email);
         if (!user) {
@@ -61,7 +81,7 @@ export const authOptions: AuthOptions = {
             status: "FAILED",
             reason: "WRONG_PASSWORD"
           });
-          
+
           let maxAttempts = 5;
           if (user.companyId) {
             const settings = await prisma.companySetting.findUnique({ where: { companyId: user.companyId } });
@@ -69,9 +89,9 @@ export const authOptions: AuthOptions = {
               maxAttempts = settings.maxLoginAttempts;
             }
           }
-          
+
           const newFailedAttempts = (user.failedLoginAttempts || 0) + 1;
-          
+
           if (newFailedAttempts >= maxAttempts) {
             await prisma.user.update({
               where: { id: user.id },
@@ -104,16 +124,16 @@ export const authOptions: AuthOptions = {
         let sessionToken: string | null = null;
         if (user.companyId) {
           const limits = await checkSessionLimits(user.id, user.companyId);
-          
+
           if (!limits.allowed) {
             throw new Error(`Límite de licencias alcanzado. Se han utilizado ${limits.activeCount} de ${limits.maxUsers} conexiones permitidas. Comunícate con un administrador.`);
           }
-          
+
           if (limits.closeSessionId) {
             // User already has an active session, close it to allow this new one
             await removeSessionByIdInternal(limits.closeSessionId);
           }
-          
+
           // Create new active session record
           sessionToken = await createActiveSession(user.id, user.companyId, {});
         }
@@ -134,10 +154,72 @@ export const authOptions: AuthOptions = {
   ],
   pages: {
     signIn: '/auth/login',
+    error: '/auth/error',
   },
+
   callbacks: {
-    async jwt({ token, user, trigger, session }: any) {
-      if (user) {
+    async jwt({ token, user, account, trigger, session }: any) {
+      if (account?.provider === 'google' && token.email) {
+        let dbUser = await prisma.user.findUnique({
+          where: { email: token.email },
+          include: { role: true, company: true }
+        });
+        if (!dbUser) {
+          let adminRole = await prisma.role.findFirst({ where: { name: 'ADMIN' } });
+          if (!adminRole) {
+            adminRole = await prisma.role.findFirst({ where: { name: 'USER' } });
+          }
+          if (!adminRole) {
+            adminRole = await prisma.role.create({ data: { name: 'ADMIN' } });
+          }
+
+          // Crear empresa para usuario nuevo que ingresa por Google en estado SUSPENDED (sin plan hasta que pague)
+          let baseCompanyName = `Empresa de ${token.name || token.email.split('@')[0]}`;
+          let uniqueCompanyName = baseCompanyName;
+          let counter = 1;
+          while (await prisma.company.findUnique({ where: { name: uniqueCompanyName } })) {
+            uniqueCompanyName = `${baseCompanyName} (${counter})`;
+            counter++;
+          }
+
+          const newCompany = await prisma.company.create({
+            data: {
+              name: uniqueCompanyName,
+              status: 'SUSPENDED',
+              planId: null,
+              maxUsers: 2,
+              maxProducts: 100,
+              maxSalesPerMonth: 50
+            }
+          });
+
+          dbUser = await prisma.user.create({
+            data: {
+              email: token.email,
+              name: token.name || 'Usuario Google',
+              password: '',
+              image: token.picture || (user as any)?.image || null,
+              roleId: adminRole.id,
+              companyId: newCompany.id
+            },
+            include: { role: true, company: true }
+          });
+        }
+        token.id = String(dbUser.id);
+        token.role = dbUser.role?.name;
+        token.companyId = dbUser.companyId ? String(dbUser.companyId) : null;
+        token.companyStatus = dbUser.company?.status || null;
+        token.companyPlan = dbUser.company?.planId || null;
+
+        if (dbUser.companyId) {
+          try {
+            const sessionToken = await createActiveSession(dbUser.id, dbUser.companyId, {});
+            token.sessionToken = sessionToken;
+          } catch (e) {
+            console.error("Error creating active session for Google user", e);
+          }
+        }
+      } else if (user) {
         token.id = user.id;
         token.role = user.role;
         token.companyId = user.companyId;
@@ -148,10 +230,20 @@ export const authOptions: AuthOptions = {
         }
       }
 
+      // Si el token aún no tiene sessionToken pero el usuario tiene ID y Empresa (ej. token antiguo o refresh)
+      if (!token.sessionToken && token.id && token.companyId) {
+        try {
+          token.sessionToken = await createActiveSession(Number(token.id), Number(token.companyId), {});
+        } catch (e) {
+          console.error("Error creating fallback sessionToken", e);
+        }
+      }
+
       if (trigger === 'update' && session) {
         if (session.companyStatus) token.companyStatus = session.companyStatus;
         if (session.companyPlan) token.companyPlan = session.companyPlan;
       }
+
 
       // Auto-heal session: If token says SUSPENDED, check DB to see if they just paid
       if (token.companyStatus === 'SUSPENDED' && token.companyId) {
@@ -184,15 +276,20 @@ export const authOptions: AuthOptions = {
           try {
             const dbUser = await prisma.user.findUnique({
               where: { id: Number(token.id) },
-              select: { image: true, name: true, preferences: true }
+              include: { company: true, role: true }
             });
-            if (dbUser) {
-              if (dbUser.image) session.user.image = dbUser.image;
-              if (dbUser.name) session.user.name = dbUser.name;
-              if (dbUser.preferences) {
-                const prefs = dbUser.preferences as any;
-                session.user.cookieConsent = prefs.cookieConsent === true;
-              }
+            if (!dbUser || (dbUser.companyId && !dbUser.company && dbUser.role?.name !== 'SUPERADMIN')) {
+              // El usuario o su empresa fue eliminada de la base de datos
+              return null;
+            }
+            session.user.role = dbUser.role?.name;
+            session.user.companyStatus = dbUser.company?.status || null;
+            session.user.companyPlan = dbUser.company?.planId || null;
+            if (dbUser.image) session.user.image = dbUser.image;
+            if (dbUser.name) session.user.name = dbUser.name;
+            if (dbUser.preferences) {
+              const prefs = dbUser.preferences as any;
+              session.user.cookieConsent = prefs.cookieConsent === true;
             }
           } catch (e) {
             console.error("Error fetching dbUser in session callback", e);

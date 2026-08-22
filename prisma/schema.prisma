@@ -382,8 +382,25 @@ model Company {
   reportPresets            ReportPreset[]
   warehouses               Warehouse[]
   warehouseTransfers       WarehouseTransfer[]
+  subscriptionPayments     SubscriptionPayment[]
 
   @@index([name])
+}
+
+model SubscriptionPayment {
+  id            Int      @id @default(autoincrement())
+  companyId     Int
+  company       Company  @relation(fields: [companyId], references: [id])
+  planId        String
+  amount        Float
+  currency      String   @default("COP")
+  boldReference String   @unique
+  status        String   @default("PENDING") // PENDING, COMPLETED, FAILED
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([boldReference])
 }
 
 model Category {

@@ -35,7 +35,7 @@ export function NotificationBell() {
   const pollNotifications = useCallback(async (showToasts = false) => {
     try {
       const res = await fetch('/api/notifications', { cache: 'no-store' });
-      
+
       if (res.status === 401) {
         // Si la sesión expiró (ej. cerró sesión en otra pestaña), redirigir al login
         window.location.href = '/auth/login';
@@ -78,11 +78,11 @@ export function NotificationBell() {
   useEffect(() => {
     // Carga inicial usando API Route
     pollNotifications(false);
-    
-    // Polling rápido cada 5 segundos para actualización en tiempo real de notificaciones resueltas
+
+    // Polling cada 10 segundos para detección rápida de eventos y alertas emergentes
     const interval = setInterval(() => {
       pollNotifications(true);
-    }, 5000);
+    }, 10000);
 
     return () => clearInterval(interval);
   }, [pollNotifications]);
@@ -116,7 +116,7 @@ export function NotificationBell() {
 
   const getNotificationRoute = (title: string, message: string) => {
     const text = `${title} ${message}`.toLowerCase();
-    
+
     if (text.includes("venta") || text.includes("cobro")) {
       return "/dashboard/sales";
     }
@@ -138,7 +138,7 @@ export function NotificationBell() {
     if (text.includes("configuración") || text.includes("configuracion") || text.includes("empresa") || text.includes("ajuste")) {
       return "/dashboard/settings";
     }
-    
+
     return null;
   };
 
@@ -174,7 +174,7 @@ export function NotificationBell() {
           )}
         </Button>
       </DropdownMenuTrigger>
-      
+
       <DropdownMenuContent align="end" className="w-[calc(100vw-2rem)] sm:w-[480px] p-0 border-border/60 shadow-2xl rounded-2xl overflow-hidden">
         <DropdownMenuHeader className="p-4 border-b border-border/50 bg-muted/30 flex flex-row items-center justify-between">
           <div>
@@ -187,7 +187,7 @@ export function NotificationBell() {
             </Button>
           )}
         </DropdownMenuHeader>
-        
+
         <div className="max-h-[60vh] overflow-y-auto p-1 space-y-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {notifications.length === 0 ? (
             <div className="py-10 text-center text-sm text-muted-foreground flex flex-col items-center">
@@ -198,7 +198,7 @@ export function NotificationBell() {
             notifications.map((notif) => {
               const targetRoute = getNotificationRoute(notif.title, notif.message);
               return (
-                <div 
+                <div
                   key={notif.id}
                   onClick={() => handleNotificationClick(notif)}
                   className={`relative group flex gap-3 px-3 py-2 rounded-xl transition-all border cursor-pointer hover:scale-[1.01] ${notif.isRead ? 'bg-transparent border-transparent' : 'bg-muted/30 border-border/50 shadow-sm'} hover:bg-muted/50`}
@@ -218,11 +218,11 @@ export function NotificationBell() {
                       )}
                     </div>
                   </div>
-                  
-                  <Button 
+
+                  <Button
                     aria-label="Eliminar notificación"
-                    variant="ghost" 
-                    size="icon" 
+                    variant="ghost"
+                    size="icon"
                     onClick={(e) => handleDelete(e, notif.id)}
                     className="absolute top-3 right-3 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive rounded-full"
                   >

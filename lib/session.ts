@@ -12,23 +12,13 @@ export async function getSessionCompanyId(): Promise<number | undefined | null> 
   const session = await getAuthSession();
   if (!session?.user) return null;
 
+  // El companyId fue validado al hacer login — confiar en el JWT evita
+  // una query innecesaria a la BD en cada Server Action y API route.
   if (session.user.companyId) {
-    const candidateId = Number(session.user.companyId);
-    const existingCompany = await prisma.company.findUnique({ where: { id: candidateId } });
-    if (existingCompany) {
-      return existingCompany.id;
-    }
+    return Number(session.user.companyId);
   }
 
-  // Fallback si la empresa guardada en sesión ya no existe (ej. tras re-sembrar la BD)
-  if (session.user.role === 'SUPERADMIN') {
-    const globalCompany = await prisma.company.findFirst({
-      where: { name: "Global" },
-      orderBy: { id: "asc" }
-    });
-    if (globalCompany) return globalCompany.id;
-  }
-
+  // SUPERADMIN no tiene companyId → sin filtro de tenant (undefined)
   return undefined;
 }
 
@@ -39,7 +29,7 @@ export async function getSessionCompanyId(): Promise<number | undefined | null> 
 export async function resolveActionCompanyId(): Promise<number> {
   const session = await getAuthSession();
   if (!session?.user) throw new Error("No autenticado");
-  
+
   if (session.user.companyId) {
     const candidateId = Number(session.user.companyId);
     const existingCompany = await prisma.company.findUnique({ where: { id: candidateId } });
@@ -56,7 +46,7 @@ export async function resolveActionCompanyId(): Promise<number> {
  */
 export async function resolveActionUserId(inputUserId?: number | string): Promise<number> {
   const session = await getAuthSession();
-  
+
   // 1. Probar con inputUserId si viene proporcionado
   if (inputUserId) {
     const candidateId = Number(inputUserId);

@@ -63,11 +63,11 @@ export async function checkSessionLimits(userId: number, companyId: number) {
   });
 
   if (userSessions.length > 0) {
-    return { 
-      allowed: true, 
-      closeSessionId: userSessions[0].id, 
-      activeCount, 
-      maxUsers: effectiveMaxUsers 
+    return {
+      allowed: true,
+      closeSessionId: userSessions[0].id,
+      activeCount,
+      maxUsers: effectiveMaxUsers
     };
   }
 
@@ -100,11 +100,32 @@ export async function removeSessionByIdInternal(sessionId: number) {
 
 export async function isSessionTokenValid(token: string) {
   const session = await prisma.userSession.findUnique({
-    where: { token }
+    where: { token },
+    include: {
+      user: {
+        include: {
+          company: true,
+          role: true
+        }
+      }
+    }
   });
 
-  if (!session) {
-    return { valid: false, reason: 'TERMINATED_BY_ADMIN' };
+  if (!session || !session.user) {
+    return { valid: false, reason: 'USER_DELETED' };
+  }
+
+  const user = session.user;
+  const isSuperAdmin = user.role?.name === 'SUPERADMIN';
+
+  // Si tiene empresa pero la empresa fue eliminada de la base de datos
+  if (session.companyId && !user.company && !isSuperAdmin) {
+    return { valid: false, reason: 'COMPANY_DELETED' };
+  }
+
+  // Si la empresa existe pero está suspendida o inactiva (y no es SuperAdmin)
+  if (user.company && user.company.status !== 'ACTIVE' && !isSuperAdmin) {
+    return { valid: false, reason: 'COMPANY_SUSPENDED' };
   }
 
   if (session.expiresAt < new Date()) {

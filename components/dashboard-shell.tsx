@@ -74,8 +74,8 @@ interface ModuleConfig {
   description: string | null;
 }
 
-export function DashboardShell({ children, session, modules, themeConfig, companyName, companyLogo }: { 
-  children: React.ReactNode; 
+export function DashboardShell({ children, session, modules, themeConfig, companyName, companyLogo }: {
+  children: React.ReactNode;
   session: { user?: { id?: string | number; name?: string | null; email?: string | null; role?: string; companyId?: string | null; image?: string | null } | null };
   modules?: ModuleConfig[];
   themeConfig?: { primaryColor?: string; mode?: string; bgImage?: string } | null;
@@ -87,19 +87,14 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const userId = session?.user?.id;
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
-
     // Cargar preferencia de colapso de la barra lateral
     const storedCollapse = window.localStorage.getItem('gns_sidebar_collapsed');
     if (storedCollapse === 'true') {
       setIsCollapsed(true);
     }
-
-    setMounted(true);
   }, []);
 
   const handleToggleTheme = () => {
@@ -122,11 +117,6 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
       await signOut({ callbackUrl: '/auth/login' });
     }
   };
-
-  // Prevent flash/hydration mismatch by rendering a skeleton or empty shell until mounted
-  if (!mounted) {
-    return <div className="min-h-screen bg-background" />;
-  }
 
   const isSuperAdmin = session?.user?.role === 'SUPERADMIN';
   const roleThemeClass = (isSuperAdmin && !themeConfig?.primaryColor) ? 'theme-superadmin' : '';
@@ -159,7 +149,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
         `}} />
       )}
       <div className="flex flex-1 overflow-hidden h-full relative z-10">
-        
+
         {/* ── Sidebar (Desktop) ── */}
         <aside className={cn(
           "hidden flex-col border-r border-[#24242b]/80 bg-[#141417]/90 backdrop-blur-md text-[#f8fafc] shadow-2xl lg:flex transition-all duration-300 shrink-0 h-full overflow-hidden",
@@ -167,14 +157,14 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
         )}>
           {/* Logo Brand Principal GNS */}
           <div className={cn("mb-8 flex items-center gap-3 transition-all", isCollapsed ? "justify-center" : "w-full")}>
-            <div 
+            <div
               className="h-11 w-11 rounded-full overflow-hidden border-2 bg-black flex items-center justify-center shrink-0 shadow-lg shadow-primary/20"
               style={{ borderColor: themeConfig?.primaryColor || "#dc2626" }}
             >
-              <img 
-                src="/gns-logo.png" 
-                alt="GNS SarriaTech" 
-                className="h-full w-full object-cover rounded-full aspect-square" 
+              <img
+                src="/gns-logo.png"
+                alt="GNS SarriaTech"
+                className="h-full w-full object-cover rounded-full aspect-square"
               />
             </div>
             {!isCollapsed && (
@@ -182,7 +172,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                 <span className="text-xs sm:text-sm font-black text-white uppercase tracking-tight leading-none">
                   GNS SARRIATECH
                 </span>
-                <span 
+                <span
                   className="text-[9px] font-extrabold uppercase tracking-wider mt-1 leading-none"
                   style={{ color: themeConfig?.primaryColor || "#ef4444" }}
                 >
@@ -191,7 +181,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
               </div>
             )}
           </div>
-          
+
           <nav className={cn("space-y-1.5 flex-1 w-full overflow-y-auto overflow-x-hidden dark-scrollbar pr-1", isCollapsed ? "px-1" : "px-2")}>
             {(modules || []).map((module) => {
                 const IconComponent = module.icon && (LucideIcons as any)[module.icon] ? (LucideIcons as any)[module.icon] : LucideIcons.Folder;
@@ -226,13 +216,13 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                 <div className="flex items-center justify-between gap-2 w-full">
                   {/* Tarjeta de Usuario - Negro Gris al 90% */}
                   <div className="flex-1 flex items-center gap-3 bg-[#1a1a20]/90 border border-[#2a2a35]/80 p-2.5 rounded-2xl overflow-hidden shadow-sm min-w-0">
-                    <div 
+                    <div
                       className="w-10 h-10 rounded-full overflow-hidden border-2 shrink-0"
                       style={{ borderColor: themeConfig?.primaryColor || "#dc2626" }}
                     >
-                      <img 
-                        src={session.user?.image || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80"} 
-                        alt="Avatar" 
+                      <img
+                        src={session.user?.image || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80"}
+                        alt="Avatar"
                         className="w-full h-full object-cover"
                       />
                     </div>
@@ -273,14 +263,14 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
             ) : (
               /* Modo Colapsado (Solo íconos) */
               <div className="flex flex-col items-center gap-3 w-full">
-                <div 
-                  className="w-10 h-10 rounded-full overflow-hidden border-2 shrink-0 cursor-pointer" 
+                <div
+                  className="w-10 h-10 rounded-full overflow-hidden border-2 shrink-0 cursor-pointer"
                   style={{ borderColor: themeConfig?.primaryColor || "#dc2626" }}
                   title={`${session.user?.name ?? 'Usuario'} (${roleLabel})`}
                 >
-                  <img 
-                    src={session.user?.image || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80"} 
-                    alt="Avatar" 
+                  <img
+                    src={session.user?.image || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80"}
+                    alt="Avatar"
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -325,7 +315,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
               <div className="absolute inset-0 bg-background/40 dark:bg-[#09090b]/50 backdrop-blur-[1px]" />
             </div>
           )}
-          
+
           {/* Header */}
           <header className={cn("flex items-center justify-between border-b border-border px-6 py-4 transition-colors duration-500 min-h-[73px] shrink-0 relative z-20", hasBgImage ? "bg-card/60 backdrop-blur-md" : "bg-card")}>
             <div className="flex items-center gap-3">
@@ -339,10 +329,10 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-2xl overflow-hidden border border-border/80 bg-muted/40 flex items-center justify-center shrink-0 shadow-sm relative">
                   {companyLogo ? (
-                    <img 
-                      src={companyLogo} 
-                      alt={companyName || "Empresa"} 
-                      className="h-full w-full object-cover scale-125 transition-transform" 
+                    <img
+                      src={companyLogo}
+                      alt={companyName || "Empresa"}
+                      className="h-full w-full object-cover scale-125 transition-transform"
                     />
                   ) : (
                     <LucideIcons.Building2 size={20} className="text-primary" />
@@ -367,7 +357,8 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                 onClick={handleToggleTheme}
                 aria-label="Cambiar Tema"
               >
-                {theme === 'dark' ? <LucideIcons.Sun size={16} className="text-primary" /> : <LucideIcons.Moon size={16} className="text-primary" />}
+                <LucideIcons.Sun size={16} className="text-primary hidden dark:block" />
+                <LucideIcons.Moon size={16} className="text-primary block dark:hidden" />
               </button>
 
               {/* User Dropdown */}
@@ -378,9 +369,9 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                   className="flex items-center gap-2.5 rounded-full border border-border bg-card p-1.5 pr-3 text-foreground hover:bg-muted transition-all active:scale-95 shadow-sm"
                 >
                   <div className="w-8 h-8 rounded-full overflow-hidden border border-primary/20">
-                    <img 
-                      src={session.user?.image || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80"} 
-                      alt="Avatar" 
+                    <img
+                      src={session.user?.image || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80"}
+                      alt="Avatar"
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -395,14 +386,14 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                   <>
                     {/* Backdrop para cerrar al hacer click fuera */}
                     <div className="fixed inset-0 z-40" onClick={() => setIsProfileDropdownOpen(false)} />
-                    
+
                     {/* Dropdown Menu */}
                     <div className="absolute right-0 top-11 z-50 mt-2 w-56 origin-top-right rounded-2xl border border-border bg-card p-2.5 shadow-xl animate-in fade-in slide-in-from-top-3 duration-200">
                       <div className="px-3.5 py-2 border-b border-border/60 mb-2">
                         <p className="text-[10px] font-bold text-muted-foreground uppercase">Sesión activa</p>
                         <p className="text-xs font-semibold text-foreground truncate mt-0.5">{session.user?.email || ""}</p>
                       </div>
-                      
+
                       <Link
                         href="/dashboard/profile"
                         onClick={() => setIsProfileDropdownOpen(false)}
@@ -411,7 +402,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                         <LucideIcons.User size={16} />
                         Mi Perfil
                       </Link>
-                      
+
                       <Link
                         href="/dashboard/profile"
                         onClick={() => setIsProfileDropdownOpen(false)}
@@ -461,21 +452,21 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
           >
             <div className="mb-8 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div 
+                <div
                   className="h-10 w-10 rounded-full overflow-hidden border-2 bg-black flex items-center justify-center shrink-0 shadow-md"
                   style={{ borderColor: themeConfig?.primaryColor || '#dc2626' }}
                 >
-                  <img 
-                    src="/gns-logo.png" 
-                    alt="GNS SarriaTech" 
-                    className="h-full w-full object-cover rounded-full aspect-square" 
+                  <img
+                    src="/gns-logo.png"
+                    alt="GNS SarriaTech"
+                    className="h-full w-full object-cover rounded-full aspect-square"
                   />
                 </div>
                 <div className="flex flex-col text-left">
                   <span className="text-xs sm:text-sm font-black text-white uppercase tracking-tight leading-none">
                     GNS SARRIATECH
                   </span>
-                  <span 
+                  <span
                     className="text-[9px] font-extrabold uppercase tracking-wider mt-1 leading-none"
                     style={{ color: themeConfig?.primaryColor || '#ef4444' }}
                   >
@@ -490,7 +481,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                 <LucideIcons.X size={18} />
               </button>
             </div>
-            
+
             <nav className="space-y-1.5 flex-1 overflow-y-auto overflow-x-hidden dark-scrollbar pr-1 px-2">
               {(modules || []).map((item) => {
                 const IconComponent = item.icon && (LucideIcons as any)[item.icon] ? (LucideIcons as any)[item.icon] : LucideIcons.Folder;

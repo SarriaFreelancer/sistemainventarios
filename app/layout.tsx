@@ -15,7 +15,9 @@ const hanken = Hanken_Grotesk({ subsets: ['latin'], variable: '--font-hanken', d
 import { getAuthSession } from '@/auth';
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXTAUTH_URL || 'http://localhost:3000'),
   title: {
+
     default: 'GNS | Gestión de Negocios SarriaTech',
     template: '%s | GNS'
   },
@@ -71,8 +73,11 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const serverCookieConsent = (session?.user as any)?.cookieConsent === true;
 
   return (
-    <html lang="es" suppressHydrationWarning className={cn("font-sans", inter.variable, hanken.variable)}>
+    <html lang="es" suppressHydrationWarning data-scroll-behavior="smooth" className={cn("font-sans", inter.variable, hanken.variable)}>
       <head>
+        <link rel="icon" type="image/png" href="/gns-logo.png" />
+        <link rel="shortcut icon" type="image/png" href="/gns-logo.png" />
+        <link rel="apple-touch-icon" href="/gns-logo.png" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
@@ -85,6 +90,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           rel="stylesheet"
         />
       </head>
+
       <body className="font-body-md bg-background text-foreground transition-colors duration-300">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           <ClientSecurityShield />
@@ -96,4 +102,3 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     </html>
   );
 }
-

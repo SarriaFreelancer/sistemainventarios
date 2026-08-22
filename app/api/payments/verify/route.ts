@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { platformDb } from '@/lib/db-manager';
+import { prisma } from '@/lib/prisma';
 
 export async function POST(request: Request) {
   try {
@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     }
 
     // Find the payment record
-    const payment = await platformDb.subscriptionPayment.findFirst({
+    const payment = await prisma.subscriptionPayment.findFirst({
       where: { boldReference: orderId },
       include: { company: true }
     });
@@ -20,9 +20,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Payment not found' }, { status: 404 });
     }
 
+    console.log(`==== VERIFICANDO PAGO BOLD ====`);
+    console.log(`OrderId: ${orderId} | Status recibido: ${status}`);
+
     if (status === 'APPROVED' || status === 'success') {
       // Begin transaction to activate company and add modules
-      await platformDb.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx) => {
         // 1. Mark payment as COMPLETED
         await tx.subscriptionPayment.update({
           where: { id: payment.id },
@@ -30,34 +33,56 @@ export async function POST(request: Request) {
         });
 
         // 2. Activate Company
+        const rawPlanId = payment.planId ? payment.planId.toLowerCase() : 'basico';
         await tx.company.update({
           where: { id: payment.companyId },
-          data: { status: 'ACTIVE' }
+          data: {
+            status: 'ACTIVE',
+            planId: payment.planId
+          }
         });
 
-        // 3. Enable modules (fetch all active modules to enable them by default)
-        const allModules = await tx.module.findMany({ where: { isActive: true } });
-        
-        // Remove existing relations (just in case)
+        // 3. Enable modules according to plan settings or active modules
+        const modulesSetting = await tx.setting.findUnique({
+          where: { key: `plan_${rawPlanId}_modules` }
+        });
+
+        let moduleIdsToAssign: number[] = [];
+        if (modulesSetting?.value) {
+          try {
+            moduleIdsToAssign = JSON.parse(modulesSetting.value);
+          } catch (e) {}
+        }
+
+        if (moduleIdsToAssign.length === 0) {
+          const allModules = await tx.module.findMany({ where: { isActive: true } });
+          moduleIdsToAssign = allModules.map(m => m.id);
+        }
+
+        // Remove existing relations
         await tx.companyModule.deleteMany({
           where: { companyId: payment.companyId }
         });
-        
+
         // Create new relations
-        if (allModules.length > 0) {
+        if (moduleIdsToAssign.length > 0) {
           await tx.companyModule.createMany({
-            data: allModules.map(m => ({
+            data: moduleIdsToAssign.map(id => ({
               companyId: payment.companyId,
-              moduleId: m.id
+              moduleId: id
             }))
           });
         }
       });
 
+      console.log(`✔ EMPRESA #${payment.companyId} ACTIVADA EXITOSAMENTE POR PAGO ${orderId}`);
+      console.log(`================================`);
       return NextResponse.json({ ok: true, message: 'Account activated successfully' });
     } else {
+      console.log(`❌ PAGO FALLIDO O RECHAZADO PARA ORDEN ${orderId}`);
+      console.log(`================================`);
       // If payment failed, just update the payment status
-      await platformDb.subscriptionPayment.update({
+      await prisma.subscriptionPayment.update({
         where: { id: payment.id },
         data: { status: 'FAILED' }
       });

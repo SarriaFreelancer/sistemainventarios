@@ -4,7 +4,7 @@ import {
   ArrowRight, Sparkles, Check, ShieldCheck, TrendingUp,
   BarChart3, Zap, Globe, Lock, Award, Play
 } from 'lucide-react';
-import { platformDb } from '@/lib/db-manager';
+import { prisma } from '@/lib/prisma';
 import { InteractivePricing } from '@/app/components/public/InteractivePricing';
 
 import { getAuthSession } from '@/auth';
@@ -17,7 +17,7 @@ export const revalidate = 3600; // Recalcular (ISR) cada 1 hora
 
 export default async function HomePage() {
   const session = await getAuthSession();
-  
+
   let planSettings: any = {};
   let allModulesList: any[] = [];
   const ps = await getPlanSettings();
@@ -25,8 +25,8 @@ export default async function HomePage() {
     planSettings = ps.data;
     allModulesList = ps.allModules || [];
   }
-  
-  const dbModules = await platformDb.module.findMany({
+
+  const dbModules = await prisma.module.findMany({
     where: { isActive: true },
     orderBy: { createdAt: 'asc' }
   });
@@ -104,12 +104,12 @@ export default async function HomePage() {
         .animate-fade-in-1 { animation: fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards; opacity: 0; will-change: transform, opacity; }
         .animate-fade-in-2 { animation: fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards; opacity: 0; will-change: transform, opacity; }
         .animate-fade-in-3 { animation: fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards; opacity: 0; will-change: transform, opacity; }
-        
+
         .animate-float { animation: float-smooth 6s ease-in-out infinite; will-change: transform; }
         .animate-float-delay { animation: float-reverse 7s ease-in-out infinite 1s; will-change: transform; }
-        
+
         .pulse-btn { animation: pulse-glow 2s infinite; }
-        
+
         /* ─── RESPONSIVE GRIDS ─── */
         .hero-grid { display: grid; grid-template-columns: 0.85fr 1.15fr; gap: 40px; align-items: center; position: relative; z-index: 1; }
         .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; text-align: center; }
@@ -182,7 +182,7 @@ export default async function HomePage() {
         }
         .mockup-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
         .mockup-grid-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
-        
+
 
 
         .module-card:hover::before { opacity: 1; }
@@ -201,7 +201,7 @@ export default async function HomePage() {
           box-shadow: 0 30px 60px rgba(15, 23, 42, 0.08);
           border-color: #cbd5e1;
         }
-        
+
         .pricing-premium {
           background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%);
           color: white;
@@ -298,7 +298,7 @@ export default async function HomePage() {
         {/* Background Gradients */}
         <div className="absolute -top-[10%] -right-[5%] w-[300px] md:w-[600px] h-[300px] md:h-[600px] rounded-full pointer-events-none bg-[radial-gradient(circle,rgba(220,38,38,0.04)_0%,rgba(255,255,255,0)_70%)] dark:bg-[radial-gradient(circle,rgba(220,38,38,0.1)_0%,rgba(15,23,42,0)_70%)]" />
         <div className="absolute -bottom-[10%] -left-[5%] w-[250px] md:w-[500px] h-[250px] md:h-[500px] rounded-full pointer-events-none bg-[radial-gradient(circle,rgba(15,23,42,0.03)_0%,rgba(255,255,255,0)_70%)] dark:bg-[radial-gradient(circle,rgba(255,255,255,0.03)_0%,rgba(15,23,42,0)_70%)]" />
-        
+
         <div className="hero-grid max-w-[1280px] mx-auto px-4 md:px-6">
           {/* Hero Content */}
           <div className="flex flex-col gap-5 md:gap-6 text-center lg:text-left items-center lg:items-start">
@@ -349,7 +349,7 @@ export default async function HomePage() {
                 </button>
               </Link>
             </div>
-            
+
             <div className="animate-fade-in-3 flex flex-wrap justify-center lg:justify-start gap-3 sm:gap-4 items-center mt-6">
               {['Sin tarjeta de crédito', 'Cancelas cuando quieras', 'Soporte 24/7'].map((text, i) => (
                 <div key={i} className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-[12px] text-slate-600 dark:text-slate-400 font-semibold">
@@ -364,7 +364,7 @@ export default async function HomePage() {
           <div className="animate-float relative w-full mt-6 md:mt-0 h-[300px] sm:h-[450px] md:h-auto md:min-h-[500px]">
             <div className="absolute top-0 left-1/2 -translate-x-1/2 md:relative md:left-auto md:translate-x-0 origin-top transform scale-[0.30] min-[400px]:scale-[0.38] sm:scale-[0.55] md:scale-100 transition-transform">
               <div className="mockup-container flex gap-4 md:gap-6 bg-white dark:bg-slate-950 p-6 !shadow-none !border-none rounded-2xl md:rounded-[32px] w-[1000px]">
-              
+
               {/* Sidebar Mockup */}
               <div className="mockup-sidebar border-r border-slate-100 dark:border-slate-800" style={{ width: 140, display: 'flex', flexDirection: 'column', gap: 16, paddingRight: 24 }}>
                 <div style={{ fontWeight: 900, fontSize: 20, color: '#dc2626', marginBottom: 8 }}>GNS</div>
@@ -493,7 +493,7 @@ export default async function HomePage() {
               </div>
             </div>
             </div>
-            
+
             {/* Flotante 1 */}
             <div className="animate-float-delay hidden lg:flex absolute top-10 -right-10 bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.08)] dark:shadow-none items-center gap-4 border border-slate-200 dark:border-slate-800">
               <div className="w-12 h-12 bg-red-50 dark:bg-red-950/40 rounded-xl flex items-center justify-center">
@@ -531,7 +531,7 @@ export default async function HomePage() {
       ══════════════════════════════════════════ */}
       <section id="nosotros" className="py-[100px] px-6 bg-white dark:bg-slate-900 overflow-hidden" style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 600px' }}>
         <div className="max-w-[1280px] mx-auto flex flex-wrap gap-10 items-center">
-          
+
           {/* Left Column - Text */}
           <div className="flex-[1_1_300px] flex flex-col gap-6">
             <span className="inline-block text-amber-600 dark:text-amber-500 text-[12px] font-extrabold tracking-[0.15em] uppercase">
@@ -558,7 +558,7 @@ export default async function HomePage() {
               </div>
             </div>
           </div>
-          
+
           {/* Right Column - Architecture Diagram */}
           <div className="flex-[1_1_400px] relative flex flex-col lg:flex-row items-center justify-center gap-4 lg:gap-0 mt-8 md:mt-0 max-w-full p-4 overflow-x-auto">
             {/* Box 1: Super Admin */}
@@ -574,7 +574,7 @@ export default async function HomePage() {
                 <div>Reportes Globales</div>
               </div>
             </div>
-            
+
             {/* Dotted Arrow 1 */}
             <div className="h-[30px] w-0 lg:h-0 lg:w-[30px] border-l-2 lg:border-l-0 lg:border-t-2 border-dashed border-amber-400 dark:border-amber-600 relative z-0">
               <LucideIcons.ChevronDown size={16} className="text-amber-400 dark:text-amber-600 absolute -bottom-2.5 -left-[9px] lg:hidden" />
@@ -629,7 +629,7 @@ export default async function HomePage() {
               </div>
             </div>
           </div>
-          
+
           {/* Right Column - Shield */}
           <div style={{ flex: '1 1 200px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, textAlign: 'center' }}>
             <div style={{ position: 'relative', width: 220, height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -643,7 +643,7 @@ export default async function HomePage() {
                <div style={{ position: 'absolute', inset: 40, border: '1px solid rgba(245, 158, 11, 0.5)', borderRadius: '50%', transform: 'rotateX(75deg)' }}>
                   <div style={{ position: 'absolute', top: '50%', right: -2, width: 4, height: 4, background: '#f59e0b', borderRadius: '50%', boxShadow: '0 0 8px 2px #fcd34d' }} />
                </div>
-               
+
                {/* Outer Glow */}
                <div style={{ position: 'absolute', width: 120, height: 140, background: '#fcd34d', filter: 'blur(35px)', opacity: 0.4, zIndex: 0 }} />
 
@@ -668,7 +668,7 @@ export default async function HomePage() {
                      {/* Specular Highlight (Left half) */}
                      <path d="M 65 8 L 10 28 C 10 82 35 132 65 146 Z" fill="rgba(255,255,255,0.25)" />
                   </svg>
-                  
+
                   <div style={{ zIndex: 3, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))', marginTop: 10 }}>
                      <svg width="44" height="44" viewBox="0 0 24 24" fill="#78350f">
                         <path d="M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2zm-7 5.5a1.5 1.5 0 0 1-1-2.83V13h2v.67a1.5 1.5 0 0 1-1 2.83zM16 11V7a4 4 0 0 0-8 0v4h2V7a2 2 0 0 1 4 0v4h2z"/>
@@ -687,7 +687,7 @@ export default async function HomePage() {
               </div>
             </div>
           </div>
-          
+
         </div>
       </section>
 
@@ -767,7 +767,7 @@ export default async function HomePage() {
       ══════════════════════════════════════════ */}
       <section id="contacto" className="py-[80px] px-6 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 relative overflow-hidden">
         <div className="max-w-[1280px] mx-auto relative z-10 flex flex-wrap gap-16 items-center">
-          
+
           <div className="flex-1 min-w-[300px]">
             <span className="inline-block text-red-600 dark:text-red-500 text-[12px] font-extrabold tracking-[0.15em] uppercase mb-4">
               ESTAMOS PARA AYUDARTE
@@ -917,5 +917,3 @@ export default async function HomePage() {
     </div>
   );
 }
-
-

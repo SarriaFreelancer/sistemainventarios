@@ -41,16 +41,16 @@ async function ensureModulesInitialized() {
           isActive: true
         }
       });
-      
+
       const [superRole, adminRoleObj] = await Promise.all([
         prisma.role.findUnique({ where: { name: 'SUPERADMIN' } }),
         prisma.role.findUnique({ where: { name: 'ADMIN' } })
       ]);
-      
+
       const rolePromises: Promise<any>[] = [];
       if (superRole) rolePromises.push(prisma.roleModule.create({ data: { roleId: superRole.id, moduleId: created.id } }).catch(() => {}));
       if (adminRoleObj) rolePromises.push(prisma.roleModule.create({ data: { roleId: adminRoleObj.id, moduleId: created.id } }).catch(() => {}));
-      
+
       const companies = await prisma.company.findMany({ select: { id: true } });
       for (const comp of companies) {
         rolePromises.push(prisma.companyModule.create({ data: { companyId: comp.id, moduleId: created.id } }).catch(() => {}));
@@ -87,8 +87,8 @@ import { FloatingChat } from '@/components/chat/floating-chat';
 export default async function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const session = await getAuthSession();
   if (!session?.user) redirect('/auth/login');
-  
-  if (session.user.role !== 'SUPERADMIN' && session.user.companyStatus === 'SUSPENDED') {
+
+  if (session.user.role !== 'SUPERADMIN' && session.user.companyStatus !== 'ACTIVE') {
     redirect('/#planes');
   }
 
@@ -97,15 +97,15 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
 
   let allowedModules: any[] = [];
   let companyTheme: any = null;
-  
+
   let companyName = '';
   let companyLogo: string | null = null;
   const tenantId = await getSessionCompanyId();
   if (tenantId) {
     const company = await prisma.company.findUnique({
       where: { id: tenantId },
-      select: { 
-        name: true, 
+      select: {
+        name: true,
         themeConfig: true,
         setting: { select: { invoiceConfig: true } }
       }
@@ -114,7 +114,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     companyName = company?.name || '';
     companyLogo = (company?.setting?.invoiceConfig as any)?.logo || null;
   }
-  
+
   if (session.user.role === 'SUPERADMIN') {
     allowedModules = await prisma.module.findMany({
       where: { isActive: true },
@@ -133,15 +133,15 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
       where: { role: { name: session.user.role as any } },
       include: { module: true },
     });
-    
+
     const companyModules = await prisma.companyModule.findMany({
       where: { companyId: Number(session.user.companyId) || -1 },
       include: { module: true },
     });
-    
+
     const roleModuleIds = new Set(roleModules.map(rm => rm.moduleId));
     const companyModuleIds = new Set(companyModules.map(cm => cm.moduleId));
-    
+
     allowedModules = roleModules
       .filter(rm => companyModuleIds.has(rm.moduleId))
       .map(rm => rm.module)
@@ -160,10 +160,10 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
       )}
       <GlobalAnnouncer />
       <FloatingChat user={session.user} />
-      <DashboardShell 
-        session={session} 
-        modules={allowedModules} 
-        themeConfig={companyTheme} 
+      <DashboardShell
+        session={session}
+        modules={allowedModules}
+        themeConfig={companyTheme}
         companyName={companyName}
         companyLogo={companyLogo}
       >

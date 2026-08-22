@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { platformDb } from '@/lib/db-manager';
+import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/auth';
 import crypto from 'crypto';
@@ -16,9 +16,9 @@ export async function POST(request: Request) {
 
     let companyId = session.user.companyId ? parseInt(session.user.companyId, 10) : null;
     let company: any = null;
-    
+
     if (companyId) {
-      company = await platformDb.company.findUnique({ where: { id: companyId } });
+      company = await prisma.company.findUnique({ where: { id: companyId } });
     }
 
     // Si el usuario está registrado pero no tiene empresa asociada aún, la creamos automáticamente
@@ -27,25 +27,32 @@ export async function POST(request: Request) {
       let user: any = null;
 
       if (userId && !isNaN(userId)) {
-        user = await platformDb.user.findUnique({ where: { id: userId } });
+        user = await prisma.user.findUnique({ where: { id: userId } });
       } else if (session.user.email) {
-        user = await platformDb.user.findUnique({ where: { email: session.user.email } });
+        user = await prisma.user.findUnique({ where: { email: session.user.email } });
       }
 
       if (!user) {
         return NextResponse.json({ message: 'Usuario no encontrado. Por favor inicia sesión de nuevo.' }, { status: 404 });
       }
 
-      const companyName = user.name ? `Empresa de ${user.name}` : `Empresa ${user.email}`;
+      const baseCompanyName = user.name ? `Empresa de ${user.name}` : `Empresa ${user.email}`;
+      let uniqueCompanyName = baseCompanyName;
+      let counter = 1;
+      while (await prisma.company.findUnique({ where: { name: uniqueCompanyName } })) {
+        uniqueCompanyName = `${baseCompanyName} (${counter})`;
+        counter++;
+      }
+
       const rawPlanId = planId ? planId.toLowerCase() : 'basico';
-      
+
       const maxUsers = rawPlanId === 'premium' ? 999 : rawPlanId === 'intermedio' ? 5 : 2;
       const maxProducts = rawPlanId === 'premium' ? 999999 : rawPlanId === 'intermedio' ? 1000 : 100;
       const maxSalesPerMonth = rawPlanId === 'premium' ? 999999 : rawPlanId === 'intermedio' ? 999999 : 50;
 
-      company = await platformDb.company.create({
+      company = await prisma.company.create({
         data: {
-          name: companyName,
+          name: uniqueCompanyName,
           planId: planId,
           status: 'SUSPENDED',
           maxUsers,
@@ -54,7 +61,7 @@ export async function POST(request: Request) {
         } as any
       });
 
-      await platformDb.user.update({
+      await prisma.user.update({
         where: { id: user.id },
         data: {
           companyId: company.id,
@@ -65,7 +72,7 @@ export async function POST(request: Request) {
 
     const orderReference = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
-    const payment = await platformDb.subscriptionPayment.create({
+    const payment = await prisma.subscriptionPayment.create({
       data: {
         companyId: company.id,
         planId,
@@ -78,7 +85,7 @@ export async function POST(request: Request) {
 
     // Forzamos la llave nueva por si el servidor no fue reiniciado y tiene la vieja en memoria
     const integrityKey = "PqnitYB0OzVsxRVJMPs7sg";
-    const amountStr = amount.toString(); 
+    const amountStr = amount.toString();
     const hashString = `${orderReference}${amountStr}COP${integrityKey}`;
     const hash = crypto.createHash('sha256').update(hashString).digest('hex');
 
@@ -90,11 +97,11 @@ export async function POST(request: Request) {
     console.log("Generated hash:", hash);
     console.log("====================");
 
-    return NextResponse.json({ 
-      ok: true, 
-      orderId: orderReference, 
-      hash, 
-      amountStr 
+    return NextResponse.json({
+      ok: true,
+      orderId: orderReference,
+      hash,
+      amountStr
     });
 
   } catch (error: any) {

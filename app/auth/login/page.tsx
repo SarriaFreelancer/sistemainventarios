@@ -4,18 +4,18 @@ import Link from 'next/link';
 import Image from 'next/image';
 import gnsLogo from '@/public/gns-logo.png';
 import { useEffect, useState } from 'react';
-import { signIn } from 'next-auth/react';
+import { signIn, getSession } from 'next-auth/react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { 
-  Eye, 
-  EyeOff, 
-  Sparkles, 
-  Mail, 
-  Lock, 
-  ShieldCheck, 
-  CheckCircle2, 
+import {
+  Eye,
+  EyeOff,
+  Sparkles,
+  Mail,
+  Lock,
+  ShieldCheck,
+  CheckCircle2,
   AlertCircle,
   Package,
   ShoppingCart,
@@ -76,6 +76,16 @@ export default function LoginPage() {
           type: 'error',
           message: 'Tu sesión ha sido finalizada por un administrador del sistema.',
         });
+      } else if (reason === 'deleted') {
+        setAuthStatus({
+          type: 'error',
+          message: 'Tu cuenta o empresa no existe o fue eliminada. Por favor regístrate nuevamente y activa un plan.',
+        });
+      } else if (reason === 'suspended') {
+        setAuthStatus({
+          type: 'error',
+          message: 'La empresa se encuentra inactiva o con licencia suspendida. Comunícate con el administrador.',
+        });
       }
     }
   }, []);
@@ -92,6 +102,25 @@ export default function LoginPage() {
       });
 
       if (result?.ok) {
+        const session = await getSession();
+        const user = session?.user;
+
+        // Si no es SuperAdmin y la empresa no está activa, alertar y enviar a planes
+        if (user && user.role !== 'SUPERADMIN' && user.companyStatus !== 'ACTIVE') {
+          const Swal = (await import('sweetalert2')).default;
+          await Swal.fire({
+            icon: 'info',
+            title: 'Licencia Pendiente de Activación',
+            text: 'Tu cuenta corporativa no tiene una licencia activa. Por favor, selecciona y adquiere un plan para activar tu sistema.',
+            confirmButtonText: 'Ver Planes de Licencia',
+            confirmButtonColor: '#dc2626',
+            allowOutsideClick: false,
+            allowEscapeKey: false
+          });
+          router.replace('/#planes');
+          return;
+        }
+
         setAuthStatus({
           type: 'success',
           message: '¡Acceso autorizado correctamente! Ingresando al sistema...',
@@ -99,7 +128,7 @@ export default function LoginPage() {
         router.replace('/dashboard');
         return;
       }
-      
+
       let errorMessage = 'Correo electrónico o contraseña incorrectos. Verifica tus credenciales.';
       if (result?.error && result.error !== 'CredentialsSignin') {
         errorMessage = result.error;
@@ -147,10 +176,10 @@ export default function LoginPage() {
     <main className="min-h-screen w-full flex items-center justify-center bg-slate-100 dark:bg-[#070b14] p-3 sm:p-4 lg:p-6 font-sans selection:bg-blue-500 selection:text-white transition-colors duration-300">
       {/* Contenedor Principal Tarjeta Bipartita Compacta */}
       <div className="w-full max-w-[940px] grid grid-cols-1 lg:grid-cols-[1.05fr_1fr] bg-white dark:bg-[#0b1329] rounded-[24px] lg:rounded-[30px] overflow-hidden shadow-xl dark:shadow-[0_20px_60px_rgba(0,0,0,0.45)] border border-slate-200 dark:border-slate-800/80 transition-colors duration-300">
-        
+
         {/* ── PANEL IZQUIERDO: BRANDING CORPORATIVO OSCURO ── */}
         <div className="relative hidden lg:flex flex-col justify-between bg-[#040919] p-7 lg:p-8 text-white overflow-hidden border-r border-slate-800/60">
-          
+
           {/* Destellos y efectos de luz de fondo (Blue & Indigo glow) */}
           <div className="absolute top-0 left-0 w-80 h-80 bg-blue-600/15 rounded-full blur-[100px] pointer-events-none" />
           <div className="absolute bottom-0 right-0 w-80 h-80 bg-indigo-600/15 rounded-full blur-[100px] pointer-events-none" />
@@ -159,10 +188,10 @@ export default function LoginPage() {
           {/* Header Marca */}
           <div className="relative z-10 flex items-center gap-3">
             <div className="h-10 w-10 rounded-full overflow-hidden border-2 border-blue-500 bg-black flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/20">
-              <Image 
-                src={gnsLogo} 
-                alt="GNS SarriaTech" 
-                className="h-full w-full object-cover rounded-full aspect-square" 
+              <Image
+                src={gnsLogo}
+                alt="GNS SarriaTech"
+                className="h-full w-full object-cover rounded-full aspect-square"
                 priority
               />
             </div>
@@ -233,7 +262,7 @@ export default function LoginPage() {
                 </div>
                 <div className="text-[8px] font-mono text-slate-400 bg-slate-900/60 px-1.5 py-0.5 rounded-full">Resumen general</div>
               </div>
-              
+
               <div className="grid grid-cols-4 gap-1.5 mb-2">
                 <div className="bg-slate-900/80 p-1.5 rounded-lg border border-slate-800">
                   <div className="text-[7.5px] text-slate-400 font-bold">Ventas hoy</div>
@@ -295,26 +324,25 @@ export default function LoginPage() {
 
         {/* ── PANEL DERECHO: FORMULARIO DE LOGIN CLARO / OSCURO ── */}
         <div className="relative flex flex-col justify-center p-6 sm:p-7 lg:p-8 bg-white dark:bg-[#0b1329]">
-          
+
           {/* Botón Flotante para Alternar Tema (Sol / Luna) */}
-          {mounted && (
-            <button 
-              type="button"
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              title={theme === 'dark' ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro'}
-              className="absolute top-4 right-4 p-2.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700/80 text-slate-700 dark:text-amber-400 transition-all border border-slate-200 dark:border-slate-700/60 shadow-sm z-20 cursor-pointer active:scale-95"
-            >
-              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            title="Alternar Tema Claro / Oscuro"
+            className="absolute top-4 right-4 p-2.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700/80 text-slate-700 dark:text-amber-400 transition-all border border-slate-200 dark:border-slate-700/60 shadow-sm z-20 cursor-pointer active:scale-95"
+          >
+            <Sun size={18} className="hidden dark:block text-amber-400" />
+            <Moon size={18} className="block dark:hidden text-slate-700" />
+          </button>
 
           {/* Header Mobile Brand (Solo en pantallas pequeñas) */}
           <div className="lg:hidden flex items-center gap-2 mb-4">
             <div className="h-8 w-8 rounded-full overflow-hidden border-2 border-blue-500 bg-black flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/20">
-              <Image 
-                src={gnsLogo} 
-                alt="GNS SarriaTech" 
-                className="h-full w-full object-cover rounded-full aspect-square" 
+              <Image
+                src={gnsLogo}
+                alt="GNS SarriaTech"
+                className="h-full w-full object-cover rounded-full aspect-square"
               />
             </div>
             <span className="text-sm font-black uppercase text-slate-900 dark:text-white">
@@ -336,7 +364,7 @@ export default function LoginPage() {
           </div>
 
           <form className="space-y-3" onSubmit={handleSubmit(onSubmit)}>
-            
+
             {/* Banner de Estado de Autenticación */}
             {authStatus.type && (
               <div
@@ -470,8 +498,8 @@ export default function LoginPage() {
           {/* Link Regístrate aquí */}
           <div className="mt-4 text-center text-xs font-medium text-slate-500 dark:text-slate-400">
             ¿No tienes una cuenta?{' '}
-            <Link 
-              href="/auth/register" 
+            <Link
+              href="/auth/register"
               className="font-extrabold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1 transition"
             >
               Regístrate aquí <ArrowRight className="w-3 h-3 text-blue-600 dark:text-blue-400" />

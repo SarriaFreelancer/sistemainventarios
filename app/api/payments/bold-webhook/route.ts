@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { platformDb } from '@/lib/db-manager';
+import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
 
 export async function POST(request: Request) {
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     }
 
     // Buscar el pago en la base de datos
-    const payment = await platformDb.subscriptionPayment.findFirst({
+    const payment = await prisma.subscriptionPayment.findFirst({
       where: { boldReference: order_id }
     });
 
@@ -39,15 +39,15 @@ export async function POST(request: Request) {
 
     // Actualizar estado del pago
     const newStatus = (status === 'APPROVED' || status === 'PAID') ? 'COMPLETED' : (status === 'REJECTED' ? 'REJECTED' : payment.status);
-    
-    await platformDb.subscriptionPayment.update({
+
+    await prisma.subscriptionPayment.update({
       where: { id: payment.id },
       data: { status: newStatus }
     });
 
     // Si el pago es aprobado, activar la empresa y asignar módulos
     if (newStatus === 'COMPLETED') {
-      await platformDb.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx) => {
         const company = await tx.company.findUnique({ where: { id: payment.companyId } });
         const rawPlanId = company?.planId ? company.planId.toLowerCase() : 'basico';
 
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
           where: { id: payment.companyId },
           data: { status: 'ACTIVE' }
         });
-        
+
         // Fetch modules for this plan from settings
         const modulesSetting = await tx.setting.findUnique({
           where: { key: `plan_${rawPlanId}_modules` }
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
         await tx.companyModule.deleteMany({
           where: { companyId: payment.companyId }
         });
-        
+
         if (moduleIdsToAssign.length > 0) {
           await tx.companyModule.createMany({
             data: moduleIdsToAssign.map(id => ({
