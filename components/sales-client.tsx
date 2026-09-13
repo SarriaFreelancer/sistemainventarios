@@ -599,14 +599,25 @@ function NewSaleDialog({ products, customers, userId, onSuccess, allowNegativeSt
   );
 }
 
-function CompleteSaleDialog({ sale, customers, userId, onSuccess }: {
+function CompleteSaleDialog({
+  sale,
+  customers,
+  products,
+  userId,
+  allowNegativeStock = false,
+  onSuccess
+}: {
   sale: Sale;
   customers: { id: string; name: string; code: string }[];
+  products: Product[];
   userId: string;
+  allowNegativeStock?: boolean;
   onSuccess?: () => void;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [productSearch, setProductSearch] = useState('');
   const [client, setClient] = useState(sale.client ?? '');
   const [customerId, setCustomerId] = useState(sale.customerId ? String(sale.customerId) : '');
   const [discount, setDiscount] = useState(sale.discount ?? 0);
@@ -614,22 +625,165 @@ function CompleteSaleDialog({ sale, customers, userId, onSuccess }: {
   const [remarks, setRemarks] = useState(sale.remarks ?? '');
   const [isPending, startTransition] = useTransition();
 
-  const subtotal = sale.details.reduce((s, d) => s + d.subtotal, 0);
-  const total = Math.max(0, subtotal - discount - sale.details.reduce((s, d) => s + d.discount, 0));
+  // Inicializar o restablecer carrito cuando se abre el diálogo
+  useEffect(() => {
+    if (open) {
+      setCart(
+        sale.details.map(d => {
+          const prod = products.find(p => p.id === d.productId);
+          return {
+            productId: d.productId,
+            code: d.product.code,
+            name: d.product.name,
+            quantity: d.quantity,
+            unitPrice: d.unitPrice,
+            maxQty: prod ? prod.quantityAvailable : 999999,
+            discount: d.discount || 0,
+          };
+        })
+      );
+      setClient(sale.client ?? '');
+      setCustomerId(sale.customerId ? String(sale.customerId) : '');
+      setDiscount(sale.discount ?? 0);
+      setPaymentMethod(sale.paymentMethod ?? 'EFECTIVO');
+      setRemarks(sale.remarks ?? '');
+      setProductSearch('');
+    }
+  }, [open, sale, products]);
+
+  const filteredProducts = useMemo(() => {
+    if (!productSearch.trim()) return [];
+    const q = productSearch.toLowerCase();
+    return products.filter(p =>
+      (allowNegativeStock || p.quantityAvailable > 0) &&
+      (p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q))
+    ).slice(0, 5);
+  }, [products, productSearch, allowNegativeStock]);
+
+  const addToCart = (product: Product) => {
+    setCart(prev => {
+      const existing = prev.find(i => i.productId === product.id);
+      if (existing) {
+        if (!allowNegativeStock && existing.quantity >= existing.maxQty) return prev;
+        return prev.map(i => i.productId === product.id ? { ...i, quantity: i.quantity + 1 } : i);
+      }
+      return [...prev, {
+        productId: product.id,
+        code: product.code,
+        name: product.name,
+        quantity: 1,
+        unitPrice: product.salePrice,
+        maxQty: product.quantityAvailable,
+        discount: 0,
+      }];
+    });
+    setProductSearch('');
+  };
+
+  const updateQty = (productId: string, qty: number) => {
+    setCart(prev => prev.map(i => {
+      if (i.productId === productId) {
+        const targetQty = !allowNegativeStock ? Math.min(Math.max(1, qty), i.maxQty) : Math.max(1, qty);
+        return { ...i, quantity: targetQty };
+      }
+      return i;
+    }));
+  };
+
+  const updateItemDiscount = (productId: string, desc: number) => {
+    setCart(prev => prev.map(i =>
+      i.productId === productId ? { ...i, discount: Math.max(0, desc) } : i
+    ));
+  };
+
+  const removeFromCart = (productId: string) => {
+    setCart(prev => prev.filter(i => i.productId !== productId));
+  };
+
+  const subtotal = cart.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+  const itemDiscounts = cart.reduce((s, i) => s + i.discount, 0);
+  const total = Math.max(0, subtotal - discount - itemDiscounts);
 
   const handleCompletarAction = async () => {
+    if (cart.length === 0) {
+      errorAlert('Carrito Vacío', 'La venta debe contener al menos un producto.');
+      return;
+    }
+
+    const fmtVal = (n: number) => n.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+
+    const { isConfirmed } = await brandAlert.fire({
+      title: 'Confirmar Venta Final',
+      html: `
+        <div class="text-left space-y-4 font-sans text-sm">
+          <div class="border-b border-border/60 pb-2.5 text-xs space-y-1">
+            <p class="text-muted-foreground">Venta: <strong class="text-primary">${sale.saleNumber}</strong></p>
+            <p class="text-muted-foreground">Cliente: <strong class="text-foreground">${client || 'Consumidor Final'}</strong></p>
+            <p class="text-muted-foreground">Método de Pago: <strong class="text-foreground">${paymentMethod}</strong></p>
+          </div>
+          <div class="max-h-[180px] overflow-y-auto pr-1 space-y-2">
+            ${cart.map(i => `
+              <div class="flex justify-between items-start text-xs border-b border-border/40 pb-2 last:border-b-0">
+                <div>
+                  <p class="font-medium text-foreground">${i.name}</p>
+                  <p class="text-[10px] text-muted-foreground">${i.quantity} u. x ${fmtVal(i.unitPrice)}</p>
+                </div>
+                <div class="text-right">
+                  <p class="font-semibold text-foreground">${fmtVal(i.quantity * i.unitPrice)}</p>
+                  ${i.discount > 0 ? `<p class="text-[10px] font-semibold text-red-500">Desc: -${fmtVal(i.discount)}</p>` : ''}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          <div class="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-1.5 text-xs">
+            <div class="flex justify-between text-muted-foreground">
+              <span>Subtotal Productos</span>
+              <span>${fmtVal(subtotal)}</span>
+            </div>
+            ${(discount > 0 || itemDiscounts > 0) ? `
+              <div class="flex justify-between text-red-500 font-medium">
+                <span>Descuentos Totales</span>
+                <span>-${fmtVal(discount + itemDiscounts)}</span>
+              </div>
+            ` : ''}
+            <div class="flex justify-between font-bold text-sm text-primary pt-1.5 border-t border-primary/25">
+              <span>Total Facturado</span>
+              <span>${fmtVal(total)}</span>
+            </div>
+          </div>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Confirmar y Descontar Stock',
+      cancelButtonText: 'Revisar',
+      customClass: {
+        popup: 'rounded-3xl border border-border bg-card text-foreground font-sans shadow-2xl p-6 w-[480px]',
+        confirmButton: 'bg-emerald-600 text-white rounded-xl px-6 py-3 font-semibold text-sm hover:bg-emerald-700 transition mr-2',
+        cancelButton: 'bg-secondary/10 hover:bg-secondary/20 border border-border text-foreground rounded-xl px-6 py-3 font-semibold text-sm transition ml-2',
+      },
+      buttonsStyling: false,
+    });
+
+    if (!isConfirmed) return;
+
     startTransition(async () => {
       const result = await completePendingSale(sale.id, {
         paymentMethod,
         client: client || null,
         customerId: customerId ? Number(customerId) : null,
         remarks: remarks || null,
-        discount: discount,
+        discount,
+        items: cart.map(i => ({
+          productId: i.productId,
+          quantity: i.quantity,
+          unitPrice: i.unitPrice,
+          discount: i.discount
+        }))
       });
 
       if (result.success) {
         setOpen(false);
-        await successAlert('Venta Completada', 'La venta fue completada y se descontó el stock.');
+        await successAlert('Venta Completada', `La venta ${sale.saleNumber} fue completada y se actualizó el stock exitosamente.`);
         window.location.reload();
         onSuccess?.();
       } else {
@@ -657,39 +811,132 @@ function CompleteSaleDialog({ sale, customers, userId, onSuccess }: {
               <span className="w-2 h-7 bg-gradient-to-b from-primary to-[#C5A059] rounded-full" />
               Completar Venta Pendiente ({sale.saleNumber})
             </DialogTitle>
-            <p className="text-sm text-muted-foreground mt-1">Elige el método de pago y confirma los datos del cliente para finalizar la transacción.</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Agrega o quita productos, modifica cantidades y descuentos, y confirma los datos del cliente para finalizar la transacción.
+            </p>
           </DialogHeader>
 
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 mt-5 overflow-hidden flex-1 min-h-0">
-            {/* Detalle de Productos (Col span 3) */}
+            {/* Detalle y Búsqueda de Productos (Col span 3) */}
             <div className="lg:col-span-3 flex flex-col overflow-hidden h-full space-y-4">
-              <Label className={labelCls}>Productos en esta Venta</Label>
-              
-              <div className="grid grid-cols-[1fr_6rem_5rem_5rem] gap-x-2 px-2 shrink-0">
-                <span className={labelCls}>Producto</span>
-                <span className={`${labelCls} text-center`}>Cantidad</span>
-                <span className={`${labelCls} text-center`}>Precio Unitario</span>
-                <span className={`${labelCls} text-right`}>Subtotal</span>
+              {/* Product Search */}
+              <div className="space-y-1.5 relative">
+                <Label className={labelCls}>Buscar y Agregar Más Productos</Label>
+                <div className="relative">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
+                  <input
+                    type="text"
+                    placeholder="Escribe el nombre o código de un producto..."
+                    value={productSearch}
+                    onChange={e => setProductSearch(e.target.value)}
+                    className="flex h-11 w-full rounded-xl border border-border bg-card pl-10 pr-4 py-2 text-sm text-foreground focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all duration-200 placeholder:text-muted-foreground/50"
+                  />
+                </div>
+
+                {/* Dropdown de Resultados de Búsqueda */}
+                {filteredProducts.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 z-50 rounded-2xl border border-border bg-card/95 backdrop-blur-xl shadow-2xl mt-2 overflow-hidden divide-y divide-border/60">
+                    {filteredProducts.map(p => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => addToCart(p)}
+                        className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-primary/10 transition-colors"
+                      >
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">{p.name}</p>
+                          <p className="text-xs text-muted-foreground">{p.code}</p>
+                        </div>
+                        <div className="text-right shrink-0 ml-3">
+                          <p className="text-sm font-bold text-primary">
+                            {p.salePrice.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">Stock: {p.quantityAvailable}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {productSearch && filteredProducts.length === 0 && (
+                  <div className="absolute top-full left-0 right-0 z-50 rounded-xl border border-border bg-card shadow-xl mt-1 px-4 py-3">
+                    <p className="text-sm text-muted-foreground">No se encontraron productos con ese criterio.</p>
+                  </div>
+                )}
               </div>
 
-              <div className="flex-1 overflow-y-auto border border-border/60 rounded-2xl p-3 bg-muted/5 min-h-[200px] max-h-[320px]">
-                <div className="space-y-2">
-                  {sale.details.map(item => (
-                    <div key={item.id} className="grid grid-cols-[1fr_6rem_5rem_5rem] gap-x-2 items-center p-2.5 rounded-xl bg-card border border-border/40">
-                      <div>
-                        <p className="text-xs font-semibold text-foreground truncate">{item.product.name}</p>
-                        <p className="text-[10px] text-muted-foreground">{item.product.code}</p>
-                      </div>
-                      <p className="text-xs font-bold text-foreground text-center">{item.quantity} u.</p>
-                      <p className="text-xs text-muted-foreground text-center">
-                        {item.unitPrice.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
-                      </p>
-                      <p className="text-xs font-extrabold text-primary text-right whitespace-nowrap">
-                        {item.total.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
-                      </p>
-                    </div>
-                  ))}
+              {/* Cart Header */}
+              {cart.length > 0 && (
+                <div className="grid grid-cols-[1fr_6rem_5rem_5rem_2rem] gap-x-2 px-2 shrink-0">
+                  <span className={labelCls}>Producto</span>
+                  <span className={`${labelCls} text-center`}>Cantidad</span>
+                  <span className={`${labelCls} text-center`}>Descuento</span>
+                  <span className={`${labelCls} text-right`}>Subtotal</span>
+                  <span />
                 </div>
+              )}
+
+              {/* Cart List */}
+              <div className="flex-1 overflow-y-auto border border-border/60 rounded-2xl p-3 bg-muted/5 min-h-[200px] max-h-[320px]">
+                {cart.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground/50 py-12">
+                    <ShoppingBag className="h-12 w-12 mb-3 opacity-20" />
+                    <p className="text-sm font-medium">El carrito está vacío</p>
+                    <p className="text-xs mt-1 opacity-70">Busca un producto arriba para agregarlo</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {cart.map(item => (
+                      <div key={item.productId} className="grid grid-cols-[1fr_6rem_5rem_5rem_2rem] gap-x-2 items-center p-2.5 rounded-xl bg-card border border-border/40 hover:border-primary/20 transition-all">
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-foreground truncate">{item.name}</p>
+                          <p className="text-[10px] text-muted-foreground whitespace-nowrap">
+                            {item.unitPrice.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })} c/u
+                          </p>
+                        </div>
+                        {/* Qty controls */}
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => updateQty(item.productId, item.quantity - 1)}
+                            className="h-6 w-6 rounded-md border border-border bg-card flex items-center justify-center text-foreground font-bold text-xs hover:bg-primary/10 transition-colors"
+                          >−</button>
+                          <input
+                            type="number"
+                            min="1"
+                            value={item.quantity}
+                            onChange={e => updateQty(item.productId, parseInt(e.target.value) || 1)}
+                            className="w-9 h-6 text-center rounded-md border border-border bg-card text-xs font-bold text-foreground focus:outline-none focus:border-primary"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => updateQty(item.productId, item.quantity + 1)}
+                            className="h-6 w-6 rounded-md border border-border bg-card flex items-center justify-center text-foreground font-bold text-xs hover:bg-primary/10 transition-colors"
+                          >+</button>
+                        </div>
+                        {/* Discount */}
+                        <input
+                          type="number"
+                          placeholder="0"
+                          value={item.discount || ''}
+                          onChange={e => updateItemDiscount(item.productId, parseFloat(e.target.value) || 0)}
+                          className="h-7 w-full text-center rounded-md border border-border bg-card text-xs font-medium text-foreground focus:outline-none focus:border-primary"
+                        />
+                        {/* Row total */}
+                        <p className="text-xs font-extrabold text-primary text-right whitespace-nowrap">
+                          {((item.quantity * item.unitPrice) - item.discount).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => removeFromCart(item.productId)}
+                          className="h-6 w-6 text-muted-foreground hover:text-red-500 rounded-md hover:bg-red-500/10 flex items-center justify-center transition-colors"
+                          title="Eliminar producto"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -770,10 +1017,10 @@ function CompleteSaleDialog({ sale, customers, userId, onSuccess }: {
                     <span>Subtotal</span>
                     <span className="font-medium">{subtotal.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}</span>
                   </div>
-                  {(discount > 0 || sale.details.reduce((s, d) => s + d.discount, 0) > 0) && (
+                  {(discount > 0 || itemDiscounts > 0) && (
                     <div className="flex justify-between text-red-500 font-semibold">
                       <span>Descuentos aplicados</span>
-                      <span>−{(discount + sale.details.reduce((s, d) => s + d.discount, 0)).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}</span>
+                      <span>−{(discount + itemDiscounts).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}</span>
                     </div>
                   )}
                   <div className="border-t border-primary/20 pt-2 flex justify-between font-bold">
@@ -792,7 +1039,7 @@ function CompleteSaleDialog({ sale, customers, userId, onSuccess }: {
                     type="button"
                     onClick={handleCompletarAction}
                     disabled={isPending}
-                    className="flex-1 h-11 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-700 text-white"
+                    className="flex-1 h-11 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20"
                   >
                     {isPending ? 'Guardando...' : '✓ Completar Venta'}
                   </Button>
@@ -973,7 +1220,7 @@ async function exportSalesToExcel(sales: Sale[]) {
   if (rows.length > 0) {
     const headers = Object.keys(rows[0]);
     worksheet.addRow(headers);
-    
+
     const headerRow = worksheet.getRow(1);
     headerRow.eachCell((cell) => {
       cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
@@ -983,7 +1230,7 @@ async function exportSalesToExcel(sales: Sale[]) {
         fgColor: { argb: "FF334155" }
       };
     });
-    
+
     worksheet.autoFilter = {
       from: { row: 1, column: 1 },
       to: { row: 1, column: headers.length }
@@ -1254,7 +1501,13 @@ export function SalesClient(props: {
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-1.5">
                         {sale.status === 'PENDING' && (
-                          <CompleteSaleDialog sale={sale} customers={customers} userId={userId} />
+                          <CompleteSaleDialog
+                            sale={sale}
+                            customers={customers}
+                            products={products}
+                            userId={userId}
+                            allowNegativeStock={allowNegativeStock}
+                          />
                         )}
                         {sale.status !== 'VOIDED' && (
                           <Button
@@ -1309,7 +1562,13 @@ export function SalesClient(props: {
                   <SaleDetailDialog sale={sale} invoiceConfig={invoiceConfig} />
                   <div className="flex gap-1.5">
                     {sale.status === 'PENDING' && (
-                      <CompleteSaleDialog sale={sale} customers={customers} userId={userId} />
+                      <CompleteSaleDialog
+                        sale={sale}
+                        customers={customers}
+                        products={products}
+                        userId={userId}
+                        allowNegativeStock={allowNegativeStock}
+                      />
                     )}
                     {sale.status !== 'VOIDED' && (
                       <Button variant="ghost" size="icon" onClick={() => handleAnular(sale)} className="h-8 w-8 text-red-500">

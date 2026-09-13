@@ -11,7 +11,8 @@ test.describe('Autenticación y Seguridad de Sesión', () => {
   test('Debe redirigir a /auth/login si el usuario intenta acceder al dashboard sin sesión', async ({ page }) => {
     await page.goto('/dashboard');
     await page.waitForURL(/.*\/auth\/login.*/);
-    await expect(page.locator('h1')).toContainText('Bienvenido');
+    await expect(page.locator('input[type="email"]')).toBeVisible();
+    await expect(page.locator('button[type="submit"]')).toBeVisible();
   });
 
   test('Debe mostrar error si se intenta iniciar sesión con credenciales incorrectas', async ({ page }) => {
@@ -25,7 +26,7 @@ test.describe('Autenticación y Seguridad de Sesión', () => {
     const loginPage = new LoginPage(page);
     await loginPage.goto();
     await loginPage.login('adminA@gns-test.com', 'Admin123');
-    
+
     // Verificar que estamos en el dashboard y se muestra el menú
     await expect(page.locator('text=/Empresa A/i').first()).toBeVisible({ timeout: 10000 });
     await expect(page.locator('#tour-profile-menu').first()).toBeVisible({ timeout: 10000 });
@@ -38,7 +39,7 @@ test.describe('Autenticación y Seguridad de Sesión', () => {
 
     // 1. Abrir dropdown del perfil
     await page.click('#tour-profile-menu');
-    
+
     // 2. Hacer clic en "Cerrar Sesión"
     await page.click('button:has-text("Cerrar Sesión")');
 
@@ -46,6 +47,6 @@ test.describe('Autenticación y Seguridad de Sesión', () => {
     await page.click('button:has-text("Sí, salir")', { force: true });
 
     await page.waitForURL(/.*\/auth\/login.*/);
-    await expect(page.locator('h1')).toContainText('Bienvenido');
+    await expect(page.locator('input[type="email"]')).toBeVisible();
   });
 });

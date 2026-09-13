@@ -12,6 +12,9 @@ interface PageProps {
   searchParams: Promise<{
     page?: string;
     search?: string;
+    module?: string;
+    companyId?: string;
+    field?: string;
   }>;
 }
 
@@ -27,8 +30,11 @@ export default async function AuditPage({ searchParams }: PageProps) {
   const resolvedParams = await searchParams;
   const page = Number(resolvedParams.page || "1");
   const search = resolvedParams.search || "";
+  const filterModule = resolvedParams.module || "";
+  const companyIdFilter = resolvedParams.companyId || "";
+  const searchField = resolvedParams.field || "ALL";
 
-  const result = await getAuditLogs(page, 20, search);
+  const result = await getAuditLogs(page, 20, search, filterModule, companyIdFilter, searchField);
 
   return (
     <div className="flex-1 space-y-6">
@@ -40,13 +46,23 @@ export default async function AuditPage({ searchParams }: PageProps) {
       </div>
 
       {result.success ? (
-        <AuditClient 
-          initialLogs={result.logs || []} 
-          total={result.total || 0} 
-          currentPage={page} 
+        <AuditClient
+          initialLogs={result.logs || []}
+          total={result.total || 0}
+          currentPage={page}
           totalPages={result.totalPages || 1}
           initialSearch={search}
+          initialModule={filterModule}
+          initialCompanyId={companyIdFilter}
+          initialSearchField={searchField}
+          companiesList={result.companiesList || []}
           userRole={session.user.role}
+          stats={result.stats || {
+            successfulLoginsToday: 0,
+            failedLoginsToday: 0,
+            actionsToday: 0,
+            totalHistorical: 0
+          }}
         />
       ) : (
         <div className="rounded-2xl border border-destructive/20 bg-destructive/10 p-6 text-destructive">

@@ -2,7 +2,29 @@
 
 import React, { useState, useTransition, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Chrome, Globe, Compass, Laptop, Smartphone, Tablet, Monitor, Search, Loader2, SlidersHorizontal, ShieldAlert, ChevronLeft, ChevronRight, X } from "lucide-react";
+import {
+  Chrome,
+  Globe,
+  Compass,
+  Laptop,
+  Smartphone,
+  Tablet,
+  Monitor,
+  Search,
+  Loader2,
+  SlidersHorizontal,
+  ShieldAlert,
+  ShieldCheck,
+  CheckCircle,
+  XCircle,
+  Activity,
+  Database,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Lock,
+  Building2
+} from "lucide-react";
 
 interface AuditLog {
   id: number;
@@ -26,14 +48,49 @@ interface AuditLog {
   createdAt: string;
 }
 
+interface AuditStats {
+  successfulLoginsToday: number;
+  failedLoginsToday: number;
+  actionsToday: number;
+  totalHistorical: number;
+}
+
+interface CompanyItem {
+  id: number;
+  name: string;
+}
+
 interface AuditClientProps {
   initialLogs: AuditLog[];
   total: number;
   currentPage: number;
   totalPages: number;
   initialSearch: string;
+  initialModule?: string;
+  initialCompanyId?: string;
+  initialSearchField?: string;
+  companiesList?: CompanyItem[];
   userRole: string;
+  stats: AuditStats;
 }
+
+const MODULE_OPTIONS = [
+  { id: "", label: "Todos los módulos" },
+  { id: "SEGURIDAD", label: "Seguridad & Logins" },
+  { id: "SALES", label: "Ventas" },
+  { id: "PRODUCTS", label: "Productos" },
+  { id: "CLIENTS", label: "Clientes" },
+  { id: "USERS", label: "Usuarios" },
+  { id: "CATEGORIES", label: "Categorías" },
+  { id: "FINANCES", label: "Finanzas" },
+];
+
+const SEARCH_FIELD_OPTIONS = [
+  { id: "ALL", label: "Todos los campos" },
+  { id: "DESCRIPTION", label: "Descripción" },
+  { id: "USER", label: "Usuario / Email" },
+  { id: "ACTION", label: "Acción (LOGIN, CREATE, etc.)" },
+];
 
 export function AuditClient({
   initialLogs,
@@ -41,11 +98,19 @@ export function AuditClient({
   currentPage,
   totalPages,
   initialSearch,
-  userRole
+  initialModule = "",
+  initialCompanyId = "",
+  initialSearchField = "ALL",
+  companiesList = [],
+  userRole,
+  stats
 }: AuditClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [search, setSearch] = useState(initialSearch);
+  const [selectedModule, setSelectedModule] = useState(initialModule);
+  const [selectedCompanyId, setSelectedCompanyId] = useState(initialCompanyId);
+  const [selectedSearchField, setSelectedSearchField] = useState(initialSearchField);
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
 
   const topScrollRef = useRef<HTMLDivElement>(null);
@@ -71,32 +136,73 @@ export function AuditClient({
     }
   };
 
-  // Router Update for Search
+  const applyFilters = (
+    newSearch: string,
+    newModule: string,
+    newCompanyId: string,
+    newSearchField: string,
+    page = 1
+  ) => {
+    const params = new URLSearchParams();
+    if (page > 1) params.set("page", String(page));
+    if (newSearch.trim()) params.set("search", newSearch.trim());
+    if (newModule) params.set("module", newModule);
+    if (newCompanyId && newCompanyId !== "ALL") params.set("companyId", newCompanyId);
+    if (newSearchField && newSearchField !== "ALL") params.set("field", newSearchField);
+
+    const query = params.toString();
+    startTransition(() => {
+      router.push(`/dashboard/audit${query ? `?${query}` : ""}`);
+    });
+  };
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    startTransition(() => {
-      router.push(`/dashboard/audit?page=1&search=${encodeURIComponent(search)}`);
-    });
+    applyFilters(search, selectedModule, selectedCompanyId, selectedSearchField, 1);
+  };
+
+  const handleModuleSelect = (modId: string) => {
+    setSelectedModule(modId);
+    applyFilters(search, modId, selectedCompanyId, selectedSearchField, 1);
+  };
+
+  const handleCompanyChange = (cId: string) => {
+    setSelectedCompanyId(cId);
+    applyFilters(search, selectedModule, cId, selectedSearchField, 1);
+  };
+
+  const handleFieldChange = (field: string) => {
+    setSelectedSearchField(field);
+    applyFilters(search, selectedModule, selectedCompanyId, field, 1);
+  };
+
+  const handleClearFilters = () => {
+    setSearch("");
+    setSelectedModule("");
+    setSelectedCompanyId("");
+    setSelectedSearchField("ALL");
+    applyFilters("", "", "", "ALL", 1);
   };
 
   const handlePageChange = (page: number) => {
     if (page < 1 || page > totalPages) return;
-    startTransition(() => {
-      router.push(`/dashboard/audit?page=${page}&search=${encodeURIComponent(search)}`);
-    });
+    applyFilters(search, selectedModule, selectedCompanyId, selectedSearchField, page);
   };
 
   // Helper para pintar badges de acción
   const getActionColor = (action: string) => {
     switch (action.toUpperCase()) {
+      case "LOGIN":
       case "CREATE":
         return "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400";
       case "UPDATE":
         return "bg-blue-500/10 text-blue-600 border-blue-500/20 dark:text-blue-400";
+      case "LOGIN_FAILED":
       case "DELETE":
         return "bg-rose-500/10 text-rose-600 border-rose-500/20 dark:text-rose-400";
       case "VOID":
       case "ANULAR":
+      case "LOGOUT":
         return "bg-amber-500/10 text-amber-600 border-amber-500/20 dark:text-amber-400";
       default:
         return "bg-muted text-muted-foreground border-border";
@@ -123,13 +229,12 @@ export function AuditClient({
 
   // Comparador de diferencias de campos
   const renderJSONDiff = (oldVal: any, newVal: any) => {
-    if (!oldVal && !newVal) return <p className="text-sm text-muted-foreground">Sin detalles de valores.</p>;
+    if (!oldVal && !newVal) return <p className="text-sm text-muted-foreground">Sin detalles adicionales de valores.</p>;
 
     const keys = Array.from(new Set([...Object.keys(oldVal || {}), ...Object.keys(newVal || {})]));
     const diffs: { key: string; oldVal: any; newVal: any; isDifferent: boolean }[] = [];
 
     keys.forEach((key) => {
-      // Ignorar campos de actualización interna redundantes
       if (key === "updatedAt" || key === "createdAt" || key === "id") return;
       const oldRaw = oldVal?.[key];
       const newRaw = newVal?.[key];
@@ -181,32 +286,204 @@ export function AuditClient({
 
   return (
     <div className="space-y-6">
-      
-      {/* ── Barra de Búsqueda y Herramientas ── */}
-      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-card p-4 rounded-2xl border border-border shadow-sm">
-        <form onSubmit={handleSearch} className="flex gap-2 w-full sm:max-w-md">
-          <div className="relative flex-1">
+
+      {/* ── Tarjetas Resumen de Auditoría y Logins ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Logins Exitosos Hoy */}
+        <div className="bg-card rounded-2xl border border-border p-4 shadow-sm flex items-center justify-between">
+          <div className="space-y-1">
+            <p className="text-xs font-semibold text-muted-foreground">Logins Exitosos Hoy</p>
+            <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{stats.successfulLoginsToday}</p>
+            <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+              <ShieldCheck size={12} className="text-emerald-500" />
+              {userRole === "SUPERADMIN" ? "Todas las empresas" : "Esta empresa"}
+            </p>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+            <CheckCircle size={22} />
+          </div>
+        </div>
+
+        {/* Intentos Fallidos Hoy */}
+        <div className="bg-card rounded-2xl border border-border p-4 shadow-sm flex items-center justify-between">
+          <div className="space-y-1">
+            <p className="text-xs font-semibold text-muted-foreground">Intentos Fallidos Hoy</p>
+            <p className={`text-2xl font-black ${stats.failedLoginsToday > 0 ? "text-rose-600 dark:text-rose-400" : "text-foreground"}`}>
+              {stats.failedLoginsToday}
+            </p>
+            <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+              <Lock size={12} className={stats.failedLoginsToday > 0 ? "text-rose-500" : "text-muted-foreground"} />
+              {stats.failedLoginsToday === 0 ? "Sin bloqueos" : "Alertas de acceso"}
+            </p>
+          </div>
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border ${
+            stats.failedLoginsToday > 0
+              ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20"
+              : "bg-muted text-muted-foreground border-border"
+          }`}>
+            <XCircle size={22} />
+          </div>
+        </div>
+
+        {/* Actividades Registradas Hoy */}
+        <div className="bg-card rounded-2xl border border-border p-4 shadow-sm flex items-center justify-between">
+          <div className="space-y-1">
+            <p className="text-xs font-semibold text-muted-foreground">Acciones Registradas Hoy</p>
+            <p className="text-2xl font-black text-blue-600 dark:text-blue-400">{stats.actionsToday}</p>
+            <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+              <Activity size={12} className="text-blue-500" />
+              Eventos transaccionales
+            </p>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-500/20">
+            <Activity size={22} />
+          </div>
+        </div>
+
+        {/* Total Histórico */}
+        <div className="bg-card rounded-2xl border border-border p-4 shadow-sm flex items-center justify-between">
+          <div className="space-y-1">
+            <p className="text-xs font-semibold text-muted-foreground">Total de Logs</p>
+            <p className="text-2xl font-black text-foreground">{total}</p>
+            <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+              <Database size={12} className="text-muted-foreground" />
+              Historial acumulado
+            </p>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-muted text-muted-foreground flex items-center justify-center border border-border">
+            <Database size={22} />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Panel Principal de Filtros Avanzados ── */}
+      <div className="bg-card p-5 rounded-2xl border border-border shadow-sm space-y-4">
+
+        {/* Fila 1: Filtros de Selección (Empresa para Superadmin & Módulos) */}
+        <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+
+          {/* Selector de Empresa exclusivo para SUPERADMIN */}
+          {userRole === "SUPERADMIN" && (
+            <div className="flex items-center gap-2 min-w-[240px]">
+              <Building2 size={16} className="text-primary shrink-0" />
+              <select
+                value={selectedCompanyId}
+                onChange={(e) => handleCompanyChange(e.target.value)}
+                disabled={isPending}
+                className="w-full bg-muted/50 border border-border rounded-xl px-3 py-2 text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition cursor-pointer"
+              >
+                <option value="ALL">🏢 Todas las Empresas</option>
+                {companiesList.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    🏢 {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Chips de Módulos */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none flex-1">
+            {MODULE_OPTIONS.map((opt) => (
+              <button
+                key={opt.id}
+                onClick={() => handleModuleSelect(opt.id)}
+                disabled={isPending}
+                className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
+                  selectedModule === opt.id
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "bg-muted/40 text-muted-foreground border-border hover:text-foreground hover:bg-muted"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Fila 2: Formulario de Búsqueda Especificada por Campo */}
+        <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2.5 items-center">
+
+          {/* Select de Campo Objetivo */}
+          <div className="w-full sm:w-48 shrink-0">
+            <select
+              value={selectedSearchField}
+              onChange={(e) => handleFieldChange(e.target.value)}
+              disabled={isPending}
+              className="w-full bg-muted/40 border border-border rounded-xl px-3 py-2.5 text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition cursor-pointer"
+            >
+              {SEARCH_FIELD_OPTIONS.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Input de Texto */}
+          <div className="relative flex-1 w-full">
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Buscar por módulo, acción, usuario o descripción..."
+              placeholder={
+                selectedSearchField === "DESCRIPTION"
+                  ? "Escribe la descripción o detalle a buscar..."
+                  : selectedSearchField === "USER"
+                  ? "Escribe el nombre o correo del usuario..."
+                  : selectedSearchField === "ACTION"
+                  ? "Ejemplo: LOGIN, CREATE, UPDATE, DELETE..."
+                  : "Buscar en todos los campos..."
+              }
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-muted/40 border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
             />
           </div>
-          <button
-            type="submit"
-            disabled={isPending}
-            className="bg-primary text-primary-foreground font-semibold px-4 py-2.5 rounded-xl text-sm hover:opacity-90 active:scale-95 transition flex items-center gap-2 shadow-sm"
-          >
-            {isPending ? <Loader2 size={16} className="animate-spin" /> : <SlidersHorizontal size={16} />}
-            Filtrar
-          </button>
+
+          {/* Botones Filtrar y Limpiar */}
+          <div className="flex gap-2 w-full sm:w-auto shrink-0 justify-end">
+            <button
+              type="submit"
+              disabled={isPending}
+              className="bg-primary text-primary-foreground font-semibold px-5 py-2.5 rounded-xl text-sm hover:opacity-90 active:scale-95 transition flex items-center justify-center gap-2 shadow-sm flex-1 sm:flex-none"
+            >
+              {isPending ? <Loader2 size={16} className="animate-spin" /> : <SlidersHorizontal size={16} />}
+              Filtrar
+            </button>
+
+            {(search || selectedModule || (selectedCompanyId && selectedCompanyId !== "ALL") || selectedSearchField !== "ALL") && (
+              <button
+                type="button"
+                onClick={handleClearFilters}
+                disabled={isPending}
+                className="bg-muted text-muted-foreground hover:text-foreground font-semibold px-3 py-2.5 rounded-xl text-xs border border-border hover:bg-muted/80 transition flex items-center justify-center gap-1 shrink-0"
+                title="Limpiar todos los filtros"
+              >
+                <X size={14} />
+                Limpiar
+              </button>
+            )}
+          </div>
         </form>
 
-        <div className="text-xs font-semibold text-muted-foreground">
-          Mostrando {initialLogs.length} de {total} registros de auditoría
+        {/* Info badges */}
+        <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground pt-1 border-t border-border/40">
+          <div className="flex items-center gap-2">
+            {userRole === "SUPERADMIN" ? (
+              <span className="flex items-center gap-1 text-primary font-bold bg-primary/10 px-2.5 py-0.5 rounded-full border border-primary/20 text-[11px]">
+                <Building2 size={12} />
+                {selectedCompanyId && selectedCompanyId !== "ALL"
+                  ? `Filtrado por: ${companiesList.find(c => String(c.id) === selectedCompanyId)?.name || 'Empresa'}`
+                  : "Vista Global Multi-Empresa"}
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-muted-foreground bg-muted px-2.5 py-0.5 rounded-full border border-border text-[11px]">
+                <ShieldCheck size={12} className="text-emerald-500" />
+                Auditoría de tu Empresa
+              </span>
+            )}
+          </div>
+          <span className="text-[11.5px]">Mostrando {initialLogs.length} de {total} registros</span>
         </div>
       </div>
 
@@ -217,7 +494,7 @@ export function AuditClient({
             <ShieldAlert size={24} />
           </div>
           <h3 className="font-semibold text-lg text-foreground">Sin registros de auditoría</h3>
-          <p className="text-sm text-muted-foreground mt-1">No se encontraron registros de auditoría con los parámetros indicados.</p>
+          <p className="text-sm text-muted-foreground mt-1">No se encontraron registros de auditoría con los filtros indicados.</p>
         </div>
       ) : (
         <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden transition-colors duration-500">
@@ -258,8 +535,8 @@ export function AuditClient({
                       </td>
                     )}
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="font-semibold text-foreground">{log.user?.name || "Sistema / Seed"}</div>
-                      <div className="text-xs text-muted-foreground">{log.user?.email || "system@gns.com"}</div>
+                      <div className="font-semibold text-foreground">{log.user?.name || "Sistema / Autenticación"}</div>
+                      <div className="text-xs text-muted-foreground">{log.user?.email || "N/A"}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="font-bold text-xs bg-muted border border-border/80 px-2.5 py-1 rounded-full text-foreground/80">

@@ -158,12 +158,31 @@ export const authOptions: AuthOptions = {
   },
 
   callbacks: {
+    async signIn({ user, account, profile }: any) {
+      if (account?.provider === 'google' && user?.email) {
+        // Verificar si el usuario ya existe en la base de datos
+        const existingUser = await prisma.user.findUnique({
+          where: { email: user.email },
+          include: { company: true, role: true }
+        });
+
+        if (existingUser) {
+          // Si el usuario existe pero su empresa fue eliminada o no tiene empresa y tampoco es SUPERADMIN, no permitir loguearse creando duplicados
+          if (!existingUser.companyId && existingUser.role?.name !== 'SUPERADMIN') {
+            console.warn(`Usuario Google ${user.email} intentó ingresar pero su cuenta/empresa fue eliminada.`);
+            return false;
+          }
+        }
+      }
+      return true;
+    },
     async jwt({ token, user, account, trigger, session }: any) {
       if (account?.provider === 'google' && token.email) {
         let dbUser = await prisma.user.findUnique({
           where: { email: token.email },
           include: { role: true, company: true }
         });
+
         if (!dbUser) {
           let adminRole = await prisma.role.findFirst({ where: { name: 'ADMIN' } });
           if (!adminRole) {
@@ -218,6 +237,17 @@ export const authOptions: AuthOptions = {
           } catch (e) {
             console.error("Error creating active session for Google user", e);
           }
+        }
+
+        try {
+          await logLoginAttempt({
+            userId: dbUser.id,
+            companyId: dbUser.companyId,
+            email: dbUser.email,
+            status: "SUCCESS"
+          });
+        } catch (e) {
+          console.error("Error logging Google login attempt", e);
         }
       } else if (user) {
         token.id = user.id;

@@ -273,15 +273,15 @@ export async function deleteCompany(formData: FormData) {
       await tx.customer.deleteMany({ where: { companyId: id } }).catch(() => {});
 
       // 9. Bodegas e inventario
-      await tx.warehouseTransferItem.deleteMany({ where: { warehouseTransfer: { companyId: id } } }).catch(() => {});
-      await tx.warehouseTransfer.deleteMany({ where: { companyId: id } }).catch(() => {});
-      await tx.warehouseTimeline.deleteMany({ where: { companyId: id } }).catch(() => {});
-      await tx.warehouseStock.deleteMany({ where: { warehouse: { companyId: id } } }).catch(() => {});
-      await tx.warehouseLocation.deleteMany({ where: { warehouse: { companyId: id } } }).catch(() => {});
-      await tx.warehouseMovement.deleteMany({ where: { warehouse: { companyId: id } } }).catch(() => {});
-      await tx.inventoryEntryItem.deleteMany({ where: { inventoryEntry: { companyId: id } } }).catch(() => {});
-      await tx.inventoryEntry.deleteMany({ where: { companyId: id } }).catch(() => {});
-      await tx.warehouse.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await (tx as any).warehouseTransferItem?.deleteMany({ where: { transfer: { companyId: id } } }).catch(() => {});
+      await (tx as any).warehouseTransfer?.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await (tx as any).warehouseTimeline?.deleteMany({ where: { transfer: { companyId: id } } }).catch(() => {});
+      await (tx as any).warehouseStock?.deleteMany({ where: { warehouse: { companyId: id } } }).catch(() => {});
+      await (tx as any).warehouseLocation?.deleteMany({ where: { warehouse: { companyId: id } } }).catch(() => {});
+      await (tx as any).warehouseMovement?.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await (tx as any).inventoryEntryItem?.deleteMany({ where: { inventoryEntry: { companyId: id } } }).catch(() => {});
+      await (tx as any).inventoryEntry?.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await (tx as any).warehouse?.deleteMany({ where: { companyId: id } }).catch(() => {});
 
       // 10. Productos y Proveedores
       await tx.productBatch.deleteMany({ where: { product: { companyId: id } } }).catch(() => {});

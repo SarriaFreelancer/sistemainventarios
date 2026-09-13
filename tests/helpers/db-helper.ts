@@ -4,16 +4,21 @@ import bcrypt from 'bcryptjs';
 export async function clearDatabase() {
   try {
     await prisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 0;');
-    
+
     // Lista de tablas a limpiar con la capitalización exacta de los modelos Prisma
     const tables = [
       'Notification',
       'CompanySetting',
       'InvoiceCounter',
       'AuditLog',
+      'LoginHistory',
       'SaleDetail',
       'Sale',
       'Opportunity',
+      'Quote',
+      'Lead',
+      'Contact',
+      'Activity',
       'Customer',
       'Product',
       'Category',

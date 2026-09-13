@@ -64,10 +64,10 @@ test.describe('Módulo de Notificaciones y Campanita', () => {
 
     await bellButton.click();
     await expect(page.locator(`text=${saleNumberText}`).first()).toBeVisible();
-    await expect(page.locator('text=Cobro Pendiente').first()).toBeVisible();
+    await expect(page.locator('text=/Venta Pendiente/i').first()).toBeVisible();
 
     // Cerrar dropdown
-    await page.click('h1');
+    await page.click('body', { position: { x: 10, y: 10 } });
 
     // 4. Completar el pago de la venta pendiente
     await salePage.completePendingSale(saleNumberText);
@@ -105,8 +105,13 @@ test.describe('Módulo de Notificaciones y Campanita', () => {
 
     // 2. Limpiar todo
     await bellButton.click();
+    const deletePromise = page.waitForResponse(r => r.url().includes('/api/notifications') && r.request().method() === 'DELETE');
     await page.click('button:has-text("Limpiar todo")', { force: true });
-    
+    await deletePromise;
+
+    // Cerrar dropdown
+    await page.click('body', { position: { x: 10, y: 10 } });
+
     // La campana debe vaciarse inmediatamente y ocultar el badge rojo
     await expect(bellButton.locator('span.bg-destructive').first()).not.toBeVisible();
 
@@ -119,7 +124,7 @@ test.describe('Módulo de Notificaciones y Campanita', () => {
     await page.click('#tour-profile-menu');
     await page.click('button:has-text("Cerrar Sesión")');
     await page.click('button:has-text("Sí, salir")');
-    
+
     await loginPage.goto();
     await loginPage.login('adminA@gns-test.com', 'Admin123');
 

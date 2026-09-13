@@ -31,8 +31,8 @@ export function NotificationBell() {
   const notifiedIds = useRef<Set<number>>(new Set());
   const { playNotification } = useNotificationSound();
 
-  // Polling usando API Route estable (no Server Action) para evitar errores de versión
-  const pollNotifications = useCallback(async (showToasts = false) => {
+  // Polling usando API Route con control persistente de toasts mostrados
+  const pollNotifications = useCallback(async () => {
     try {
       const res = await fetch('/api/notifications', { cache: 'no-store' });
 
@@ -47,44 +47,81 @@ export function NotificationBell() {
       if (json.success && json.data) {
         const data = json.data as Notification[];
 
-        if (showToasts) {
-          const newNotifs = data.filter(n => !n.isRead && !notifiedIds.current.has(n.id));
-          if (newNotifs.length > 0) {
-            // Play notification sound once per new notification
-            playNotification(Math.min(newNotifs.length, 3));
-          }
+        // Recuperar IDs de toasts ya mostrados en esta sesión
+        let shownIds: Set<number>;
+        try {
+          const raw = sessionStorage.getItem('gns_shown_toast_ids');
+          shownIds = raw ? new Set(JSON.parse(raw)) : new Set();
+        } catch {
+          shownIds = notifiedIds.current;
+        }
+
+        const now = Date.now();
+        const tenMinutesAgo = now - 10 * 60 * 1000;
+
+        // Identificar notificaciones no leídas que aún no se han mostrado como toast y son recientes
+        const newNotifs = data.filter(n => {
+          if (n.isRead || shownIds.has(n.id)) return false;
+          const createdTime = new Date(n.createdAt).getTime();
+          // Mostrar si se creó en los últimos 10 minutos o si no tiene fecha parseable
+          return isNaN(createdTime) || createdTime >= tenMinutesAgo;
+        });
+
+        if (newNotifs.length > 0) {
+          // Sonido de alerta
+          playNotification(Math.min(newNotifs.length, 3));
+
+          // Disparar toasts emergentes
           newNotifs.forEach(n => {
+            shownIds.add(n.id);
             notifiedIds.current.add(n.id);
+
+            const toastOpts = {
+              description: n.message,
+              duration: 6000,
+            };
+
             if (n.type === 'ERROR') {
-              toast.error(n.title, { description: n.message, duration: 5000 });
+              toast.error(n.title, toastOpts);
             } else if (n.type === 'WARNING') {
-              toast.warning(n.title, { description: n.message, duration: 5000 });
+              toast.warning(n.title, toastOpts);
             } else {
-              toast.success(n.title, { description: n.message, duration: 5000 });
+              toast.success(n.title, toastOpts);
             }
           });
-          setNotifications(data);
-        } else {
-          // Si no mostramos toasts (carga inicial), igual registramos los IDs para no mostrarlos luego
-          data.forEach(n => notifiedIds.current.add(n.id));
-          setNotifications(data);
+
+          // Guardar IDs en sessionStorage para evitar repetir toasts al refrescar
+          try {
+            sessionStorage.setItem('gns_shown_toast_ids', JSON.stringify(Array.from(shownIds).slice(-100)));
+          } catch {}
         }
+
+        // Marcar todas las notificaciones actuales en memoria para consistencia
+        data.forEach(n => notifiedIds.current.add(n.id));
+        setNotifications(data);
       }
     } catch {
       // Silently ignore network errors during polling
     }
-  }, []);
+  }, [playNotification]);
 
   useEffect(() => {
-    // Carga inicial usando API Route
-    pollNotifications(false);
+    // Carga inicial
+    pollNotifications();
 
-    // Polling cada 10 segundos para detección rápida de eventos y alertas emergentes
+    // Polling cada 10 segundos para detección de nuevos eventos y alertas emergentes
     const interval = setInterval(() => {
-      pollNotifications(true);
+      pollNotifications();
     }, 10000);
 
-    return () => clearInterval(interval);
+    // Escuchar evento personalizado para refresco inmediato cuando se ejecutan acciones
+    const handleManualRefresh = () => pollNotifications();
+    window.addEventListener('gns_refresh_notifications', handleManualRefresh);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('gns_refresh_notifications', handleManualRefresh);
+    };
   }, [pollNotifications]);
 
   const handleOpenChange = (open: boolean) => {

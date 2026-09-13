@@ -286,6 +286,7 @@ export async function completePendingSale(saleIdInput: any, updateData?: {
   customerId?: number | null;
   remarks?: string | null;
   discount?: number;
+  items?: { productId: any; quantity: number; unitPrice: number; discount?: number }[];
 }) {
   const saleId = Number(saleIdInput);
   if (isNaN(saleId)) return { success: false, error: 'ID inválido' };
@@ -307,57 +308,95 @@ export async function completePendingSale(saleIdInput: any, updateData?: {
       const settings = await tx.companySetting.findUnique({ where: { companyId } });
       const allowNegativeStock = settings?.allowNegativeStock ?? false;
 
-      // Validar existencias
-      for (const detail of sale.details) {
-        if (!allowNegativeStock && detail.product.quantityAvailable < detail.quantity) {
-          throw new Error(`Stock insuficiente para "${detail.product.name}". Disponible: ${detail.product.quantityAvailable} u.`);
-        }
-      }
+      // Determinar los items a procesar (los nuevos o los existentes)
+      const itemsToProcess = (updateData?.items && updateData.items.length > 0)
+        ? updateData.items.map(i => ({
+            productId: Number(i.productId),
+            quantity: Number(i.quantity),
+            unitPrice: Number(i.unitPrice),
+            discount: Number(i.discount || 0)
+          }))
+        : sale.details.map(d => ({
+            productId: d.productId,
+            quantity: d.quantity,
+            unitPrice: Number(d.unitPrice),
+            discount: Number(d.discount || 0)
+          }));
 
-      // Descontar inventario
-      const lowStockProducts: any[] = [];
-      for (const detail of sale.details) {
-        let newQty = detail.product.quantityAvailable - detail.quantity;
-        if (!allowNegativeStock && newQty < 0) {
-          newQty = 0;
-        }
-        await tx.product.update({
-          where: { id: detail.productId },
-          data: {
-            quantityAvailable: newQty,
-            soldQuantity: { increment: detail.quantity },
-            status: newQty <= 0 ? 'OUT_OF_STOCK' : 'AVAILABLE',
-          }
+      // Validar existencias de todos los items
+      for (const item of itemsToProcess) {
+        const product = await tx.product.findFirst({
+          where: { id: item.productId, ...(companyId ? { companyId } : {}) }
         });
-
-        if (newQty <= 0) {
-          lowStockProducts.push({ name: detail.product.name, type: 'CERO', newQty });
-        } else if (newQty <= 10) {
-          lowStockProducts.push({ name: detail.product.name, type: 'BAJO', newQty });
+        if (!product) throw new Error(`Producto #${item.productId} no encontrado`);
+        if (!allowNegativeStock && product.quantityAvailable < item.quantity) {
+          throw new Error(`Stock insuficiente para "${product.name}". Disponible: ${product.quantityAvailable} u.`);
         }
       }
 
-      // Recalcular total si el descuento cambió
-      let total = sale.total;
-      if (updateData && updateData.discount !== undefined) {
-        const subtotal = sale.details.reduce((s, d) => s + d.subtotal, 0);
-        const itemDiscounts = sale.details.reduce((s, d) => s + d.discount, 0);
-        total = Math.max(0, subtotal - itemDiscounts - updateData.discount);
+      // Si se proporcionaron nuevos items, actualizar los detalles de la venta en BD
+      if (updateData?.items && updateData.items.length > 0) {
+        await tx.saleDetail.deleteMany({ where: { saleId } });
+        for (const item of itemsToProcess) {
+          const subtotal = item.quantity * item.unitPrice;
+          const totalItem = Math.max(0, subtotal - item.discount);
+          await tx.saleDetail.create({
+            data: {
+              saleId,
+              productId: item.productId,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              subtotal,
+              discount: item.discount,
+              total: totalItem,
+            }
+          });
+        }
       }
+
+      // Descontar inventario para cada producto
+      const lowStockProducts: any[] = [];
+      for (const item of itemsToProcess) {
+        const product = await tx.product.findUnique({ where: { id: item.productId } });
+        if (product) {
+          let newQty = product.quantityAvailable - item.quantity;
+          if (!allowNegativeStock && newQty < 0) {
+            newQty = 0;
+          }
+          await tx.product.update({
+            where: { id: item.productId },
+            data: {
+              quantityAvailable: newQty,
+              soldQuantity: { increment: item.quantity },
+              status: newQty <= 0 ? 'OUT_OF_STOCK' : 'AVAILABLE',
+            }
+          });
+
+          if (newQty <= 0) {
+            lowStockProducts.push({ name: product.name, type: 'CERO', newQty });
+          } else if (newQty <= 10) {
+            lowStockProducts.push({ name: product.name, type: 'BAJO', newQty });
+          }
+        }
+      }
+
+      // Recalcular total de la venta
+      const globalDiscount = updateData?.discount !== undefined ? Number(updateData.discount) : Number(sale.discount || 0);
+      const subtotalTotal = itemsToProcess.reduce((s, i) => s + (i.quantity * i.unitPrice), 0);
+      const itemDiscountsTotal = itemsToProcess.reduce((s, i) => s + i.discount, 0);
+      const total = Math.max(0, subtotalTotal - itemDiscountsTotal - globalDiscount);
 
       // Actualizar estado de la venta y datos finales
       const updated = await tx.sale.update({
         where: { id: saleId },
         data: {
           status: 'COMPLETED',
-          ...(updateData ? {
-            paymentMethod: updateData.paymentMethod,
-            client: updateData.client,
-            customerId: updateData.customerId,
-            remarks: updateData.remarks,
-            discount: updateData.discount,
-            total,
-          } : {})
+          paymentMethod: updateData?.paymentMethod || sale.paymentMethod,
+          client: updateData?.client !== undefined ? updateData.client : sale.client,
+          customerId: updateData?.customerId !== undefined ? updateData.customerId : sale.customerId,
+          remarks: updateData?.remarks !== undefined ? updateData.remarks : sale.remarks,
+          discount: globalDiscount,
+          total,
         }
       });
 
