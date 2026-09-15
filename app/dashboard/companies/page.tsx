@@ -14,7 +14,7 @@ export default async function CompaniesPage() {
   if (session.user.role !== 'SUPERADMIN') redirect('/dashboard');
 
   const companies = await prisma.company.findMany({
-    include: { 
+    include: {
       _count: { select: { users: true } },
       modules: { select: { moduleId: true } },
       setting: { select: { nit: true } }
@@ -40,6 +40,9 @@ export default async function CompaniesPage() {
     planId: company.planId,
     maxUsers: company.maxUsers,
     maxProducts: company.maxProducts,
+    isTrial: (company as any).isTrial ?? false,
+    trialStartedAt: (company as any).trialStartedAt ? new Date((company as any).trialStartedAt).toISOString() : null,
+    trialEndsAt: (company as any).trialEndsAt ? new Date((company as any).trialEndsAt).toISOString() : null,
     _count: { users: company._count.users },
   }));
 

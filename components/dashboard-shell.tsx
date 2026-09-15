@@ -31,6 +31,7 @@ import {
   BarChart3,
   HelpCircle,
   Briefcase,
+  Clock,
 } from 'lucide-react';
 
 const LucideIcons = {
@@ -61,6 +62,7 @@ const LucideIcons = {
   BarChart3,
   HelpCircle,
   Briefcase,
+  Clock,
 };
 import { cn } from '@/lib/utils';
 import { NotificationBell } from '@/components/notification-bell';
@@ -74,13 +76,14 @@ interface ModuleConfig {
   description: string | null;
 }
 
-export function DashboardShell({ children, session, modules, themeConfig, companyName, companyLogo }: {
+export function DashboardShell({ children, session, modules, themeConfig, companyName, companyLogo, trialInfo }: {
   children: React.ReactNode;
   session: { user?: { id?: string | number; name?: string | null; email?: string | null; role?: string; companyId?: string | null; image?: string | null } | null };
   modules?: ModuleConfig[];
   themeConfig?: { primaryColor?: string; mode?: string; bgImage?: string } | null;
   companyName?: string;
   companyLogo?: string | null;
+  trialInfo?: { isTrial: boolean; trialEndsAt: string | null; isExpired: boolean; daysLeft: number } | null;
 }) {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -185,19 +188,27 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
           <nav className={cn("space-y-1.5 flex-1 w-full overflow-y-auto overflow-x-hidden dark-scrollbar pr-1", isCollapsed ? "px-1" : "px-2")}>
             {(modules || []).map((module) => {
                 const IconComponent = module.icon && (LucideIcons as any)[module.icon] ? (LucideIcons as any)[module.icon] : LucideIcons.Folder;
-                const itemHref = module.href || '#';
-                const isActive = pathname === itemHref || (itemHref !== '/dashboard' && pathname.startsWith(itemHref));
+                const isBlocked = !isSuperAdmin && !!trialInfo?.isExpired;
+                const itemHref = isBlocked ? '#' : (module.href || '#');
+                const isActive = !isBlocked && (pathname === itemHref || (itemHref !== '/dashboard' && pathname.startsWith(itemHref)));
                 return (
                   <Link
                     key={module.id}
                     href={itemHref}
                     id={`tour-nav-${module.name.toLowerCase().replace(/\s+/g, '-')}`}
                     title={isCollapsed ? module.name : undefined}
+                    onClick={(e) => {
+                      if (isBlocked) {
+                        e.preventDefault();
+                      }
+                    }}
                     style={isActive ? { backgroundColor: themeConfig?.primaryColor || "#dc2626" } : undefined}
                     className={cn(
                       "flex items-center gap-3 rounded-2xl transition-all duration-300 font-semibold",
                       isCollapsed ? "p-3.5 justify-center" : "px-4 py-3 text-sm justify-start",
-                      isActive
+                      isBlocked
+                        ? "opacity-40 cursor-not-allowed text-white/50"
+                        : isActive
                         ? "text-white opacity-100 shadow-lg scale-[1.02]"
                         : "text-white/80 hover:bg-[#202028]/90 hover:text-white"
                     )}
@@ -339,11 +350,29 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                   )}
                 </div>
                 <div>
-                  <p className={cn("text-[10px] font-extrabold uppercase tracking-widest flex items-center gap-1", hasBgImage ? "text-white drop-shadow-sm" : "text-foreground")}>
-                    <span>EMPRESA:</span>
-                    <span className="font-black">{companyName ? companyName.toUpperCase() : 'GLOBAL'}</span>
-                  </p>
-                  <h2 className={cn("text-sm sm:text-base font-black leading-tight", hasBgImage ? "text-white drop-shadow-sm" : "text-foreground")}>ERP Administrador</h2>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <p className={cn("text-[10px] font-extrabold uppercase tracking-widest flex items-center gap-1", hasBgImage ? "text-white drop-shadow-sm" : "text-foreground")}>
+                      <span className="hidden sm:inline">EMPRESA:</span>
+                      <span className="font-black truncate max-w-[100px] xs:max-w-[150px] sm:max-w-[220px]">{companyName ? companyName.toUpperCase() : 'GLOBAL'}</span>
+                    </p>
+
+                    {/* Badge de Período de Prueba */}
+                    {trialInfo?.isTrial && (
+                      trialInfo.isExpired ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] sm:text-[9.5px] font-extrabold bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/30 whitespace-nowrap">
+                          <LucideIcons.Clock size={11} className="shrink-0" />
+                          Prueba Vencida
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] sm:text-[9.5px] font-extrabold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30 whitespace-nowrap">
+                          <LucideIcons.Clock size={11} className="shrink-0 text-blue-500" />
+                          <span className="hidden sm:inline">Prueba: {trialInfo.daysLeft} {trialInfo.daysLeft === 1 ? 'día restante' : 'días restantes'}</span>
+                          <span className="sm:hidden">{trialInfo.daysLeft}d restantes</span>
+                        </span>
+                      )
+                    )}
+                  </div>
+                  <h2 className={cn("text-xs sm:text-base font-black leading-tight truncate", hasBgImage ? "text-white drop-shadow-sm" : "text-foreground")}>ERP Administrador</h2>
                 </div>
               </div>
             </div>
@@ -437,8 +466,63 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
           </header>
 
           {/* Main page content wrapper */}
-          <main className={cn("flex-1 overflow-y-auto p-6 transition-colors duration-500 relative", hasBgImage ? "bg-transparent has-bg-image" : "bg-background")}>
-            {children}
+          <main className={cn("flex-1 overflow-y-auto p-3 sm:p-6 transition-colors duration-500 relative", hasBgImage ? "bg-transparent has-bg-image" : "bg-background")}>
+            {!isSuperAdmin && trialInfo?.isExpired ? (
+              <div className="h-full min-h-[400px] flex items-center justify-center p-2 sm:p-4">
+                <div className="max-w-xl w-full bg-card border border-border/80 rounded-3xl p-5 sm:p-10 shadow-2xl text-center space-y-5 sm:space-y-6 animate-in fade-in zoom-in-95 duration-300">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-amber-500/10 dark:bg-amber-500/20 text-amber-500 border border-amber-500/20 rounded-2xl sm:rounded-3xl flex items-center justify-center mx-auto shadow-inner">
+                    <LucideIcons.Clock size={32} className="sm:hidden" />
+                    <LucideIcons.Clock size={40} className="hidden sm:block" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] sm:text-xs font-black bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 uppercase tracking-wider">
+                      Acceso Restringido • Período Concluido
+                    </span>
+                    <h2 className="text-xl sm:text-3xl font-black text-foreground tracking-tight">
+                      Tu prueba gratuita ha finalizado
+                    </h2>
+                    <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                      El período de prueba de <span className="font-bold text-foreground">{companyName || 'tu empresa'}</span> ha expirado.
+                      Para reactivar el acceso completo a los módulos de ventas, inventarios, compras y reportes, adquiere una licencia o ponte en contacto con el administrador general del sistema.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 justify-center pt-2">
+                    <Link
+                      href="/#planes"
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 sm:px-6 sm:py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs sm:text-sm shadow-lg shadow-blue-500/20 active:scale-95 transition-all no-underline"
+                    >
+                      <LucideIcons.ShoppingCart size={16} />
+                      <span>Ver Planes y Activar</span>
+                    </Link>
+
+                    <a
+                      href="https://wa.me/573178005391?text=Hola,%20deseo%20renovar%20o%20activar%20el%20plan%20para%20mi%20empresa"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 sm:px-6 sm:py-3.5 rounded-2xl bg-muted hover:bg-muted/80 text-foreground font-bold text-xs sm:text-sm border border-border transition-all active:scale-95 no-underline"
+                    >
+                      <LucideIcons.HelpCircle size={16} />
+                      <span>Contactar Soporte</span>
+                    </a>
+                  </div>
+
+                  <div className="pt-4 border-t border-border/60 flex justify-center">
+                    <button
+                      type="button"
+                      onClick={handleLogoutConfirm}
+                      className="text-xs font-semibold text-muted-foreground hover:text-red-500 transition flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <LucideIcons.LogOut size={14} />
+                      <span>Cerrar sesión en esta cuenta</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              children
+            )}
           </main>
         </div>
       </div>
@@ -485,20 +569,29 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
             <nav className="space-y-1.5 flex-1 overflow-y-auto overflow-x-hidden dark-scrollbar pr-1 px-2">
               {(modules || []).map((item) => {
                 const IconComponent = item.icon && (LucideIcons as any)[item.icon] ? (LucideIcons as any)[item.icon] : LucideIcons.Folder;
-                const itemHref = item.href || '#';
-                const isActive = pathname === itemHref || (itemHref !== '/dashboard' && pathname.startsWith(itemHref));
+                const isBlocked = !isSuperAdmin && !!trialInfo?.isExpired;
+                const itemHref = isBlocked ? '#' : (item.href || '#');
+                const isActive = !isBlocked && (pathname === itemHref || (itemHref !== '/dashboard' && pathname.startsWith(itemHref)));
                 return (
                   <Link
                     key={item.id}
                     href={itemHref}
+                    onClick={(e) => {
+                      if (isBlocked) {
+                        e.preventDefault();
+                      } else {
+                        setIsMenuOpen(false);
+                      }
+                    }}
                     style={isActive ? { backgroundColor: themeConfig?.primaryColor || "#dc2626" } : undefined}
                     className={cn(
                       "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all text-white",
-                      isActive
+                      isBlocked
+                        ? "opacity-40 cursor-not-allowed text-white/50"
+                        : isActive
                         ? "opacity-100 shadow-md"
                         : "text-slate-300 hover:bg-[#202028]/90 hover:text-white"
                     )}
-                    onClick={() => setIsMenuOpen(false)}
                   >
                     <IconComponent size={18} />
                     {item.name}

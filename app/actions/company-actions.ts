@@ -22,6 +22,8 @@ const companySchema = z.object({
   planId: z.string().optional(),
   maxUsers: z.coerce.number().optional().nullable(),
   maxProducts: z.coerce.number().optional().nullable(),
+  isTrial: z.preprocess((val) => val === 'true' || val === true, z.boolean()).optional(),
+  trialDays: z.coerce.number().optional().nullable(),
 });
 
 export async function createCompany(formData: FormData) {
@@ -48,6 +50,8 @@ export async function createCompany(formData: FormData) {
     planId: formData.get('planId') || undefined,
     maxUsers: formData.get('maxUsers') ? Number(formData.get('maxUsers')) : null,
     maxProducts: formData.get('maxProducts') ? Number(formData.get('maxProducts')) : null,
+    isTrial: formData.get('isTrial') === 'true' || formData.get('isTrial') === 'on',
+    trialDays: formData.get('trialDays') ? Number(formData.get('trialDays')) : null,
   });
 
   if (!parsed.success) return { success: false, error: 'Datos inválidos' };
@@ -57,8 +61,18 @@ export async function createCompany(formData: FormData) {
     if (existingNit) return { success: false, error: 'Ya existe una empresa con ese NIT/Código' };
   }
 
+  const isTrial = parsed.data.isTrial ?? false;
+  let trialStartedAt: Date | null = null;
+  let trialEndsAt: Date | null = null;
+
+  if (isTrial) {
+    const days = parsed.data.trialDays && parsed.data.trialDays > 0 ? parsed.data.trialDays : 15;
+    trialStartedAt = new Date();
+    trialEndsAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+  }
+
   try {
-    await prisma.company.create({
+    const newCompany = await prisma.company.create({
       data: {
         name: parsed.data.name,
         address: parsed.data.address,
@@ -88,6 +102,20 @@ export async function createCompany(formData: FormData) {
         }
       },
     });
+
+    if (isTrial) {
+      try {
+        await prisma.$executeRawUnsafe(
+          'UPDATE `Company` SET `isTrial` = 1, `trialStartedAt` = ?, `trialEndsAt` = ? WHERE `id` = ?',
+          trialStartedAt,
+          trialEndsAt,
+          newCompany.id
+        );
+      } catch (err) {
+        console.error('Error updating trial info in createCompany:', err);
+      }
+    }
+
     revalidatePath('/dashboard/companies');
     return { success: true };
   } catch (error: any) {
@@ -134,6 +162,8 @@ export async function updateCompany(formData: FormData) {
     planId: formData.get('planId') || undefined,
     maxUsers: formData.get('maxUsers') ? Number(formData.get('maxUsers')) : null,
     maxProducts: formData.get('maxProducts') ? Number(formData.get('maxProducts')) : null,
+    isTrial: formData.get('isTrial') === 'true' || formData.get('isTrial') === 'on',
+    trialDays: formData.get('trialDays') ? Number(formData.get('trialDays')) : null,
   });
 
   if (!parsed.success || !id || isNaN(id)) return { success: false, error: 'Datos inválidos' };
@@ -149,12 +179,50 @@ export async function updateCompany(formData: FormData) {
   }
 
   try {
-    // Leer el themeConfig actual para preservar bgImage y otros campos que no toca este formulario
+    // Leer el themeConfig actual y estado de prueba
     const existingCompany = await prisma.company.findUnique({
       where: { id },
       select: { themeConfig: true }
     });
     const currentTheme = (existingCompany?.themeConfig as any) || {};
+
+    let existingTrial: any = {};
+    try {
+      const trialRows: any[] = await prisma.$queryRawUnsafe(
+        'SELECT isTrial, trialEndsAt, trialStartedAt FROM `Company` WHERE id = ? LIMIT 1',
+        id
+      );
+      if (trialRows && trialRows[0]) {
+        existingTrial = trialRows[0];
+      }
+    } catch {}
+
+    if (session.user.role === 'SUPERADMIN') {
+      const isTrial = parsed.data.isTrial ?? false;
+      let trialStartedAt = existingTrial?.trialStartedAt ? new Date(existingTrial.trialStartedAt) : new Date();
+      let trialEndsAt: Date | null = null;
+      if (isTrial) {
+        const days = parsed.data.trialDays && parsed.data.trialDays > 0 ? parsed.data.trialDays : 15;
+        if (formData.has('trialDays') && parsed.data.trialDays) {
+          trialEndsAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+        } else if (existingTrial?.trialEndsAt) {
+          trialEndsAt = new Date(existingTrial.trialEndsAt);
+        } else {
+          trialEndsAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+        }
+      }
+      try {
+        await prisma.$executeRawUnsafe(
+          'UPDATE `Company` SET `isTrial` = ?, `trialStartedAt` = ?, `trialEndsAt` = ? WHERE `id` = ?',
+          isTrial ? 1 : 0,
+          isTrial ? trialStartedAt : null,
+          isTrial ? trialEndsAt : null,
+          id
+        );
+      } catch (err) {
+        console.error('Error updating trial info in updateCompany:', err);
+      }
+    }
 
     await prisma.company.update({
       where: { id },
@@ -303,5 +371,54 @@ export async function deleteCompany(formData: FormData) {
   } catch (error: any) {
     console.error('Error eliminando empresa:', error);
     return { success: false, error: 'Ocurrió un error al eliminar la empresa: ' + (error.message || '') };
+  }
+}
+
+export async function setCompanyTrialAction(companyId: number, days: number, isTrial: boolean, expireNow: boolean = false) {
+  const session = await getAuthSession();
+  if (!session?.user || session.user.role !== 'SUPERADMIN') {
+    return { success: false, error: "Solo el superadmin puede modificar el período de prueba" };
+  }
+
+  if (!companyId || isNaN(companyId)) {
+    return { success: false, error: "ID de empresa no válido" };
+  }
+
+  try {
+    let trialStartedAt: Date | null = new Date();
+    let trialEndsAt: Date | null = null;
+
+    if (expireNow) {
+      // Forzar vencimiento inmediato para probar el bloqueo del sistema
+      isTrial = true;
+      trialStartedAt = new Date(Date.now() - 16 * 24 * 60 * 60 * 1000); // 16 días atrás
+      trialEndsAt = new Date(Date.now() - 24 * 60 * 60 * 1000); // Venció ayer
+    } else if (isTrial) {
+      const validDays = days && days > 0 ? days : 15;
+      trialStartedAt = new Date();
+      trialEndsAt = new Date(Date.now() + validDays * 24 * 60 * 60 * 1000);
+    } else {
+      isTrial = false;
+      trialStartedAt = null;
+      trialEndsAt = null;
+    }
+
+    await prisma.$executeRawUnsafe(
+      'UPDATE `Company` SET `isTrial` = ?, `trialStartedAt` = ?, `trialEndsAt` = ?, `status` = CASE WHEN ? = 1 THEN "ACTIVE" ELSE `status` END WHERE `id` = ?',
+      isTrial ? 1 : 0,
+      trialStartedAt,
+      trialEndsAt,
+      isTrial ? 1 : 0,
+      companyId
+    );
+
+    revalidatePath('/dashboard/companies');
+    revalidatePath('/dashboard/settings');
+    revalidatePath('/', 'layout');
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error asignando período de prueba:', error);
+    return { success: false, error: error.message || 'Error al actualizar el período de prueba' };
   }
 }

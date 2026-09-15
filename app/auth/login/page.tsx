@@ -86,6 +86,11 @@ export default function LoginPage() {
           type: 'error',
           message: 'La empresa se encuentra inactiva o con licencia suspendida. Comunícate con el administrador.',
         });
+      } else if (reason === 'trial_expired') {
+        setAuthStatus({
+          type: 'error',
+          message: 'El período de prueba de tu empresa ha finalizado. Adquiere un plan para reactivar el acceso completo a la plataforma o comunícate con el administrador.',
+        });
       }
     }
   }, []);
@@ -106,19 +111,39 @@ export default function LoginPage() {
         const user = session?.user;
 
         // Si no es SuperAdmin y la empresa no está activa, alertar y enviar a planes
-        if (user && user.role !== 'SUPERADMIN' && user.companyStatus !== 'ACTIVE') {
-          const Swal = (await import('sweetalert2')).default;
-          await Swal.fire({
-            icon: 'info',
-            title: 'Licencia Pendiente de Activación',
-            text: 'Tu cuenta corporativa no tiene una licencia activa. Por favor, selecciona y adquiere un plan para activar tu sistema.',
-            confirmButtonText: 'Ver Planes de Licencia',
-            confirmButtonColor: '#dc2626',
-            allowOutsideClick: false,
-            allowEscapeKey: false
-          });
-          router.replace('/#planes');
-          return;
+        if (user && user.role !== 'SUPERADMIN') {
+          if (user.companyStatus !== 'ACTIVE') {
+            const Swal = (await import('sweetalert2')).default;
+            await Swal.fire({
+              icon: 'info',
+              title: 'Licencia Pendiente de Activación',
+              text: 'Tu cuenta corporativa no tiene una licencia activa. Por favor, selecciona y adquiere un plan para activar tu sistema.',
+              confirmButtonText: 'Ver Planes de Licencia',
+              confirmButtonColor: '#dc2626',
+              allowOutsideClick: false,
+              allowEscapeKey: false
+            });
+            router.replace('/#planes');
+            return;
+          }
+
+          if ((user as any).isTrial && (user as any).trialEndsAt) {
+            const trialEnds = new Date((user as any).trialEndsAt);
+            if (trialEnds < new Date()) {
+              const Swal = (await import('sweetalert2')).default;
+              await Swal.fire({
+                icon: 'warning',
+                title: 'Período de Prueba Finalizado',
+                text: 'El período de prueba de tu empresa ha concluido. Para reactivar el acceso completo a los módulos y herramientas, adquiere un plan o comunícate con el administrador.',
+                confirmButtonText: 'Ver Planes de Licencia',
+                confirmButtonColor: '#2563eb',
+                allowOutsideClick: false,
+                allowEscapeKey: false
+              });
+              router.replace('/#planes');
+              return;
+            }
+          }
         }
 
         setAuthStatus({
@@ -169,7 +194,10 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = () => {
-    signIn('google', { callbackUrl: '/dashboard' });
+    signIn('google', {
+      callbackUrl: '/dashboard',
+      prompt: 'select_account'
+    });
   };
 
   return (
@@ -393,6 +421,7 @@ export default function LoginPage() {
                 <Input
                   id="email"
                   type="email"
+                  autoComplete="email"
                   placeholder="tu-correo@empresa.com"
                   {...register('email')}
                   className="pl-9 h-9.5 border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 text-slate-900 dark:text-white text-xs rounded-xl focus:border-blue-600 focus:bg-white dark:focus:bg-slate-900 transition"
@@ -424,6 +453,7 @@ export default function LoginPage() {
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
                   placeholder="Ingresa tu contraseña"
                   {...register('password')}
                   className="pl-9 pr-9 h-9.5 border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 text-slate-900 dark:text-white text-xs rounded-xl focus:border-blue-600 focus:bg-white dark:focus:bg-slate-900 transition"

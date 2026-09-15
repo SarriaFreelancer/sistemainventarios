@@ -317,6 +317,10 @@ model Company {
   maxProducts      Int?
   maxSalesPerMonth Int?
 
+  isTrial        Boolean   @default(false)
+  trialStartedAt DateTime?
+  trialEndsAt    DateTime?
+
   serverId     String?
   server       Server?  @relation("ServerCompanies", fields: [serverId], references: [id])
   ownedServers Server[] @relation("CompanyServers")

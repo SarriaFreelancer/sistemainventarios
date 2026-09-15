@@ -34,6 +34,13 @@ export const authOptions: AuthOptions = {
       clientId: process.env.GOOGLE_CLIENT_ID || '',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
       checks: ['pkce', 'state'],
+      authorization: {
+        params: {
+          prompt: 'select_account',
+          access_type: 'offline',
+          response_type: 'code',
+        },
+      },
     }),
     Credentials({
 
@@ -147,6 +154,8 @@ export const authOptions: AuthOptions = {
           companyId: user.companyId ? String(user.companyId) : null,
           companyStatus: user.company?.status || null,
           companyPlan: user.company?.planId || null,
+          isTrial: (user.company as any)?.isTrial ?? false,
+          trialEndsAt: (user.company as any)?.trialEndsAt ? new Date((user.company as any).trialEndsAt).toISOString() : null,
           sessionToken // Add the token
         };
       },
@@ -229,6 +238,8 @@ export const authOptions: AuthOptions = {
         token.companyId = dbUser.companyId ? String(dbUser.companyId) : null;
         token.companyStatus = dbUser.company?.status || null;
         token.companyPlan = dbUser.company?.planId || null;
+        token.isTrial = (dbUser.company as any)?.isTrial ?? false;
+        token.trialEndsAt = (dbUser.company as any)?.trialEndsAt ? new Date((dbUser.company as any).trialEndsAt).toISOString() : null;
 
         if (dbUser.companyId) {
           try {
@@ -255,6 +266,8 @@ export const authOptions: AuthOptions = {
         token.companyId = user.companyId;
         token.companyStatus = user.companyStatus;
         token.companyPlan = user.companyPlan;
+        token.isTrial = user.isTrial ?? false;
+        token.trialEndsAt = user.trialEndsAt ?? null;
         if (user.sessionToken) {
           token.sessionToken = user.sessionToken;
         }
@@ -272,22 +285,38 @@ export const authOptions: AuthOptions = {
       if (trigger === 'update' && session) {
         if (session.companyStatus) token.companyStatus = session.companyStatus;
         if (session.companyPlan) token.companyPlan = session.companyPlan;
+        if (session.isTrial !== undefined) token.isTrial = session.isTrial;
+        if (session.trialEndsAt !== undefined) token.trialEndsAt = session.trialEndsAt;
       }
 
 
-      // Auto-heal session: If token says SUSPENDED, check DB to see if they just paid
-      if (token.companyStatus === 'SUSPENDED' && token.companyId) {
+      // Auto-heal session: If token says SUSPENDED, check DB to see if they just paid or updated trial
+      if (token.companyId) {
         try {
+          const companyId = parseInt(token.companyId as string, 10);
           const company = await prisma.company.findUnique({
-            where: { id: parseInt(token.companyId as string, 10) },
+            where: { id: companyId },
             select: { status: true, planId: true }
           });
           if (company) {
             token.companyStatus = company.status;
             token.companyPlan = company.planId;
           }
-        } catch (e) {
-          console.error("Error auto-healing session", e);
+
+          try {
+            const trialRows: any[] = await prisma.$queryRawUnsafe(
+              'SELECT isTrial, trialEndsAt FROM `Company` WHERE id = ? LIMIT 1',
+              companyId
+            );
+            if (trialRows && trialRows[0]) {
+              token.isTrial = Boolean(trialRows[0].isTrial);
+              token.trialEndsAt = trialRows[0].trialEndsAt ? new Date(trialRows[0].trialEndsAt).toISOString() : null;
+            }
+          } catch {
+            // Silently fallback if column doesn't exist
+          }
+        } catch (e: any) {
+          console.error("Error auto-healing session:", e?.message || e);
         }
       }
 
@@ -300,6 +329,8 @@ export const authOptions: AuthOptions = {
         session.user.companyId = token.companyId;
         session.user.companyStatus = token.companyStatus;
         session.user.companyPlan = token.companyPlan;
+        session.user.isTrial = token.isTrial ?? false;
+        session.user.trialEndsAt = token.trialEndsAt ?? null;
         session.user.sessionToken = token.sessionToken;
 
         if (token.id) {
@@ -315,6 +346,8 @@ export const authOptions: AuthOptions = {
             session.user.role = dbUser.role?.name;
             session.user.companyStatus = dbUser.company?.status || null;
             session.user.companyPlan = dbUser.company?.planId || null;
+            session.user.isTrial = (dbUser.company as any)?.isTrial ?? false;
+            session.user.trialEndsAt = (dbUser.company as any)?.trialEndsAt ? new Date((dbUser.company as any).trialEndsAt).toISOString() : null;
             if (dbUser.image) session.user.image = dbUser.image;
             if (dbUser.name) session.user.name = dbUser.name;
             if (dbUser.preferences) {

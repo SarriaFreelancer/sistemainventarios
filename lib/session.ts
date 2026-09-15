@@ -30,10 +30,30 @@ export async function resolveActionCompanyId(): Promise<number> {
   const session = await getAuthSession();
   if (!session?.user) throw new Error("No autenticado");
 
+  if (session.user.role === 'SUPERADMIN') {
+    // Si es superadmin y no tiene companyId, o maneja alguna específica
+    if (session.user.companyId) {
+      return Number(session.user.companyId);
+    }
+  }
+
   if (session.user.companyId) {
     const candidateId = Number(session.user.companyId);
     const existingCompany = await prisma.company.findUnique({ where: { id: candidateId } });
     if (existingCompany) {
+      // Validar si el período de prueba de la empresa venció
+      if (session.user.role !== 'SUPERADMIN') {
+        if (existingCompany.status !== 'ACTIVE') {
+          throw new Error("Tu empresa se encuentra inactiva o con licencia suspendida. Por favor comunícate con el administrador.");
+        }
+        if ((existingCompany as any).isTrial) {
+          const trialEndsAt = (existingCompany as any).trialEndsAt;
+          if (trialEndsAt && new Date(trialEndsAt) < new Date()) {
+            throw new Error("El período de prueba de tu empresa ha finalizado. Para continuar utilizando las funcionalidades y módulos del sistema, por favor adquiere un plan de suscripción o comunícate con el administrador.");
+          }
+        }
+      }
+
       return existingCompany.id;
     }
   }

@@ -122,6 +122,29 @@ export async function register() {
       }
     });
 
-    console.log('[CRON] Tareas programadas de respaldo inicializadas.');
+    // Ejecutar cada hora para monitorear empresas con período de prueba vencido
+    cron.schedule('0 * * * *', async () => {
+      try {
+        let prismaClient: any;
+        try {
+          prismaClient = (await import('./lib/prisma')).prisma;
+        } catch {
+          return;
+        }
+        if (!prismaClient) return;
+
+        const expiredTrials: any[] = await prismaClient.$queryRawUnsafe(
+          'SELECT id, name, trialEndsAt FROM `Company` WHERE isTrial = 1 AND trialEndsAt < NOW() AND status = "ACTIVE"'
+        );
+
+        if (expiredTrials && expiredTrials.length > 0) {
+          console.log(`[TRIAL CRON] Se detectaron ${expiredTrials.length} empresas con período de prueba vencido:`, expiredTrials.map((c: any) => `${c.name} (ID: ${c.id})`));
+        }
+      } catch (err) {
+        console.error('[TRIAL CRON ERROR]', err);
+      }
+    });
+
+    console.log('[CRON] Tareas programadas de respaldo y prueba inicializadas.');
   }
 }

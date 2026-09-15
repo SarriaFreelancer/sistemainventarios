@@ -87,35 +87,97 @@ BOLD_INTEGRITY_KEY="tu_bold_integrity_key_secreta"
 
 ### 2. Instalación de Dependencias
 
-Se recomienda utilizar `pnpm` como gestor de paquetes:
+Se recomienda utilizar `pnpm` como gestor de paquetes principal:
 
 ```bash
 pnpm install
 ```
 
-### 3. Migración e Inicialización de la Base de Datos
+### 3. Inicialización de la Base de Datos y Prisma
 
-Ejecuta las migraciones de Prisma para sincronizar el esquema con tu base de datos MySQL local:
+1. **Sincronizar el esquema con la base de datos MySQL**:
+   ```bash
+   pnpm run db:push
+   ```
+
+2. **Generar el Cliente de Prisma** (OBLIGATORIO tras clonar o modificar `schema.prisma`):
+   ```bash
+   pnpm run db:generate
+   ```
+
+3. **Cargar datos iniciales de prueba (Seed)**:
+   Puebla la base de datos con roles iniciales, empresas de ejemplo y estructura base:
+   ```bash
+   pnpm run db:seed
+   ```
+
+---
+
+## 💻 Comandos para Levantar el Servidor
+
+### 🟢 Modo Desarrollo (Local)
+
+- **Modo Estándar (Recomendado)**:
+  ```bash
+  pnpm dev
+  ```
+- **Modo Limpio (Limpia `.next` si hay errores de caché o compilación)**:
+  ```bash
+  pnpm run dev:clean
+  ```
+
+Abre [http://localhost:3000](http://localhost:3000) en tu navegador para ver la aplicación.
+
+---
+
+### 🚀 Modo Producción
+
+1. **Compilar la aplicación**:
+   ```bash
+   pnpm build
+   ```
+
+2. **Iniciar el servidor compilado**:
+   ```bash
+   pnpm start
+   ```
+
+---
+
+### ⚡ Gestión con PM2 (Servicios en Segundo Plano)
+
+Si administras el servidor mediante **PM2** (con `ecosystem.config.cjs`):
+
+| Acción | Comando |
+| :--- | :--- |
+| **Iniciar en Desarrollo (gns-dev)** | `pnpm run pm2:dev` |
+| **Iniciar en Producción (gns)** | `pnpm run pm2:prod` |
+| **Ver estado de los servicios** | `pm2 status` |
+| **Ver logs en tiempo real (dev)** | `pm2 logs gns-dev` |
+| **Ver logs en tiempo real (prod)** | `pm2 logs gns` |
+| **Reiniciar servicio** | `pm2 restart gns-dev` *(o `pm2 restart all`)* |
+| **Detener servicio** | `pm2 stop gns-dev` *(o `pm2 stop all`)* |
+| **Guardar configuración activa** | `pm2 save` |
+
+> [!TIP]
+> **Si realizas cambios en la estructura de la base de datos (`schema.prisma`):**
+> 1. `pnpm run db:push`
+> 2. `pnpm run db:generate` *(o `pnpm run prisma:generate`)*
+> 3. `pm2 restart gns-dev` *(o reiniciar tu servidor activo)*
+
+---
+
+## 🧪 Pruebas Automatizadas (E2E)
+
+El proyecto incluye una suite completa de pruebas End-to-End con **Playwright**:
 
 ```bash
-pnpm prisma db push
+# Ejecutar todas las pruebas E2E en consola
+pnpm test:e2e
+
+# Abrir el panel interactivo visual de Playwright
+pnpm test:e2e:ui
 ```
-
-Puebla la base de datos con los datos de ejemplo iniciales (seed) que contienen la estructura básica (roles de usuario, categorías iniciales y empresas de muestra):
-
-```bash
-pnpm run db:seed
-```
-
-### 4. Ejecutar el Servidor de Desarrollo
-
-Inicia la aplicación en modo desarrollo:
-
-```bash
-pnpm dev
-```
-
-Abre [http://localhost:3000](http://localhost:3000) en tu navegador para ver el resultado.
 
 ---
 
@@ -131,4 +193,4 @@ El archivo `.env` local contiene información crítica y credenciales de acceso 
 
 ---
 
-_GNS SarriaTech — Premium Business System para la gestión eficiente y elegante de tu negocio..._
+_GNS SarriaTech — Premium Business System para la gestión eficiente y elegante de tu negocio._

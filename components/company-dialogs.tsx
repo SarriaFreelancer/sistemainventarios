@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CheckCircle2, Plus, Pencil, Trash2, XCircle, Folder, Search, Building2, Users, FileText, SlidersHorizontal, ChevronDown, RotateCw, ChevronsUpDown } from "lucide-react";
+import { CheckCircle2, Plus, Pencil, Trash2, XCircle, Folder, Search, Building2, Users, FileText, SlidersHorizontal, ChevronDown, RotateCw, ChevronsUpDown, Clock, ShieldAlert, AlertTriangle } from "lucide-react";
 import { confirmAction, errorAlert, successAlert } from "@/lib/sweetalert";
-import { createCompany, deleteCompany, updateCompany } from "@/app/actions/company-actions";
+import { createCompany, deleteCompany, updateCompany, setCompanyTrialAction } from "@/app/actions/company-actions";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { COLOMBIAN_CITIES } from "@/lib/colombian-cities";
 import { WORLD_COUNTRIES } from "@/lib/world-countries";
@@ -30,6 +30,9 @@ interface Company {
   planId?: string | null;
   maxUsers?: number | null;
   maxProducts?: number | null;
+  isTrial?: boolean;
+  trialStartedAt?: string | null;
+  trialEndsAt?: string | null;
   _count: { users: number };
 }
 
@@ -38,16 +41,16 @@ const selectCls = "flex h-11 w-full rounded-xl border border-border/80 bg-backgr
 const labelCls = "text-[10px] font-bold uppercase tracking-wider text-muted-foreground";
 
 const POPULAR_COUNTRIES = [
-  "Colombia", "México", "España", "Argentina", "Chile", "Perú", "Ecuador", "Venezuela", 
-  "Bolivia", "Uruguay", "Paraguay", "Costa Rica", "Panamá", "Guatemala", "Honduras", 
+  "Colombia", "México", "España", "Argentina", "Chile", "Perú", "Ecuador", "Venezuela",
+  "Bolivia", "Uruguay", "Paraguay", "Costa Rica", "Panamá", "Guatemala", "Honduras",
   "El Salvador", "República Dominicana", "Estados Unidos"
 ];
 
 const POPULAR_CITIES = [
-  "Bogotá", "Medellín", "Cali", "Barranquilla", "Cartagena", "Bucaramanga", "Pereira", 
-  "Manizales", "Cúcuta", "Ibagué", "Santa Marta", "Ciudad de México", "Guadalajara", 
-  "Monterrey", "Puebla", "Tijuana", "León", "Madrid", "Barcelona", "Valencia", "Sevilla", 
-  "Zaragoza", "Málaga", "Buenos Aires", "Santiago", "Lima", "Quito", "Guayaquil", 
+  "Bogotá", "Medellín", "Cali", "Barranquilla", "Cartagena", "Bucaramanga", "Pereira",
+  "Manizales", "Cúcuta", "Ibagué", "Santa Marta", "Ciudad de México", "Guadalajara",
+  "Monterrey", "Puebla", "Tijuana", "León", "Madrid", "Barcelona", "Valencia", "Sevilla",
+  "Zaragoza", "Málaga", "Buenos Aires", "Santiago", "Lima", "Quito", "Guayaquil",
   "Caracas", "Montevideo", "Asunción"
 ];
 
@@ -55,11 +58,21 @@ export function CreateCompanyDialog({ modules }: { modules: Module[] }) {
   const [open, setOpen] = useState(false);
   const [city, setCity] = useState("Bogotá");
   const [country, setCountry] = useState("Colombia");
+  const [isTrial, setIsTrial] = useState(false);
+  const [trialDaysOption, setTrialDaysOption] = useState("15");
+  const [customTrialDays, setCustomTrialDays] = useState("15");
   const [isPending, startTransition] = useTransition();
 
   async function handleAction(formData: FormData) {
     formData.set('city', city);
     formData.set('country', country);
+    if (isTrial) {
+      formData.set('isTrial', 'true');
+      const days = trialDaysOption === 'custom' ? customTrialDays : trialDaysOption;
+      formData.set('trialDays', days);
+    } else {
+      formData.set('isTrial', 'false');
+    }
     startTransition(async () => {
       const result = await createCompany(formData);
       if (result?.success) {
@@ -67,6 +80,8 @@ export function CreateCompanyDialog({ modules }: { modules: Module[] }) {
         setOpen(false);
         setCity("Bogotá");
         setCountry("Colombia");
+        setIsTrial(false);
+        setTrialDaysOption("15");
       } else {
         errorAlert('Error al crear', result?.error ?? 'No se pudo crear la empresa.');
       }
@@ -75,13 +90,13 @@ export function CreateCompanyDialog({ modules }: { modules: Module[] }) {
 
   return (
     <>
-      <Button onClick={() => setOpen(true)} className="flex items-center gap-2 px-5 h-11 rounded-2xl">
+      <Button onClick={() => setOpen(true)} className="flex items-center justify-center gap-2 w-full sm:w-auto px-5 h-11 rounded-2xl shadow-sm">
         <Plus className="h-4 w-4" />
         Nueva Empresa
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[520px] rounded-[32px] border-border/60 bg-card p-8 shadow-2xl shadow-primary/10">
+        <DialogContent className="sm:max-w-[520px] max-h-[90vh] overflow-y-auto rounded-[28px] sm:rounded-[32px] border-border/60 bg-card p-5 sm:p-8 shadow-2xl shadow-primary/10">
           <DialogHeader>
             <DialogTitle className="text-xl font-extrabold text-foreground flex items-center gap-2">
               <span className="w-2 h-6 bg-gradient-to-b from-primary to-[#C5A059] rounded-full" />
@@ -145,6 +160,84 @@ export function CreateCompanyDialog({ modules }: { modules: Module[] }) {
                   <option value="INACTIVE">Inactivo</option>
                 </select>
               </div>
+
+              {/* Sección Período de Prueba */}
+              <div className="sm:col-span-2 p-4 bg-muted/40 rounded-2xl border border-border/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-xs font-extrabold text-foreground flex items-center gap-1.5 cursor-pointer">
+                      <span>Asignar Período de Prueba Gratuito</span>
+                      <span className="text-[9.5px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-black border border-blue-500/20">
+                        Superadmin
+                      </span>
+                    </Label>
+                    <p className="text-[11px] text-muted-foreground">
+                      Permite acceso completo durante los días elegidos. Al finalizar, el acceso a las funciones se bloqueará hasta adquirir un plan.
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={isTrial}
+                    onChange={(e) => setIsTrial(e.target.checked)}
+                    className="w-5 h-5 rounded border-border text-primary focus:ring-primary cursor-pointer"
+                  />
+                </div>
+
+                {isTrial && (
+                  <div className="pt-2 border-t border-border/60 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => { setTrialDaysOption("15"); setCustomTrialDays("15"); }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition border ${
+                          trialDaysOption === "15"
+                            ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                            : "bg-background text-muted-foreground border-border hover:text-foreground"
+                        }`}
+                      >
+                        15 Días
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setTrialDaysOption("30"); setCustomTrialDays("30"); }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition border ${
+                          trialDaysOption === "30"
+                            ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                            : "bg-background text-muted-foreground border-border hover:text-foreground"
+                        }`}
+                      >
+                        1 Mes (30 días)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTrialDaysOption("custom")}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition border ${
+                          trialDaysOption === "custom"
+                            ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                            : "bg-background text-muted-foreground border-border hover:text-foreground"
+                        }`}
+                      >
+                        Personalizado
+                      </button>
+                    </div>
+
+                    {trialDaysOption === "custom" && (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min="1"
+                          max="365"
+                          value={customTrialDays}
+                          onChange={(e) => setCustomTrialDays(e.target.value)}
+                          placeholder="Días"
+                          className="w-24 h-9 text-xs rounded-xl bg-background"
+                        />
+                        <span className="text-xs text-muted-foreground font-semibold">días</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
               <div className="space-y-1.5">
                 <Label htmlFor="company-theme-color" className={labelCls}>Color Primario</Label>
                 <div className="flex gap-2 items-center">
@@ -200,6 +293,9 @@ export function EditCompanyDialog({ company, modules }: { company: Company; modu
   const [darkCardBg, setDarkCardBg] = useState((company.themeConfig as any)?.darkCardBg || "#0f2744");
   const [darkSidebarBg, setDarkSidebarBg] = useState((company.themeConfig as any)?.darkSidebarBg || "#0d1f38");
   const [darkTextColor, setDarkTextColor] = useState((company.themeConfig as any)?.darkTextColor || "#93c5fd");
+  const [isTrial, setIsTrial] = useState(company.isTrial ?? false);
+  const [trialDaysOption, setTrialDaysOption] = useState<"15" | "30" | "custom">("15");
+  const [customTrialDays, setCustomTrialDays] = useState<string>("15");
   const [isPending, startTransition] = useTransition();
 
   const applyPreset = (key: string) => {
@@ -213,6 +309,11 @@ export function EditCompanyDialog({ company, modules }: { company: Company; modu
   async function handleAction(formData: FormData) {
     formData.set('city', city);
     formData.set('country', country);
+    formData.set('isTrial', isTrial ? 'true' : 'false');
+    if (isTrial) {
+      const days = trialDaysOption === 'custom' ? (parseInt(customTrialDays, 10) || 15) : parseInt(trialDaysOption, 10);
+      formData.set('trialDays', String(days));
+    }
     startTransition(async () => {
       const result = await updateCompany(formData);
       if (result?.success) {
@@ -236,7 +337,7 @@ export function EditCompanyDialog({ company, modules }: { company: Company; modu
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[520px] rounded-[32px] border-border/60 bg-card p-8 shadow-2xl shadow-primary/10">
+        <DialogContent className="sm:max-w-[520px] max-h-[90vh] overflow-y-auto rounded-[28px] sm:rounded-[32px] border-border/60 bg-card p-5 sm:p-8 shadow-2xl shadow-primary/10">
           <DialogHeader>
             <DialogTitle className="text-xl font-extrabold text-foreground flex items-center gap-2">
               <span className="w-2 h-6 bg-gradient-to-b from-primary to-[#C5A059] rounded-full" />
@@ -304,13 +405,13 @@ export function EditCompanyDialog({ company, modules }: { company: Company; modu
               <div className="space-y-1.5">
                 <Label htmlFor={`edit-company-theme-color-${company.id}`} className={labelCls}>Color Primario</Label>
                 <div className="flex gap-2 items-center">
-                  <Input 
-                    id={`edit-company-theme-color-${company.id}`} 
-                    type="color" 
-                    name="themeColor" 
-                    value={primaryColor} 
-                    onChange={(e) => setPrimaryColor(e.target.value)} 
-                    className="w-12 p-1 h-11 rounded-xl cursor-pointer bg-background" 
+                  <Input
+                    id={`edit-company-theme-color-${company.id}`}
+                    type="color"
+                    name="themeColor"
+                    value={primaryColor}
+                    onChange={(e) => setPrimaryColor(e.target.value)}
+                    className="w-12 p-1 h-11 rounded-xl cursor-pointer bg-background"
                   />
                   <span className="text-xs text-muted-foreground">{primaryColor}</span>
                 </div>
@@ -321,6 +422,97 @@ export function EditCompanyDialog({ company, modules }: { company: Company; modu
                   <option value="dark">Oscuro</option>
                   <option value="light">Claro</option>
                 </select>
+              </div>
+
+              {/* Sección Período de Prueba */}
+              <div className="sm:col-span-2 p-4 bg-muted/40 rounded-2xl border border-border/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-xs font-extrabold text-foreground flex items-center gap-1.5 cursor-pointer">
+                      <span>Período de Prueba Gratuito</span>
+                      <span className="text-[9.5px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-black border border-blue-500/20">
+                        Superadmin
+                      </span>
+                    </Label>
+                    <p className="text-[11px] text-muted-foreground">
+                      Si se activa, la empresa tendrá acceso temporal. Al vencer, no podrá usar módulos ni guardar cambios hasta pagar o renovar.
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={isTrial}
+                    onChange={(e) => setIsTrial(e.target.checked)}
+                    className="w-5 h-5 rounded border-border text-primary focus:ring-primary cursor-pointer"
+                  />
+                </div>
+
+                {isTrial && (
+                  <div className="pt-2 border-t border-border/60 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => { setTrialDaysOption("15"); setCustomTrialDays("15"); }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition border ${
+                          trialDaysOption === "15"
+                            ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                            : "bg-background text-muted-foreground border-border hover:text-foreground"
+                        }`}
+                      >
+                        15 Días
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setTrialDaysOption("30"); setCustomTrialDays("30"); }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition border ${
+                          trialDaysOption === "30"
+                            ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                            : "bg-background text-muted-foreground border-border hover:text-foreground"
+                        }`}
+                      >
+                        1 Mes (30 días)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTrialDaysOption("custom")}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition border ${
+                          trialDaysOption === "custom"
+                            ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                            : "bg-background text-muted-foreground border-border hover:text-foreground"
+                        }`}
+                      >
+                        Personalizado
+                      </button>
+                    </div>
+
+                    {trialDaysOption === "custom" && (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min="1"
+                          max="365"
+                          value={customTrialDays}
+                          onChange={(e) => setCustomTrialDays(e.target.value)}
+                          placeholder="Días"
+                          className="w-24 h-9 text-xs rounded-xl bg-background"
+                        />
+                        <span className="text-xs text-muted-foreground font-semibold">días</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {company.isTrial && company.trialEndsAt && (
+                  <div className="text-[11px] font-semibold text-muted-foreground pt-1 border-t border-border/40 flex items-center justify-between">
+                    <span>Vencimiento actual: {new Date(company.trialEndsAt).toLocaleDateString()}</span>
+                    {new Date(company.trialEndsAt).getTime() < Date.now() ? (
+                      <span className="text-rose-500 font-bold">⚠️ Vencido</span>
+                    ) : (
+                      <span className="text-emerald-500 font-bold">
+                        {Math.max(0, Math.ceil((new Date(company.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))} días restantes
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Tema Oscuro Personalizable */}
@@ -408,6 +600,220 @@ export function DeleteCompanyButton({ id, name }: { id: number; name: string }) 
   );
 }
 
+export function QuickTrialDialog({ company }: { company: Company }) {
+  const [open, setOpen] = useState(false);
+  const [days, setDays] = useState(15);
+  const [customDays, setCustomDays] = useState("15");
+  const [isTrial, setIsTrial] = useState(company.isTrial ?? false);
+  const [isPending, startTransition] = useTransition();
+
+  const isExpired = Boolean(company.isTrial && company.trialEndsAt && new Date(company.trialEndsAt).getTime() < Date.now());
+  const daysLeft = company.trialEndsAt ? Math.max(0, Math.ceil((new Date(company.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : 0;
+
+  const handleSave = async () => {
+    startTransition(async () => {
+      const targetDays = days === -1 ? (parseInt(customDays, 10) || 15) : days;
+      const res = await setCompanyTrialAction(company.id, targetDays, isTrial, false);
+      if (res.success) {
+        successAlert("Período de prueba actualizado", `Se ha configurado el período de prueba para "${company.name}".`);
+        setOpen(false);
+      } else {
+        errorAlert("Error", res.error || "No se pudo actualizar el período de prueba.");
+      }
+    });
+  };
+
+  const handleExpireNow = async () => {
+    const confirmed = await confirmAction(
+      "¿Vencer prueba inmediatamente?",
+      `Esta acción forzará que el período de prueba de "${company.name}" quede vencido ahora mismo. Podrás comprobar cómo el sistema bloquea los módulos, el menú lateral y las mutaciones.`,
+      "Sí, forzar vencimiento",
+      "Cancelar"
+    );
+    if (!confirmed) return;
+
+    startTransition(async () => {
+      const res = await setCompanyTrialAction(company.id, 0, true, true);
+      if (res.success) {
+        successAlert("Prueba vencida", `La prueba de "${company.name}" ahora está VENCIDA. Puedes ingresar con un usuario de esa empresa para ver el bloqueo.`);
+        setOpen(false);
+      } else {
+        errorAlert("Error", res.error || "No se pudo vencer la prueba.");
+      }
+    });
+  };
+
+  const handleCancelTrial = async () => {
+    const confirmed = await confirmAction(
+      "¿Cancelar período de prueba?",
+      `Se desactivará el modo de prueba para "${company.name}" y operará bajo su plan regular sin restricciones de prueba.`,
+      "Sí, cancelar prueba",
+      "Volver"
+    );
+    if (!confirmed) return;
+
+    startTransition(async () => {
+      const res = await setCompanyTrialAction(company.id, 0, false, false);
+      if (res.success) {
+        successAlert("Prueba cancelada", `Se desactivó el modo prueba para "${company.name}".`);
+        setOpen(false);
+      } else {
+        errorAlert("Error", res.error || "No se pudo cancelar el período.");
+      }
+    });
+  };
+
+  return (
+    <>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        title="Gestionar período de prueba"
+        onClick={() => setOpen(true)}
+        className={`h-9 w-9 rounded-xl transition-all ${
+          company.isTrial
+            ? (isExpired ? "text-rose-500 bg-rose-500/10 hover:bg-rose-500/20" : "text-blue-500 bg-blue-500/10 hover:bg-blue-500/20")
+            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+        }`}
+      >
+        <Clock className="h-4 w-4" />
+      </Button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-[460px] max-h-[90vh] overflow-y-auto rounded-[28px] sm:rounded-[32px] border-border/60 bg-card p-5 sm:p-6 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-black text-foreground flex items-center gap-2">
+              <span className="w-2 h-5 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-full" />
+              Período de Prueba — {company.name}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-3">
+            <div className="p-3.5 bg-muted/40 rounded-2xl border border-border/60 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-foreground">Estado de Prueba</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {company.isTrial
+                    ? (isExpired ? "⚠️ Prueba actualmente vencida" : `✅ Activa (${daysLeft} días restantes)`)
+                    : "Empresa con plan regular / sin prueba"}
+                </p>
+              </div>
+              <input
+                type="checkbox"
+                checked={isTrial}
+                onChange={(e) => setIsTrial(e.target.checked)}
+                className="w-5 h-5 rounded border-border text-primary focus:ring-primary cursor-pointer"
+              />
+            </div>
+
+            {/* Botón para forzar vencimiento inmediato y probar el bloqueo */}
+            <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-black text-rose-700 dark:text-rose-300">Simulación y Pruebas</p>
+                  <p className="text-[11px] text-rose-600/80 dark:text-rose-400/80 mt-0.5">
+                    Fuerza la expiración inmediata de la prueba de esta empresa para verificar cómo el sistema bloquea los módulos, el menú lateral y las transacciones.
+                  </p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="destructive"
+                disabled={isPending}
+                onClick={handleExpireNow}
+                className="w-full h-9 rounded-xl text-xs font-extrabold bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+              >
+                <ShieldAlert className="w-3.5 h-3.5" />
+                Vencer Prueba Inmediatamente (Probar Bloqueo)
+              </Button>
+            </div>
+
+            {isTrial && (
+              <div className="space-y-3">
+                <p className="text-xs font-bold text-foreground">Asignar o Renovar Días:</p>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setDays(15); setCustomDays("15"); }}
+                    className={`py-2 px-3 text-xs font-bold rounded-xl border transition cursor-pointer ${
+                      days === 15 ? "bg-primary text-primary-foreground border-primary shadow-sm" : "bg-background border-border text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    15 Días
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setDays(30); setCustomDays("30"); }}
+                    className={`py-2 px-3 text-xs font-bold rounded-xl border transition cursor-pointer ${
+                      days === 30 ? "bg-primary text-primary-foreground border-primary shadow-sm" : "bg-background border-border text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    1 Mes (30d)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDays(-1)}
+                    className={`py-2 px-3 text-xs font-bold rounded-xl border transition cursor-pointer ${
+                      days === -1 ? "bg-primary text-primary-foreground border-primary shadow-sm" : "bg-background border-border text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Personalizado
+                  </button>
+                </div>
+
+                {days === -1 && (
+                  <div className="flex items-center gap-2 pt-1">
+                    <Label className="text-xs font-bold text-muted-foreground whitespace-nowrap">Días de prueba:</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="365"
+                      value={customDays}
+                      onChange={(e) => setCustomDays(e.target.value)}
+                      className="h-10 text-xs rounded-xl bg-background"
+                    />
+                  </div>
+                )}
+
+                {company.trialEndsAt && (
+                  <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-[11px] text-blue-700 dark:text-blue-300">
+                    <p>Vencimiento actual: <b>{new Date(company.trialEndsAt).toLocaleDateString()}</b> ({isExpired ? "Vencida" : `${daysLeft} días restantes`})</p>
+                    <p className="text-[10px] opacity-80 mt-0.5">Al presionar Aplicar, se reactivará la prueba desde hoy por los días elegidos.</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {company.isTrial && (
+              <div className="pt-1 text-center">
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={handleCancelTrial}
+                  className="text-[11px] font-bold text-muted-foreground hover:text-rose-500 underline transition cursor-pointer"
+                >
+                  Cancelar / Remover modo prueba (volver a plan regular)
+                </button>
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-2 border-t border-border/60">
+              <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1 rounded-xl text-xs">
+                Cerrar
+              </Button>
+              <Button type="button" onClick={handleSave} disabled={isPending} className="flex-1 rounded-xl text-xs">
+                {isPending ? "Guardando..." : "Aplicar Días"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 export function CompaniesClient({ companies, modules }: { companies: Company[]; modules: Module[] }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -440,9 +846,9 @@ export function CompaniesClient({ companies, modules }: { companies: Company[]; 
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      
+
       {/* ── 1. Encabezado Módulo Empresas ── */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-card border border-border/60 rounded-3xl p-6 shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-card border border-border/60 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-sm shrink-0">
             <Building2 className="w-6 h-6" />
@@ -460,9 +866,9 @@ export function CompaniesClient({ companies, modules }: { companies: Company[]; 
 
       {/* ── 2. Tarjetas de Estadísticas Principales (Sparklines) ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        
+
         {/* Total Empresas */}
-        <div className="bg-card border border-border/60 rounded-3xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between hover:shadow-md transition">
+        <div className="bg-card border border-border/60 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-sm relative overflow-hidden flex flex-col justify-between hover:shadow-md transition">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">TOTAL EMPRESAS</p>
@@ -483,7 +889,7 @@ export function CompaniesClient({ companies, modules }: { companies: Company[]; 
         </div>
 
         {/* Activas */}
-        <div className="bg-card border border-border/60 rounded-3xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between hover:shadow-md transition">
+        <div className="bg-card border border-border/60 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-sm relative overflow-hidden flex flex-col justify-between hover:shadow-md transition">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">ACTIVAS</p>
@@ -503,7 +909,7 @@ export function CompaniesClient({ companies, modules }: { companies: Company[]; 
         </div>
 
         {/* Inactivas */}
-        <div className="bg-card border border-border/60 rounded-3xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between hover:shadow-md transition">
+        <div className="bg-card border border-border/60 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-sm relative overflow-hidden flex flex-col justify-between hover:shadow-md transition">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">INACTIVAS</p>
@@ -523,7 +929,7 @@ export function CompaniesClient({ companies, modules }: { companies: Company[]; 
         </div>
 
         {/* Usuarios Totales */}
-        <div className="bg-card border border-border/60 rounded-3xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between hover:shadow-md transition">
+        <div className="bg-card border border-border/60 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-sm relative overflow-hidden flex flex-col justify-between hover:shadow-md transition">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">USUARIOS TOTALES</p>
@@ -567,7 +973,7 @@ export function CompaniesClient({ companies, modules }: { companies: Company[]; 
       </div>
 
       {/* ── 4. Tabla / Listado de Empresas ── */}
-      <div className="bg-card border border-border/60 rounded-3xl p-6 shadow-sm space-y-4">
+      <div className="bg-card border border-border/60 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-border/50">
           <div className="flex items-center gap-2">
             <span className="w-1.5 h-4 bg-emerald-500 rounded-full" />
@@ -594,8 +1000,8 @@ export function CompaniesClient({ companies, modules }: { companies: Company[]; 
             <p className="text-muted-foreground text-xs mt-1">Intenta ajustando el término de búsqueda o crea una nueva empresa.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-separate border-spacing-y-2">
+          <div className="overflow-x-auto -mx-1 sm:mx-0">
+            <table className="w-full min-w-[680px] text-left border-separate border-spacing-y-2">
               <thead>
                 <tr className="text-[10px] font-black uppercase tracking-wider text-muted-foreground border-b border-border/40">
                   <th className="py-2.5 px-4">
@@ -627,9 +1033,22 @@ export function CompaniesClient({ companies, modules }: { companies: Company[]; 
                           </div>
                           <div>
                             <h3 className="font-extrabold text-xs text-foreground group-hover:text-primary transition">{company.name}</h3>
-                            <p className="text-[11px] text-muted-foreground font-medium mt-0.5">
-                              {company.country || 'Colombia'} {company.nit ? `• NIT: ${company.nit}` : ''}
-                            </p>
+                            <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                              <span className="text-[11px] text-muted-foreground font-medium">
+                                {company.country || 'Colombia'} {company.nit ? `• NIT: ${company.nit}` : ''}
+                              </span>
+                              {company.isTrial && (
+                                company.trialEndsAt && new Date(company.trialEndsAt).getTime() < Date.now() ? (
+                                  <span className="text-[9px] px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 font-extrabold border border-rose-500/20">
+                                    Prueba Vencida
+                                  </span>
+                                ) : (
+                                  <span className="text-[9px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-extrabold border border-blue-500/20">
+                                    Prueba: {company.trialEndsAt ? Math.max(0, Math.ceil((new Date(company.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : 0}d restantes
+                                  </span>
+                                )
+                              )}
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -670,6 +1089,7 @@ export function CompaniesClient({ companies, modules }: { companies: Company[]; 
                       {/* Acciones */}
                       <td className="py-3 px-4 text-center rounded-r-2xl">
                         <div className="flex items-center justify-center gap-1">
+                          <QuickTrialDialog company={company} />
                           <EditCompanyDialog company={company} modules={modules} />
                           <DeleteCompanyButton id={company.id} name={company.name} />
                         </div>

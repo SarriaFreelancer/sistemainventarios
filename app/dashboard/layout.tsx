@@ -100,6 +100,8 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
 
   let companyName = '';
   let companyLogo: string | null = null;
+  let trialInfo: { isTrial: boolean; trialEndsAt: string | null; isExpired: boolean; daysLeft: number } | null = null;
+
   const tenantId = await getSessionCompanyId();
   if (tenantId) {
     const company = await prisma.company.findUnique({
@@ -113,6 +115,35 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     companyTheme = company?.themeConfig;
     companyName = company?.name || '';
     companyLogo = (company?.setting?.invoiceConfig as any)?.logo || null;
+
+    let isTrial = false;
+    let trialEndsAt: Date | null = null;
+    try {
+      const trialRows: any[] = await prisma.$queryRawUnsafe(
+        'SELECT isTrial, trialEndsAt FROM `Company` WHERE id = ? LIMIT 1',
+        tenantId
+      );
+      if (trialRows && trialRows[0]) {
+        isTrial = Boolean(trialRows[0].isTrial);
+        trialEndsAt = trialRows[0].trialEndsAt ? new Date(trialRows[0].trialEndsAt) : null;
+      }
+    } catch {
+      // Fallback si la tabla no tiene columnas de prueba
+    }
+
+    if (isTrial) {
+      const now = new Date();
+      const isExpired = trialEndsAt ? trialEndsAt.getTime() < now.getTime() : false;
+      const diffMs = trialEndsAt ? trialEndsAt.getTime() - now.getTime() : 0;
+      const daysLeft = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+
+      trialInfo = {
+        isTrial: true,
+        trialEndsAt: trialEndsAt ? trialEndsAt.toISOString() : null,
+        isExpired,
+        daysLeft
+      };
+    }
   }
 
   if (session.user.role === 'SUPERADMIN') {
@@ -166,6 +197,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         themeConfig={companyTheme}
         companyName={companyName}
         companyLogo={companyLogo}
+        trialInfo={trialInfo}
       >
         {children}
       </DashboardShell>

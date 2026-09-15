@@ -272,7 +272,8 @@ export default function RegisterPage() {
                 <Input
                   id="name"
                   type="text"
-                  placeholder="Tu nombre completo"
+                  autoComplete="name"
+                  placeholder="Ej. Juan Pérez"
                   {...register('name')}
                   className="pl-9 h-9 border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 text-slate-900 dark:text-white text-xs rounded-xl focus:border-blue-600 focus:bg-white dark:focus:bg-slate-900 transition"
                 />
@@ -294,7 +295,8 @@ export default function RegisterPage() {
                 <Input
                   id="companyName"
                   type="text"
-                  placeholder="Tu empresa"
+                  autoComplete="organization"
+                  placeholder="Ej. Inversiones Globales S.A.S"
                   {...register('companyName')}
                   className="pl-9 h-9 border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 text-slate-900 dark:text-white text-xs rounded-xl focus:border-blue-600 focus:bg-white dark:focus:bg-slate-900 transition"
                 />
@@ -316,6 +318,7 @@ export default function RegisterPage() {
                 <Input
                   id="email"
                   type="email"
+                  autoComplete="email"
                   placeholder="nombre@empresa.com"
                   {...register('email')}
                   className="pl-9 h-9 border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 text-slate-900 dark:text-white text-xs rounded-xl focus:border-blue-600 focus:bg-white dark:focus:bg-slate-900 transition"
@@ -338,6 +341,7 @@ export default function RegisterPage() {
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
                   placeholder="Crea una contraseña segura"
                   {...register('password')}
                   className="pl-9 pr-9 h-9 border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 text-slate-900 dark:text-white text-xs rounded-xl focus:border-blue-600 focus:bg-white dark:focus:bg-slate-900 transition"
@@ -381,6 +385,7 @@ export default function RegisterPage() {
                 <Input
                   id="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
                   placeholder="Confirma tu contraseña"
                   {...register('confirmPassword')}
                   className="pl-9 pr-9 h-9 border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 text-slate-900 dark:text-white text-xs rounded-xl focus:border-blue-600 focus:bg-white dark:focus:bg-slate-900 transition"
@@ -424,7 +429,10 @@ export default function RegisterPage() {
             <div className="pt-0.5 pb-0.5">
               <button
                 type="button"
-                onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
+                onClick={() => signIn('google', {
+                  callbackUrl: '/dashboard',
+                  prompt: 'select_account'
+                })}
                 className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 hover:bg-slate-100 dark:bg-slate-900/80 dark:hover:bg-slate-800 text-slate-800 dark:text-white text-xs font-extrabold flex items-center justify-center gap-2.5 shadow-sm transition-all cursor-pointer"
               >
                 <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">

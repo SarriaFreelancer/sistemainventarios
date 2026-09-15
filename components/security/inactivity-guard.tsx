@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
+import { signOut } from "next-auth/react";
 import { Clock, LogOut, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -19,7 +20,7 @@ export function InactivityGuard({ children }: { children: React.ReactNode }) {
   const handleLogout = useCallback(() => {
     setShowWarning(false);
     warningOpenRef.current = false;
-    window.location.href = "/auth/login?reason=inactivity";
+    signOut({ callbackUrl: "/auth/login?reason=inactivity" });
   }, []);
 
   const resetTimer = useCallback(() => {
@@ -84,7 +85,7 @@ export function InactivityGuard({ children }: { children: React.ReactNode }) {
         const remainingMs = TOTAL_TIMEOUT_MS - inactiveMs;
         const secondsLeft = Math.max(0, Math.ceil(remainingMs / 1000));
         setRemainingSeconds(secondsLeft);
-        
+
         if (secondsLeft <= 0) {
           handleLogout();
         }
@@ -113,7 +114,7 @@ export function InactivityGuard({ children }: { children: React.ReactNode }) {
       {showWarning && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
           <div className="w-full max-w-md rounded-[32px] border border-border/80 bg-card p-7 shadow-2xl shadow-primary/20 space-y-6 text-center">
-            
+
             <div className="mx-auto w-16 h-16 rounded-2xl bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center ring-4 ring-orange-500/20 animate-bounce">
               <Clock className="w-8 h-8" />
             </div>

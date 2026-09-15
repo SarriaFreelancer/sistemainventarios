@@ -128,6 +128,14 @@ export async function isSessionTokenValid(token: string) {
     return { valid: false, reason: 'COMPANY_SUSPENDED' };
   }
 
+  // Si la empresa está en período de prueba y ya venció
+  if (user.company && (user.company as any).isTrial && !isSuperAdmin) {
+    const trialEndsAt = (user.company as any).trialEndsAt;
+    if (trialEndsAt && new Date(trialEndsAt) < new Date()) {
+      return { valid: false, reason: 'TRIAL_EXPIRED' };
+    }
+  }
+
   if (session.expiresAt < new Date()) {
     await removeSessionByToken(token);
     return { valid: false, reason: 'EXPIRED' };

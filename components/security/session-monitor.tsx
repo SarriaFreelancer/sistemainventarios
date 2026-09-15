@@ -49,14 +49,20 @@ export default function SessionMonitor({ sessionToken }: SessionMonitorProps) {
             text = 'Tu usuario o empresa ha sido eliminada del sistema. Para continuar, por favor regístrate nuevamente y selecciona un plan.';
             redirectUrl = '/auth/login?reason=deleted';
             btnText = 'Entendido';
+          } else if (data.reason === 'TRIAL_EXPIRED') {
+            text = 'El período de prueba de tu empresa ha finalizado. Para reactivar el acceso a los módulos y funciones del sistema, por favor adquiere un plan o comunícate con el administrador.';
+            redirectUrl = '/auth/login?reason=trial_expired';
+            btnText = 'Ver Planes';
           } else if (data.reason === 'COMPANY_SUSPENDED') {
             text = 'La suscripción de tu empresa se encuentra inactiva o suspendida. Por favor, selecciona y paga tu plan para acceder al sistema.';
             redirectUrl = '/#planes';
             btnText = 'Ver Planes';
           } else if (data.reason === 'TERMINATED_BY_ADMIN') {
             text = 'Tu sesión fue finalizada por un administrador del sistema.';
+            redirectUrl = '/auth/login?reason=admin_disconnect';
           } else if (data.reason === 'EXPIRED') {
             text = 'Tu sesión ha expirado por inactividad.';
+            redirectUrl = '/auth/login?reason=inactivity';
           }
 
           await Swal.fire({
