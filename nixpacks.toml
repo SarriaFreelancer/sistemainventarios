@@ -1,0 +1,12 @@
+[phases.setup]
+nixPkgs = ["nodejs_20", "pnpm-9_x", "openssl"]
+
+[phases.install]
+cmds = ["pnpm install --frozen-lockfile"]
+
+[phases.build]
+cmds = ["pnpm prisma generate", "pnpm next build"]
+cacheDirectories = [".next/cache"]
+
+[start]
+cmd = "pnpm start"
