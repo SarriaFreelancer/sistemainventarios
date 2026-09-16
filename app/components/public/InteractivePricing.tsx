@@ -241,12 +241,8 @@ export function InteractivePricing({ planSettings = {}, allModules = [] }: { pla
       script.src = "https://checkout.bold.co/library/boldPaymentButton.js";
       script.setAttribute("data-bold-button", "");
       script.setAttribute("data-api-key", process.env.NEXT_PUBLIC_BOLD_API_KEY || "nQW8_xd1GDkl2AjvVHUl_pWo6anZyRTMQ-OYy0TSDUU");
-      // Bold exige estrictamente que data-redirection-url sea HTTPS.
-      // Si el navegador está en localhost (HTTP), usamos el túnel HTTPS de ngrok activo para que Bold acepte la transacción sin error.
-      const isHttps = window.location.protocol === "https:";
-      const redirectUrl = isHttps
-        ? `${window.location.origin}/pagos/resultado`
-        : `https://abroad-glancing-specked.ngrok-free.dev/pagos/resultado`;
+      // Redirección dinámica según el origen actual (localhost o producción)
+      const redirectUrl = `${window.location.origin}/pagos/resultado`;
 
       script.setAttribute("data-redirection-url", redirectUrl);
       script.setAttribute("data-render-mode", "embedded");

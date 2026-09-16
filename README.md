@@ -66,23 +66,31 @@ Para garantizar la seguridad de las transacciones, la capa de base de datos impl
 Debes crear un archivo `.env` en la raíz del proyecto. Estas son **todas las variables utilizadas** y requeridas para su correcto funcionamiento:
 
 ```env
-# URL principal de conexión a tu base de datos MySQL (Tenant Database)
+# ─── Base de Datos (MySQL) ───
 DATABASE_URL="mysql://usuario:contraseña@localhost:3306/nombre_base_datos"
-TENANT_DATABASE_URL="mysql://usuario:contraseña@localhost:3306/nombre_base_datos"
 PLATFORM_DATABASE_URL="mysql://usuario:contraseña@localhost:3306/nombre_base_datos"
 
-# Llave secreta para encriptar las sesiones de NextAuth (Generar una cadena larga y segura)
+# ─── Autenticación y Cifrado ───
 NEXTAUTH_SECRET="tu-secreto-super-seguro"
-
-# URL de acceso al servidor (Ej: http://localhost:3000 o tu dominio de producción)
 NEXTAUTH_URL="http://localhost:3000"
-
-# Llave AES-256 de 64 caracteres Hexadecimales para encriptar configuraciones (ej: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef)
 ENCRYPTION_KEY="0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
-# API Keys para Pasarela de Pagos (Ejemplo con Bold)
+# ─── Google OAuth 2.0 (Login con Google) ───
+GOOGLE_CLIENT_ID="tu_google_client_id"
+GOOGLE_CLIENT_SECRET="tu_google_client_secret"
+
+# ─── Pusher (Tiempo Real / Chat / Notificaciones) ───
+PUSHER_APP_ID="tu_pusher_app_id"
+PUSHER_SECRET="tu_pusher_secret"
+NEXT_PUBLIC_PUSHER_KEY="tu_pusher_public_key"
+NEXT_PUBLIC_PUSHER_CLUSTER="us2"
+
+# ─── Pasarela de Pagos (Bold Colombia) ───
 NEXT_PUBLIC_BOLD_API_KEY="tu_bold_api_key_publica"
 BOLD_INTEGRITY_KEY="tu_bold_integrity_key_secreta"
+
+# ─── Cron Jobs / Automatizaciones (Opcional) ───
+CRON_SECRET="tu_cron_secret_opcional"
 ```
 
 ### 2. Instalación de Dependencias
