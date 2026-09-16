@@ -26,12 +26,11 @@ test.describe('Módulo de Recursos Humanos (RRHH) y Nómina', () => {
     await prisma.employee.create({
       data: {
         documentId: '1098765432',
-        documentType: 'CC',
         firstName: 'Juan David',
         lastName: 'Pérez',
         email: 'juan.perez@empresa.com',
         phone: '3109876543',
-        baseSalary: 4500000,
+        hireDate: new Date(),
         positionId: position.id,
         status: 'ACTIVE',
         companyId: companyAId,

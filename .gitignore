@@ -29,3 +29,11 @@ Thumbs.db
 
 # Herramientas externas
 strix/
+
+# Build cache & TypeScript
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# Playwright & Testing
+playwright-report/
+test-results/

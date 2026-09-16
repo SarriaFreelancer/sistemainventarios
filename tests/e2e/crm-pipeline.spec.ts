@@ -19,7 +19,7 @@ test.describe('Módulo de CRM y Gestión de Clientes', () => {
         name: 'Inversiones y Soluciones SAS',
         email: 'contacto@inversiones.com',
         phone: '3007654321',
-        document: '901234567-8',
+        code: '901234567-8',
         companyId: companyAId,
       }
     });
@@ -28,7 +28,7 @@ test.describe('Módulo de CRM y Gestión de Clientes', () => {
     await prisma.lead.create({
       data: {
         name: 'Carlos Mendoza',
-        company: 'Tecnología Plus',
+        companyName: 'Tecnología Plus',
         email: 'carlos.m@tecplus.com',
         phone: '3151234567',
         status: 'NEW',

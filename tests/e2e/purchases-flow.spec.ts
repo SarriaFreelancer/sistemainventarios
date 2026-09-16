@@ -14,19 +14,27 @@ test.describe('Módulo de Compras y Abastecimiento', () => {
     const companyA = await prisma.company.findUnique({ where: { name: 'Empresa A Test' } });
     companyAId = companyA!.id;
 
+    const productGroup = await prisma.productGroup.findFirst({ where: { companyId: companyAId } });
+
     const supplier = await prisma.supplier.create({
       data: {
-        name: 'Distribuidora Mayorista ABC',
+        companyName: 'Distribuidora Mayorista ABC',
         contactName: 'Carlos Gómez',
         email: 'ventas@mayoristaabc.com',
         phone: '3001234567',
+        address: 'Zona Industrial',
+        city: 'Bogota',
         companyId: companyAId,
       }
     });
     supplierId = supplier.id;
 
     const category = await prisma.category.create({
-      data: { name: 'Suministros', companyId: companyAId }
+      data: {
+        name: 'Suministros',
+        companyId: companyAId,
+        productGroupId: productGroup!.id,
+      }
     });
 
     await prisma.product.create({

@@ -15,12 +15,26 @@ test.describe('Ventas Pendientes — Edición Dinámica del Carrito y Cierre de 
     const companyA = await prisma.company.findUnique({ where: { name: 'Empresa A Test' } });
     companyAId = companyA!.id;
 
+    const productGroup = await prisma.productGroup.findFirst({ where: { companyId: companyAId } });
+
     const supplier = await prisma.supplier.create({
-      data: { name: 'Proveedor Central S.A.', companyId: companyAId }
+      data: {
+        companyName: 'Proveedor Central S.A.',
+        contactName: 'Contacto Central',
+        phone: '123456789',
+        email: 'proveedor.central@test.com',
+        address: 'Calle 100',
+        city: 'Bogota',
+        companyId: companyAId,
+      }
     });
 
     const category = await prisma.category.create({
-      data: { name: 'Electrónica y Hogar', companyId: companyAId }
+      data: {
+        name: 'Electrónica y Hogar',
+        companyId: companyAId,
+        productGroupId: productGroup!.id,
+      }
     });
 
     // Producto 1

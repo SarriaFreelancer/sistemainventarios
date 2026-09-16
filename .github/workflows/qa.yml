@@ -2,9 +2,9 @@ name: GNS QA Pipeline
 
 on:
   push:
-    branches: [ main, master, develop ]
+    branches: [ main, master, develop, desarrollo ]
   pull_request:
-    branches: [ main, master, develop ]
+    branches: [ main, master, develop, desarrollo ]
 
 jobs:
   test:
@@ -46,8 +46,14 @@ jobs:
         DATABASE_URL: "mysql://root:root@127.0.0.1:3306/inventario_testing"
         PLATFORM_DATABASE_URL: "mysql://root:root@127.0.0.1:3306/inventario_testing"
         NEXTAUTH_SECRET: "dulche-dorelle-test-secret"
-        NEXTAUTH_URL: "http://localhost:3000"
+        NEXTAUTH_URL: "http://localhost:3001"
         ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+        PUSHER_APP_ID: "mock-pusher-id"
+        PUSHER_SECRET: "mock-pusher-secret"
+        NEXT_PUBLIC_PUSHER_KEY: "mock-pusher-key"
+        NEXT_PUBLIC_PUSHER_CLUSTER: "us2"
+        NEXT_PUBLIC_BOLD_API_KEY: "mock-bold-key"
+        BOLD_INTEGRITY_KEY: "mock-bold-integrity"
       run: |
         pnpm prisma:generate
         npx prisma db push --schema=prisma/schema.prisma --skip-generate
@@ -57,8 +63,14 @@ jobs:
         DATABASE_URL: "mysql://root:root@127.0.0.1:3306/inventario_testing"
         PLATFORM_DATABASE_URL: "mysql://root:root@127.0.0.1:3306/inventario_testing"
         NEXTAUTH_SECRET: "dulche-dorelle-test-secret"
-        NEXTAUTH_URL: "http://localhost:3000"
+        NEXTAUTH_URL: "http://localhost:3001"
         ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+        PUSHER_APP_ID: "mock-pusher-id"
+        PUSHER_SECRET: "mock-pusher-secret"
+        NEXT_PUBLIC_PUSHER_KEY: "mock-pusher-key"
+        NEXT_PUBLIC_PUSHER_CLUSTER: "us2"
+        NEXT_PUBLIC_BOLD_API_KEY: "mock-bold-key"
+        BOLD_INTEGRITY_KEY: "mock-bold-integrity"
       run: pnpm test:e2e
 
     - name: Upload Playwright Report
