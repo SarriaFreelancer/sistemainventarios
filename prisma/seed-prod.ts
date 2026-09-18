@@ -4,14 +4,14 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('?? Iniciando inicialización limpia de producción...');
+  console.log('Iniciando inicializacion limpia de produccion...');
 
   const superAdminEmail = process.env.SUPERADMIN_EMAIL || 'superadmin@gnsgestion.com';
   const superAdminPassword = process.env.SUPERADMIN_PASSWORD || 'Admin123';
   const passwordHash = await bcrypt.hash(superAdminPassword, 10);
 
   // 1. Roles del Sistema (upsert)
-  console.log('?? Creando roles del sistema...');
+  console.log('Creando roles del sistema...');
   const adminRole = await prisma.role.upsert({
     where: { name: 'ADMIN' },
     update: {},
@@ -31,7 +31,7 @@ async function main() {
   });
 
   // 2. Empresa Global para Superadmin (upsert)
-  console.log('?? Creando empresa Global...');
+  console.log('Creando empresa Global...');
   const globalCompany = await prisma.company.upsert({
     where: { name: 'Global' },
     update: {},
@@ -45,7 +45,7 @@ async function main() {
   });
 
   // 3. Usuario Superadmin (upsert)
-  console.log('?? Creando usuario Superadmin (' + superAdminEmail + ')...');
+  console.log(`Creando usuario Superadmin (${superAdminEmail})...`);
   await prisma.user.upsert({
     where: { email: superAdminEmail },
     update: {
@@ -63,24 +63,24 @@ async function main() {
     },
   });
 
-  // 4. Módulos del Sistema (Menú Dinámico)
-  console.log('?? Registrando módulos del sistema...');
+  // 4. Modulos del Sistema (Menu Dinamico)
+  console.log('Registrando modulos del sistema...');
   const systemModules = [
-    { name: 'Dashboard', href: '/dashboard', icon: 'LayoutDashboard', description: 'Resumen del negocio y métricas clave' },
-    { name: 'Productos', href: '/dashboard/products', icon: 'Boxes', description: 'Gestiona el catálogo y stock' },
+    { name: 'Dashboard', href: '/dashboard', icon: 'LayoutDashboard', description: 'Resumen del negocio y metricas clave' },
+    { name: 'Productos', href: '/dashboard/products', icon: 'Boxes', description: 'Gestiona el catalogo y stock' },
     { name: 'Grupos', href: '/dashboard/groups', icon: 'Folder', description: 'Agrupa productos por colecciones' },
-    { name: 'Categorías', href: '/dashboard/categories', icon: 'Tags', description: 'Organiza productos por categoría' },
+    { name: 'Categorias', href: '/dashboard/categories', icon: 'Tags', description: 'Organiza productos por categoria' },
     { name: 'Proveedores', href: '/dashboard/suppliers', icon: 'Factory', description: 'Gestiona proveedores y contactos' },
     { name: 'Ventas', href: '/dashboard/sales', icon: 'ShoppingCart', description: 'Registra y revisa transacciones' },
     { name: 'CRM', href: '/dashboard/crm', icon: 'Users', description: 'Gestiona clientes y relaciones comerciales' },
     { name: 'Usuarios', href: '/dashboard/users', icon: 'Users', description: 'Administra cuentas, roles y permisos' },
     { name: 'Empresas', href: '/dashboard/companies', icon: 'Folder', description: 'Gestiona las empresas del SaaS' },
-    { name: 'Compras', href: '/dashboard/compras', icon: 'Truck', description: 'Módulo de compras y abastecimiento' },
+    { name: 'Compras', href: '/dashboard/compras', icon: 'Truck', description: 'Modulo de compras y abastecimiento' },
     { name: 'Finanzas', href: '/dashboard/finanzas', icon: 'DollarSign', description: 'Monitorea ingresos y gastos' },
-    { name: 'RRHH', href: '/dashboard/rrhh', icon: 'Users', description: 'Gestión de personal y nómina' },
-    { name: 'Reportes', href: '/dashboard/reportes', icon: 'FileText', description: 'Genera análisis e informes clave' },
-    { name: 'Auditoría', href: '/dashboard/audit', icon: 'ShieldAlert', description: 'Trazabilidad de seguridad y logs' },
-    { name: 'Configuración', href: '/dashboard/settings', icon: 'Settings', description: 'Configuración de empresa y sistema' },
+    { name: 'RRHH', href: '/dashboard/rrhh', icon: 'Users', description: 'Gestion de personal y nomina' },
+    { name: 'Reportes', href: '/dashboard/reportes', icon: 'FileText', description: 'Genera analisis e informes clave' },
+    { name: 'Auditoria', href: '/dashboard/audit', icon: 'ShieldAlert', description: 'Trazabilidad de seguridad y logs' },
+    { name: 'Configuracion', href: '/dashboard/settings', icon: 'Settings', description: 'Configuracion de empresa y sistema' },
   ];
 
   for (const mod of systemModules) {
@@ -126,17 +126,16 @@ async function main() {
     });
   }
 
-  console.log('? Inicialización de producción completada con éxito.');
-  console.log('Credenciales de acceso:');
-  console.log('Email: ' + superAdminEmail);
-  console.log('Password: ' + superAdminPassword);
+  console.log('Inicializacion de produccion completada con exito.');
+  console.log(`Email: ${superAdminEmail}`);
+  console.log(`Password: ${superAdminPassword}`);
 }
 
 main()
   .catch((e) => {
-    console.error('? Error en seed de producción:', e);
+    console.error('Error en seed de produccion:', e);
     process.exit(1);
   })
   .finally(async () => {
-    await prisma.();
+    await prisma.$disconnect();
   });
