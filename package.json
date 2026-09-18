@@ -24,6 +24,7 @@
     "prisma:migrate:platform": "prisma migrate dev --schema=prisma/platform/schema.prisma",
     "prisma:migrate:tenant": "prisma migrate dev --schema=prisma/tenant/schema.prisma",
     "db:seed": "prisma db seed",
+    "db:seed:prod": "tsx prisma/seed-prod.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },
