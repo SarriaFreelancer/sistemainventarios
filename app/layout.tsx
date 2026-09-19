@@ -91,7 +91,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         />
       </head>
 
-      <body className="font-body-md bg-background text-foreground transition-colors duration-300">
+      <body className="font-body-md bg-background text-foreground transition-colors duration-300" suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           <ClientSecurityShield />
           {children}
