@@ -95,15 +95,15 @@ export default function RegisterPage() {
         const Swal = (await import('sweetalert2')).default;
         await Swal.fire({
           icon: 'success',
-          title: '¡Registro Exitoso!',
-          text: 'Tu cuenta y empresa han sido creadas. Para activar tu sistema e ingresar al Dashboard, por favor selecciona y adquiere tu plan de licencia.',
-          confirmButtonText: 'Ver Planes de Licencia',
-          confirmButtonColor: '#dc2626',
+          title: '¡Prueba de 30 Días Activada!',
+          text: 'Tu cuenta corporativa ha sido creada exitosamente. Tienes 30 días de acceso total y gratuito para probar todos los módulos y herramientas del sistema.',
+          confirmButtonText: 'Comenzar a Usar el Sistema',
+          confirmButtonColor: '#2563eb',
           allowOutsideClick: false,
           allowEscapeKey: false
         });
 
-        router.replace('/#planes');
+        router.replace('/dashboard');
         return;
       }
 
@@ -412,7 +412,7 @@ export default function RegisterPage() {
               className="w-full mt-2.5 h-10 text-xs font-extrabold rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md shadow-blue-600/25 active:scale-[0.99] transition-all cursor-pointer flex items-center justify-center gap-2"
             >
               <Rocket className="w-3.5 h-3.5" />
-              <span>{isSubmitting ? 'Registrando...' : 'Crear mi Cuenta'}</span>
+              <span>{isSubmitting ? 'Activando...' : 'Comenzar Prueba de 30 Días Gratis'}</span>
             </Button>
 
             {/* Divisor "o continúa con" */}

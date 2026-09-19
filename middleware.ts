@@ -80,17 +80,20 @@ export async function middleware(request: NextRequest) {
   if (request.nextUrl.pathname.startsWith('/dashboard')) {
     const companyStatus = token.companyStatus as string | undefined;
     const role = token.role as string | undefined;
+    const isTrial = token.isTrial as boolean | undefined;
+    const trialEndsAt = token.trialEndsAt as string | undefined;
+    const isTrialExpired = Boolean(isTrial && trialEndsAt && new Date(trialEndsAt).getTime() < Date.now());
 
     // Solo el SUPERADMIN puede acceder sin importar el estado de empresa.
-    // Cualquier otro rol (ADMIN o USER) debe tener una empresa con estado 'ACTIVE'.
-    if (role !== "SUPERADMIN" && companyStatus !== "ACTIVE") {
+    // Cualquier otro rol (ADMIN o USER) debe tener una empresa con estado 'ACTIVE' y no tener prueba vencida.
+    if (role !== "SUPERADMIN" && (companyStatus !== "ACTIVE" || isTrialExpired)) {
       const url = request.nextUrl.clone();
       if (role === "ADMIN" || !role) {
         url.pathname = '/';
         url.hash = 'planes';
       } else {
         url.pathname = '/auth/login';
-        url.searchParams.set('error', 'suspended');
+        url.searchParams.set('reason', isTrialExpired ? 'trial_expired' : 'suspended');
       }
       return addSecurityHeaders(NextResponse.redirect(url));
     }

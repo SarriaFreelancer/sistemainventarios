@@ -76,10 +76,20 @@ export function NotificationBell() {
             shownIds.add(n.id);
             notifiedIds.current.add(n.id);
 
-            const toastOpts = {
+            const targetRoute = getNotificationRoute(n.title, n.message);
+            const toastOpts: any = {
               description: n.message,
-              duration: 6000,
+              duration: 7000,
             };
+
+            if (targetRoute) {
+              toastOpts.action = {
+                label: "Ir al módulo",
+                onClick: () => {
+                  router.push(targetRoute);
+                },
+              };
+            }
 
             if (n.type === 'ERROR') {
               toast.error(n.title, toastOpts);
@@ -103,7 +113,7 @@ export function NotificationBell() {
     } catch {
       // Silently ignore network errors during polling
     }
-  }, [playNotification]);
+  }, [playNotification, router]);
 
   useEffect(() => {
     // Carga inicial
@@ -151,38 +161,111 @@ export function NotificationBell() {
     }
   };
 
-  const getNotificationRoute = (title: string, message: string) => {
+  const getNotificationRoute = (title: string, message: string): string => {
     const text = `${title} ${message}`.toLowerCase();
 
-    if (text.includes("venta") || text.includes("cobro")) {
+    // 1. Ventas, Facturación de Venta y Cobros
+    if (text.includes("venta") || text.includes("cobro") || text.includes("ticket") || text.includes("caja")) {
       return "/dashboard/sales";
     }
-    if (text.includes("producto") || text.includes("stock") || text.includes("inventario")) {
+
+    // 2. Productos, Inventario, Lotes, Vencimientos y Stock
+    if (text.includes("producto") || text.includes("stock") || text.includes("inventario") || text.includes("lote") || text.includes("venc") || text.includes("caduc") || text.includes("expir") || text.includes("reabastec")) {
       return "/dashboard/products";
     }
-    if (text.includes("compra") || text.includes("requisici") || text.includes("proveedor")) {
+
+    // 3. Compras, Requisiciones, Recepciones, Facturas de Proveedores
+    if (text.includes("compra") || text.includes("requisici") || text.includes("recepci") || text.includes("cuentas por pagar")) {
       return "/dashboard/compras";
     }
-    if (text.includes("crm") || text.includes("oportunidad") || text.includes("cliente") || text.includes("cotizaci")) {
+    if (text.includes("proveedor")) {
+      return "/dashboard/suppliers";
+    }
+
+    // 4. CRM, Clientes, Oportunidades, Leads, Cotizaciones
+    if (text.includes("crm") || text.includes("oportunidad") || text.includes("lead") || text.includes("prospecto") || text.includes("cotizaci") || text.includes("cliente")) {
       return "/dashboard/crm";
     }
-    if (text.includes("rrhh") || text.includes("empleado") || text.includes("nómina") || text.includes("nomina")) {
+
+    // 5. Finanzas, Gastos e Ingresos
+    if (text.includes("gasto") || text.includes("ingreso") || text.includes("finanza") || text.includes("balance") || text.includes("egreso") || text.includes("flujo de caja")) {
+      return "/dashboard/finanzas";
+    }
+
+    // 6. Recursos Humanos (RRHH), Empleados, Nómina
+    if (text.includes("rrhh") || text.includes("empleado") || text.includes("nómina") || text.includes("nomina") || text.includes("novedad") || text.includes("cargo")) {
       return "/dashboard/rrhh";
     }
-    if (text.includes("auditor") || text.includes("seguridad") || text.includes("log")) {
+
+    // 7. Categorías y Grupos
+    if (text.includes("categor")) {
+      return "/dashboard/categories";
+    }
+    if (text.includes("grupo")) {
+      return "/dashboard/groups";
+    }
+
+    // 8. Bodegas y Almacenes
+    if (text.includes("bodega") || text.includes("almac") || text.includes("transferencia")) {
+      return "/dashboard/warehouses";
+    }
+
+    // 9. Reportes y Analíticas
+    if (text.includes("report") || text.includes("informe")) {
+      return "/dashboard/reportes";
+    }
+    if (text.includes("analít") || text.includes("estadíst") || text.includes("kpi")) {
+      return "/dashboard/analytics";
+    }
+
+    // 10. Auditoría y Seguridad
+    if (text.includes("auditor") || text.includes("seguridad") || text.includes("log") || text.includes("bloqueo") || text.includes("intento")) {
       return "/dashboard/audit";
     }
-    if (text.includes("configuración") || text.includes("configuracion") || text.includes("empresa") || text.includes("ajuste")) {
+
+    // 11. Usuarios y Roles
+    if (text.includes("usuario") || text.includes("password") || text.includes("contraseña") || text.includes("perfil")) {
+      return "/dashboard/users";
+    }
+
+    // 12. Notificaciones / Anuncios / Comunicados del Sistema
+    if (text.includes("anuncio") || text.includes("comunicado") || text.includes("notificaci") || text.includes("aviso")) {
+      return "/dashboard/settings?tab=announcements";
+    }
+
+    // 13. Sesiones Activas
+    if (text.includes("sesi") || text.includes("conexi") || text.includes("dispositivo")) {
+      return "/dashboard/settings?tab=sessions";
+    }
+
+    // 14. Licencias y Planes
+    if (text.includes("licencia") || text.includes("suscrip") || text.includes("plan") || text.includes("prueba") || text.includes("trial")) {
+      return "/dashboard/settings?tab=licenses";
+    }
+
+    // 15. Configuración General / Backup / Integraciones
+    if (text.includes("configuración") || text.includes("configuracion") || text.includes("empresa") || text.includes("ajuste") || text.includes("backup") || text.includes("respaldo") || text.includes("api") || text.includes("webhook")) {
       return "/dashboard/settings";
     }
 
-    return null;
+    // Fallback: Dashboard principal
+    return "/dashboard";
   };
 
-  const handleNotificationClick = (notif: Notification) => {
+  const handleNotificationClick = (e: React.MouseEvent, notif: Notification) => {
+    e.preventDefault();
+    e.stopPropagation();
+
     const targetRoute = getNotificationRoute(notif.title, notif.message);
+    setIsOpen(false);
+
+    // Marcar como leída optimista
+    setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n));
+    try {
+      fetch(`/api/notifications/${notif.id}`, { method: 'PATCH' });
+    } catch {}
+
     if (targetRoute) {
-      setIsOpen(false);
       router.push(targetRoute);
     }
   };
@@ -237,7 +320,7 @@ export function NotificationBell() {
               return (
                 <div
                   key={notif.id}
-                  onClick={() => handleNotificationClick(notif)}
+                  onClick={(e) => handleNotificationClick(e, notif)}
                   className={`relative group flex gap-3 px-3 py-2 rounded-xl transition-all border cursor-pointer hover:scale-[1.01] ${notif.isRead ? 'bg-transparent border-transparent' : 'bg-muted/30 border-border/50 shadow-sm'} hover:bg-muted/50`}
                 >
                   <div className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${notif.isRead ? 'bg-transparent' : 'bg-primary animate-pulse'}`} />
@@ -249,9 +332,13 @@ export function NotificationBell() {
                         {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true, locale: es })}
                       </p>
                       {targetRoute && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold opacity-90 group-hover:underline">
+                        <button
+                          type="button"
+                          onClick={(e) => handleNotificationClick(e, notif)}
+                          className="inline-flex items-center gap-1 text-[10px] font-bold opacity-90 hover:opacity-100 hover:underline cursor-pointer bg-transparent border-none p-0 text-inherit transition-all"
+                        >
                           Ir al módulo <ExternalLink className="h-2.5 w-2.5" />
-                        </span>
+                        </button>
                       )}
                     </div>
                   </div>

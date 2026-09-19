@@ -5,7 +5,7 @@ import { Building, Boxes, ShieldAlert, SlidersHorizontal, Receipt, Upload, Spark
 import { updateCompanySettings, uploadCompanyLogo, uploadCompanyBackgroundImage } from "@/app/actions/settings-actions";
 import { generateDemoData, clearDemoData } from "@/app/actions/demo-actions";
 import { successAlert, errorAlert } from "@/lib/sweetalert";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ServersManager } from "./servers-manager";
 import { MigrationsManager } from "./migrations-manager";
 import { DatabasesManager } from "./databases-manager";
@@ -15,6 +15,7 @@ import { OnboardingManager } from "./onboarding-manager";
 import ActiveSessionsManager from "@/components/sessions/active-sessions-manager";
 import { AnnouncementsManager } from "./announcements-manager";
 import { ApiIntegrationsManager } from "./api-integrations-manager";
+import { AiSettingsManager } from "./ai-settings-manager";
 
 interface CompanySetting {
   id: number;
@@ -62,6 +63,7 @@ interface SettingsClientProps {
   role?: string;
   initialServers?: any[];
   initialApiKeys?: any[];
+  initialAiConfig?: any;
   dedicatedCompanies?: { id: number; name: string }[];
   canManageServers?: boolean;
   userId: string;
@@ -69,9 +71,21 @@ interface SettingsClientProps {
   allModules?: any[];
 }
 
-export function SettingsClient({ initialSettings, role, initialServers = [], initialApiKeys = [], dedicatedCompanies = [], canManageServers = false, userId, planSettings, allModules }: SettingsClientProps) {
+export function SettingsClient({ initialSettings, role, initialServers = [], initialApiKeys = [], initialAiConfig, dedicatedCompanies = [], canManageServers = false, userId, planSettings, allModules }: SettingsClientProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"company" | "inventory" | "security" | "integrations" | "invoice" | "imports" | "servers" | "databases" | "migrations" | "licenses" | "onboarding" | "sessions" | "announcements" | "apiKeys">("company");
+  const searchParams = useSearchParams();
+  const validTabs = ["company", "inventory", "security", "integrations", "ai", "invoice", "imports", "servers", "databases", "migrations", "licenses", "onboarding", "sessions", "announcements", "apiKeys"];
+  const urlTab = searchParams?.get("tab");
+  const initialTab = urlTab && validTabs.includes(urlTab) ? (urlTab as any) : "company";
+  const [activeTab, setActiveTab] = useState<"company" | "inventory" | "security" | "integrations" | "ai" | "invoice" | "imports" | "servers" | "databases" | "migrations" | "licenses" | "onboarding" | "sessions" | "announcements" | "apiKeys">(initialTab);
+
+  React.useEffect(() => {
+    const tabParam = searchParams?.get("tab");
+    if (tabParam && validTabs.includes(tabParam)) {
+      setActiveTab(tabParam as any);
+    }
+  }, [searchParams]);
+
   const [saving, setSaving] = useState(false);
   const isSuperAdmin = role === "SUPERADMIN";
 
@@ -271,7 +285,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
   const triggerManualBackup = async () => {
     try {
       showToast("Iniciando generación de respaldo...", "info");
-      
+
       let url = "/api/backup?type=auto";
       if (role === "SUPERADMIN") {
         if (backupType === "dedicated") {
@@ -284,10 +298,10 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
           url = `/api/backup?type=shared`;
         }
       }
-      
+
       // Trigger download
       window.location.href = url;
-      
+
       successAlert("Respaldo iniciado", "El archivo de respaldo SQL comenzará a descargarse en unos momentos.");
     } catch (e) {
       errorAlert("Error de respaldo", "No se pudo invocar el respaldo de la base de datos.");
@@ -301,7 +315,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
-      
+
       {/* ── Menú Lateral de Pestañas (Tabs) ── */}
       <div className="lg:col-span-1 bg-card rounded-2xl border border-border p-4 shadow-sm space-y-1">
         <button
@@ -357,6 +371,15 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
         >
           <Code2 size={16} />
           Integraciones API REST
+        </button>
+        <button
+          onClick={() => setActiveTab("ai")}
+          className={`flex w-full items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold transition ${
+            activeTab === "ai" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
+          }`}
+        >
+          <Sparkles size={16} />
+          Inteligencia Artificial (IA)
         </button>
         <button
           onClick={() => setActiveTab("invoice")}
@@ -507,10 +530,17 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
           </div>
         )}
 
+        {/* PESTAÑA: INTELIGENCIA ARTIFICIAL (IA) */}
+        {activeTab === "ai" && (
+          <div className="bg-card rounded-2xl border border-border p-6 shadow-sm animate-in fade-in zoom-in-95">
+            <AiSettingsManager initialConfig={initialAiConfig} />
+          </div>
+        )}
+
       {/* Renderizamos el form solo para tabs no-infraestructura */}
       {["company", "inventory", "security", "integrations", "invoice", "imports"].includes(activeTab) && (
       <form onSubmit={handleSubmit} className="bg-card rounded-2xl border border-border p-6 shadow-sm space-y-6">
-        
+
         {/* PESTAÑA: DATOS DE EMPRESA */}
         {activeTab === "company" && (
           <div className="space-y-4">
@@ -621,7 +651,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
                   className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none"
                   placeholder="Ej. https://miempresa.com/fondo.jpg o sube un archivo local"
                 />
-                
+
                 <label className="cursor-pointer bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-semibold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2 shrink-0">
                   <Upload size={14} />
                   Subir Fondo
@@ -1270,7 +1300,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
         {/* PESTAÑA: RESPALDOS & SMTP */}
         {activeTab === "integrations" && (
           <div className="space-y-4">
-            
+
             {/* Sección de Backups */}
             <div className="space-y-3 pb-4 border-b border-border/60">
               <h3 className="text-base font-bold text-foreground flex items-center gap-2">
@@ -1305,7 +1335,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
                       className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-xs focus:outline-none font-bold"
                     />
                   </div>
-                  
+
                   {backupFrequency === "WEEKLY" && (
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-bold text-muted-foreground uppercase">Día de la Semana</label>
@@ -1343,22 +1373,22 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
                   <div className="flex flex-col gap-2 bg-muted/20 p-3 rounded-xl border border-border mt-2 sm:mt-0 col-span-2 sm:col-span-1 text-xs">
                     <p className="font-bold text-foreground">Selección de Base de Datos</p>
                     <label className="flex items-center gap-2 cursor-pointer">
-                      <input 
-                        type="radio" 
-                        name="backupType" 
-                        value="shared" 
-                        checked={backupType === 'shared'} 
+                      <input
+                        type="radio"
+                        name="backupType"
+                        value="shared"
+                        checked={backupType === 'shared'}
                         onChange={() => setBackupType('shared')}
                         className="text-primary focus:ring-primary"
                       />
                       <span className="text-muted-foreground font-medium">Base Compartida (Todos los inquilinos)</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
-                      <input 
-                        type="radio" 
-                        name="backupType" 
-                        value="dedicated" 
-                        checked={backupType === 'dedicated'} 
+                      <input
+                        type="radio"
+                        name="backupType"
+                        value="dedicated"
+                        checked={backupType === 'dedicated'}
                         onChange={() => setBackupType('dedicated')}
                         className="text-primary focus:ring-primary"
                       />

@@ -9,6 +9,8 @@ import { prisma } from "@/lib/prisma";
 
 import { getApiKeys } from "@/app/actions/api-key-actions";
 
+import { getCompanyAiConfig } from "@/app/actions/ai-config-actions";
+
 export const metadata = {
   title: "Configuración del Sistema - GNS SarriaTech",
   description: "Ajustes de localización, inventario, facturación y seguridad.",
@@ -25,7 +27,7 @@ export default async function SettingsPage() {
 
   const isSuperAdmin = session.user.role === "SUPERADMIN";
   const isAdmin = session.user.role === "ADMIN";
-  
+
   let isPremium = false;
   if (isAdmin && session.user.companyId) {
     const userCompany = await prisma.company.findUnique({
@@ -39,7 +41,8 @@ export default async function SettingsPage() {
   const result = await getCompanySettings();
   const servers = canManageServers ? await getServers() : [];
   const apiKeys = await getApiKeys();
-  
+  const aiConfigResult = await getCompanyAiConfig();
+
   // Obtener empresas para licencias y mapeo si es superadmin
   let allCompanies: any[] = [];
   if (isSuperAdmin) {
@@ -55,7 +58,7 @@ export default async function SettingsPage() {
       console.error(e);
     }
   }
-  
+
   let planSettings: any = null;
   let allModules: any[] = [];
   if (isSuperAdmin) {
@@ -88,11 +91,12 @@ export default async function SettingsPage() {
         const finalSettings = result.settings || fallbackSettings;
 
         return ((result.success && result.settings) || isSuperAdmin) ? (
-          <SettingsClient 
-            initialSettings={finalSettings as any} 
-            role={session.user.role} 
+          <SettingsClient
+            initialSettings={finalSettings as any}
+            role={session.user.role}
             initialServers={servers}
             initialApiKeys={apiKeys as any}
+            initialAiConfig={aiConfigResult.config}
             dedicatedCompanies={allCompanies}
             canManageServers={canManageServers}
             userId={session.user.id}

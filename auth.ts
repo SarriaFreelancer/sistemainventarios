@@ -10,19 +10,7 @@ import { logLoginAttempt } from './lib/audit';
 import { checkSessionLimits, createActiveSession, removeSessionByIdInternal } from './lib/session-core';
 
 export const authOptions: AuthOptions = {
-  useSecureCookies: process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_URL?.includes('localhost'),
-  cookies: {
-    state: {
-      name: 'next-auth.state',
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_URL?.includes('localhost'),
-        maxAge: 900,
-      }
-    }
-  },
+  useSecureCookies: process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_URL?.includes('localhost') && !process.env.NEXTAUTH_URL?.startsWith('http://'),
   session: {
     strategy: 'jwt',
     maxAge: 4 * 60 * 60, // 4 horas de inactividad absoluta cierran la sesión
@@ -33,7 +21,7 @@ export const authOptions: AuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || '',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
-      checks: ['pkce', 'state'],
+      checks: ['pkce'],
       authorization: {
         params: {
           prompt: 'select_account',
@@ -201,7 +189,7 @@ export const authOptions: AuthOptions = {
             adminRole = await prisma.role.create({ data: { name: 'ADMIN' } });
           }
 
-          // Crear empresa para usuario nuevo que ingresa por Google en estado SUSPENDED (sin plan hasta que pague)
+          // Crear empresa para usuario nuevo que ingresa por Google con período de prueba de 30 días activo
           let baseCompanyName = `Empresa de ${token.name || token.email.split('@')[0]}`;
           let uniqueCompanyName = baseCompanyName;
           let counter = 1;
@@ -210,16 +198,36 @@ export const authOptions: AuthOptions = {
             counter++;
           }
 
+          const trialEndsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
           const newCompany = await prisma.company.create({
             data: {
               name: uniqueCompanyName,
-              status: 'SUSPENDED',
-              planId: null,
-              maxUsers: 2,
-              maxProducts: 100,
-              maxSalesPerMonth: 50
+              status: 'ACTIVE',
+              isTrial: true,
+              trialStartedAt: new Date(),
+              trialEndsAt: trialEndsAt,
+              planId: 'trial',
+              maxUsers: 5,
+              maxProducts: 1000,
+              maxSalesPerMonth: 500
             }
           });
+
+          // Asignar todos los módulos activos del sistema para la prueba de 30 días
+          try {
+            const allModules = await prisma.module.findMany({ where: { isActive: true }, select: { id: true } });
+            if (allModules.length > 0) {
+              await prisma.companyModule.createMany({
+                data: allModules.map(m => ({
+                  companyId: newCompany.id,
+                  moduleId: m.id
+                }))
+              });
+            }
+          } catch (mErr) {
+            console.error("Error assigning modules to new trial company:", mErr);
+          }
 
           dbUser = await prisma.user.create({
             data: {

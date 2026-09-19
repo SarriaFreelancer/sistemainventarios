@@ -60,3 +60,32 @@ export async function DELETE(
     return NextResponse.json({ success: false }, { status: 500 });
   }
 }
+
+// PATCH: Marcar una notificación específica como leída
+export async function PATCH(
+  _req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getAuthSession();
+    if (!session?.user?.id) {
+      return NextResponse.json({ success: false }, { status: 401 });
+    }
+    const userId = Number(session.user.id);
+    const { id: rawId } = await context.params;
+    const id = Number(rawId);
+    if (isNaN(id)) {
+      return NextResponse.json({ success: false, error: 'ID inválido' }, { status: 400 });
+    }
+
+    await prisma.notification.updateMany({
+      where: { id, userId },
+      data: { isRead: true }
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('[PATCH /api/notifications/[id]]', error);
+    return NextResponse.json({ success: false }, { status: 500 });
+  }
+}

@@ -41,14 +41,18 @@ export async function validateApiKeyRequest(
     }
 
     const permissions = (apiKey.permissions as any) || {};
-    const resourcePerms = permissions[resource] || {};
+    const resourcePerms = permissions[resource] || (
+      resource === "purchases" || resource === "sales" || resource === "expenses"
+        ? permissions["products"]
+        : {}
+    ) || {};
 
     if (!resourcePerms[action]) {
       return {
         errorResponse: NextResponse.json(
-          { 
-            success: false, 
-            error: `Permiso denegado. La API Key no tiene permisos para la acción '${action}' en el recurso '${resource}'.` 
+          {
+            success: false,
+            error: `Permiso denegado. La API Key no tiene permisos para la acción '${action}' en el recurso '${resource}'.`
           },
           { status: 403 }
         )

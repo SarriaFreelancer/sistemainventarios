@@ -1,7 +1,36 @@
 "use client";
 
-import React, { useState } from "react";
-import { KeyRound, Plus, Copy, Check, Trash2, ShieldCheck, Lock, Globe, Code, Sparkles, CheckCircle2, XCircle } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import {
+  KeyRound,
+  Plus,
+  Copy,
+  Check,
+  Trash2,
+  ShieldCheck,
+  Globe,
+  Code,
+  CheckCircle2,
+  XCircle,
+  Terminal,
+  Package,
+  Users,
+  Truck,
+  FolderTree,
+  Tag,
+  ShoppingCart,
+  DollarSign,
+  Receipt,
+  ChevronDown,
+  ChevronRight,
+  Zap,
+  FileJson,
+  Eye,
+  EyeOff,
+  Layers,
+  HelpCircle,
+  ExternalLink
+} from "lucide-react";
 import { createApiKey, toggleApiKeyStatus, updateApiKeyPermissions, deleteApiKey } from "@/app/actions/api-key-actions";
 import { successAlert, errorAlert, confirmAction } from "@/lib/sweetalert";
 
@@ -10,6 +39,9 @@ const RESOURCES = [
   { id: "suppliers", label: "Proveedores" },
   { id: "categories", label: "Categorías" },
   { id: "groups", label: "Grupos de Productos" },
+  { id: "purchases", label: "Compras y Órdenes" },
+  { id: "sales", label: "Ventas" },
+  { id: "expenses", label: "Gastos y Finanzas" },
   { id: "users", label: "Usuarios" },
 ];
 
@@ -18,13 +50,761 @@ const DEFAULT_PERMISSIONS = {
   suppliers: { read: true, create: true, update: true, delete: false },
   categories: { read: true, create: true, update: true, delete: false },
   groups: { read: true, create: true, update: true, delete: false },
+  purchases: { read: true, create: true, update: false, delete: false },
+  sales: { read: true, create: true, update: false, delete: false },
+  expenses: { read: true, create: true, update: false, delete: false },
   users: { read: false, create: false, update: false, delete: false },
 };
 
-export function ApiIntegrationsManager({ 
+type LanguageSnippet = "curl" | "js" | "python" | "php";
+
+interface EndpointDoc {
+  id: string;
+  method: "GET" | "POST" | "PUT" | "DELETE";
+  path: string;
+  title: string;
+  description: string;
+  queryParams?: { name: string; type: string; required: boolean; description: string }[];
+  bodyParams?: { name: string; type: string; required: boolean; description: string }[];
+  sampleBody?: any;
+  sampleResponse: { status: number; data: any };
+}
+
+interface ModuleDoc {
+  id: string;
+  title: string;
+  icon: any;
+  description: string;
+  endpoints: EndpointDoc[];
+}
+
+const API_MODULES: ModuleDoc[] = [
+  {
+    id: "products",
+    title: "Productos",
+    icon: Package,
+    description: "Gestión del catálogo, inventario, precios y sincronización de stock con plataformas externas.",
+    endpoints: [
+      {
+        id: "get-products",
+        method: "GET",
+        path: "/api/v1/products",
+        title: "Consultar Catálogo de Productos",
+        description: "Obtiene la lista de productos registrados para la empresa con detalles de categoría, grupo y stock disponible.",
+        queryParams: [
+          { name: "limit", type: "number", required: false, description: "Cantidad máxima de registros a retornar (por defecto 50)" }
+        ],
+        sampleResponse: {
+          status: 200,
+          data: {
+            success: true,
+            count: 2,
+            data: [
+              {
+                id: 101,
+                code: "PRD-001",
+                name: "Camiseta Oversize Algodón",
+                quantityAvailable: 45,
+                unitCost: 25000,
+                salePrice: 55000,
+                type: "SALE",
+                category: { id: 3, name: "Ropa y Textiles" },
+                supplier: { id: 12, companyName: "Textiles Andinos S.A.S.", contactName: "Carlos Ruiz" },
+                productGroup: { id: 1, name: "Prendas Superiores" },
+                updatedAt: "2026-09-19T01:00:00.000Z"
+              }
+            ]
+          }
+        }
+      },
+      {
+        id: "post-products",
+        method: "POST",
+        path: "/api/v1/products",
+        title: "Crear Nuevo Producto",
+        description: "Crea un producto en el inventario y lo asigna automáticamente a la bodega principal de la empresa.",
+        bodyParams: [
+          { name: "code", type: "string", required: true, description: "Código SKU o de barras único" },
+          { name: "name", type: "string", required: true, description: "Nombre comercial del producto" },
+          { name: "categoryId", type: "number", required: true, description: "ID de la categoría existente" },
+          { name: "supplierId", type: "number", required: true, description: "ID del proveedor asignado" },
+          { name: "quantityAvailable", type: "number", required: false, description: "Stock inicial en bodega (default 0)" },
+          { name: "unitCost", type: "number", required: false, description: "Costo unitario de adquisición (default 0)" },
+          { name: "salePrice", type: "number", required: false, description: "Precio de venta al público (default 0)" },
+          { name: "productGroupId", type: "number", required: false, description: "ID del grupo de productos opcional" },
+          { name: "type", type: "string", required: false, description: "Tipo: 'SALE' o 'RAW_MATERIAL' (default 'SALE')" }
+        ],
+        sampleBody: {
+          code: "PRD-002",
+          name: "Pantalón Cargo Casual",
+          categoryId: 3,
+          supplierId: 12,
+          quantityAvailable: 30,
+          unitCost: 40000,
+          salePrice: 89000,
+          productGroupId: 2,
+          type: "SALE"
+        },
+        sampleResponse: {
+          status: 201,
+          data: {
+            success: true,
+            data: {
+              id: 102,
+              code: "PRD-002",
+              name: "Pantalón Cargo Casual",
+              quantityAvailable: 30,
+              salePrice: 89000,
+              createdAt: "2026-09-19T01:05:00.000Z"
+            }
+          }
+        }
+      },
+      {
+        id: "put-products",
+        method: "PUT",
+        path: "/api/v1/products",
+        title: "Actualizar Producto Existente",
+        description: "Modifica atributos como precios, stock, categoría o nombre de un producto por su ID.",
+        bodyParams: [
+          { name: "id", type: "number", required: true, description: "ID interno del producto a modificar" },
+          { name: "name", type: "string", required: false, description: "Nuevo nombre" },
+          { name: "salePrice", type: "number", required: false, description: "Nuevo precio de venta" },
+          { name: "quantityAvailable", type: "number", required: false, description: "Ajuste directo de stock disponible" },
+          { name: "unitCost", type: "number", required: false, description: "Nuevo costo unitario" }
+        ],
+        sampleBody: {
+          id: 102,
+          salePrice: 95000,
+          quantityAvailable: 28
+        },
+        sampleResponse: {
+          status: 200,
+          data: {
+            success: true,
+            message: "Producto actualizado correctamente"
+          }
+        }
+      },
+      {
+        id: "delete-products",
+        method: "DELETE",
+        path: "/api/v1/products?id={id}",
+        title: "Eliminar Producto",
+        description: "Elimina permanentemente un producto de la empresa especificado por su ID en parámetro query.",
+        queryParams: [
+          { name: "id", type: "number", required: true, description: "ID del producto a eliminar" }
+        ],
+        sampleResponse: {
+          status: 200,
+          data: {
+            success: true,
+            message: "Producto eliminado correctamente"
+          }
+        }
+      }
+    ]
+  },
+  {
+    id: "suppliers",
+    title: "Proveedores",
+    icon: Truck,
+    description: "Administración de proveedores, contactos comerciales, NITs y datos de facturación.",
+    endpoints: [
+      {
+        id: "get-suppliers",
+        method: "GET",
+        path: "/api/v1/suppliers",
+        title: "Consultar Directorio de Proveedores",
+        description: "Lista todos los proveedores registrados en la empresa.",
+        sampleResponse: {
+          status: 200,
+          data: {
+            success: true,
+            data: [
+              {
+                id: 12,
+                code: "PRV-01",
+                companyName: "Textiles Andinos S.A.S.",
+                nit: "900123456-7",
+                contactName: "Carlos Ruiz",
+                email: "contacto@textilesandinos.com",
+                phone: "3101234567",
+                city: "Medellín",
+                address: "Calle 50 # 40-20"
+              }
+            ]
+          }
+        }
+      },
+      {
+        id: "post-suppliers",
+        method: "POST",
+        path: "/api/v1/suppliers",
+        title: "Registrar Proveedor",
+        description: "Crea un nuevo proveedor en la base de datos empresarial.",
+        bodyParams: [
+          { name: "companyName", type: "string", required: true, description: "Razón social o nombre comercial" },
+          { name: "nit", type: "string", required: false, description: "Documento o identificación tributaria" },
+          { name: "contactName", type: "string", required: false, description: "Nombre del asesor o contacto directo" },
+          { name: "email", type: "string", required: false, description: "Correo electrónico de contacto" },
+          { name: "phone", type: "string", required: false, description: "Teléfono o celular" },
+          { name: "city", type: "string", required: false, description: "Ciudad o municipio" },
+          { name: "address", type: "string", required: false, description: "Dirección física" }
+        ],
+        sampleBody: {
+          companyName: "Distribuidora Global S.A.",
+          nit: "901456789-1",
+          contactName: "Mariana Gómez",
+          email: "ventas@globaldist.com",
+          phone: "3009876543",
+          city: "Bogotá",
+          address: "Cra 15 # 85-30"
+        },
+        sampleResponse: {
+          status: 201,
+          data: {
+            success: true,
+            data: {
+              id: 13,
+              companyName: "Distribuidora Global S.A.",
+              contactName: "Mariana Gómez",
+              email: "ventas@globaldist.com"
+            }
+          }
+        }
+      },
+      {
+        id: "put-suppliers",
+        method: "PUT",
+        path: "/api/v1/suppliers",
+        title: "Actualizar Proveedor",
+        description: "Modifica información de contacto o fiscal de un proveedor existente.",
+        bodyParams: [
+          { name: "id", type: "number", required: true, description: "ID del proveedor a modificar" },
+          { name: "phone", type: "string", required: false, description: "Nuevo teléfono" },
+          { name: "email", type: "string", required: false, description: "Nuevo correo electrónico" }
+        ],
+        sampleBody: {
+          id: 13,
+          phone: "3151112233",
+          email: "gerencia@globaldist.com"
+        },
+        sampleResponse: {
+          status: 200,
+          data: {
+            success: true,
+            message: "Proveedor actualizado correctamente"
+          }
+        }
+      },
+      {
+        id: "delete-suppliers",
+        method: "DELETE",
+        path: "/api/v1/suppliers?id={id}",
+        title: "Eliminar Proveedor",
+        description: "Elimina un proveedor por su ID vía parámetro query.",
+        queryParams: [
+          { name: "id", type: "number", required: true, description: "ID del proveedor a eliminar" }
+        ],
+        sampleResponse: {
+          status: 200,
+          data: {
+            success: true,
+            message: "Proveedor eliminado correctamente"
+          }
+        }
+      }
+    ]
+  },
+  {
+    id: "purchases",
+    title: "Compras & Órdenes",
+    icon: ShoppingCart,
+    description: "Registro de órdenes de compra, control de recepciones, proveedores y líneas de costos.",
+    endpoints: [
+      {
+        id: "get-purchases",
+        method: "GET",
+        path: "/api/v1/purchases",
+        title: "Consultar Órdenes de Compra",
+        description: "Obtiene el historial de órdenes de compra emitidas con detalle de artículos, proveedor y totales.",
+        queryParams: [
+          { name: "limit", type: "number", required: false, description: "Límite de órdenes a consultar (default 50)" }
+        ],
+        sampleResponse: {
+          status: 200,
+          data: {
+            success: true,
+            count: 1,
+            data: [
+              {
+                id: 45,
+                orderNumber: "OC-948123",
+                status: "DRAFT",
+                subtotal: 500000,
+                taxAmount: 95000,
+                total: 595000,
+                expectedDelivery: "2026-09-30T00:00:00.000Z",
+                supplier: {
+                  id: 12,
+                  companyName: "Textiles Andinos S.A.S.",
+                  contactName: "Carlos Ruiz",
+                  email: "contacto@textilesandinos.com"
+                },
+                lines: [
+                  {
+                    id: 89,
+                    productId: 101,
+                    description: "Camiseta Oversize Algodón",
+                    itemType: "PRODUCTO_VENTA",
+                    quantity: 20,
+                    unitPrice: 25000,
+                    total: 500000,
+                    product: { id: 101, code: "PRD-001", name: "Camiseta Oversize Algodón" }
+                  }
+                ],
+                createdAt: "2026-09-19T01:00:00.000Z"
+              }
+            ]
+          }
+        }
+      },
+      {
+        id: "post-purchases",
+        method: "POST",
+        path: "/api/v1/purchases",
+        title: "Crear Orden de Compra",
+        description: "Crea una nueva orden de compra calculando automáticamente subtotales, impuestos y totales.",
+        bodyParams: [
+          { name: "supplierId", type: "number", required: true, description: "ID del proveedor destinatario" },
+          { name: "expectedDelivery", type: "string", required: false, description: "Fecha estimada de entrega (ISO 8601 YYYY-MM-DD)" },
+          { name: "notes", type: "string", required: false, description: "Observaciones internas de la orden" },
+          { name: "terms", type: "string", required: false, description: "Términos comerciales o de pago" },
+          { name: "lines", type: "array", required: true, description: "Array de items: [{ productId?, description?, itemType?, quantity, unitPrice, taxRate? }]" }
+        ],
+        sampleBody: {
+          supplierId: 12,
+          expectedDelivery: "2026-10-05",
+          notes: "Entrega en bodega central de 8am a 5pm",
+          terms: "Pago a 30 días contra entrega",
+          lines: [
+            {
+              productId: 101,
+              description: "Camisetas Lote Primavera",
+              itemType: "PRODUCTO_VENTA",
+              quantity: 50,
+              unitPrice: 24000,
+              taxRate: 19
+            }
+          ]
+        },
+        sampleResponse: {
+          status: 201,
+          data: {
+            success: true,
+            data: {
+              id: 46,
+              orderNumber: "OC-948124",
+              supplierId: 12,
+              status: "DRAFT",
+              subtotal: 1200000,
+              taxAmount: 228000,
+              total: 1428000,
+              createdAt: "2026-09-19T01:10:00.000Z"
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    id: "sales",
+    title: "Ventas",
+    icon: DollarSign,
+    description: "Registro de ventas, transacciones de POS/E-commerce y descarga automática de stock.",
+    endpoints: [
+      {
+        id: "get-sales",
+        method: "GET",
+        path: "/api/v1/sales",
+        title: "Consultar Historial de Ventas",
+        description: "Lista las ventas completadas por la empresa con el desglose de productos y medios de pago.",
+        queryParams: [
+          { name: "limit", type: "number", required: false, description: "Número máximo de ventas (default 50)" }
+        ],
+        sampleResponse: {
+          status: 200,
+          data: {
+            success: true,
+            count: 1,
+            data: [
+              {
+                id: 88,
+                saleNumber: "VEN-892301",
+                client: "Juan Pérez",
+                paymentMethod: "TRANSFERENCIA",
+                discount: 0,
+                total: 110000,
+                status: "COMPLETED",
+                saleDetails: [
+                  {
+                    id: 140,
+                    quantity: 2,
+                    unitPrice: 55000,
+                    subtotal: 110000,
+                    product: { id: 101, code: "PRD-001", name: "Camiseta Oversize Algodón" }
+                  }
+                ],
+                createdAt: "2026-09-19T00:30:00.000Z"
+              }
+            ]
+          }
+        }
+      },
+      {
+        id: "post-sales",
+        method: "POST",
+        path: "/api/v1/sales",
+        title: "Registrar Nueva Venta",
+        description: "Registra una venta, descuenta inmediatamente las unidades del stock y genera el consecutivo de venta.",
+        bodyParams: [
+          { name: "client", type: "string", required: false, description: "Nombre o razón social del cliente (default 'Cliente General')" },
+          { name: "paymentMethod", type: "string", required: false, description: "Método: 'EFECTIVO', 'TRANSFERENCIA', 'TARJETA', 'DATAFONO'" },
+          { name: "discount", type: "number", required: false, description: "Valor del descuento aplicado en moneda" },
+          { name: "remarks", type: "string", required: false, description: "Notas u observaciones de la transacción" },
+          { name: "items", type: "array", required: true, description: "Lista de productos vendidos: [{ productId, quantity, unitPrice? }]" }
+        ],
+        sampleBody: {
+          client: "Laura Martínez",
+          paymentMethod: "TARJETA",
+          discount: 5000,
+          remarks: "Pedido tienda online #4582",
+          items: [
+            {
+              productId: 101,
+              quantity: 2,
+              unitPrice: 55000
+            }
+          ]
+        },
+        sampleResponse: {
+          status: 201,
+          data: {
+            success: true,
+            data: {
+              id: 89,
+              saleNumber: "VEN-892302",
+              client: "Laura Martínez",
+              paymentMethod: "TARJETA",
+              total: 105000,
+              status: "COMPLETED",
+              createdAt: "2026-09-19T01:15:00.000Z"
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    id: "groups",
+    title: "Grupos de Productos",
+    icon: FolderTree,
+    description: "Clasificación por líneas de producto, marcas, colecciones o familias comerciales.",
+    endpoints: [
+      {
+        id: "get-groups",
+        method: "GET",
+        path: "/api/v1/groups",
+        title: "Consultar Grupos",
+        description: "Obtiene todos los grupos de productos creados por la empresa.",
+        sampleResponse: {
+          status: 200,
+          data: {
+            success: true,
+            data: [
+              { id: 1, name: "Prendas Superiores", description: "Camisetas, camisas y chaquetas", createdAt: "2026-09-01T00:00:00.000Z" },
+              { id: 2, name: "Prendas Inferiores", description: "Pantalones, jeans y bermudas", createdAt: "2026-09-01T00:00:00.000Z" }
+            ]
+          }
+        }
+      },
+      {
+        id: "post-groups",
+        method: "POST",
+        path: "/api/v1/groups",
+        title: "Crear Grupo",
+        description: "Crea un nuevo grupo o familia de productos.",
+        bodyParams: [
+          { name: "name", type: "string", required: true, description: "Nombre del grupo" },
+          { name: "description", type: "string", required: false, description: "Descripción opcional" }
+        ],
+        sampleBody: {
+          name: "Calzado & Accesorios",
+          description: "Zapatos, cinturones y bolsos de cuero"
+        },
+        sampleResponse: {
+          status: 201,
+          data: {
+            success: true,
+            data: { id: 3, name: "Calzado & Accesorios", description: "Zapatos, cinturones y bolsos de cuero" }
+          }
+        }
+      },
+      {
+        id: "put-groups",
+        method: "PUT",
+        path: "/api/v1/groups",
+        title: "Actualizar Grupo",
+        description: "Modifica el nombre o descripción de un grupo existente.",
+        bodyParams: [
+          { name: "id", type: "number", required: true, description: "ID del grupo a editar" },
+          { name: "name", type: "string", required: false, description: "Nuevo nombre" },
+          { name: "description", type: "string", required: false, description: "Nueva descripción" }
+        ],
+        sampleBody: {
+          id: 3,
+          name: "Calzado, Bolsos & Accesorios"
+        },
+        sampleResponse: {
+          status: 200,
+          data: { success: true, message: "Grupo actualizado correctamente" }
+        }
+      },
+      {
+        id: "delete-groups",
+        method: "DELETE",
+        path: "/api/v1/groups?id={id}",
+        title: "Eliminar Grupo",
+        description: "Elimina un grupo de productos por su ID.",
+        queryParams: [
+          { name: "id", type: "number", required: true, description: "ID del grupo a eliminar" }
+        ],
+        sampleResponse: {
+          status: 200,
+          data: { success: true, message: "Grupo eliminado correctamente" }
+        }
+      }
+    ]
+  },
+  {
+    id: "categories",
+    title: "Categorías",
+    icon: Tag,
+    description: "Gestión de categorías y subcategorías del catálogo de productos.",
+    endpoints: [
+      {
+        id: "get-categories",
+        method: "GET",
+        path: "/api/v1/categories",
+        title: "Consultar Categorías",
+        description: "Retorna la lista completa de categorías de la empresa.",
+        sampleResponse: {
+          status: 200,
+          data: {
+            success: true,
+            data: [
+              { id: 3, name: "Ropa y Textiles", description: "Prendas de vestir en general" },
+              { id: 4, name: "Artículos para Hogar", description: "Decoración y cocina" }
+            ]
+          }
+        }
+      },
+      {
+        id: "post-categories",
+        method: "POST",
+        path: "/api/v1/categories",
+        title: "Crear Categoría",
+        description: "Registra una nueva categoría en el catálogo.",
+        bodyParams: [
+          { name: "name", type: "string", required: true, description: "Nombre de la categoría" },
+          { name: "description", type: "string", required: false, description: "Descripción detallada" }
+        ],
+        sampleBody: {
+          name: "Electrónica & Gadgets",
+          description: "Dispositivos electrónicos y periféricos"
+        },
+        sampleResponse: {
+          status: 201,
+          data: {
+            success: true,
+            data: { id: 5, name: "Electrónica & Gadgets", description: "Dispositivos electrónicos y periféricos" }
+          }
+        }
+      },
+      {
+        id: "put-categories",
+        method: "PUT",
+        path: "/api/v1/categories",
+        title: "Actualizar Categoría",
+        description: "Modifica el nombre o descripción de una categoría.",
+        bodyParams: [
+          { name: "id", type: "number", required: true, description: "ID de la categoría" },
+          { name: "name", type: "string", required: false, description: "Nuevo nombre" },
+          { name: "description", type: "string", required: false, description: "Nueva descripción" }
+        ],
+        sampleBody: {
+          id: 5,
+          name: "Tecnología y Gadgets"
+        },
+        sampleResponse: {
+          status: 200,
+          data: { success: true, message: "Categoría actualizada correctamente" }
+        }
+      },
+      {
+        id: "delete-categories",
+        method: "DELETE",
+        path: "/api/v1/categories?id={id}",
+        title: "Eliminar Categoría",
+        description: "Elimina una categoría existente por su ID.",
+        queryParams: [
+          { name: "id", type: "number", required: true, description: "ID de la categoría a eliminar" }
+        ],
+        sampleResponse: {
+          status: 200,
+          data: { success: true, message: "Categoría eliminada correctamente" }
+        }
+      }
+    ]
+  },
+  {
+    id: "expenses",
+    title: "Gastos & Finanzas",
+    icon: Receipt,
+    description: "Registro de egresos operativos, pagos a proveedores, arriendos y caja menor.",
+    endpoints: [
+      {
+        id: "get-expenses",
+        method: "GET",
+        path: "/api/v1/expenses",
+        title: "Consultar Gastos Corporativos",
+        description: "Lista todos los gastos y egresos registrados por fecha descendente.",
+        sampleResponse: {
+          status: 200,
+          data: {
+            success: true,
+            count: 1,
+            data: [
+              {
+                id: 20,
+                concept: "Pago de Servicios Públicos e Internet",
+                category: "SERVICIOS",
+                amount: 320000,
+                paymentMethod: "TRANSFERENCIA",
+                date: "2026-09-18T14:00:00.000Z",
+                notes: "Factura septiembre fibra óptica"
+              }
+            ]
+          }
+        }
+      },
+      {
+        id: "post-expenses",
+        method: "POST",
+        path: "/api/v1/expenses",
+        title: "Registrar Gasto",
+        description: "Crea un nuevo movimiento de egreso financiero.",
+        bodyParams: [
+          { name: "concept", type: "string", required: true, description: "Concepto o motivo del gasto" },
+          { name: "amount", type: "number", required: true, description: "Monto total del gasto" },
+          { name: "category", type: "string", required: false, description: "Categoría (e.g. 'ADMINISTRATIVO', 'OPERATIVO', 'SERVICIOS')" },
+          { name: "paymentMethod", type: "string", required: false, description: "Método de pago (default 'EFECTIVO')" },
+          { name: "date", type: "string", required: false, description: "Fecha del gasto en formato ISO 8601" },
+          { name: "notes", type: "string", required: false, description: "Detalles u observaciones" }
+        ],
+        sampleBody: {
+          concept: "Mantenimiento de Maquinaria y Equipos",
+          amount: 450000,
+          category: "MANTENIMIENTO",
+          paymentMethod: "TRANSFERENCIA",
+          date: "2026-09-19T10:00:00.000Z",
+          notes: "Cambio de repuestos preventivo"
+        },
+        sampleResponse: {
+          status: 201,
+          data: {
+            success: true,
+            data: {
+              id: 21,
+              concept: "Mantenimiento de Maquinaria y Equipos",
+              amount: 450000,
+              category: "MANTENIMIENTO",
+              createdAt: "2026-09-19T01:20:00.000Z"
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    id: "users",
+    title: "Usuarios",
+    icon: Users,
+    description: "Gestión y consulta de colaboradores de la empresa con acceso al sistema.",
+    endpoints: [
+      {
+        id: "get-users",
+        method: "GET",
+        path: "/api/v1/users",
+        title: "Consultar Usuarios",
+        description: "Lista los colaboradores y usuarios activos de la empresa.",
+        sampleResponse: {
+          status: 200,
+          data: {
+            success: true,
+            data: [
+              {
+                id: 1,
+                name: "Administrador General",
+                email: "admin@empresa.com",
+                role: "ADMIN",
+                active: true,
+                createdAt: "2026-01-01T00:00:00.000Z"
+              }
+            ]
+          }
+        }
+      },
+      {
+        id: "post-users",
+        method: "POST",
+        path: "/api/v1/users",
+        title: "Crear Usuario",
+        description: "Registra un nuevo usuario para la empresa con rol asignado.",
+        bodyParams: [
+          { name: "name", type: "string", required: true, description: "Nombre completo del usuario" },
+          { name: "email", type: "string", required: true, description: "Correo electrónico único" },
+          { name: "password", type: "string", required: true, description: "Contraseña inicial de acceso" },
+          { name: "role", type: "string", required: false, description: "Rol: 'ADMIN', 'SELLER', 'WAREHOUSE', 'AUDITOR' (default 'SELLER')" }
+        ],
+        sampleBody: {
+          name: "Carlos Vendedor",
+          email: "carlos.ventas@empresa.com",
+          password: "ClaveSegura2026*",
+          role: "SELLER"
+        },
+        sampleResponse: {
+          status: 201,
+          data: {
+            success: true,
+            data: {
+              id: 5,
+              name: "Carlos Vendedor",
+              email: "carlos.ventas@empresa.com",
+              role: "SELLER"
+            }
+          }
+        }
+      }
+    ]
+  }
+];
+
+export function ApiIntegrationsManager({
   apiData = { isSuperAdmin: false, keys: [], hasActiveIntegrations: false },
   companies = []
-}: { 
+}: {
   apiData: { isSuperAdmin: boolean; keys: any[]; hasActiveIntegrations: boolean };
   companies?: { id: number; name: string }[];
 }) {
@@ -37,12 +817,39 @@ export function ApiIntegrationsManager({
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [origin, setOrigin] = useState("");
+  const [selectedModule, setSelectedModule] = useState<string>("products");
+  const [expandedEndpoints, setExpandedEndpoints] = useState<Record<string, boolean>>({
+    "get-products": true,
+    "post-products": true
+  });
+  const [selectedLanguage, setSelectedLanguage] = useState<LanguageSnippet>("curl");
+  const [visibleKeys, setVisibleKeys] = useState<Record<string, boolean>>({});
 
-  // Helper copia al portapapeles
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setOrigin(window.location.origin);
+    }
+  }, []);
+
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2500);
+  };
+
+  const toggleEndpoint = (endpointId: string) => {
+    setExpandedEndpoints(prev => ({
+      ...prev,
+      [endpointId]: !prev[endpointId]
+    }));
+  };
+
+  const toggleKeyVisibility = (keyId: string) => {
+    setVisibleKeys(prev => ({
+      ...prev,
+      [keyId]: !prev[keyId]
+    }));
   };
 
   const handlePermissionChange = (resource: string, action: string, checked: boolean) => {
@@ -61,7 +868,7 @@ export function ApiIntegrationsManager({
       errorAlert("Atención", "Por favor asigna un nombre para identificar la llave API.");
       return;
     }
-    if (!selectedCompanyId) {
+    if (isSuperAdmin && !selectedCompanyId) {
       errorAlert("Atención", "Debes seleccionar la empresa a la que se le asignará la llave API.");
       return;
     }
@@ -69,7 +876,7 @@ export function ApiIntegrationsManager({
     setIsCreating(true);
     const res = await createApiKey({
       name: newKeyName,
-      targetCompanyId: Number(selectedCompanyId),
+      targetCompanyId: selectedCompanyId ? Number(selectedCompanyId) : undefined,
       permissions
     });
     setIsCreating(false);
@@ -88,6 +895,7 @@ export function ApiIntegrationsManager({
     const res = await toggleApiKeyStatus(keyItem.id, nextStatus);
     if (res.success) {
       setKeysList(keysList.map(k => k.id === keyItem.id ? { ...k, active: nextStatus } : k));
+      successAlert("Estado Actualizado", `La llave ahora está ${nextStatus ? 'activa' : 'desactivada'}.`);
     } else {
       errorAlert("Error", res.error || "No se pudo actualizar el estado de la llave");
     }
@@ -96,7 +904,7 @@ export function ApiIntegrationsManager({
   const handleDeleteKey = async (id: string) => {
     const confirmed = await confirmAction(
       "Revocar Llave API",
-      "¿Estás seguro de revocar esta llave? Todas las aplicaciones externas conectadas perderán el acceso.",
+      "¿Estás seguro de revocar esta llave? Todas las aplicaciones externas conectadas perderán el acceso inmediatamente.",
       "Sí, Revocar Llave",
       "Cancelar"
     );
@@ -111,221 +919,558 @@ export function ApiIntegrationsManager({
     }
   };
 
-  // VISTA PARA ADMINISTRADORES Y USUARIOS DE EMPRESA (Solo Indicador de Integraciones)
-  if (!isSuperAdmin) {
-    return (
-      <div className="space-y-6">
-        <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-6 rounded-3xl border border-primary/20 space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-extrabold text-foreground flex items-center gap-2">
-              <Code size={20} className="text-primary" />
-              Estado de Integraciones API Externas
-            </h3>
-            <span className={`text-xs font-extrabold px-3 py-1 rounded-full border ${
-              apiData.hasActiveIntegrations 
-                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' 
-                : 'bg-muted text-muted-foreground border-border'
-            }`}>
-              {apiData.hasActiveIntegrations ? "Integraciones Activas" : "Sin Integraciones Activas"}
-            </span>
-          </div>
+  const activeToken = keysList.find(k => k.active)?.key || "gns_live_tu_api_key_aqui";
+  const currentModuleDoc = API_MODULES.find(m => m.id === selectedModule) || API_MODULES[0];
 
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Las llaves de acceso e integraciones con sistemas externos (E-commerce, ERPs o aplicaciones móviles) son administradas y aprovisionadas directamente por el **Superadministrador del Sistema** por motivos de seguridad corporativa.
-          </p>
+  const getBadgeColor = (method: string) => {
+    switch (method) {
+      case "GET":
+        return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30";
+      case "POST":
+        return "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30";
+      case "PUT":
+        return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30";
+      case "DELETE":
+        return "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30";
+      default:
+        return "bg-muted text-muted-foreground border-border";
+    }
+  };
 
-          <div className="pt-2">
-            <h4 className="text-xs font-bold text-foreground mb-2">Conexiones Habilitadas para tu Empresa:</h4>
-            {keysList.length === 0 ? (
-              <div className="bg-card border border-border/60 p-4 rounded-2xl text-xs text-muted-foreground italic">
-                Tu empresa no tiene llaves de integración configuradas en este momento. Solicita al Superadmin la generación de un token si requieres conectar un sistema externo.
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                {keysList.map(k => (
-                  <div key={k.id} className="bg-card border border-border/80 p-3.5 rounded-2xl flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <div className="flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full ${k.active ? 'bg-emerald-500' : 'bg-muted-foreground'}`} />
-                        <span className="font-extrabold text-foreground">{k.name}</span>
-                      </div>
-                      <p className="text-[11px] text-muted-foreground">
-                        Última actividad: {k.lastUsedAt ? new Date(k.lastUsedAt).toLocaleDateString("es-CO") : "Sin uso reciente"}
-                      </p>
-                    </div>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${k.active ? 'bg-emerald-500/10 text-emerald-500' : 'bg-muted text-muted-foreground'}`}>
-                      {k.active ? "Conectado" : "Inactivo"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const generateSnippet = (ep: EndpointDoc, lang: LanguageSnippet) => {
+    const fullUrl = `${origin || "https://tu-dominio.com"}${ep.path}`;
+    const token = activeToken;
 
-  // VISTA EXCLUSIVA DE SUPERADMIN (Gestión Global de API Keys)
+    if (lang === "curl") {
+      if (ep.method === "GET") {
+        return `curl -X GET "${fullUrl}" \\\n  -H "Authorization: Bearer ${token}" \\\n  -H "Content-Type: application/json"`;
+      }
+      if (ep.method === "DELETE") {
+        return `curl -X DELETE "${fullUrl}" \\\n  -H "Authorization: Bearer ${token}"`;
+      }
+      return `curl -X ${ep.method} "${fullUrl}" \\\n  -H "Authorization: Bearer ${token}" \\\n  -H "Content-Type: application/json" \\\n  -d '${JSON.stringify(ep.sampleBody || {}, null, 2)}'`;
+    }
+
+    if (lang === "js") {
+      const bodySnippet = ep.sampleBody
+        ? `,\n  body: JSON.stringify(${JSON.stringify(ep.sampleBody, null, 4)})`
+        : "";
+      return `// JavaScript / Node.js (fetch)\nconst response = await fetch("${fullUrl}", {\n  method: "${ep.method}",\n  headers: {\n    "Authorization": "Bearer ${token}",\n    "Content-Type": "application/json"\n  }${bodySnippet}\n});\n\nconst result = await response.json();\nconsole.log(result);`;
+    }
+
+    if (lang === "python") {
+      return `# Python (requests)\nimport requests\n\nurl = "${fullUrl}"\nheaders = {\n    "Authorization": "Bearer ${token}",\n    "Content-Type": "application/json"\n}\n${ep.sampleBody ? `payload = ${JSON.stringify(ep.sampleBody, null, 4)}\nresponse = requests.${ep.method.toLowerCase()}(url, json=payload, headers=headers)` : `response = requests.${ep.method.toLowerCase()}(url, headers=headers)`}\n\nprint(response.json())`;
+    }
+
+    if (lang === "php") {
+      return `<?php\n// PHP (cURL)\n$curl = curl_init();\n\ncurl_setopt_array($curl, array(\n  CURLOPT_URL => "${fullUrl}",\n  CURLOPT_RETURNTRANSFER => true,\n  CURLOPT_CUSTOMREQUEST => "${ep.method}",\n  ${ep.sampleBody ? `CURLOPT_POSTFIELDS => '${JSON.stringify(ep.sampleBody)}',\n  ` : ""}CURLOPT_HTTPHEADER => array(\n    "Authorization: Bearer ${token}",\n    "Content-Type: application/json"\n  ),\n));\n\n$response = curl_exec($curl);\ncurl_close($curl);\necho $response;\n?>`;
+    }
+
+    return "";
+  };
+
   return (
-    <div className="space-y-6">
-      
-      {/* Header de Superadmin */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-5 rounded-3xl border border-primary/20">
-        <div>
-          <h3 className="text-base font-extrabold text-foreground flex items-center gap-2">
-            <ShieldCheck size={20} className="text-primary" />
-            Control Global de Integraciones API (Superadmin)
-          </h3>
-          <p className="text-xs text-muted-foreground mt-1">
-            Genera, asigna por empresa y revoca las Llaves API REST para integraciones externas.
-          </p>
-        </div>
+    <div className="space-y-8 animate-in fade-in duration-300">
 
-        <button
-          type="button"
-          onClick={() => {
-            setCreatedKey(null);
-            setNewKeyName("");
-            setPermissions(DEFAULT_PERMISSIONS);
-            if (companies.length > 0) setSelectedCompanyId(companies[0].id);
-            setIsModalOpen(true);
-          }}
-          className="bg-primary text-primary-foreground font-bold px-4 py-2.5 rounded-2xl text-xs flex items-center gap-2 hover:opacity-95 active:scale-95 transition shadow-md shrink-0 cursor-pointer"
-        >
-          <Plus size={16} /> Crear Llave API para Empresa
-        </button>
-      </div>
-
-      {/* Tabla / Tarjetas de Llaves Registradas */}
-      <div className="space-y-3">
-        {keysList.length === 0 ? (
-          <div className="bg-card border border-border rounded-3xl p-8 text-center flex flex-col items-center justify-center">
-            <div className="w-14 h-14 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary mb-3">
-              <Code size={26} />
+      {/* ── BANNER PRINCIPAL DE INTEGRACIONES ── */}
+      <div className="relative overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-background p-6 sm:p-8 shadow-sm">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
+          <div className="space-y-2 max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/15 border border-primary/25 text-primary text-xs font-bold">
+              <Zap size={14} className="animate-pulse" />
+              Ecosistema de Conexiones REST API v1
             </div>
-            <h4 className="font-bold text-sm text-foreground">No tienes Llaves API creadas</h4>
-            <p className="text-xs text-muted-foreground max-w-sm mt-1 mb-4">
-              Crea tu primera API Key para autorizar solicitudes REST HTTP externas de consulta (GET), creación (POST), edición (PUT) y eliminación (DELETE).
+            <h2 className="text-xl sm:text-2xl font-black tracking-tight text-foreground flex items-center gap-2.5">
+              <Code size={24} className="text-primary" />
+              Módulo de Integraciones & Endpoints
+            </h2>
+            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+              Conecta tu software con plataformas de E-commerce (Shopify, WooCommerce), sistemas ERP, POS de punto de venta, aplicaciones móviles o herramientas de automatización como Zapier y Make mediante nuestra API REST segura.
             </p>
           </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setCreatedKey(null);
+              setNewKeyName("");
+              setPermissions(DEFAULT_PERMISSIONS);
+              if (companies.length > 0) setSelectedCompanyId(companies[0].id);
+              setIsModalOpen(true);
+            }}
+            className="bg-primary text-primary-foreground font-extrabold px-5 py-3 rounded-2xl text-xs sm:text-sm flex items-center gap-2.5 hover:opacity-95 active:scale-95 transition-all shadow-lg hover:shadow-primary/25 cursor-pointer shrink-0"
+          >
+            <Plus size={18} />
+            <span>Generar Nueva Llave API</span>
+          </button>
+        </div>
+
+        {/* Barra de Autenticación Rápida */}
+        <div className="mt-6 pt-5 border-t border-border/60 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-card/80 backdrop-blur-sm border border-border/80 p-3.5 rounded-2xl flex items-center justify-between gap-3 shadow-sm">
+            <div className="min-w-0 flex-1">
+              <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider block">Base URL del Servidor</span>
+              <code className="text-xs font-mono text-primary font-bold truncate block mt-0.5">
+                {origin || "https://tu-dominio.com"}
+              </code>
+            </div>
+            <button
+              onClick={() => copyToClipboard(origin || "https://tu-dominio.com", "base_url")}
+              className="p-2 rounded-xl text-muted-foreground hover:text-primary hover:bg-muted/60 transition cursor-pointer shrink-0"
+              title="Copiar URL base"
+            >
+              {copiedId === "base_url" ? <Check size={16} className="text-emerald-500" /> : <Copy size={16} />}
+            </button>
+          </div>
+
+          <div className="bg-card/80 backdrop-blur-sm border border-border/80 p-3.5 rounded-2xl flex items-center justify-between gap-3 shadow-sm">
+            <div className="min-w-0 flex-1">
+              <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider block">Encabezado de Autenticación Requerido</span>
+              <code className="text-xs font-mono text-foreground font-semibold truncate block mt-0.5">
+                Authorization: Bearer &lt;TU_API_KEY&gt;
+              </code>
+            </div>
+            <button
+              onClick={() => copyToClipboard("Authorization: Bearer " + activeToken, "auth_header")}
+              className="p-2 rounded-xl text-muted-foreground hover:text-primary hover:bg-muted/60 transition cursor-pointer shrink-0"
+              title="Copiar cabecera de autenticación"
+            >
+              {copiedId === "auth_header" ? <Check size={16} className="text-emerald-500" /> : <Copy size={16} />}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── SECCIÓN DE LLAVES API ACTIVAS ── */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <KeyRound size={18} className="text-primary" />
+            <h3 className="font-extrabold text-sm sm:text-base text-foreground">
+              {isSuperAdmin ? "Llaves API de Todas las Empresas" : "Credenciales de Acceso de Tu Empresa"}
+            </h3>
+          </div>
+          <span className={`text-[11px] font-bold px-3 py-1 rounded-full border ${
+            keysList.some(k => k.active)
+              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+              : "bg-muted text-muted-foreground border-border"
+          }`}>
+            {keysList.filter(k => k.active).length} Llaves Activas
+          </span>
+        </div>
+
+        {keysList.length === 0 ? (
+          <div className="bg-card border border-dashed border-border rounded-3xl p-8 text-center flex flex-col items-center justify-center space-y-3">
+            <div className="w-12 h-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+              <KeyRound size={22} />
+            </div>
+            <h4 className="font-bold text-sm text-foreground">No hay Llaves API generadas</h4>
+            <p className="text-xs text-muted-foreground max-w-md">
+              Genera tu primera API Key para otorgar permisos a aplicaciones externas como Shopify, WooCommerce o scripts en Python.
+            </p>
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(true)}
+              className="mt-2 bg-primary text-primary-foreground font-bold px-4 py-2 rounded-xl text-xs hover:opacity-90 transition cursor-pointer"
+            >
+              Crear Llave Ahora
+            </button>
+          </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3">
-            {keysList.map((k) => (
-              <div key={k.id} className="bg-card border border-border/80 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm hover:border-primary/40 transition">
-                <div className="space-y-1 min-w-0 flex-1">
-                  <div className="flex items-center gap-2.5">
-                    <span className={`w-2.5 h-2.5 rounded-full ${k.active ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground'}`} />
-                    <h4 className="font-extrabold text-sm text-foreground truncate">{k.name}</h4>
-                    <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                      Empresa: {k.company?.name || `ID #${k.companyId}`}
-                    </span>
-                    <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
-                      k.active ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' : 'bg-muted text-muted-foreground border-border'
-                    }`}>
-                      {k.active ? "Activa" : "Desactivada"}
-                    </span>
+          <div className="grid grid-cols-1 gap-3.5">
+            {keysList.map((k) => {
+              const isVisible = !!visibleKeys[k.id];
+              const displayKey = isVisible ? k.key : (k.key ? `${k.key.substring(0, 16)}••••••••••••••••••••••••` : "gns_live_••••••••••••••••");
+
+              return (
+                <div
+                  key={k.id}
+                  className="bg-card border border-border/80 hover:border-primary/40 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm transition"
+                >
+                  <div className="space-y-1.5 min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`w-2.5 h-2.5 rounded-full ${k.active ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground'}`} />
+                      <h4 className="font-black text-sm text-foreground truncate">{k.name}</h4>
+                      {k.company?.name && (
+                        <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                          {k.company.name}
+                        </span>
+                      )}
+                      <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${
+                        k.active ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' : 'bg-muted text-muted-foreground border-border'
+                      }`}>
+                        {k.active ? "Conectada & Activa" : "Desactivada"}
+                      </span>
+                    </div>
+
+                    {/* Token de la Llave */}
+                    {k.key && (
+                      <div className="flex items-center gap-2 pt-1">
+                        <code className="text-xs font-mono bg-muted/70 px-3 py-1.5 rounded-xl border border-border text-foreground truncate max-w-sm sm:max-w-md">
+                          {displayKey}
+                        </code>
+                        <button
+                          type="button"
+                          onClick={() => toggleKeyVisibility(k.id)}
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition cursor-pointer"
+                          title={isVisible ? "Ocultar token" : "Mostrar token completo"}
+                        >
+                          {isVisible ? <EyeOff size={15} /> : <Eye size={15} />}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(k.key, k.id)}
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-muted transition cursor-pointer"
+                          title="Copiar token completo"
+                        >
+                          {copiedId === k.id ? <Check size={15} className="text-emerald-500" /> : <Copy size={15} />}
+                        </button>
+                      </div>
+                    )}
+
+                    <p className="text-[11px] text-muted-foreground pt-0.5">
+                      Último uso: {k.lastUsedAt ? new Date(k.lastUsedAt).toLocaleString("es-CO") : "Sin uso reciente"} • Creada: {new Date(k.createdAt).toLocaleDateString("es-CO")}
+                    </p>
                   </div>
 
-                  <div className="flex items-center gap-2 pt-0.5">
-                    <code className="text-xs font-mono bg-muted/60 px-2.5 py-1 rounded-lg border border-border text-foreground truncate max-w-xs">
-                      {k.key.substring(0, 16)}...****************
-                    </code>
+                  {/* Botones de Acción */}
+                  <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
                     <button
-                      onClick={() => copyToClipboard(k.key, k.id)}
-                      className="text-xs text-muted-foreground hover:text-primary p-1 transition"
-                      title="Copiar token completo"
+                      type="button"
+                      onClick={() => handleToggleStatus(k)}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border transition cursor-pointer ${
+                        k.active
+                          ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 hover:bg-amber-500/20'
+                          : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
+                      }`}
                     >
-                      {copiedId === k.id ? <Check size={16} className="text-emerald-500" /> : <Copy size={16} />}
+                      {k.active ? "Desactivar" : "Activar"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteKey(k.id)}
+                      className="p-2 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition cursor-pointer"
+                      title="Revocar / Eliminar"
+                    >
+                      <Trash2 size={16} />
                     </button>
                   </div>
-
-                  <p className="text-[11px] text-muted-foreground">
-                    Último uso: {k.lastUsedAt ? new Date(k.lastUsedAt).toLocaleString("es-CO") : "Nunca"} | Creada: {new Date(k.createdAt).toLocaleDateString("es-CO")}
-                  </p>
                 </div>
-
-                {/* Acciones de la Llave */}
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    onClick={() => handleToggleStatus(k)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition cursor-pointer ${
-                      k.active 
-                        ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 hover:bg-amber-500/20'
-                        : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
-                    }`}
-                  >
-                    {k.active ? "Desactivar" : "Activar"}
-                  </button>
-
-                  <button
-                    onClick={() => handleDeleteKey(k.id)}
-                    className="p-2 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition cursor-pointer"
-                    title="Revocar / Eliminar"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
 
-      {/* ── Documentación de Endpoints para la Empresa ── */}
-      <div className="bg-muted/30 border border-border rounded-3xl p-5 space-y-3">
-        <div className="flex items-center justify-between">
-          <h4 className="text-xs font-extrabold text-foreground uppercase tracking-wider flex items-center gap-2">
-            <Globe size={16} className="text-primary" />
-            Endpoints REST Públicos Disponibles
-          </h4>
-          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-            Soporta Versión v1 y v2 (/api/v1/... y /api/v2/...)
-          </span>
+      {/* ── EXPLORADOR Y DOCUMENTACIÓN INTERACTIVA DE ENDPOINTS ── */}
+      <div className="space-y-5 pt-4 border-t border-border/60">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 className="text-base sm:text-lg font-black text-foreground flex items-center gap-2">
+              <Globe size={20} className="text-primary" />
+              Documentación Interactiva de Endpoints REST
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Explora los esquemas de petición (JSON Body), parámetros y ejemplos de código listos para producción.
+            </p>
+          </div>
+
+          {/* Selector de Lenguaje de Código */}
+          <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-2xl border border-border shrink-0 self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={() => setSelectedLanguage("curl")}
+              className={`px-3 py-1 rounded-xl text-xs font-extrabold transition cursor-pointer ${
+                selectedLanguage === "curl" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              cURL
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedLanguage("js")}
+              className={`px-3 py-1 rounded-xl text-xs font-extrabold transition cursor-pointer ${
+                selectedLanguage === "js" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              JavaScript (Fetch)
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedLanguage("python")}
+              className={`px-3 py-1 rounded-xl text-xs font-extrabold transition cursor-pointer ${
+                selectedLanguage === "python" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Python
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedLanguage("php")}
+              className={`px-3 py-1 rounded-xl text-xs font-extrabold transition cursor-pointer ${
+                selectedLanguage === "php" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              PHP
+            </button>
+          </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-          <div className="bg-card border border-border/60 p-3 rounded-2xl space-y-1">
-            <span className="font-extrabold text-primary block">/api/v1/products (o /api/v2/products)</span>
-            <p className="text-[11px] text-muted-foreground">Soporta <code className="text-emerald-500 font-bold">GET</code> (Listar), <code className="text-blue-500 font-bold">POST</code> (Crear), <code className="text-amber-500 font-bold">PUT</code> (Editar) y <code className="text-rose-500 font-bold">DELETE</code> (Eliminar) productos.</p>
+
+        {/* Pestañas de Módulos (Productos, Proveedores, Grupos, Categorías, Compras, Ventas, Gastos, Usuarios) */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+          {API_MODULES.map((mod) => {
+            const Icon = mod.icon;
+            const isSelected = selectedModule === mod.id;
+
+            return (
+              <button
+                key={mod.id}
+                type="button"
+                onClick={() => setSelectedModule(mod.id)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer border ${
+                  isSelected
+                    ? "bg-primary text-primary-foreground border-primary shadow-md"
+                    : "bg-card hover:bg-muted/60 text-muted-foreground hover:text-foreground border-border"
+                }`}
+              >
+                <Icon size={16} />
+                <span>{mod.title}</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                  {mod.endpoints.length}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Tarjeta de Resumen del Módulo Seleccionado */}
+        <div className="bg-card border border-border/80 rounded-3xl p-5 space-y-4 shadow-sm">
+          <div className="flex items-center gap-3 border-b border-border/60 pb-4">
+            <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-bold">
+              {React.createElement(currentModuleDoc.icon, { size: 20 })}
+            </div>
+            <div>
+              <h4 className="font-black text-sm sm:text-base text-foreground">
+                Módulo de {currentModuleDoc.title}
+              </h4>
+              <p className="text-xs text-muted-foreground">{currentModuleDoc.description}</p>
+            </div>
           </div>
-          <div className="bg-card border border-border/60 p-3 rounded-2xl space-y-1">
-            <span className="font-extrabold text-primary block">/api/v1/suppliers</span>
-            <p className="text-[11px] text-muted-foreground">CRUD completo para gestión remota de proveedores corporativos.</p>
-          </div>
-          <div className="bg-card border border-border/60 p-3 rounded-2xl space-y-1">
-            <span className="font-extrabold text-primary block">/api/v1/categories</span>
-            <p className="text-[11px] text-muted-foreground">Creación y sincronización de categorías del catálogo.</p>
-          </div>
-          <div className="bg-card border border-border/60 p-3 rounded-2xl space-y-1">
-            <span className="font-extrabold text-primary block">/api/v1/groups</span>
-            <p className="text-[11px] text-muted-foreground">Administración remota de grupos y líneas de productos.</p>
-          </div>
-          <div className="bg-card border border-border/60 p-3 rounded-2xl space-y-1">
-            <span className="font-extrabold text-primary block">/api/v1/sales</span>
-            <p className="text-[11px] text-muted-foreground">Registro de ventas y consulta de historial por empresa con descuento de stock.</p>
-          </div>
-          <div className="bg-card border border-border/60 p-3 rounded-2xl space-y-1">
-            <span className="font-extrabold text-primary block">/api/v1/expenses</span>
-            <p className="text-[11px] text-muted-foreground">Registro y consulta de movimientos financieros y egresos corporativos.</p>
-          </div>
-          <div className="bg-card border border-border/60 p-3 rounded-2xl space-y-1">
-            <span className="font-extrabold text-primary block">/api/v1/users</span>
-            <p className="text-[11px] text-muted-foreground">Gestión de usuarios y cuentas de colaboradores de la empresa.</p>
+
+          {/* Lista de Endpoints del Módulo */}
+          <div className="space-y-3.5">
+            {currentModuleDoc.endpoints.map((ep) => {
+              const isExpanded = !!expandedEndpoints[ep.id];
+              const fullPath = `${origin || "https://tu-dominio.com"}${ep.path}`;
+
+              return (
+                <div
+                  key={ep.id}
+                  className="bg-muted/30 border border-border rounded-2xl overflow-hidden transition"
+                >
+                  {/* Cabecera del Endpoint (Clickable) */}
+                  <div
+                    onClick={() => toggleEndpoint(ep.id)}
+                    className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer hover:bg-muted/60 transition"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <span className={`px-2.5 py-1 rounded-xl text-[11px] font-black border uppercase tracking-wider shrink-0 ${getBadgeColor(ep.method)}`}>
+                        {ep.method}
+                      </span>
+                      <code className="text-xs font-mono font-bold text-foreground truncate">
+                        {ep.path}
+                      </code>
+                      <span className="hidden md:inline text-xs text-muted-foreground truncate">
+                        — {ep.title}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          copyToClipboard(fullPath, `path_${ep.id}`);
+                        }}
+                        className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-card transition cursor-pointer"
+                        title="Copiar ruta completa"
+                      >
+                        {copiedId === `path_${ep.id}` ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                      </button>
+                      <button
+                        type="button"
+                        className="p-1 text-muted-foreground hover:text-foreground transition"
+                      >
+                        {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Detalle Expandible del Endpoint */}
+                  {isExpanded && (
+                    <div className="p-4 sm:p-5 border-t border-border/60 bg-card/60 space-y-5 animate-in fade-in duration-150">
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        {ep.description}
+                      </p>
+
+                      {/* Parámetros Query */}
+                      {ep.queryParams && ep.queryParams.length > 0 && (
+                        <div className="space-y-2">
+                          <h5 className="text-[11px] font-extrabold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                            <FileJson size={14} className="text-primary" />
+                            Parámetros Query (URL)
+                          </h5>
+                          <div className="overflow-x-auto rounded-xl border border-border">
+                            <table className="w-full text-left text-xs">
+                              <thead className="bg-muted/60 text-muted-foreground font-bold border-b border-border text-[10px] uppercase">
+                                <tr>
+                                  <th className="p-2.5">Parámetro</th>
+                                  <th className="p-2.5">Tipo</th>
+                                  <th className="p-2.5">Requerido</th>
+                                  <th className="p-2.5">Descripción</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-border/60 font-mono text-[11px]">
+                                {ep.queryParams.map((param, i) => (
+                                  <tr key={i} className="hover:bg-muted/30">
+                                    <td className="p-2.5 font-bold text-primary">{param.name}</td>
+                                    <td className="p-2.5 text-muted-foreground font-sans">{param.type}</td>
+                                    <td className="p-2.5 font-sans">
+                                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${param.required ? 'bg-rose-500/10 text-rose-500' : 'bg-muted text-muted-foreground'}`}>
+                                        {param.required ? "Obligatorio" : "Opcional"}
+                                      </span>
+                                    </td>
+                                    <td className="p-2.5 text-foreground font-sans">{param.description}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Parámetros del Body JSON */}
+                      {ep.bodyParams && ep.bodyParams.length > 0 && (
+                        <div className="space-y-2">
+                          <h5 className="text-[11px] font-extrabold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                            <FileJson size={14} className="text-primary" />
+                            Cuerpo de la Petición (Request Body JSON)
+                          </h5>
+                          <div className="overflow-x-auto rounded-xl border border-border">
+                            <table className="w-full text-left text-xs">
+                              <thead className="bg-muted/60 text-muted-foreground font-bold border-b border-border text-[10px] uppercase">
+                                <tr>
+                                  <th className="p-2.5">Campo</th>
+                                  <th className="p-2.5">Tipo</th>
+                                  <th className="p-2.5">Requerido</th>
+                                  <th className="p-2.5">Descripción</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-border/60 font-mono text-[11px]">
+                                {ep.bodyParams.map((param, i) => (
+                                  <tr key={i} className="hover:bg-muted/30">
+                                    <td className="p-2.5 font-bold text-primary">{param.name}</td>
+                                    <td className="p-2.5 text-muted-foreground font-sans">{param.type}</td>
+                                    <td className="p-2.5 font-sans">
+                                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${param.required ? 'bg-rose-500/10 text-rose-500' : 'bg-muted text-muted-foreground'}`}>
+                                        {param.required ? "Obligatorio" : "Opcional"}
+                                      </span>
+                                    </td>
+                                    <td className="p-2.5 text-foreground font-sans">{param.description}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Ejemplo de Código Generado */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <h5 className="text-[11px] font-extrabold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                            <Terminal size={14} className="text-primary" />
+                            Código de Ejemplo ({selectedLanguage.toUpperCase()})
+                          </h5>
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(generateSnippet(ep, selectedLanguage), `snippet_${ep.id}`)}
+                            className="text-[11px] text-primary hover:underline flex items-center gap-1 font-bold cursor-pointer"
+                          >
+                            {copiedId === `snippet_${ep.id}` ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
+                            <span>{copiedId === `snippet_${ep.id}` ? "¡Copiado!" : "Copiar código"}</span>
+                          </button>
+                        </div>
+                        <pre className="bg-muted/80 p-3.5 rounded-2xl border border-border text-xs font-mono text-foreground overflow-x-auto custom-scrollbar">
+                          <code>{generateSnippet(ep, selectedLanguage)}</code>
+                        </pre>
+                      </div>
+
+                      {/* Ejemplo de Respuesta HTTP (JSON) */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <h5 className="text-[11px] font-extrabold text-foreground uppercase tracking-wider">
+                              Respuesta Exitosa del Servidor
+                            </h5>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                              {ep.sampleResponse.status} OK
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(JSON.stringify(ep.sampleResponse.data, null, 2), `res_${ep.id}`)}
+                            className="text-[11px] text-primary hover:underline flex items-center gap-1 font-bold cursor-pointer"
+                          >
+                            {copiedId === `res_${ep.id}` ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
+                            <span>{copiedId === `res_${ep.id}` ? "¡Copiado!" : "Copiar JSON"}</span>
+                          </button>
+                        </div>
+                        <pre className="bg-muted/80 p-3.5 rounded-2xl border border-border text-xs font-mono text-foreground overflow-x-auto custom-scrollbar">
+                          <code>{JSON.stringify(ep.sampleResponse.data, null, 2)}</code>
+                        </pre>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
 
-      {/* ── Modal de Creación de API Key con Matriz de Permisos ── */}
+      {/* ── CARD INFORMATIVA DE WEBHOOKS & AUTOMATIZACIONES ── */}
+      <div className="bg-gradient-to-r from-blue-500/10 via-primary/5 to-transparent border border-blue-500/20 rounded-3xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <h4 className="font-black text-sm text-foreground flex items-center gap-2">
+            <Zap size={18} className="text-blue-500" />
+            Webhooks en Tiempo Real (Event-Driven)
+          </h4>
+          <p className="text-xs text-muted-foreground max-w-2xl leading-relaxed">
+            Configura eventos automáticos para recibir notificaciones HTTP instantáneas cuando ocurran eventos como: <code className="text-primary font-bold">sale.created</code>, <code className="text-primary font-bold">stock.low</code>, <code className="text-primary font-bold">purchase.received</code> o <code className="text-primary font-bold">customer.created</code>.
+          </p>
+        </div>
+        <div className="px-3 py-1.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold text-xs border border-blue-500/20 whitespace-nowrap">
+          Disponible para Integraciones REST
+        </div>
+      </div>
+
+      {/* ── MODAL PARA GENERAR LLAVE API ── */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-card border border-border rounded-3xl p-6 w-full max-w-xl shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
-            
+
             <div className="flex justify-between items-center border-b border-border/60 pb-3">
               <h3 className="font-extrabold text-base text-foreground flex items-center gap-2">
                 <KeyRound size={18} className="text-primary" />
                 {createdKey ? "¡Llave API Generada con Éxito!" : "Configurar Nueva Llave API"}
               </h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-muted-foreground hover:text-foreground">
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="text-muted-foreground hover:text-foreground cursor-pointer"
+              >
                 <XCircle size={20} />
               </button>
             </div>
@@ -336,15 +1481,20 @@ export function ApiIntegrationsManager({
                   <CheckCircle2 size={30} />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground font-semibold">Copia este token de acceso ahora. Por razones de seguridad no volverá a mostrarse en texto plano:</p>
-                  <div className="mt-3 flex items-center justify-between bg-muted p-3 rounded-2xl border border-border">
-                    <code className="text-xs font-mono text-primary font-bold break-all select-all">{createdKey}</code>
+                  <p className="text-xs text-muted-foreground font-semibold">
+                    Copia este token de acceso ahora. Por motivos de seguridad corporativa, no volverá a mostrarse en texto plano:
+                  </p>
+                  <div className="mt-3 flex items-center justify-between bg-muted p-3.5 rounded-2xl border border-border">
+                    <code className="text-xs font-mono text-primary font-bold break-all select-all text-left">
+                      {createdKey}
+                    </code>
                     <button
+                      type="button"
                       onClick={() => copyToClipboard(createdKey, "modal")}
-                      className="ml-2 bg-primary text-primary-foreground font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shrink-0"
+                      className="ml-3 bg-primary text-primary-foreground font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 shrink-0 cursor-pointer shadow-sm"
                     >
                       {copiedId === "modal" ? <Check size={14} /> : <Copy size={14} />}
-                      <span>{copiedId === "modal" ? "Copiada" : "Copiar"}</span>
+                      <span>{copiedId === "modal" ? "Copiado" : "Copiar"}</span>
                     </button>
                   </div>
                 </div>
@@ -352,34 +1502,40 @@ export function ApiIntegrationsManager({
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="w-full py-2.5 bg-primary text-primary-foreground font-bold rounded-xl text-xs hover:opacity-90 transition"
+                  className="w-full py-3 bg-primary text-primary-foreground font-bold rounded-2xl text-xs hover:opacity-90 transition cursor-pointer shadow-md"
                 >
                   Entendido y Guardado
                 </button>
               </div>
             ) : (
               <form onSubmit={handleCreateKey} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider">Empresa Destinataria</label>
-                  <select
-                    value={selectedCompanyId}
-                    onChange={(e) => setSelectedCompanyId(e.target.value)}
-                    required
-                    className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary"
-                  >
-                    {companies.map(c => (
-                      <option key={c.id} value={c.id}>{c.name} (ID #{c.id})</option>
-                    ))}
-                  </select>
-                </div>
+                {isSuperAdmin && companies.length > 0 && (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider">
+                      Empresa Destinataria
+                    </label>
+                    <select
+                      value={selectedCompanyId}
+                      onChange={(e) => setSelectedCompanyId(e.target.value)}
+                      required
+                      className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary"
+                    >
+                      {companies.map(c => (
+                        <option key={c.id} value={c.id}>{c.name} (ID #{c.id})</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider">Identificador / Aplicación Externa</label>
+                  <label className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider">
+                    Nombre Identificador de la Integración
+                  </label>
                   <input
                     type="text"
                     value={newKeyName}
                     onChange={(e) => setNewKeyName(e.target.value)}
-                    placeholder="Ej. Integración E-commerce Shopify, Sistema ERP Externo, App Móvil"
+                    placeholder="Ej. E-commerce Shopify, Sistema POS Externo, App Móvil"
                     required
                     className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary"
                   />
@@ -388,16 +1544,16 @@ export function ApiIntegrationsManager({
                 {/* Matriz Granular de Permisos */}
                 <div className="space-y-2 pt-2 border-t border-border/60">
                   <label className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider block">
-                    Matriz de Permisos de Edición, Eliminación y Creación
+                    Matriz de Permisos por Recurso
                   </label>
 
-                  <div className="bg-muted/20 border border-border rounded-2xl p-3 divide-y divide-border/60">
+                  <div className="bg-muted/20 border border-border rounded-2xl p-3 divide-y divide-border/60 max-h-60 overflow-y-auto custom-scrollbar">
                     {RESOURCES.map((r) => {
                       const perm = permissions[r.id] || {};
                       return (
                         <div key={r.id} className="py-2.5 first:pt-0 last:pb-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                           <span className="text-xs font-bold text-foreground">{r.label}</span>
-                          <div className="flex items-center gap-4 text-xs">
+                          <div className="flex items-center gap-3 sm:gap-4 text-xs flex-wrap">
                             <label className="flex items-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground">
                               <input
                                 type="checkbox"
@@ -414,7 +1570,7 @@ export function ApiIntegrationsManager({
                                 onChange={(e) => handlePermissionChange(r.id, "create", e.target.checked)}
                                 className="rounded border-border text-primary focus:ring-primary"
                               />
-                              <span className="text-emerald-500 font-semibold">Crear (POST)</span>
+                              <span className="text-blue-500 font-semibold">Crear (POST)</span>
                             </label>
                             <label className="flex items-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground">
                               <input
@@ -445,16 +1601,16 @@ export function ApiIntegrationsManager({
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="flex-1 py-2.5 bg-muted text-foreground font-bold rounded-xl text-xs hover:bg-muted/80 transition"
+                    className="flex-1 py-2.5 bg-muted text-foreground font-bold rounded-xl text-xs hover:bg-muted/80 transition cursor-pointer"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={isCreating}
-                    className="flex-1 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl text-xs hover:opacity-90 transition disabled:opacity-50 shadow-md"
+                    className="flex-1 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl text-xs hover:opacity-90 transition disabled:opacity-50 shadow-md cursor-pointer"
                   >
-                    {isCreating ? "Generando Token..." : "Generar API Key"}
+                    {isCreating ? "Generando Token..." : "Generar Llave API"}
                   </button>
                 </div>
               </form>

@@ -327,24 +327,24 @@ export default async function HomePage() {
                   </button>
                 </Link>
               ) : (
-                <Link href="/auth/login" className="w-full sm:w-auto no-underline">
+                <Link href="/auth/register" className="w-full sm:w-auto no-underline">
                   <button className="btn-red w-full sm:w-auto justify-center px-5 py-3 sm:px-7 sm:py-3.5 text-[14px] sm:text-[15px]">
                     <LucideIcons.Rocket size={18} className="shrink-0" />
                     <div className="text-left">
                       <div className="leading-none font-bold">Comenzar Ahora</div>
-                      <div className="text-[10px] sm:text-[11px] font-medium opacity-80 mt-1">Prueba 14 días gratis</div>
+                      <div className="text-[10px] sm:text-[11px] font-medium opacity-80 mt-1">Prueba 30 días gratis</div>
                     </div>
                   </button>
                 </Link>
               )}
-              <Link href="#modulos" className="w-full sm:w-auto no-underline">
+              <Link href={session?.user ? (session.user.companyStatus === 'SUSPENDED' ? "/#planes" : "/dashboard") : "/auth/register"} className="w-full sm:w-auto no-underline">
                 <button className="w-full sm:w-auto justify-center px-5 py-3 sm:px-6 sm:py-2.5 text-[14px] sm:text-[15px] font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl cursor-pointer flex items-center gap-3 transition-all hover:bg-slate-50 dark:hover:bg-slate-700/50">
                   <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-900 flex items-center justify-center shrink-0">
                     <Play size={14} className="fill-slate-900 dark:fill-white text-slate-900 dark:text-white" />
                   </div>
                   <div className="text-left">
                     <div className="leading-none">Ver Demo</div>
-                    <div className="text-[10px] sm:text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-1">Conoce el sistema</div>
+                    <div className="text-[10px] sm:text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-1">30 días de prueba gratis</div>
                   </div>
                 </button>
               </Link>

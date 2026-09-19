@@ -21,22 +21,21 @@ export async function getApiKeys() {
       });
       return { isSuperAdmin: true, keys, hasActiveIntegrations: keys.some(k => k.active) };
     } else {
-      // Para empresas normales (ADMIN / USER): Solo verificar si la empresa tiene llaves activas e identificadores simples
+      // Para empresas normales (ADMIN / USER): Devolver llaves de su empresa
+      const companyId = Number(session.user.companyId);
+      if (!companyId) return { isSuperAdmin: false, keys: [], hasActiveIntegrations: false };
+
       const keys = await prisma.apiKey.findMany({
-        where: { companyId: Number(session.user.companyId) },
-        select: {
-          id: true,
-          name: true,
-          active: true,
-          lastUsedAt: true,
-          createdAt: true
+        where: { companyId },
+        include: {
+          company: { select: { id: true, name: true } }
         },
         orderBy: { createdAt: "desc" }
       });
-      return { 
-        isSuperAdmin: false, 
-        keys, 
-        hasActiveIntegrations: keys.some(k => k.active) 
+      return {
+        isSuperAdmin: false,
+        keys,
+        hasActiveIntegrations: keys.some(k => k.active)
       };
     }
   } catch (error) {
@@ -45,35 +44,43 @@ export async function getApiKeys() {
   }
 }
 
-export async function createApiKey(data: { name: string; targetCompanyId: number; permissions: any }) {
+export async function createApiKey(data: { name: string; targetCompanyId?: number; permissions?: any }) {
   const session = await getAuthSession();
-  if (!session?.user || session.user.role !== "SUPERADMIN") {
-    return { success: false, error: "Solo el SUPERADMIN tiene permisos para crear e integrar Llaves API." };
+  if (!session?.user || (session.user.role !== "SUPERADMIN" && session.user.role !== "ADMIN")) {
+    return { success: false, error: "No tienes permisos para crear Llaves API." };
   }
+
+  const isSuperAdmin = session.user.role === "SUPERADMIN";
+  const targetCompanyId = isSuperAdmin ? Number(data.targetCompanyId) : Number(session.user.companyId);
 
   if (!data.name?.trim()) {
     return { success: false, error: "El nombre identificador de la llave es obligatorio" };
   }
 
-  if (!data.targetCompanyId) {
-    return { success: false, error: "Debes seleccionar la empresa a la que pertenecerá esta Llave API" };
+  if (!targetCompanyId) {
+    return { success: false, error: "Debes especificar la empresa a la que pertenecerá esta Llave API" };
   }
 
   try {
     const generatedKey = `gns_live_${crypto.randomBytes(24).toString("hex")}`;
 
+    const defaultPerms = {
+      products: { read: true, create: true, update: true, delete: false },
+      suppliers: { read: true, create: true, update: true, delete: false },
+      categories: { read: true, create: true, update: true, delete: false },
+      groups: { read: true, create: true, update: true, delete: false },
+      purchases: { read: true, create: true, update: false, delete: false },
+      sales: { read: true, create: true, update: false, delete: false },
+      expenses: { read: true, create: true, update: false, delete: false },
+      users: { read: false, create: false, update: false, delete: false },
+    };
+
     const newKey = await prisma.apiKey.create({
       data: {
         name: data.name.trim(),
         key: generatedKey,
-        companyId: Number(data.targetCompanyId),
-        permissions: data.permissions || {
-          products: { read: true, create: false, update: false, delete: false },
-          suppliers: { read: true, create: false, update: false, delete: false },
-          categories: { read: true, create: false, update: false, delete: false },
-          groups: { read: true, create: false, update: false, delete: false },
-          users: { read: false, create: false, update: false, delete: false },
-        },
+        companyId: targetCompanyId,
+        permissions: data.permissions || defaultPerms,
         active: true
       },
       include: {
@@ -91,15 +98,26 @@ export async function createApiKey(data: { name: string; targetCompanyId: number
 
 export async function toggleApiKeyStatus(id: string, active: boolean) {
   const session = await getAuthSession();
-  if (!session?.user || session.user.role !== "SUPERADMIN") {
-    return { success: false, error: "Solo el SUPERADMIN puede gestionar el estado de las llaves API." };
+  if (!session?.user || (session.user.role !== "SUPERADMIN" && session.user.role !== "ADMIN")) {
+    return { success: false, error: "No tienes permisos para gestionar el estado de las llaves API." };
   }
 
   try {
-    await prisma.apiKey.update({
-      where: { id },
+    const isSuperAdmin = session.user.role === "SUPERADMIN";
+    const whereClause: any = { id };
+    if (!isSuperAdmin) {
+      whereClause.companyId = Number(session.user.companyId);
+    }
+
+    const updated = await prisma.apiKey.updateMany({
+      where: whereClause,
       data: { active }
     });
+
+    if (updated.count === 0) {
+      return { success: false, error: "Llave API no encontrada o no pertenece a tu empresa" };
+    }
+
     revalidatePath("/dashboard/settings");
     return { success: true };
   } catch (error: any) {
@@ -110,7 +128,7 @@ export async function toggleApiKeyStatus(id: string, active: boolean) {
 export async function updateApiKeyPermissions(id: string, permissions: any) {
   const session = await getAuthSession();
   if (!session?.user || session.user.role !== "SUPERADMIN") {
-    return { success: false, error: "Solo el SUPERADMIN puede modificar permisos de API." };
+    return { success: false, error: "Solo el SUPERADMIN puede modificar la matriz de permisos globales de API." };
   }
 
   try {
@@ -127,14 +145,25 @@ export async function updateApiKeyPermissions(id: string, permissions: any) {
 
 export async function deleteApiKey(id: string) {
   const session = await getAuthSession();
-  if (!session?.user || session.user.role !== "SUPERADMIN") {
-    return { success: false, error: "Solo el SUPERADMIN puede revocar Llaves API." };
+  if (!session?.user || (session.user.role !== "SUPERADMIN" && session.user.role !== "ADMIN")) {
+    return { success: false, error: "No tienes permisos para revocar Llaves API." };
   }
 
   try {
-    await prisma.apiKey.delete({
-      where: { id }
+    const isSuperAdmin = session.user.role === "SUPERADMIN";
+    const whereClause: any = { id };
+    if (!isSuperAdmin) {
+      whereClause.companyId = Number(session.user.companyId);
+    }
+
+    const deleted = await prisma.apiKey.deleteMany({
+      where: whereClause
     });
+
+    if (deleted.count === 0) {
+      return { success: false, error: "Llave API no encontrada o no pertenece a tu empresa" };
+    }
+
     revalidatePath("/dashboard/settings");
     return { success: true };
   } catch (error: any) {

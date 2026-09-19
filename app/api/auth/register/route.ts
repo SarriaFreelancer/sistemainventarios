@@ -49,11 +49,11 @@ export async function POST(request: Request) {
           `plan_${rawPlanId}_max_sales_per_month`,
           `plan_${rawPlanId}_modules`
         ];
-        
+
         const settings = await tx.setting.findMany({
           where: { key: { in: settingsKeys } }
         });
-        
+
         const settingsMap = settings.reduce((acc, curr) => {
           acc[curr.key] = curr.value;
           return acc;
@@ -87,7 +87,7 @@ export async function POST(request: Request) {
             console.error("Error parsing plan modules:", e);
           }
         }
-        
+
         if (moduleIdsToAssign.length === 0) {
           const allModules = await tx.module.findMany({ where: { isActive: true }, select: { id: true } });
           moduleIdsToAssign = allModules.map(m => m.id);
@@ -128,7 +128,7 @@ export async function POST(request: Request) {
 
       // Forzamos la llave nueva por si el servidor no fue reiniciado
       const integrityKey = "PqnitYB0OzVsxRVJMPs7sg";
-      const amountStr = amount.toString(); 
+      const amountStr = amount.toString();
       const hashString = `${orderReference}${amountStr}COP${integrityKey}`;
       const hash = crypto.createHash('sha256').update(hashString).digest('hex');
 
@@ -140,11 +140,11 @@ export async function POST(request: Request) {
       console.log("Generated hash:", hash);
       console.log("===============================");
 
-      return NextResponse.json({ 
-        ok: true, 
-        orderId: orderReference, 
-        hash, 
-        amountStr 
+      return NextResponse.json({
+        ok: true,
+        orderId: orderReference,
+        hash,
+        amountStr
       });
 
     } else if (companyName) {
@@ -153,7 +153,7 @@ export async function POST(request: Request) {
       if (existingCompany) {
         return NextResponse.json({ message: 'El nombre de empresa ya está registrado' }, { status: 409 });
       }
-      
+
       const result = await platformDb.$transaction(async (tx) => {
         // Get plan configuration defaults (basico by default here)
         const settingsKeys = [
@@ -162,48 +162,40 @@ export async function POST(request: Request) {
           `plan_basico_max_sales_per_month`,
           `plan_basico_modules`
         ];
-        
+
         const settings = await tx.setting.findMany({
           where: { key: { in: settingsKeys } }
         });
-        
+
         const settingsMap = settings.reduce((acc, curr) => {
           acc[curr.key] = curr.value;
           return acc;
         }, {} as Record<string, string>);
 
-        const maxUsers = settingsMap[`plan_basico_max_users`] ? parseInt(settingsMap[`plan_basico_max_users`]) : 2;
-        const maxProducts = settingsMap[`plan_basico_max_products`] ? parseInt(settingsMap[`plan_basico_max_products`]) : 100;
-        const maxSalesPerMonth = settingsMap[`plan_basico_max_sales_per_month`] ? parseInt(settingsMap[`plan_basico_max_sales_per_month`]) : 50;
+        const maxUsers = settingsMap[`plan_basico_max_users`] ? parseInt(settingsMap[`plan_basico_max_users`]) : 5;
+        const maxProducts = settingsMap[`plan_basico_max_products`] ? parseInt(settingsMap[`plan_basico_max_products`]) : 1000;
+        const maxSalesPerMonth = settingsMap[`plan_basico_max_sales_per_month`] ? parseInt(settingsMap[`plan_basico_max_sales_per_month`]) : 500;
+
+        const trialEndsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
         const company = await tx.company.create({
           data: {
             name: companyName,
-            status: 'SUSPENDED',
+            status: 'ACTIVE',
+            isTrial: true,
+            trialStartedAt: new Date(),
+            trialEndsAt: trialEndsAt,
+            planId: 'trial',
             maxUsers: maxUsers,
             maxProducts: maxProducts,
             maxSalesPerMonth: maxSalesPerMonth
           } as any
         });
 
-        const modulesKey = `plan_basico_modules`;
+        // En período de prueba habilitamos todos los módulos para que prueben la plataforma completa
         let moduleIdsToAssign: number[] = [];
-
-        if (settingsMap[modulesKey]) {
-          try {
-            const parsed = JSON.parse(settingsMap[modulesKey]);
-            if (Array.isArray(parsed)) {
-              moduleIdsToAssign = parsed;
-            }
-          } catch (e) {
-            console.error("Error parsing plan modules:", e);
-          }
-        }
-        
-        if (moduleIdsToAssign.length === 0) {
-          const allModules = await tx.module.findMany({ where: { isActive: true }, select: { id: true } });
-          moduleIdsToAssign = allModules.map(m => m.id);
-        }
+        const allModules = await tx.module.findMany({ where: { isActive: true }, select: { id: true } });
+        moduleIdsToAssign = allModules.map(m => m.id);
 
         if (moduleIdsToAssign.length > 0) {
           await tx.companyModule.createMany({
