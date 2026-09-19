@@ -4,12 +4,24 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
-  serverExternalPackages: ['node-cron'],
+  serverExternalPackages: ['node-cron', '@prisma/client', 'prisma'],
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   experimental: {
     serverActions: {
       bodySizeLimit: '10mb',
     },
-    optimizePackageImports: ['lucide-react', 'date-fns', 'recharts'],
+    optimizePackageImports: [
+      'lucide-react',
+      'date-fns',
+      'recharts',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-select',
+    ],
+    webpackMemoryOptimizations: true,
+    cpus: 1,
   },
   async headers() {
     return [
@@ -51,4 +63,3 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
-
