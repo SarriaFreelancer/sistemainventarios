@@ -158,21 +158,6 @@ export const authOptions: AuthOptions = {
 
   callbacks: {
     async signIn({ user, account, profile }: any) {
-      if (account?.provider === 'google' && user?.email) {
-        // Verificar si el usuario ya existe en la base de datos
-        const existingUser = await prisma.user.findUnique({
-          where: { email: user.email },
-          include: { company: true, role: true }
-        });
-
-        if (existingUser) {
-          // Si el usuario existe pero su empresa fue eliminada o no tiene empresa y tampoco es SUPERADMIN, no permitir loguearse creando duplicados
-          if (!existingUser.companyId && existingUser.role?.name !== 'SUPERADMIN') {
-            console.warn(`Usuario Google ${user.email} intentó ingresar pero su cuenta/empresa fue eliminada.`);
-            return false;
-          }
-        }
-      }
       return true;
     },
     async jwt({ token, user, account, trigger, session }: any) {
@@ -240,6 +225,50 @@ export const authOptions: AuthOptions = {
               roleId: adminRole.id,
               companyId: newCompany.id
             },
+            include: { role: true, company: true }
+          });
+        } else if (!dbUser.companyId && dbUser.role?.name !== 'SUPERADMIN') {
+          // Si el usuario existe pero no tenía empresa asociada, crearle su empresa de prueba
+          let baseCompanyName = `Empresa de ${dbUser.name || token.name || token.email.split('@')[0]}`;
+          let uniqueCompanyName = baseCompanyName;
+          let counter = 1;
+          while (await prisma.company.findUnique({ where: { name: uniqueCompanyName } })) {
+            uniqueCompanyName = `${baseCompanyName} (${counter})`;
+            counter++;
+          }
+
+          const trialEndsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+          const newCompany = await prisma.company.create({
+            data: {
+              name: uniqueCompanyName,
+              status: 'ACTIVE',
+              isTrial: true,
+              trialStartedAt: new Date(),
+              trialEndsAt: trialEndsAt,
+              planId: 'trial',
+              maxUsers: 5,
+              maxProducts: 1000,
+              maxSalesPerMonth: 500
+            }
+          });
+
+          try {
+            const allModules = await prisma.module.findMany({ where: { isActive: true }, select: { id: true } });
+            if (allModules.length > 0) {
+              await prisma.companyModule.createMany({
+                data: allModules.map(m => ({
+                  companyId: newCompany.id,
+                  moduleId: m.id
+                }))
+              });
+            }
+          } catch (mErr) {
+            console.error("Error assigning modules to trial company:", mErr);
+          }
+
+          dbUser = await prisma.user.update({
+            where: { id: dbUser.id },
+            data: { companyId: newCompany.id },
             include: { role: true, company: true }
           });
         }

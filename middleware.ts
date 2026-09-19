@@ -42,14 +42,23 @@ export async function middleware(request: NextRequest) {
     });
   }
 
-  const isHttps = request.nextUrl.protocol === 'https:' || request.headers.get('x-forwarded-proto') === 'https';
-  const token = await getToken({
+  // Robust token retrieval checking standard NextAuth token, secure cookie and standard cookie names
+  let token = await getToken({
     req: request,
     secret: process.env.NEXTAUTH_SECRET,
-    // Use secureCookie only in production (HTTPS). In development always false
-    // so localhost works correctly even after using ngrok.
-    secureCookie: process.env.NODE_ENV === 'production',
   });
+
+  if (!token) {
+    token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+      cookieName: '__Secure-next-auth.session-token',
+    }) || await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+      cookieName: 'next-auth.session-token',
+    });
+  }
 
   // Response base helper para adjuntar cabeceras de seguridad
   const addSecurityHeaders = (res: NextResponse) => {
