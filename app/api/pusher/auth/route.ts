@@ -2,19 +2,40 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/auth";
 import Pusher from "pusher";
 
-const pusher = new Pusher({
-  appId: process.env.PUSHER_APP_ID!,
-  key: process.env.NEXT_PUBLIC_PUSHER_KEY!,
-  secret: process.env.PUSHER_SECRET!,
-  cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
-  useTLS: true,
-});
+function getPusherServer(): Pusher | null {
+  const appId = process.env.PUSHER_APP_ID;
+  const key = process.env.NEXT_PUBLIC_PUSHER_KEY;
+  const secret = process.env.PUSHER_SECRET;
+  const cluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER || "us2";
+
+  if (!appId || !key || !secret) {
+    return null;
+  }
+
+  try {
+    return new Pusher({
+      appId,
+      key,
+      secret,
+      cluster,
+      useTLS: true,
+    });
+  } catch (err) {
+    console.warn("Could not instantiate server Pusher:", err);
+    return null;
+  }
+}
 
 export async function POST(req: NextRequest) {
   const session = await getAuthSession();
-  
+
   if (!session || !session.user) {
     return new Response("Unauthorized", { status: 401 });
+  }
+
+  const pusher = getPusherServer();
+  if (!pusher) {
+    return new Response("Pusher not configured", { status: 503 });
   }
 
   const user = session.user as any;
@@ -52,8 +73,8 @@ export async function POST(req: NextRequest) {
 
       const authResponse = pusher.authorizeChannel(socketId, channel, presenceData);
       return NextResponse.json(authResponse);
-    } 
-    
+    }
+
     // For private channels
     if (channel.startsWith(`private-user-${user.id}`)) {
       const authResponse = pusher.authorizeChannel(socketId, channel);

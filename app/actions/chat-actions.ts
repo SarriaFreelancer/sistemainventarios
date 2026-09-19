@@ -4,13 +4,29 @@ import { prisma } from "@/lib/prisma";
 import { getAuthSession } from "@/auth";
 import Pusher from "pusher";
 
-const pusher = new Pusher({
-  appId: process.env.PUSHER_APP_ID!,
-  key: process.env.NEXT_PUBLIC_PUSHER_KEY!,
-  secret: process.env.PUSHER_SECRET!,
-  cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
-  useTLS: true,
-});
+function getPusherServer(): Pusher | null {
+  const appId = process.env.PUSHER_APP_ID;
+  const key = process.env.NEXT_PUBLIC_PUSHER_KEY;
+  const secret = process.env.PUSHER_SECRET;
+  const cluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER || "us2";
+
+  if (!appId || !key || !secret) {
+    return null;
+  }
+
+  try {
+    return new Pusher({
+      appId,
+      key,
+      secret,
+      cluster,
+      useTLS: true,
+    });
+  } catch (err) {
+    console.warn("Could not instantiate server Pusher:", err);
+    return null;
+  }
+}
 
 export async function getCompanyUsers() {
   const session = await getAuthSession();
@@ -22,10 +38,10 @@ export async function getCompanyUsers() {
   if (!companyId) return { success: false, error: "Usuario sin empresa" };
 
   try {
-    // Because the `User` model has a status field? Wait, let's look at User schema earlier. 
+    // Because the `User` model has a status field? Wait, let's look at User schema earlier.
     // The User model doesn't have `status`, it has `isLocked`. Let's use `isLocked: false`.
     const users = await prisma.user.findMany({
-      where: { 
+      where: {
         companyId: Number(companyId),
         id: { not: Number(user.id) },
         isLocked: false
@@ -181,18 +197,21 @@ export async function sendMessage(conversationId: number, content: string) {
 
     // Trigger Pusher events (wrapped in try-catch so Pusher network errors don't prevent message sending)
     try {
-      await pusher.trigger(`private-chat-${conversationId}`, "new-message", pusherPayload);
+      const pusher = getPusherServer();
+      if (pusher) {
+        await pusher.trigger(`private-chat-${conversationId}`, "new-message", pusherPayload);
 
-      const participants = await prisma.chatParticipant.findMany({
-        where: { conversationId }
-      });
-      
-      for (const p of participants) {
-        if (p.userId !== currentUserId) {
-          await pusher.trigger(`private-user-${p.userId}`, "new-message", {
-            ...pusherPayload,
-            conversationId
-          });
+        const participants = await prisma.chatParticipant.findMany({
+          where: { conversationId }
+        });
+
+        for (const p of participants) {
+          if (p.userId !== currentUserId) {
+            await pusher.trigger(`private-user-${p.userId}`, "new-message", {
+              ...pusherPayload,
+              conversationId
+            });
+          }
         }
       }
     } catch (pusherError) {
