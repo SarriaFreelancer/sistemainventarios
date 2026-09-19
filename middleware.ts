@@ -71,7 +71,7 @@ export async function middleware(request: NextRequest) {
   };
 
   // Public routes that do not require authentication
-  const publicPaths = ['/auth', '/api/auth', '/pagos', '/api/payments', '/_next', '/static'];
+  const publicPaths = ['/auth', '/api/auth', '/pagos', '/api/payments', '/_next', '/static', '/uploads'];
   if (
     request.nextUrl.pathname === '/' ||
     publicPaths.some((p) => request.nextUrl.pathname.startsWith(p))
@@ -114,5 +114,5 @@ export async function middleware(request: NextRequest) {
 
 // Apply the middleware to all pages except API routes and static files
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!api|_next/static|_next/image|uploads|favicon.ico).*)'],
 };

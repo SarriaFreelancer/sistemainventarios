@@ -18,15 +18,15 @@ export async function updateProfile(data: {
   try {
     const session = await getAuthSession();
     if (!session?.user?.email) return { success: false, error: "No autenticado" };
-    
+
     const userId = Number(session.user.id);
-    
+
     const userBefore = await prisma.user.findUnique({
       where: { id: userId }
     });
-    
+
     if (!userBefore) return { success: false, error: "Usuario no encontrado" };
-    
+
     const updated = await prisma.user.update({
       where: { id: userId },
       data: {
@@ -36,7 +36,7 @@ export async function updateProfile(data: {
         preferences: data.preferences ? JSON.parse(JSON.stringify(data.preferences)) : userBefore.preferences
       }
     });
-    
+
     await logActivity({
       module: "USERS",
       action: "UPDATE",
@@ -46,8 +46,10 @@ export async function updateProfile(data: {
       oldValues: userBefore,
       newValues: updated
     });
-    
+
     revalidatePath("/dashboard");
+    revalidatePath("/dashboard/profile");
+    revalidatePath("/", "layout");
     return { success: true };
   } catch (error: any) {
     console.error("[UPDATE_PROFILE]", error);
@@ -62,20 +64,20 @@ export async function updatePassword(data: {
   try {
     const session = await getAuthSession();
     if (!session?.user?.email) return { success: false, error: "No autenticado" };
-    
+
     const userId = Number(session.user.id);
-    
+
     const user = await prisma.user.findUnique({
       where: { id: userId }
     });
-    
+
     if (!user) return { success: false, error: "Usuario no encontrado" };
-    
+
     const valid = await bcrypt.compare(data.currentPass, user.password);
     if (!valid) {
       return { success: false, error: "La contraseña actual es incorrecta" };
     }
-    
+
     if (user.companyId) {
       const settings = await prisma.companySetting.findUnique({ where: { companyId: user.companyId } });
       if (settings) {
@@ -87,16 +89,16 @@ export async function updatePassword(data: {
     } else if (data.newPass.length < 6) {
       return { success: false, error: "La nueva contraseña debe tener al menos 6 caracteres" };
     }
-    
+
     const passwordHash = await bcrypt.hash(data.newPass, 10);
-    
+
     await prisma.user.update({
       where: { id: userId },
       data: {
         password: passwordHash
       }
     });
-    
+
     await logActivity({
       module: "USERS",
       action: "UPDATE",
@@ -104,7 +106,7 @@ export async function updatePassword(data: {
       entityId: userId,
       description: "Actualizó su contraseña personal de acceso"
     });
-    
+
     return { success: true };
   } catch (error: any) {
     console.error("[UPDATE_PASSWORD]", error);
