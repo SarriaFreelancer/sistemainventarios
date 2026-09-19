@@ -241,7 +241,7 @@ export function CreateCompanyDialog({ modules }: { modules: Module[] }) {
               <div className="space-y-1.5">
                 <Label htmlFor="company-theme-color" className={labelCls}>Color Primario</Label>
                 <div className="flex gap-2 items-center">
-                  <Input id="company-theme-color" type="color" name="themeColor" defaultValue="#8B5CF6" className="w-12 p-1 h-11 rounded-xl cursor-pointer bg-background" />
+                  <Input id="company-theme-color" type="color" name="themeColor" defaultValue="#3b82f6" className="w-12 p-1 h-11 rounded-xl cursor-pointer bg-background" />
                   <span className="text-xs text-muted-foreground">Color de énfasis</span>
                 </div>
               </div>

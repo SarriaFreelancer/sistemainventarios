@@ -197,7 +197,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
           <div className={cn("mb-8 flex items-center gap-3 transition-all", isCollapsed ? "justify-center" : "w-full")}>
             <div
               className="h-11 w-11 rounded-full overflow-hidden border-2 bg-black flex items-center justify-center shrink-0 shadow-lg shadow-primary/20"
-              style={{ borderColor: themeConfig?.primaryColor || "#dc2626" }}
+              style={{ borderColor: themeConfig?.primaryColor || "#3b82f6" }}
             >
               <img
                 src="/gns-logo.png"
@@ -212,7 +212,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                 </span>
                 <span
                   className="text-[9px] font-extrabold uppercase tracking-wider mt-1 leading-none"
-                  style={{ color: themeConfig?.primaryColor || "#ef4444" }}
+                  style={{ color: themeConfig?.primaryColor || "#3b82f6" }}
                 >
                   GESTIÓN DE NEGOCIOS
                 </span>
@@ -237,7 +237,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                         e.preventDefault();
                       }
                     }}
-                    style={isActive ? { backgroundColor: themeConfig?.primaryColor || "#dc2626" } : undefined}
+                    style={isActive ? { backgroundColor: themeConfig?.primaryColor || "#3b82f6" } : undefined}
                     className={cn(
                       "flex items-center gap-3 rounded-2xl transition-all duration-300 font-semibold",
                       isCollapsed ? "p-3.5 justify-center" : "px-4 py-3 text-sm justify-start",
@@ -264,7 +264,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                   <div className="flex-1 flex items-center gap-3 bg-[#1a1a20]/90 border border-[#2a2a35]/80 p-2.5 rounded-2xl overflow-hidden shadow-sm min-w-0">
                     <div
                       className="w-10 h-10 rounded-full overflow-hidden border-2 shrink-0"
-                      style={{ borderColor: themeConfig?.primaryColor || "#dc2626" }}
+                      style={{ borderColor: themeConfig?.primaryColor || "#3b82f6" }}
                     >
                       <img
                         src={session.user?.image || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80"}
@@ -277,8 +277,8 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                         {session.user?.name ?? 'Usuario'}
                       </p>
                       <div className="flex items-center gap-1 text-[11px] font-medium mt-0.5 truncate">
-                        <LucideIcons.ShieldCheck size={12} className="shrink-0" style={{ color: themeConfig?.primaryColor || "#ef4444" }} />
-                        <span className="truncate font-semibold" style={{ color: themeConfig?.primaryColor || "#ef4444" }}>{roleLabel}</span>
+                        <LucideIcons.ShieldCheck size={12} className="shrink-0" style={{ color: themeConfig?.primaryColor || "#3b82f6" }} />
+                        <span className="truncate font-semibold" style={{ color: themeConfig?.primaryColor || "#3b82f6" }}>{roleLabel}</span>
                       </div>
                     </div>
                   </div>
@@ -288,7 +288,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                     type="button"
                     onClick={handleLogoutConfirm}
                     title="Cerrar Sesión"
-                    style={{ backgroundColor: themeConfig?.primaryColor || "#dc2626" }}
+                    style={{ backgroundColor: themeConfig?.primaryColor || "#3b82f6" }}
                     className="h-12 w-12 rounded-2xl text-white opacity-100 hover:brightness-110 transition-all duration-300 flex items-center justify-center shrink-0 active:scale-95 shadow-md"
                   >
                     <LucideIcons.LogOut size={18} />
@@ -311,7 +311,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
               <div className="flex flex-col items-center gap-3 w-full">
                 <div
                   className="w-10 h-10 rounded-full overflow-hidden border-2 shrink-0 cursor-pointer"
-                  style={{ borderColor: themeConfig?.primaryColor || "#dc2626" }}
+                  style={{ borderColor: themeConfig?.primaryColor || "#3b82f6" }}
                   title={`${session.user?.name ?? 'Usuario'} (${roleLabel})`}
                 >
                   <img
@@ -325,7 +325,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                   type="button"
                   onClick={handleLogoutConfirm}
                   title="Cerrar Sesión"
-                  style={{ backgroundColor: themeConfig?.primaryColor || "#dc2626" }}
+                  style={{ backgroundColor: themeConfig?.primaryColor || "#3b82f6" }}
                   className="h-10 w-10 rounded-xl text-white opacity-100 hover:brightness-110 transition-all flex items-center justify-center shrink-0 active:scale-95 shadow-md"
                 >
                   <LucideIcons.LogOut size={16} />
@@ -604,7 +604,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
               <div className="flex items-center gap-3">
                 <div
                   className="h-10 w-10 rounded-full overflow-hidden border-2 bg-black flex items-center justify-center shrink-0 shadow-md"
-                  style={{ borderColor: themeConfig?.primaryColor || '#dc2626' }}
+                  style={{ borderColor: themeConfig?.primaryColor || '#3b82f6' }}
                 >
                   <img
                     src="/gns-logo.png"
@@ -618,7 +618,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                   </span>
                   <span
                     className="text-[9px] font-extrabold uppercase tracking-wider mt-1 leading-none"
-                    style={{ color: themeConfig?.primaryColor || '#ef4444' }}
+                    style={{ color: themeConfig?.primaryColor || '#3b82f6' }}
                   >
                     GESTIÓN DE NEGOCIOS
                   </span>
@@ -649,7 +649,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                         setIsMenuOpen(false);
                       }
                     }}
-                    style={isActive ? { backgroundColor: themeConfig?.primaryColor || "#dc2626" } : undefined}
+                    style={isActive ? { backgroundColor: themeConfig?.primaryColor || "#3b82f6" } : undefined}
                     className={cn(
                       "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all text-white",
                       isBlocked
