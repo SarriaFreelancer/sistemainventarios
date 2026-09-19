@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
+import gnsLogo from '@/public/gns-logo.png';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
@@ -199,10 +201,11 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
               className="h-11 w-11 rounded-full overflow-hidden border-2 bg-black flex items-center justify-center shrink-0 shadow-lg shadow-primary/20"
               style={{ borderColor: themeConfig?.primaryColor || "#3b82f6" }}
             >
-              <img
-                src="/gns-logo.png"
+              <Image
+                src={gnsLogo}
                 alt="GNS SarriaTech"
                 className="h-full w-full object-cover rounded-full aspect-square"
+                priority
               />
             </div>
             {!isCollapsed && (
@@ -606,10 +609,11 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                   className="h-10 w-10 rounded-full overflow-hidden border-2 bg-black flex items-center justify-center shrink-0 shadow-md"
                   style={{ borderColor: themeConfig?.primaryColor || '#3b82f6' }}
                 >
-                  <img
-                    src="/gns-logo.png"
+                  <Image
+                    src={gnsLogo}
                     alt="GNS SarriaTech"
                     className="h-full w-full object-cover rounded-full aspect-square"
+                    priority
                   />
                 </div>
                 <div className="flex flex-col text-left">

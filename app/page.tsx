@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import Image from 'next/image';
+import gnsLogo from '@/public/gns-logo.png';
 import * as LucideIcons from 'lucide-react';
 import {
   ArrowRight, Sparkles, Check, ShieldCheck, TrendingUp,
@@ -259,11 +261,12 @@ export default async function HomePage() {
         <div className="max-w-[1280px] mx-auto px-4 md:px-6 flex items-center justify-between h-[68px] md:h-[76px]">
           {/* Logo */}
           <a href="#inicio" className="flex items-center gap-2 md:gap-3 cursor-pointer no-underline group">
-            <div className="h-9 w-9 md:h-11 md:w-11 rounded-full overflow-hidden border-2 border-red-600 bg-black flex items-center justify-center shrink-0 shadow-lg shadow-red-600/20 group-hover:scale-105 transition-transform">
-              <img
-                src="/gns-logo.png"
+            <div className="h-9 w-9 md:h-11 md:w-11 rounded-full overflow-hidden border-2 border-blue-600 bg-black flex items-center justify-center shrink-0 shadow-lg shadow-blue-600/20 group-hover:scale-105 transition-transform">
+              <Image
+                src={gnsLogo}
                 alt="GNS SarriaTech"
                 className="h-full w-full object-cover rounded-full aspect-square"
+                priority
               />
             </div>
             <div>
