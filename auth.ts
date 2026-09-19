@@ -43,14 +43,16 @@ export const authOptions: AuthOptions = {
           return null;
         }
 
+        const normalizedEmail = parsed.data.email.toLowerCase().trim();
+
         const user = await prisma.user.findUnique({
-          where: { email: parsed.data.email },
+          where: { email: normalizedEmail },
           include: { role: true, company: true }
         });
-        console.log('authorize: found user', !!user, parsed.data.email);
+        console.log('authorize: found user', !!user, normalizedEmail);
         if (!user) {
           await logLoginAttempt({
-            email: parsed.data.email,
+            email: normalizedEmail,
             status: "FAILED",
             reason: "USER_NOT_FOUND"
           });

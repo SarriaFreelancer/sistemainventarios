@@ -28,15 +28,15 @@ export function FloatingChat({ user }: { user: any }) {
   const processedMessageIdsRef = useRef<Set<number>>(new Set());
   const { playMessage } = useNotificationSound();
 
-  
+
   // Data
   const [users, setUsers] = useState<any[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const [loadingUsers, setLoadingUsers] = useState(false);
-  
+
   // Chat Data
   const [currentConvo, setCurrentConvo] = useState<any>(null);
-  
+
   const currentConvoIdRef = useRef<number | null>(null);
   useEffect(() => {
     currentConvoIdRef.current = currentConvo?.id || null;
@@ -45,7 +45,7 @@ export function FloatingChat({ user }: { user: any }) {
   const [showUserInfoModal, setShowUserInfoModal] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
   const [loadingChat, setLoadingChat] = useState(false);
-  
+
   // Input
   const [newMessage, setNewMessage] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -57,17 +57,26 @@ export function FloatingChat({ user }: { user: any }) {
   useEffect(() => {
     if (!companyId || !user?.id) return;
 
+    const pusherKey = process.env.NEXT_PUBLIC_PUSHER_KEY;
+    if (!pusherKey) {
+      // Pusher key is not configured in this environment, skip real-time subscriptions safely
+      return;
+    }
+
     if (!pusherInstance) {
-      // Enable pusher logging for debugging in dev
-      // Pusher.logToConsole = true;
-      pusherInstance = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
-        cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
-        authEndpoint: "/api/pusher/auth",
-      });
+      try {
+        pusherInstance = new Pusher(pusherKey, {
+          cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || "us2",
+          authEndpoint: "/api/pusher/auth",
+        });
+      } catch (err) {
+        console.warn("Error initializing Pusher client:", err);
+        return;
+      }
     }
 
     const presenceChannel = pusherInstance.subscribe(`presence-company-${companyId}`);
-    
+
     presenceChannel.bind("pusher:subscription_succeeded", (members: any) => {
       const onlineSet = new Set<string>();
       members.each((member: any) => onlineSet.add(member.id));
@@ -221,7 +230,7 @@ export function FloatingChat({ user }: { user: any }) {
 
   const submitMessage = async () => {
     if (!newMessage.trim() || sending || isSendingRef.current || !currentConvo) return;
-    
+
     isSendingRef.current = true;
     setSending(true);
     const tempContent = newMessage.trim();
@@ -255,7 +264,7 @@ export function FloatingChat({ user }: { user: any }) {
       setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
       setNewMessage(tempContent);
     }
-    
+
     setSending(false);
     isSendingRef.current = false;
   };
@@ -295,7 +304,7 @@ export function FloatingChat({ user }: { user: any }) {
       {/* Chat Panel */}
       {isOpen && (
         <div className="bg-card text-foreground w-[380px] sm:w-[420px] h-[650px] max-h-[85vh] rounded-[24px] shadow-2xl border border-border flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-          
+
           {/* Header */}
           <div className="p-5 flex items-start justify-between border-b border-border/80">
             <div className="flex items-center gap-3 min-w-0">
@@ -327,7 +336,7 @@ export function FloatingChat({ user }: { user: any }) {
                   <Users size={22} />
                 </div>
               )}
-              
+
               <div className="min-w-0 flex-1">
                 {activeTab === "chat" ? (
                   <button
@@ -353,7 +362,7 @@ export function FloatingChat({ user }: { user: any }) {
                 )}
               </div>
             </div>
-            
+
             <div className="flex items-center gap-1 text-muted-foreground shrink-0">
               <button onClick={() => setIsOpen(false)} className="p-2 hover:text-foreground transition rounded-full hover:bg-muted" title="Minimizar chat">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
@@ -370,9 +379,9 @@ export function FloatingChat({ user }: { user: any }) {
                   <div className="absolute left-3 text-muted-foreground">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
                   </div>
-                  <input 
-                    type="text" 
-                    placeholder="Buscar usuario..." 
+                  <input
+                    type="text"
+                    placeholder="Buscar usuario..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full bg-muted/50 border border-border text-foreground rounded-[12px] pl-10 pr-10 py-3 text-sm focus:outline-none focus:border-primary/50 transition-colors"
@@ -603,7 +612,7 @@ export function FloatingChat({ user }: { user: any }) {
                   messages.map((msg: any, i) => {
                     const isMe = msg.senderId === Number(user?.id);
                     const showDate = i === 0 || new Date(messages[i-1].createdAt).toDateString() !== new Date(msg.createdAt).toDateString();
-                    
+
                     return (
                       <React.Fragment key={msg.id}>
                         {showDate && (
@@ -660,7 +669,7 @@ export function FloatingChat({ user }: { user: any }) {
                   >
                     <Smile size={22} />
                   </button>
-                  
+
                   <textarea
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
@@ -676,7 +685,7 @@ export function FloatingChat({ user }: { user: any }) {
                     className="flex-1 bg-muted/50 border border-border focus:border-primary/50 text-foreground text-sm rounded-[16px] px-4 py-3 outline-none resize-none max-h-32 min-h-[44px] transition-colors custom-scrollbar"
                     rows={1}
                   />
-                  
+
                   <button
                     type="submit"
                     disabled={!newMessage.trim() || sending}
@@ -696,7 +705,7 @@ export function FloatingChat({ user }: { user: any }) {
       {showUserInfoModal && chatUser && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-card border border-border text-foreground w-full max-w-sm rounded-3xl p-6 shadow-2xl relative flex flex-col items-center text-center animate-in zoom-in-95 duration-200">
-            
+
             {/* Botón cerrar */}
             <button
               onClick={() => setShowUserInfoModal(false)}
@@ -724,7 +733,7 @@ export function FloatingChat({ user }: { user: any }) {
             <h3 className="text-lg font-extrabold text-foreground tracking-tight">{chatUser.name}</h3>
             <span className={cn(
               "inline-block text-[11px] font-bold px-3 py-0.5 rounded-full mt-1 border",
-              onlineUsers.has(String(chatUser.id)) 
+              onlineUsers.has(String(chatUser.id))
                 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
                 : "bg-muted text-muted-foreground border-border"
             )}>
