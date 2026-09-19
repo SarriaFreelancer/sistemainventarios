@@ -98,7 +98,42 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
     if (storedCollapse === 'true') {
       setIsCollapsed(true);
     }
-  }, []);
+
+    // Mostrar alerta de bienvenida al período de prueba de 15 días si es primera vez en la sesión
+    if (trialInfo?.isTrial && !trialInfo?.isExpired && typeof window !== 'undefined') {
+      const alreadyShown = sessionStorage.getItem('gns_trial_welcomed');
+      if (!alreadyShown) {
+        sessionStorage.setItem('gns_trial_welcomed', 'true');
+        import('sweetalert2').then(({ default: Swal }) => {
+          Swal.fire({
+            icon: 'info',
+            title: '¡Bienvenido a GNS Gestión!',
+            html: `
+              <div class="text-xs text-left space-y-2 text-slate-600 dark:text-slate-300">
+                <p>Tu cuenta cuenta con una <strong>Prueba Gratuita de 15 días</strong> activa.</p>
+                <p>Tienes acceso completo e ilimitado a todos los módulos: <strong>Inventarios, POS, Compras, Finanzas, RRHH y Documentación</strong>.</p>
+                <p class="pt-1 text-slate-500 font-semibold">Te quedan <strong>${trialInfo.daysLeft} días</strong> de prueba. Puedes explorar el sistema libremente o contratar tu plan definitivo en cualquier momento.</p>
+              </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Ver Planes y Precios',
+            cancelButtonText: 'Explorar Sistema',
+            confirmButtonColor: '#2563eb',
+            cancelButtonColor: '#64748b',
+            customClass: {
+              popup: 'rounded-3xl border border-slate-200 dark:border-slate-800 p-6 bg-white dark:bg-[#0b1329]',
+              confirmButton: 'rounded-xl px-5 py-2.5 font-bold text-xs cursor-pointer',
+              cancelButton: 'rounded-xl px-5 py-2.5 font-bold text-xs cursor-pointer'
+            }
+          }).then((res) => {
+            if (res.isConfirmed) {
+              window.location.href = '/#planes';
+            }
+          });
+        });
+      }
+    }
+  }, [trialInfo]);
 
   const handleToggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
@@ -521,7 +556,38 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                 </div>
               </div>
             ) : (
-              children
+              <>
+                {trialInfo?.isTrial && !trialInfo?.isExpired && (
+                  <div className="mb-4 bg-gradient-to-r from-blue-600/10 via-indigo-600/10 to-violet-600/10 border border-blue-500/30 rounded-2xl p-3 sm:p-4 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in duration-300">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 sm:p-2.5 rounded-xl bg-blue-600 text-white shrink-0 shadow-md shadow-blue-500/20">
+                        <LucideIcons.Sparkles size={18} />
+                      </div>
+                      <div>
+                        <div className="text-xs sm:text-sm font-black flex items-center gap-2 text-foreground">
+                          <span>Período de Prueba Activo (15 días)</span>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-600 text-white shadow-sm">
+                            {trialInfo.daysLeft} {trialInfo.daysLeft === 1 ? 'día restante' : 'días restantes'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">
+                          Disfrutas de acceso total a todos los módulos. Puedes contratar o pagar tu plan definitivo en cualquier momento.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+                      <Link
+                        href="/#planes"
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 active:scale-95 transition-all no-underline"
+                      >
+                        <LucideIcons.CreditCard size={14} />
+                        <span>Ver Planes y Pagar</span>
+                      </Link>
+                    </div>
+                  </div>
+                )}
+                {children}
+              </>
             )}
           </main>
         </div>

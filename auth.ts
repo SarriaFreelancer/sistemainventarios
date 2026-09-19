@@ -185,7 +185,7 @@ export const authOptions: AuthOptions = {
             counter++;
           }
 
-          const trialEndsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+          const trialEndsAt = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000);
 
           const newCompany = await prisma.company.create({
             data: {
@@ -201,7 +201,7 @@ export const authOptions: AuthOptions = {
             }
           });
 
-          // Asignar todos los módulos activos del sistema para la prueba de 30 días
+          // Asignar todos los módulos activos del sistema para la prueba de 15 días
           try {
             const allModules = await prisma.module.findMany({ where: { isActive: true }, select: { id: true } });
             if (allModules.length > 0) {
@@ -237,7 +237,7 @@ export const authOptions: AuthOptions = {
             counter++;
           }
 
-          const trialEndsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+          const trialEndsAt = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000);
           const newCompany = await prisma.company.create({
             data: {
               name: uniqueCompanyName,

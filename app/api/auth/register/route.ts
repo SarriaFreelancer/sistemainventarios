@@ -176,7 +176,7 @@ export async function POST(request: Request) {
         const maxProducts = settingsMap[`plan_basico_max_products`] ? parseInt(settingsMap[`plan_basico_max_products`]) : 1000;
         const maxSalesPerMonth = settingsMap[`plan_basico_max_sales_per_month`] ? parseInt(settingsMap[`plan_basico_max_sales_per_month`]) : 500;
 
-        const trialEndsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        const trialEndsAt = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000);
 
         const company = await tx.company.create({
           data: {
