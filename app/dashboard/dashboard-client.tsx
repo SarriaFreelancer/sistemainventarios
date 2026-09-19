@@ -109,11 +109,10 @@ export function DashboardClient({
       {/* ── Header Premium con Selector de Calendario y Fechas ── */}
       <div className="p-6 sm:p-8 rounded-[32px] bg-card border border-border shadow-md shadow-primary/5 relative overflow-hidden transition-colors duration-500 space-y-6">
         <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-[100px]" />
-        
+
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           <div className="space-y-1.5">
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3.5 py-1 text-xs font-bold text-primary uppercase tracking-wider">
-              <Sparkles className="h-3.5 w-3.5 animate-pulse text-primary" />
               GNS Gestión de Negocios
             </div>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
@@ -235,7 +234,7 @@ export function DashboardClient({
 
       {/* ── KPI Cards Dinámicas ── */}
       <div id="tour-dashboard-kpi" className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 transition-opacity duration-300 ${isPending ? 'opacity-50' : 'opacity-100'}`}>
-        
+
         {/* KPI 1: Productos */}
         <div className="p-6 rounded-[24px] bg-card border border-border shadow-sm flex flex-col justify-between h-36 hover:shadow-md hover:border-primary/20 transition-all duration-300 group">
           <div className="flex items-center justify-between">
@@ -322,7 +321,7 @@ export function DashboardClient({
 
       {/* ── Sección de Stock e Historial de Ventas Recientes en el Período ── */}
       <div className={`grid gap-6 lg:grid-cols-2 transition-opacity duration-300 ${isPending ? 'opacity-50' : 'opacity-100'}`}>
-        
+
         {/* Panel Izquierdo: Alertas de Stock */}
         <Card className="p-6">
           <CardHeader className="p-0 pb-4 flex flex-row items-center justify-between border-b border-border/60">
@@ -441,8 +440,8 @@ export function DashboardClient({
       {/* ── ACCESOS DIRECTOS INTELIGENTES (AL FINAL) ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500 mt-6 pt-6 border-t border-border/50">
         {allowedModules.some(m => m.name.toLowerCase() === 'ventas' || m.name.toLowerCase() === 'dashboard') && (
-          <Link 
-            href="/dashboard/sales" 
+          <Link
+            href="/dashboard/sales"
             className="group relative overflow-hidden p-4 rounded-xl bg-card border border-border shadow-sm hover:shadow-md hover:bg-muted/50 transition-all duration-300"
           >
             <div className="relative z-10 flex flex-col gap-2">
@@ -454,8 +453,8 @@ export function DashboardClient({
           </Link>
         )}
         {allowedModules.some(m => m.name.toLowerCase() === 'productos' || m.name.toLowerCase() === 'dashboard') && (
-          <Link 
-            href="/dashboard/products" 
+          <Link
+            href="/dashboard/products"
             className="group relative overflow-hidden p-4 rounded-xl bg-card border border-border shadow-sm hover:shadow-md hover:bg-muted/50 transition-all duration-300"
           >
             <div className="relative z-10 flex flex-col gap-2">
@@ -467,8 +466,8 @@ export function DashboardClient({
           </Link>
         )}
         {allowedModules.some(m => m.name.toLowerCase() === 'crm' || m.name.toLowerCase() === 'dashboard') && (
-          <Link 
-            href="/dashboard/crm" 
+          <Link
+            href="/dashboard/crm"
             className="group relative overflow-hidden p-4 rounded-xl bg-card border border-border shadow-sm hover:shadow-md hover:bg-muted/50 transition-all duration-300"
           >
             <div className="relative z-10 flex flex-col gap-2">
@@ -480,8 +479,8 @@ export function DashboardClient({
           </Link>
         )}
         {allowedModules.some(m => m.name.toLowerCase() === 'finanzas' || m.name.toLowerCase() === 'dashboard') && (
-          <Link 
-            href="/dashboard/finanzas" 
+          <Link
+            href="/dashboard/finanzas"
             className="group relative overflow-hidden p-4 rounded-xl bg-card border border-border shadow-sm hover:shadow-md hover:bg-muted/50 transition-all duration-300"
           >
             <div className="relative z-10 flex flex-col gap-2">
