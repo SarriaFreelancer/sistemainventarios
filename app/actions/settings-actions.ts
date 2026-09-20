@@ -32,6 +32,45 @@ export async function uploadCompanyLogo(base64Data: string) {
     await fs.promises.writeFile(filePath, imageBuffer);
 
     const publicUrl = `/uploads/logos/${fileName}`;
+
+    // Actualizar inmediatamente el logo en la base de datos para la empresa activa
+    let companyId: number | null = session.user.companyId ? Number(session.user.companyId) : null;
+    let targetCompany = companyId
+      ? await prisma.company.findUnique({ where: { id: companyId } })
+      : null;
+
+    if (!targetCompany) {
+      targetCompany = await prisma.company.findFirst({ where: { status: 'ACTIVE' }, orderBy: { id: 'asc' } })
+                   || await prisma.company.findFirst({ orderBy: { id: 'asc' } });
+    }
+
+    if (targetCompany) {
+      companyId = targetCompany.id;
+      const setting = await prisma.companySetting.findUnique({ where: { companyId } });
+      const currentInvoiceConfig = (setting?.invoiceConfig as any) || {};
+      await prisma.companySetting.upsert({
+        where: { companyId },
+        create: {
+          companyId,
+          invoiceConfig: { ...currentInvoiceConfig, logo: publicUrl }
+        },
+        update: {
+          invoiceConfig: { ...currentInvoiceConfig, logo: publicUrl }
+        }
+      });
+
+      const currentTheme = (targetCompany.themeConfig as any) || {};
+      await prisma.company.update({
+        where: { id: companyId },
+        data: {
+          themeConfig: { ...currentTheme, logo: publicUrl }
+        }
+      });
+    }
+
+    revalidatePath("/", "layout");
+    revalidatePath("/dashboard");
+
     return { success: true, url: publicUrl };
   } catch (error: any) {
     console.error("[UPLOAD_COMPANY_LOGO]", error);
@@ -107,11 +146,18 @@ export async function getCompanySettings() {
     }
 
     const themeConfig = (targetCompany.themeConfig as any) || {};
+    const invoiceConfig = (settings.invoiceConfig as any) || {};
+    if (!invoiceConfig.logo && themeConfig.logo) {
+      invoiceConfig.logo = themeConfig.logo;
+    }
+
     const fullSettings = {
       ...settings,
       companyName: targetCompany.name || "",
       bgImage: themeConfig.bgImage || "",
-      themeColor: themeConfig.primaryColor || ""
+      themeColor: themeConfig.primaryColor || "",
+      themeConfig: themeConfig,
+      invoiceConfig: invoiceConfig,
     };
 
     return { success: true, settings: JSON.parse(JSON.stringify(fullSettings)) };
@@ -215,10 +261,11 @@ export async function updateCompanySettings(data: any) {
     if (
       data.themeColor !== undefined ||
       data.bgImage !== undefined ||
-      data.darkBgColor ||
-      data.darkCardBg ||
-      data.darkSidebarBg ||
-      data.darkTextColor
+      data.darkBgColor !== undefined ||
+      data.darkCardBg !== undefined ||
+      data.darkSidebarBg !== undefined ||
+      data.darkTextColor !== undefined ||
+      (data.invoiceConfig && data.invoiceConfig.logo !== undefined)
     ) {
       const existingCompany = await prisma.company.findUnique({ where: { id: companyId } });
       const currentTheme = (existingCompany?.themeConfig as any) || {};
@@ -229,10 +276,11 @@ export async function updateCompanySettings(data: any) {
             ...currentTheme,
             ...(data.themeColor !== undefined ? { primaryColor: data.themeColor } : {}),
             ...(data.bgImage !== undefined ? { bgImage: data.bgImage } : {}),
-            ...(data.darkBgColor ? { darkBgColor: data.darkBgColor } : {}),
-            ...(data.darkCardBg ? { darkCardBg: data.darkCardBg } : {}),
-            ...(data.darkSidebarBg ? { darkSidebarBg: data.darkSidebarBg } : {}),
-            ...(data.darkTextColor ? { darkTextColor: data.darkTextColor } : {}),
+            darkBgColor: data.darkBgColor !== undefined ? data.darkBgColor : currentTheme.darkBgColor,
+            darkCardBg: data.darkCardBg !== undefined ? data.darkCardBg : currentTheme.darkCardBg,
+            darkSidebarBg: data.darkSidebarBg !== undefined ? data.darkSidebarBg : currentTheme.darkSidebarBg,
+            darkTextColor: data.darkTextColor !== undefined ? data.darkTextColor : currentTheme.darkTextColor,
+            ...(data.invoiceConfig?.logo !== undefined ? { logo: data.invoiceConfig.logo } : {}),
           }
         }
       });

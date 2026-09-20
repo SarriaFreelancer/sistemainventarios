@@ -166,17 +166,17 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
 
   // Personalización Tema Oscuro & Fuentes
   const initialTheme = (initialSettings as any).themeConfig || {};
-  const [darkBgColor, setDarkBgColor] = useState(initialTheme.darkBgColor || "#0a192f");
-  const [darkCardBg, setDarkCardBg] = useState(initialTheme.darkCardBg || "#0f2744");
-  const [darkSidebarBg, setDarkSidebarBg] = useState(initialTheme.darkSidebarBg || "#0d1f38");
-  const [darkTextColor, setDarkTextColor] = useState(initialTheme.darkTextColor || "#93c5fd");
+  const [darkBgColor, setDarkBgColor] = useState(initialTheme.darkBgColor || "");
+  const [darkCardBg, setDarkCardBg] = useState(initialTheme.darkCardBg || "");
+  const [darkSidebarBg, setDarkSidebarBg] = useState(initialTheme.darkSidebarBg || "");
+  const [darkTextColor, setDarkTextColor] = useState(initialTheme.darkTextColor || "");
 
   const applyDarkPreset = (presetKey: string) => {
     if (presetKey === 'NONE') {
       setDarkBgColor('');
       setDarkCardBg('');
       setDarkSidebarBg('');
-      setDarkTextColor('');
+      // Conservar darkTextColor si el usuario ya escogió o desea uno personalizado
     } else if (presetKey === 'BLUE') {
       setInvoicePrimaryColor('#3b82f6');
       setDarkBgColor('#0a192f');
@@ -277,10 +277,30 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
     setSaving(false);
 
     if (result.success) {
-      if (typeof document !== 'undefined' && invoicePrimaryColor) {
-        document.documentElement.style.setProperty('--primary', invoicePrimaryColor);
+      if (typeof document !== 'undefined') {
+        if (invoicePrimaryColor) {
+          document.documentElement.style.setProperty('--primary', invoicePrimaryColor);
+          document.documentElement.style.setProperty('--ring', invoicePrimaryColor);
+        }
+        if (darkTextColor) {
+          document.documentElement.style.setProperty('--foreground', darkTextColor);
+          document.documentElement.style.setProperty('--card-foreground', darkTextColor);
+        } else {
+          document.documentElement.style.removeProperty('--foreground');
+          document.documentElement.style.removeProperty('--card-foreground');
+        }
+        if (darkBgColor) {
+          document.documentElement.style.setProperty('--background', darkBgColor);
+        } else {
+          document.documentElement.style.removeProperty('--background');
+        }
+        if (darkCardBg) {
+          document.documentElement.style.setProperty('--card', darkCardBg);
+        } else {
+          document.documentElement.style.removeProperty('--card');
+        }
       }
-      await successAlert("Ajustes guardados", "Los parámetros del sistema y el color institucional fueron actualizados con éxito.");
+      await successAlert("Ajustes guardados", "Los parámetros del sistema, logotipo y personalización de fuentes/colores fueron actualizados con éxito.");
       router.refresh();
     } else {
       errorAlert("Error", result.error || "No se pudieron guardar los ajustes.");
@@ -647,7 +667,8 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
                           const res = await uploadCompanyLogo(reader.result as string);
                           if (res.success && res.url) {
                             setInvoiceLogo(res.url);
-                            successAlert("Logo cargado", "La imagen del logo ha sido guardada.");
+                            successAlert("Logo cargado", "La imagen del logotipo de la empresa fue guardada y actualizada en el sistema.");
+                            router.refresh();
                           } else {
                             errorAlert("Error", res.error || "No se pudo subir el logo");
                           }
@@ -659,8 +680,8 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
                   />
                 </label>
                 {invoiceLogo && (
-                  <div className="h-10 w-10 rounded-xl overflow-hidden border border-border bg-background flex items-center justify-center shrink-0 shadow-sm relative">
-                    <img src={invoiceLogo} alt="Previsualización" className="h-full w-full object-cover scale-125 transition-transform" />
+                  <div className="h-10 w-10 rounded-xl overflow-hidden border border-border bg-background flex items-center justify-center shrink-0 shadow-sm relative p-0.5">
+                    <img src={invoiceLogo} alt="Previsualización" className="h-full w-full object-contain transition-transform" />
                   </div>
                 )}
               </div>
@@ -841,19 +862,57 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
               </div>
 
               {/* Pickers Manuales de Color */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-muted/20 p-4 rounded-2xl border border-border/50">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 bg-muted/20 p-4 rounded-2xl border border-border/50">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-muted-foreground uppercase">Color Principal</label>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="color"
+                      value={invoicePrimaryColor}
+                      onChange={(e) => setInvoicePrimaryColor(e.target.value)}
+                      className="w-9 h-8 border border-border rounded-lg cursor-pointer bg-transparent shrink-0"
+                    />
+                    <input
+                      type="text"
+                      value={invoicePrimaryColor}
+                      onChange={(e) => setInvoicePrimaryColor(e.target.value)}
+                      className="w-full bg-card border border-border rounded-lg px-2.5 py-1 text-xs font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-muted-foreground uppercase">Color Fuente / Letra</label>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="color"
+                      value={darkTextColor || "#ffffff"}
+                      onChange={(e) => setDarkTextColor(e.target.value)}
+                      className="w-9 h-8 border border-border rounded-lg cursor-pointer bg-transparent shrink-0"
+                    />
+                    <input
+                      type="text"
+                      value={darkTextColor}
+                      placeholder="Por defecto"
+                      onChange={(e) => setDarkTextColor(e.target.value)}
+                      className="w-full bg-card border border-border rounded-lg px-2.5 py-1 text-xs font-mono"
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-1">
                   <label className="text-[11px] font-bold text-muted-foreground uppercase">Fondo Principal</label>
                   <div className="flex gap-2 items-center">
                     <input
                       type="color"
-                      value={darkBgColor}
+                      value={darkBgColor || "#0b1329"}
                       onChange={(e) => setDarkBgColor(e.target.value)}
-                      className="w-9 h-8 border border-border rounded-lg cursor-pointer bg-transparent"
+                      className="w-9 h-8 border border-border rounded-lg cursor-pointer bg-transparent shrink-0"
                     />
                     <input
                       type="text"
                       value={darkBgColor}
+                      placeholder="Por defecto"
                       onChange={(e) => setDarkBgColor(e.target.value)}
                       className="w-full bg-card border border-border rounded-lg px-2.5 py-1 text-xs font-mono"
                     />
@@ -865,13 +924,14 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
                   <div className="flex gap-2 items-center">
                     <input
                       type="color"
-                      value={darkCardBg}
+                      value={darkCardBg || "#141417"}
                       onChange={(e) => setDarkCardBg(e.target.value)}
-                      className="w-9 h-8 border border-border rounded-lg cursor-pointer bg-transparent"
+                      className="w-9 h-8 border border-border rounded-lg cursor-pointer bg-transparent shrink-0"
                     />
                     <input
                       type="text"
                       value={darkCardBg}
+                      placeholder="Por defecto"
                       onChange={(e) => setDarkCardBg(e.target.value)}
                       className="w-full bg-card border border-border rounded-lg px-2.5 py-1 text-xs font-mono"
                     />
@@ -883,32 +943,15 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
                   <div className="flex gap-2 items-center">
                     <input
                       type="color"
-                      value={darkSidebarBg}
+                      value={darkSidebarBg || "#141417"}
                       onChange={(e) => setDarkSidebarBg(e.target.value)}
-                      className="w-9 h-8 border border-border rounded-lg cursor-pointer bg-transparent"
+                      className="w-9 h-8 border border-border rounded-lg cursor-pointer bg-transparent shrink-0"
                     />
                     <input
                       type="text"
                       value={darkSidebarBg}
+                      placeholder="Por defecto"
                       onChange={(e) => setDarkSidebarBg(e.target.value)}
-                      className="w-full bg-card border border-border rounded-lg px-2.5 py-1 text-xs font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-muted-foreground uppercase">Color Fuente / Texto</label>
-                  <div className="flex gap-2 items-center">
-                    <input
-                      type="color"
-                      value={darkTextColor}
-                      onChange={(e) => setDarkTextColor(e.target.value)}
-                      className="w-9 h-8 border border-border rounded-lg cursor-pointer bg-transparent"
-                    />
-                    <input
-                      type="text"
-                      value={darkTextColor}
-                      onChange={(e) => setDarkTextColor(e.target.value)}
                       className="w-full bg-card border border-border rounded-lg px-2.5 py-1 text-xs font-mono"
                     />
                   </div>

@@ -289,17 +289,17 @@ export function EditCompanyDialog({ company, modules }: { company: Company; modu
   const [city, setCity] = useState(company.city || "Bogotá");
   const [country, setCountry] = useState(company.country || "Colombia");
   const [primaryColor, setPrimaryColor] = useState(company.themeConfig?.primaryColor || "#3b82f6");
-  const [darkBgColor, setDarkBgColor] = useState((company.themeConfig as any)?.darkBgColor || "#0a192f");
-  const [darkCardBg, setDarkCardBg] = useState((company.themeConfig as any)?.darkCardBg || "#0f2744");
-  const [darkSidebarBg, setDarkSidebarBg] = useState((company.themeConfig as any)?.darkSidebarBg || "#0d1f38");
-  const [darkTextColor, setDarkTextColor] = useState((company.themeConfig as any)?.darkTextColor || "#93c5fd");
+  const [darkBgColor, setDarkBgColor] = useState((company.themeConfig as any)?.darkBgColor || "");
+  const [darkCardBg, setDarkCardBg] = useState((company.themeConfig as any)?.darkCardBg || "");
+  const [darkSidebarBg, setDarkSidebarBg] = useState((company.themeConfig as any)?.darkSidebarBg || "");
+  const [darkTextColor, setDarkTextColor] = useState((company.themeConfig as any)?.darkTextColor || "");
   const [isTrial, setIsTrial] = useState(company.isTrial ?? false);
   const [trialDaysOption, setTrialDaysOption] = useState<"15" | "30" | "custom">("15");
   const [customTrialDays, setCustomTrialDays] = useState<string>("15");
   const [isPending, startTransition] = useTransition();
 
   const applyPreset = (key: string) => {
-    if (key === 'NONE') { setDarkBgColor(''); setDarkCardBg(''); setDarkSidebarBg(''); setDarkTextColor(''); }
+    if (key === 'NONE') { setDarkBgColor(''); setDarkCardBg(''); setDarkSidebarBg(''); }
     else if (key === 'BLUE') { setPrimaryColor('#3b82f6'); setDarkBgColor('#0a192f'); setDarkCardBg('#0f2744'); setDarkSidebarBg('#0d1f38'); setDarkTextColor('#93c5fd'); }
     else if (key === 'PURPLE') { setPrimaryColor('#8b5cf6'); setDarkBgColor('#130d2b'); setDarkCardBg('#1e1442'); setDarkSidebarBg('#1a1038'); setDarkTextColor('#c084fc'); }
     else if (key === 'EMERALD') { setPrimaryColor('#10b981'); setDarkBgColor('#062319'); setDarkCardBg('#0d3829'); setDarkSidebarBg('#0a2e22'); setDarkTextColor('#34d399'); }

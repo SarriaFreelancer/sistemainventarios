@@ -38,3 +38,6 @@ tsconfig.tsbuildinfo
 # Playwright & Testing
 playwright-report/
 test-results/
+
+# User uploads
+public/uploads/

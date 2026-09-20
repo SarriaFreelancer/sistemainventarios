@@ -86,7 +86,16 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
   children: React.ReactNode;
   session: { user?: { id?: string | number; name?: string | null; email?: string | null; role?: string; companyId?: string | null; image?: string | null } | null };
   modules?: ModuleConfig[];
-  themeConfig?: { primaryColor?: string; mode?: string; bgImage?: string } | null;
+  themeConfig?: {
+    primaryColor?: string;
+    mode?: string;
+    bgImage?: string;
+    darkBgColor?: string;
+    darkCardBg?: string;
+    darkSidebarBg?: string;
+    darkTextColor?: string;
+    textColor?: string;
+  } | null;
   companyName?: string;
   companyLogo?: string | null;
   trialInfo?: { isTrial: boolean; trialEndsAt: string | null; isExpired: boolean; daysLeft: number } | null;
@@ -174,8 +183,9 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
       roleThemeClass
     )}>
 
-      {themeConfig?.primaryColor && (
-        <style dangerouslySetInnerHTML={{ __html: `
+      {/* Inyección dinámica de tokens de diseño y colores corporativos */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        ${themeConfig?.primaryColor ? `
           :root, .dark, .theme-superadmin {
             --primary: ${themeConfig.primaryColor} !important;
             --ring: ${themeConfig.primaryColor} !important;
@@ -190,8 +200,44 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
           .dark ::-webkit-scrollbar-thumb {
             background: ${themeConfig.primaryColor} !important;
           }
-        `}} />
-      )}
+        ` : ''}
+
+        ${(themeConfig?.darkTextColor || themeConfig?.textColor) ? `
+          .dark {
+            --foreground: ${(themeConfig.darkTextColor || themeConfig.textColor)} !important;
+            --card-foreground: ${(themeConfig.darkTextColor || themeConfig.textColor)} !important;
+            --popover-foreground: ${(themeConfig.darkTextColor || themeConfig.textColor)} !important;
+          }
+          .dark .text-foreground {
+            color: ${(themeConfig.darkTextColor || themeConfig.textColor)} !important;
+          }
+        ` : ''}
+
+        ${themeConfig?.darkBgColor ? `
+          .dark {
+            --background: ${themeConfig.darkBgColor} !important;
+          }
+          .dark .bg-background {
+            background-color: ${themeConfig.darkBgColor} !important;
+          }
+        ` : ''}
+
+        ${themeConfig?.darkCardBg ? `
+          .dark {
+            --card: ${themeConfig.darkCardBg} !important;
+            --popover: ${themeConfig.darkCardBg} !important;
+          }
+          .dark .bg-card {
+            background-color: ${themeConfig.darkCardBg} !important;
+          }
+        ` : ''}
+
+        ${themeConfig?.darkSidebarBg ? `
+          aside {
+            background-color: ${themeConfig.darkSidebarBg} !important;
+          }
+        ` : ''}
+      `}} />
       <div className="flex flex-1 overflow-hidden h-full relative z-10">
 
         {/* ── Sidebar (Desktop) ── */}
@@ -380,12 +426,12 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                 <LucideIcons.Menu size={18} />
               </button>
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-2xl overflow-hidden border border-border/80 bg-muted/40 flex items-center justify-center shrink-0 shadow-sm relative">
+                <div className="h-10 w-10 rounded-2xl overflow-hidden border border-border/80 bg-muted/40 flex items-center justify-center shrink-0 shadow-sm relative p-0.5">
                   {companyLogo ? (
                     <img
                       src={companyLogo}
                       alt={companyName || "Empresa"}
-                      className="h-full w-full object-cover scale-125 transition-transform"
+                      className="h-full w-full object-contain transition-transform"
                     />
                   ) : (
                     <LucideIcons.Building2 size={20} className="text-primary" />

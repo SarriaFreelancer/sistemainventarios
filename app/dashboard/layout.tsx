@@ -104,9 +104,16 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   let trialInfo: { isTrial: boolean; trialEndsAt: string | null; isExpired: boolean; daysLeft: number } | null = null;
 
   const tenantId = await getSessionCompanyId();
-  if (tenantId) {
+  let targetCompanyId = tenantId;
+  if (!targetCompanyId) {
+    const targetComp = await prisma.company.findFirst({ where: { status: 'ACTIVE' }, orderBy: { id: 'asc' } })
+                    || await prisma.company.findFirst({ orderBy: { id: 'asc' } });
+    targetCompanyId = targetComp?.id;
+  }
+
+  if (targetCompanyId) {
     const company = await prisma.company.findUnique({
-      where: { id: tenantId },
+      where: { id: targetCompanyId },
       select: {
         name: true,
         themeConfig: true,
@@ -115,14 +122,14 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     });
     companyTheme = company?.themeConfig;
     companyName = company?.name || '';
-    companyLogo = (company?.setting?.invoiceConfig as any)?.logo || null;
+    companyLogo = (company?.setting?.invoiceConfig as any)?.logo || (company?.themeConfig as any)?.logo || null;
 
     let isTrial = false;
     let trialEndsAt: Date | null = null;
     try {
       const trialRows: any[] = await prisma.$queryRawUnsafe(
         'SELECT isTrial, trialEndsAt FROM `Company` WHERE id = ? LIMIT 1',
-        tenantId
+        targetCompanyId
       );
       if (trialRows && trialRows[0]) {
         isTrial = Boolean(trialRows[0].isTrial);
