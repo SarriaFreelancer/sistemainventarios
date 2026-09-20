@@ -4,8 +4,16 @@ import { prisma } from "@/lib/prisma";
 import { getAuthSession } from "@/auth";
 import { resolveActionCompanyId, resolveActionUserId } from "@/lib/session";
 import { revalidatePath } from "next/cache";
-
-import { ProductType, CustomerStatus } from "@prisma/client";
+import bcrypt from "bcryptjs";
+import {
+  ProductType,
+  CustomerStatus,
+  OpportunityStage,
+  ExpenseCategory,
+  IncomeCategory,
+  EmployeeStatus,
+  PayrollStatus
+} from "@prisma/client";
 
 export async function generateDemoData() {
   try {
@@ -14,11 +22,12 @@ export async function generateDemoData() {
     const companyId = await resolveActionCompanyId();
     if (!companyId) throw new Error("Compañía no encontrada");
     const userId = await resolveActionUserId(session.user.id);
+    const isSuperAdmin = session.user.role === 'SUPERADMIN';
 
     const suffix = Date.now().toString().slice(-4);
 
-    // 1. GRUPOS (10 Grupos)
-    const groupDefs = [
+    // 1. GRUPOS DE PRODUCTOS
+    const groupDefs = isSuperAdmin ? [
       { name: `Maquillaje Profesional ${suffix}`, code: `GRP-MAQ-${suffix}` },
       { name: `Cuidado Facial & Skincare ${suffix}`, code: `GRP-SKN-${suffix}` },
       { name: `Cuidado Capilar & Estilo ${suffix}`, code: `GRP-CAP-${suffix}` },
@@ -29,6 +38,13 @@ export async function generateDemoData() {
       { name: `Empaques & Suministros ${suffix}`, code: `GRP-SUM-${suffix}` },
       { name: `Servicios & Asesorías ${suffix}`, code: `GRP-SER-${suffix}` },
       { name: `Equipos & Activos Fijos ${suffix}`, code: `GRP-ACT-${suffix}` },
+    ] : [
+      { name: `Maquillaje Profesional ${suffix}`, code: `GRP-MAQ-${suffix}` },
+      { name: `Cuidado Facial & Skincare ${suffix}`, code: `GRP-SKN-${suffix}` },
+      { name: `Cuidado Capilar & Estilo ${suffix}`, code: `GRP-CAP-${suffix}` },
+      { name: `Materias Primas & Químicos ${suffix}`, code: `GRP-MPR-${suffix}` },
+      { name: `Empaques & Suministros ${suffix}`, code: `GRP-SUM-${suffix}` },
+      { name: `Servicios & Activos ${suffix}`, code: `GRP-SER-${suffix}` },
     ];
 
     const createdGroups: any[] = [];
@@ -44,8 +60,8 @@ export async function generateDemoData() {
       return found ? found.id : createdGroups[0].id;
     };
 
-    // 2. CATEGORÍAS (20 Categorías)
-    const categoryDefs = [
+    // 2. CATEGORÍAS
+    const categoryDefs = isSuperAdmin ? [
       { name: `Labiales & Brillos ${suffix}`, code: `CAT-LAB-${suffix}`, groupCode: 'GRP-MAQ', description: 'Labiales líquidos y gloss' },
       { name: `Sombras & Ojos ${suffix}`, code: `CAT-EYE-${suffix}`, groupCode: 'GRP-MAQ', description: 'Paletas de sombras y delineadores' },
       { name: `Rostro & Cobertura ${suffix}`, code: `CAT-ROS-${suffix}`, groupCode: 'GRP-MAQ', description: 'Bases y correctores' },
@@ -66,6 +82,13 @@ export async function generateDemoData() {
       { name: `Servicios de Estética ${suffix}`, code: `CAT-SPA-${suffix}`, groupCode: 'GRP-SER', description: 'Maquillaje novias y facial' },
       { name: `Maquinaria de Producción ${suffix}`, code: `CAT-MAQ-${suffix}`, groupCode: 'GRP-ACT', description: 'Mezcladoras industriales' },
       { name: `Mobiliario & Equipos POS ${suffix}`, code: `CAT-MOB-${suffix}`, groupCode: 'GRP-ACT', description: 'Muebles exhibidores y POS' },
+    ] : [
+      { name: `Labiales & Maquillaje ${suffix}`, code: `CAT-LAB-${suffix}`, groupCode: 'GRP-MAQ', description: 'Labiales y cosméticos faciales' },
+      { name: `Sérums & Cuidado Facial ${suffix}`, code: `CAT-SER-${suffix}`, groupCode: 'GRP-SKN', description: 'Sérums hidratantes y rejuvenecedores' },
+      { name: `Cuidado Capilar ${suffix}`, code: `CAT-TRT-${suffix}`, groupCode: 'GRP-CAP', description: 'Champús y tratamientos capilares' },
+      { name: `Materias Primas ${suffix}`, code: `CAT-ING-${suffix}`, groupCode: 'GRP-MPR', description: 'Aceites puros e ingredientes cosméticos' },
+      { name: `Empaques & Envases ${suffix}`, code: `CAT-FRS-${suffix}`, groupCode: 'GRP-SUM', description: 'Frascos goteros y cajas' },
+      { name: `Servicios & Equipos ${suffix}`, code: `CAT-SPA-${suffix}`, groupCode: 'GRP-SER', description: 'Servicios de estética y maquinaria' },
     ];
 
     const createdCategories: any[] = [];
@@ -89,7 +112,7 @@ export async function generateDemoData() {
     };
 
     // 3. PROVEEDORES
-    const supplier = await prisma.supplier.create({
+    const supplier1 = await prisma.supplier.create({
       data: {
         companyName: `Dorelle Beauty Suppliers ${suffix} S.A.S.`,
         contactName: "Juan Carlos Pérez",
@@ -101,8 +124,20 @@ export async function generateDemoData() {
       }
     });
 
-    // 4. CLIENTE
-    const customer = await prisma.customer.create({
+    const supplier2 = await prisma.supplier.create({
+      data: {
+        companyName: `Insumos Cosméticos de Colombia ${suffix}`,
+        contactName: "Martha Cecilia Ortiz",
+        phone: "3158901234",
+        email: `ventas_${suffix}@insumoscolombia.com`,
+        address: "Carrera 43A #1-50",
+        city: "Medellín",
+        companyId,
+      }
+    });
+
+    // 4. CLIENTES CRM
+    const customer1 = await prisma.customer.create({
       data: {
         name: `Juliana Restrepo ${suffix}`,
         email: `juliana_${suffix}@mail.com`,
@@ -115,8 +150,79 @@ export async function generateDemoData() {
       }
     });
 
-    // 5. CATÁLOGO DE 105 PRODUCTOS REALES
-    const rawProducts = [
+    const customer2 = await prisma.customer.create({
+      data: {
+        name: `Carlos Mario Gómez ${suffix}`,
+        email: `carlos_${suffix}@mail.com`,
+        phone: "3209876543",
+        company: "Salón & Spa Elegance",
+        address: "Avenida 6N #22-10",
+        city: "Cali",
+        status: CustomerStatus.ACTIVE,
+        companyId,
+      }
+    });
+
+    // 5. CRM: LEADS, OPORTUNIDADES, ACTIVIDADES Y COTIZACIONES
+    await prisma.lead.create({
+      data: {
+        name: `Distribuidora Cosmética del Valle ${suffix}`,
+        email: `compras_${suffix}@vallecosmeticos.com`,
+        phone: "3127894561",
+        companyName: "Cosméticos del Valle",
+        source: "Sitio Web",
+        status: "QUALIFIED",
+        companyId,
+      }
+    });
+
+    const opportunity1 = await prisma.opportunity.create({
+      data: {
+        title: `Dotación Productos Spa Temporada ${suffix}`,
+        customerId: customer2.id,
+        stage: OpportunityStage.PROPOSAL,
+        estimatedValue: 4500000,
+        probability: 70,
+        companyId,
+      }
+    });
+
+    await prisma.activity.create({
+      data: {
+        title: "Llamada de presentación de catálogo",
+        type: "CALL",
+        description: "Se presentó propuesta comercial y catálogo de productos para el salón.",
+        date: new Date(),
+        userId,
+        customerId: customer2.id,
+        companyId,
+      }
+    });
+
+    await prisma.contact.create({
+      data: {
+        name: "Valeria Gómez",
+        email: `valeria_${suffix}@elegance.com`,
+        phone: "3114569874",
+        position: "Directora de Compras",
+        customerId: customer2.id,
+        companyId,
+      }
+    });
+
+    await prisma.quote.create({
+      data: {
+        quoteNumber: `COT-${suffix}-001`,
+        customerId: customer1.id,
+        total: 1850000,
+        status: "SENT",
+        validUntil: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000),
+        companyId,
+      }
+    });
+
+    // 6. CATÁLOGO DE PRODUCTOS (100 para Superadmin, 20 para otros usuarios)
+    const rawSuperAdminProducts = [
       // VENTA (SALE) - 35
       { code: `P-${suffix}-001`, name: 'Labial Matte Rouge Satin', price: 45000, cost: 22000, catCode: 'CAT-LAB', groupCode: 'GRP-MAQ', type: ProductType.SALE, qty: 45 },
       { code: `P-${suffix}-002`, name: 'Gloss Voluminizador Rose Gold', price: 38000, cost: 18000, catCode: 'CAT-LAB', groupCode: 'GRP-MAQ', type: ProductType.SALE, qty: 60 },
@@ -176,7 +282,7 @@ export async function generateDemoData() {
       { code: `P-${suffix}-054`, name: 'Edición Limitada Labial Rose Gold + Neceser', price: 58000, cost: 25000, catCode: 'CAT-LAB', groupCode: 'GRP-MAQ', type: ProductType.FINISHED_GOOD, qty: 45 },
       { code: `P-${suffix}-055`, name: 'Colección Fragancias Miniatura 15ml x 4', price: 160000, cost: 72000, catCode: 'CAT-FRG', groupCode: 'GRP-PER', type: ProductType.FINISHED_GOOD, qty: 16 },
 
-      // MATERIA PRIMA (RAW_MATERIAL) - 20
+      // MATERIA PRIMA (RAW_MATERIAL) - 15
       { code: `P-${suffix}-056`, name: 'Aceite Puro de Argán Marroquí Prensado (Litro)', price: 180000, cost: 180000, catCode: 'CAT-ING', groupCode: 'GRP-MPR', type: ProductType.RAW_MATERIAL, qty: 50 },
       { code: `P-${suffix}-057`, name: 'Manteca de Karité Orgánica Sin Refinar (Kg)', price: 65000, cost: 65000, catCode: 'CAT-ING', groupCode: 'GRP-MPR', type: ProductType.RAW_MATERIAL, qty: 80 },
       { code: `P-${suffix}-058`, name: 'Ácido Hialurónico Puro en Polvo USP (100g)', price: 240000, cost: 240000, catCode: 'CAT-ACT', groupCode: 'GRP-MPR', type: ProductType.RAW_MATERIAL, qty: 25 },
@@ -192,52 +298,83 @@ export async function generateDemoData() {
       { code: `P-${suffix}-068`, name: 'Glicerina Vegetal USP 99.7% Pureza (Galón)', price: 72000, cost: 72000, catCode: 'CAT-ING', groupCode: 'GRP-MPR', type: ProductType.RAW_MATERIAL, qty: 75 },
       { code: `P-${suffix}-069`, name: 'Extracto de Áloe Vera Gel Concentrado 10:1 (Litro)', price: 98000, cost: 98000, catCode: 'CAT-ING', groupCode: 'GRP-MPR', type: ProductType.RAW_MATERIAL, qty: 42 },
       { code: `P-${suffix}-070`, name: 'Keratina Hidrolizada Concentrada Líquida (Litro)', price: 155000, cost: 155000, catCode: 'CAT-ACT', groupCode: 'GRP-MPR', type: ProductType.RAW_MATERIAL, qty: 33 },
-      { code: `P-${suffix}-071`, name: 'Aceite de Coco Nucifera Virgen Extra (Kg)', price: 48000, cost: 48000, catCode: 'CAT-ING', groupCode: 'GRP-MPR', type: ProductType.RAW_MATERIAL, qty: 90 },
-      { code: `P-${suffix}-072`, name: 'Óxidos de Hierro Mineral Pigmento Rojo (Kg)', price: 95000, cost: 95000, catCode: 'CAT-ING', groupCode: 'GRP-MPR', type: ProductType.RAW_MATERIAL, qty: 22 },
-      { code: `P-${suffix}-073`, name: 'Extracto Oleoso de Romero Silvestre (Litro)', price: 82000, cost: 82000, catCode: 'CAT-ING', groupCode: 'GRP-MPR', type: ProductType.RAW_MATERIAL, qty: 38 },
-      { code: `P-${suffix}-074`, name: 'Conservante Natural Eco-Certificado (500ml)', price: 135000, cost: 135000, catCode: 'CAT-ACT', groupCode: 'GRP-MPR', type: ProductType.RAW_MATERIAL, qty: 27 },
-      { code: `P-${suffix}-075`, name: 'Filtro Solar UV Bisoctrizol Polvo (500g)', price: 210000, cost: 210000, catCode: 'CAT-ACT', groupCode: 'GRP-MPR', type: ProductType.RAW_MATERIAL, qty: 15 },
 
       // INSUMO / SUMINISTRO (SUPPLY) - 15
-      { code: `P-${suffix}-076`, name: 'Frasco Gotero Vidrio Ámbar 30ml con Ppipeta (Caja x 100)', price: 120000, cost: 120000, catCode: 'CAT-FRS', groupCode: 'GRP-SUM', type: ProductType.SUPPLY, qty: 150 },
-      { code: `P-${suffix}-077`, name: 'Pote Acrílico Transparente 50g Tapa Dorada (Caja x 100)', price: 165000, cost: 165000, catCode: 'CAT-FRS', groupCode: 'GRP-SUM', type: ProductType.SUPPLY, qty: 110 },
-      { code: `P-${suffix}-078`, name: 'Envase Airless Blanco 50ml para Sérum (Caja x 50)', price: 140000, cost: 140000, catCode: 'CAT-FRS', groupCode: 'GRP-SUM', type: ProductType.SUPPLY, qty: 85 },
-      { code: `P-${suffix}-079`, name: 'Tubo Colapsable para Labial 5ml (Caja x 200)', price: 180000, cost: 180000, catCode: 'CAT-FRS', groupCode: 'GRP-SUM', type: ProductType.SUPPLY, qty: 95 },
-      { code: `P-${suffix}-080`, name: 'Válvula Atomizadora Spray Dorada 24/410 (Caja x 200)', price: 130000, cost: 130000, catCode: 'CAT-FRS', groupCode: 'GRP-SUM', type: ProductType.SUPPLY, qty: 140 },
-      { code: `P-${suffix}-081`, name: 'Etiqueta Térmica Autoadhesiva 50x30mm (Rollo x 1000)', price: 28000, cost: 28000, catCode: 'CAT-CAJ', groupCode: 'GRP-SUM', type: ProductType.SUPPLY, qty: 300 },
-      { code: `P-${suffix}-082`, name: 'Caja de Cartón Rígido Dorado con Imán (Paquete x 50)', price: 210000, cost: 210000, catCode: 'CAT-CAJ', groupCode: 'GRP-SUM', type: ProductType.SUPPLY, qty: 45 },
-      { code: `P-${suffix}-083`, name: 'Cinta Embellecedora Satinada Negra 25mm (Rollo 100m)', price: 35000, cost: 35000, catCode: 'CAT-CAJ', groupCode: 'GRP-SUM', type: ProductType.SUPPLY, qty: 80 },
-      { code: `P-${suffix}-084`, name: 'Bolsa Ecológica de Lienzo con Logo (Paquete x 100)', price: 250000, cost: 250000, catCode: 'CAT-CAJ', groupCode: 'GRP-SUM', type: ProductType.SUPPLY, qty: 60 },
-      { code: `P-${suffix}-085`, name: 'Papel Seda Protector Impreso con Marca (Paquete 500 h.)', price: 68000, cost: 68000, catCode: 'CAT-CAJ', groupCode: 'GRP-SUM', type: ProductType.SUPPLY, qty: 70 },
-      { code: `P-${suffix}-086`, name: 'Frasco Espumador 150ml con Bomba Lather (Caja x 50)', price: 155000, cost: 155000, catCode: 'CAT-FRS', groupCode: 'GRP-SUM', type: ProductType.SUPPLY, qty: 90 },
-      { code: `P-${suffix}-087`, name: 'Tapa Rosca de Aluminio 28mm (Caja x 500)', price: 95000, cost: 95000, catCode: 'CAT-FRS', groupCode: 'GRP-SUM', type: ProductType.SUPPLY, qty: 120 },
-      { code: `P-${suffix}-088`, name: 'Sello de Seguridad Termoencogible para Frasco (Millar)', price: 45000, cost: 45000, catCode: 'CAT-CAJ', groupCode: 'GRP-SUM', type: ProductType.SUPPLY, qty: 200 },
-      { code: `P-${suffix}-089`, name: 'Cinta de Embalaje Transparente 48mmx100m (Paquete x 12)', price: 54000, cost: 54000, catCode: 'CAT-CAJ', groupCode: 'GRP-SUM', type: ProductType.SUPPLY, qty: 110 },
-      { code: `P-${suffix}-090`, name: 'Bolsa Burbuja de Protección para Envíos (Caja x 200)', price: 78000, cost: 78000, catCode: 'CAT-CAJ', groupCode: 'GRP-SUM', type: ProductType.SUPPLY, qty: 130 },
+      { code: `P-${suffix}-071`, name: 'Frasco Gotero Vidrio Ámbar 30ml con Pipeta (Caja x 100)', price: 120000, cost: 120000, catCode: 'CAT-FRS', groupCode: 'GRP-SUM', type: ProductType.SUPPLY, qty: 150 },
+      { code: `P-${suffix}-072`, name: 'Pote Acrílico Transparente 50g Tapa Dorada (Caja x 100)', price: 165000, cost: 165000, catCode: 'CAT-FRS', groupCode: 'GRP-SUM', type: ProductType.SUPPLY, qty: 110 },
+      { code: `P-${suffix}-073`, name: 'Envase Airless Blanco 50ml para Sérum (Caja x 50)', price: 140000, cost: 140000, catCode: 'CAT-FRS', groupCode: 'GRP-SUM', type: ProductType.SUPPLY, qty: 85 },
+      { code: `P-${suffix}-074`, name: 'Tubo Colapsable para Labial 5ml (Caja x 200)', price: 180000, cost: 180000, catCode: 'CAT-FRS', groupCode: 'GRP-SUM', type: ProductType.SUPPLY, qty: 95 },
+      { code: `P-${suffix}-075`, name: 'Válvula Atomizadora Spray Dorada 24/410 (Caja x 200)', price: 130000, cost: 130000, catCode: 'CAT-FRS', groupCode: 'GRP-SUM', type: ProductType.SUPPLY, qty: 140 },
+      { code: `P-${suffix}-076`, name: 'Etiqueta Térmica Autoadhesiva 50x30mm (Rollo x 1000)', price: 28000, cost: 28000, catCode: 'CAT-CAJ', groupCode: 'GRP-SUM', type: ProductType.SUPPLY, qty: 300 },
+      { code: `P-${suffix}-077`, name: 'Caja de Cartón Rígido Dorado con Imán (Paquete x 50)', price: 210000, cost: 210000, catCode: 'CAT-CAJ', groupCode: 'GRP-SUM', type: ProductType.SUPPLY, qty: 45 },
+      { code: `P-${suffix}-078`, name: 'Cinta Embellecedora Satinada Negra 25mm (Rollo 100m)', price: 35000, cost: 35000, catCode: 'CAT-CAJ', groupCode: 'GRP-SUM', type: ProductType.SUPPLY, qty: 80 },
+      { code: `P-${suffix}-079`, name: 'Bolsa Ecológica de Lienzo con Logo (Paquete x 100)', price: 250000, cost: 250000, catCode: 'CAT-CAJ', groupCode: 'GRP-SUM', type: ProductType.SUPPLY, qty: 60 },
+      { code: `P-${suffix}-080`, name: 'Papel Seda Protector Impreso con Marca (Paquete 500 h.)', price: 68000, cost: 68000, catCode: 'CAT-CAJ', groupCode: 'GRP-SUM', type: ProductType.SUPPLY, qty: 70 },
+      { code: `P-${suffix}-081`, name: 'Frasco Espumador 150ml con Bomba Lather (Caja x 50)', price: 155000, cost: 155000, catCode: 'CAT-FRS', groupCode: 'GRP-SUM', type: ProductType.SUPPLY, qty: 90 },
+      { code: `P-${suffix}-082`, name: 'Tapa Rosca de Aluminio 28mm (Caja x 500)', price: 95000, cost: 95000, catCode: 'CAT-FRS', groupCode: 'GRP-SUM', type: ProductType.SUPPLY, qty: 120 },
+      { code: `P-${suffix}-083`, name: 'Sello de Seguridad Termoencogible para Frasco (Millar)', price: 45000, cost: 45000, catCode: 'CAT-CAJ', groupCode: 'GRP-SUM', type: ProductType.SUPPLY, qty: 200 },
+      { code: `P-${suffix}-084`, name: 'Cinta de Embalaje Transparente 48mmx100m (Paquete x 12)', price: 54000, cost: 54000, catCode: 'CAT-CAJ', groupCode: 'GRP-SUM', type: ProductType.SUPPLY, qty: 110 },
+      { code: `P-${suffix}-085`, name: 'Bolsa Burbuja de Protección para Envíos (Caja x 200)', price: 78000, cost: 78000, catCode: 'CAT-CAJ', groupCode: 'GRP-SUM', type: ProductType.SUPPLY, qty: 130 },
 
       // SERVICIO (SERVICE) - 8
-      { code: `P-${suffix}-091`, name: 'Sesión de Maquillaje Profesional para Novias', price: 250000, cost: 80000, catCode: 'CAT-SPA', groupCode: 'GRP-SER', type: ProductType.SERVICE, qty: 999 },
-      { code: `P-${suffix}-092`, name: 'Diagnóstico Capilar 3D con Microcámara', price: 80000, cost: 20000, catCode: 'CAT-CON', groupCode: 'GRP-SER', type: ProductType.SERVICE, qty: 999 },
-      { code: `P-${suffix}-093`, name: 'Taller de Auto-Maquillaje Personalizado (2h)', price: 150000, cost: 40000, catCode: 'CAT-CON', groupCode: 'GRP-SER', type: ProductType.SERVICE, qty: 999 },
-      { code: `P-${suffix}-094`, name: 'Servicio de Limpieza Facial Profunda Hydrafacial', price: 180000, cost: 50000, catCode: 'CAT-SPA', groupCode: 'GRP-SER', type: ProductType.SERVICE, qty: 999 },
-      { code: `P-${suffix}-095`, name: 'Asesoría de Colorimetría y Visagismo Facial', price: 120000, cost: 30000, catCode: 'CAT-CON', groupCode: 'GRP-SER', type: ProductType.SERVICE, qty: 999 },
-      { code: `P-${suffix}-096`, name: 'Tratamiento Restaurador de Keratina en Cabina', price: 220000, cost: 70000, catCode: 'CAT-SPA', groupCode: 'GRP-SER', type: ProductType.SERVICE, qty: 999 },
-      { code: `P-${suffix}-097`, name: 'Mantenimiento Preventivo de Mezcladoras Cosméticas', price: 350000, cost: 120000, catCode: 'CAT-CON', groupCode: 'GRP-SER', type: ProductType.SERVICE, qty: 999 },
-      { code: `P-${suffix}-098`, name: 'Curso Intensivo Formulaciones Cosméticas Naturales', price: 450000, cost: 150000, catCode: 'CAT-CON', groupCode: 'GRP-SER', type: ProductType.SERVICE, qty: 999 },
+      { code: `P-${suffix}-086`, name: 'Sesión de Maquillaje Profesional para Novias', price: 250000, cost: 80000, catCode: 'CAT-SPA', groupCode: 'GRP-SER', type: ProductType.SERVICE, qty: 999 },
+      { code: `P-${suffix}-087`, name: 'Diagnóstico Capilar 3D con Microcámara', price: 80000, cost: 20000, catCode: 'CAT-CON', groupCode: 'GRP-SER', type: ProductType.SERVICE, qty: 999 },
+      { code: `P-${suffix}-088`, name: 'Taller de Auto-Maquillaje Personalizado (2h)', price: 150000, cost: 40000, catCode: 'CAT-CON', groupCode: 'GRP-SER', type: ProductType.SERVICE, qty: 999 },
+      { code: `P-${suffix}-089`, name: 'Servicio de Limpieza Facial Profunda Hydrafacial', price: 180000, cost: 50000, catCode: 'CAT-SPA', groupCode: 'GRP-SER', type: ProductType.SERVICE, qty: 999 },
+      { code: `P-${suffix}-090`, name: 'Asesoría de Colorimetría y Visagismo Facial', price: 120000, cost: 30000, catCode: 'CAT-CON', groupCode: 'GRP-SER', type: ProductType.SERVICE, qty: 999 },
+      { code: `P-${suffix}-091`, name: 'Tratamiento Restaurador de Keratina en Cabina', price: 220000, cost: 70000, catCode: 'CAT-SPA', groupCode: 'GRP-SER', type: ProductType.SERVICE, qty: 999 },
+      { code: `P-${suffix}-092`, name: 'Mantenimiento Preventivo de Mezcladoras Cosméticas', price: 350000, cost: 120000, catCode: 'CAT-CON', groupCode: 'GRP-SER', type: ProductType.SERVICE, qty: 999 },
+      { code: `P-${suffix}-093`, name: 'Curso Intensivo Formulaciones Cosméticas Naturales', price: 450000, cost: 150000, catCode: 'CAT-CON', groupCode: 'GRP-SER', type: ProductType.SERVICE, qty: 999 },
 
       // ACTIVO FIJO (FIXED_ASSET) - 7
-      { code: `P-${suffix}-099`, name: 'Mezcladora Industrial de Cremas 50L Stainless Steel', price: 8500000, cost: 8500000, catCode: 'CAT-MAQ', groupCode: 'GRP-ACT', type: ProductType.FIXED_ASSET, qty: 2 },
-      { code: `P-${suffix}-100`, name: 'Llenadora Neumática de Líquidos y Viscosos 500ml', price: 4200000, cost: 4200000, catCode: 'CAT-MAQ', groupCode: 'GRP-ACT', type: ProductType.FIXED_ASSET, qty: 3 },
-      { code: `P-${suffix}-101`, name: 'Autoclave Digital de Esterilización Cosmética 24L', price: 3100000, cost: 3100000, catCode: 'CAT-MAQ', groupCode: 'GRP-ACT', type: ProductType.FIXED_ASSET, qty: 4 },
-      { code: `P-${suffix}-102`, name: 'Mueble Exhibidor de Cristal Templado con Iluminación LED', price: 1850000, cost: 1850000, catCode: 'CAT-MOB', groupCode: 'GRP-ACT', type: ProductType.FIXED_ASSET, qty: 6 },
-      { code: `P-${suffix}-103`, name: 'Silla Reclinable Hidráulica para Maquillaje y Spa', price: 1450000, cost: 1450000, catCode: 'CAT-MOB', groupCode: 'GRP-ACT', type: ProductType.FIXED_ASSET, qty: 8 },
-      { code: `P-${suffix}-104`, name: 'Sistema de Cómputo All-in-One POS de Registro 21"', price: 2900000, cost: 2900000, catCode: 'CAT-MOB', groupCode: 'GRP-ACT', type: ProductType.FIXED_ASSET, qty: 5 },
-      { code: `P-${suffix}-105`, name: 'Lámpara LED Profesional de Anillo con Soporte 18"', price: 480000, cost: 480000, catCode: 'CAT-MOB', groupCode: 'GRP-ACT', type: ProductType.FIXED_ASSET, qty: 10 },
+      { code: `P-${suffix}-094`, name: 'Mezcladora Industrial de Cremas 50L Stainless Steel', price: 8500000, cost: 8500000, catCode: 'CAT-MAQ', groupCode: 'GRP-ACT', type: ProductType.FIXED_ASSET, qty: 2 },
+      { code: `P-${suffix}-095`, name: 'Llenadora Neumática de Líquidos y Viscosos 500ml', price: 4200000, cost: 4200000, catCode: 'CAT-MAQ', groupCode: 'GRP-ACT', type: ProductType.FIXED_ASSET, qty: 3 },
+      { code: `P-${suffix}-096`, name: 'Autoclave Digital de Esterilización Cosmética 24L', price: 3100000, cost: 3100000, catCode: 'CAT-MAQ', groupCode: 'GRP-ACT', type: ProductType.FIXED_ASSET, qty: 4 },
+      { code: `P-${suffix}-097`, name: 'Mueble Exhibidor de Cristal Templado con Iluminación LED', price: 1850000, cost: 1850000, catCode: 'CAT-MOB', groupCode: 'GRP-ACT', type: ProductType.FIXED_ASSET, qty: 6 },
+      { code: `P-${suffix}-098`, name: 'Silla Reclinable Hidráulica para Maquillaje y Spa', price: 1450000, cost: 1450000, catCode: 'CAT-MOB', groupCode: 'GRP-ACT', type: ProductType.FIXED_ASSET, qty: 8 },
+      { code: `P-${suffix}-099`, name: 'Sistema de Cómputo All-in-One POS de Registro 21"', price: 2900000, cost: 2900000, catCode: 'CAT-MOB', groupCode: 'GRP-ACT', type: ProductType.FIXED_ASSET, qty: 5 },
+      { code: `P-${suffix}-100`, name: 'Lámpara LED Profesional de Anillo con Soporte 18"', price: 480000, cost: 480000, catCode: 'CAT-MOB', groupCode: 'GRP-ACT', type: ProductType.FIXED_ASSET, qty: 10 },
     ];
 
+    const rawStandardProducts = [
+      // VENTA (SALE) - 8
+      { code: `P-${suffix}-001`, name: 'Labial Matte Rouge Satin', price: 45000, cost: 22000, catCode: 'CAT-LAB', groupCode: 'GRP-MAQ', type: ProductType.SALE, qty: 45 },
+      { code: `P-${suffix}-002`, name: 'Gloss Voluminizador Rose Gold', price: 38000, cost: 18000, catCode: 'CAT-LAB', groupCode: 'GRP-MAQ', type: ProductType.SALE, qty: 60 },
+      { code: `P-${suffix}-003`, name: 'Paleta Sombras Amore 18 Tonos', price: 120000, cost: 60000, catCode: 'CAT-LAB', groupCode: 'GRP-MAQ', type: ProductType.SALE, qty: 25 },
+      { code: `P-${suffix}-004`, name: 'Base Hydra Glow Tono 02 Medium', price: 68000, cost: 32000, catCode: 'CAT-LAB', groupCode: 'GRP-MAQ', type: ProductType.SALE, qty: 35 },
+      { code: `P-${suffix}-005`, name: 'Sérum Ácido Hialurónico 2% Rejuvenecedor', price: 85000, cost: 40000, catCode: 'CAT-SER', groupCode: 'GRP-SKN', type: ProductType.SALE, qty: 50 },
+      { code: `P-${suffix}-006`, name: 'Protector Solar Gel SPF 50+ Toque Seco', price: 65000, cost: 29000, catCode: 'CAT-SER', groupCode: 'GRP-SKN', type: ProductType.SALE, qty: 58 },
+      { code: `P-${suffix}-007`, name: 'Champú Reparador Sin Sulfatos Argán 500ml', price: 46000, cost: 21000, catCode: 'CAT-TRT', groupCode: 'GRP-CAP', type: ProductType.SALE, qty: 45 },
+      { code: `P-${suffix}-008`, name: 'Mascarilla Capilar Keratina Intensiva 300g', price: 58000, cost: 27000, catCode: 'CAT-TRT', groupCode: 'GRP-CAP', type: ProductType.SALE, qty: 29 },
+
+      // PRODUCTO TERMINADO (FINISHED_GOOD) - 4
+      { code: `P-${suffix}-009`, name: 'Kit Skincare Rutina Completa Antiedad', price: 210000, cost: 98000, catCode: 'CAT-SER', groupCode: 'GRP-SKN', type: ProductType.FINISHED_GOOD, qty: 30 },
+      { code: `P-${suffix}-010`, name: 'Cofre de Regalo Labiales Matte Edición Especial', price: 135000, cost: 62000, catCode: 'CAT-LAB', groupCode: 'GRP-MAQ', type: ProductType.FINISHED_GOOD, qty: 25 },
+      { code: `P-${suffix}-011`, name: 'Lote Mascarilla Keratina Granel (Balde 10kg)', price: 420000, cost: 190000, catCode: 'CAT-TRT', groupCode: 'GRP-CAP', type: ProductType.FINISHED_GOOD, qty: 12 },
+      { code: `P-${suffix}-012`, name: 'Set Limpieza Facial Profunda Micelar + Gel', price: 62000, cost: 27000, catCode: 'CAT-SER', groupCode: 'GRP-SKN', type: ProductType.FINISHED_GOOD, qty: 44 },
+
+      // MATERIA PRIMA (RAW_MATERIAL) - 3
+      { code: `P-${suffix}-013`, name: 'Aceite Puro de Argán Marroquí Prensado (Litro)', price: 180000, cost: 180000, catCode: 'CAT-ING', groupCode: 'GRP-MPR', type: ProductType.RAW_MATERIAL, qty: 50 },
+      { code: `P-${suffix}-014`, name: 'Manteca de Karité Orgánica Sin Refinar (Kg)', price: 65000, cost: 65000, catCode: 'CAT-ING', groupCode: 'GRP-MPR', type: ProductType.RAW_MATERIAL, qty: 80 },
+      { code: `P-${suffix}-015`, name: 'Ácido Hialurónico Puro en Polvo USP (100g)', price: 240000, cost: 240000, catCode: 'CAT-ING', groupCode: 'GRP-MPR', type: ProductType.RAW_MATERIAL, qty: 25 },
+
+      // INSUMO / SUMINISTRO (SUPPLY) - 2
+      { code: `P-${suffix}-016`, name: 'Frasco Gotero Vidrio Ámbar 30ml con Pipeta (Caja x 100)', price: 120000, cost: 120000, catCode: 'CAT-FRS', groupCode: 'GRP-SUM', type: ProductType.SUPPLY, qty: 150 },
+      { code: `P-${suffix}-017`, name: 'Caja de Cartón Rígido Dorado con Imán (Paquete x 50)', price: 210000, cost: 210000, catCode: 'CAT-FRS', groupCode: 'GRP-SUM', type: ProductType.SUPPLY, qty: 45 },
+
+      // SERVICIO (SERVICE) - 2
+      { code: `P-${suffix}-018`, name: 'Sesión de Maquillaje Profesional para Novias', price: 250000, cost: 80000, catCode: 'CAT-SPA', groupCode: 'GRP-SER', type: ProductType.SERVICE, qty: 999 },
+      { code: `P-${suffix}-019`, name: 'Servicio de Limpieza Facial Profunda Hydrafacial', price: 180000, cost: 50000, catCode: 'CAT-SPA', groupCode: 'GRP-SER', type: ProductType.SERVICE, qty: 999 },
+
+      // ACTIVO FIJO (FIXED_ASSET) - 1
+      { code: `P-${suffix}-020`, name: 'Mezcladora Industrial de Cremas 50L Stainless Steel', price: 8500000, cost: 8500000, catCode: 'CAT-SPA', groupCode: 'GRP-SER', type: ProductType.FIXED_ASSET, qty: 2 },
+    ];
+
+    const productsToCreate = isSuperAdmin ? rawSuperAdminProducts : rawStandardProducts;
     const createdProducts = [];
-    for (let i = 0; i < rawProducts.length; i++) {
-      const raw = rawProducts[i];
+
+    for (let i = 0; i < productsToCreate.length; i++) {
+      const raw = productsToCreate[i];
       const categoryId = getCatIdByCode(raw.catCode);
 
       const p = await prisma.product.create({
@@ -245,11 +382,11 @@ export async function generateDemoData() {
           code: raw.code,
           name: raw.name,
           categoryId: categoryId,
-          supplierId: supplier.id,
+          supplierId: i % 2 === 0 ? supplier1.id : supplier2.id,
           quantityAvailable: raw.qty,
           unitCost: raw.cost,
           salePrice: raw.price,
-          soldQuantity: raw.type === ProductType.SALE ? 10 + (i % 15) : 0,
+          soldQuantity: raw.type === ProductType.SALE ? 8 + (i % 10) : 0,
           type: raw.type,
           productGroupId: getGroupIdByCode(raw.groupCode),
           companyId,
@@ -258,15 +395,18 @@ export async function generateDemoData() {
       createdProducts.push(p);
     }
 
-    // 6. HISTORIAL DE 10 VENTAS HISTÓRICAS
+    // 7. HISTORIAL DE VENTAS TRANSACCIONALES (8 a 10 Ventas)
     const now = new Date();
     const saleProducts = createdProducts.filter(p => p.type === ProductType.SALE || p.type === ProductType.FINISHED_GOOD);
-    
-    for (let i = 1; i <= 10; i++) {
+    const customers = [customer1, customer2];
+
+    const salesCount = isSuperAdmin ? 10 : 8;
+    for (let i = 1; i <= salesCount; i++) {
       const saleDate = new Date();
       saleDate.setDate(now.getDate() - i * 2);
 
       const prod = saleProducts[i % saleProducts.length];
+      const targetCustomer = customers[i % customers.length];
       const qty = 1 + (i % 3);
       const price = Number(prod.salePrice);
       const subtotal = qty * price;
@@ -275,8 +415,8 @@ export async function generateDemoData() {
         data: {
           saleNumber: `VEN-${saleDate.getFullYear()}${String(saleDate.getMonth() + 1).padStart(2, '0')}${String(saleDate.getDate()).padStart(2, '0')}-${String(i).padStart(3, '0')}`,
           userId,
-          client: customer.name,
-          customerId: customer.id,
+          client: targetCustomer.name,
+          customerId: targetCustomer.id,
           discount: 0,
           total: subtotal,
           paymentMethod: i % 2 === 0 ? "EFECTIVO" : "TRANSFERENCIA",
@@ -300,8 +440,161 @@ export async function generateDemoData() {
       });
     }
 
+    // 8. FINANZAS: INGRESOS Y GASTOS DEMO
+    await prisma.income.create({
+      data: {
+        description: `Venta mayorista de productos y asesorías ${suffix}`,
+        amount: 2850000,
+        category: IncomeCategory.SALES,
+        date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+        companyId,
+      }
+    });
+
+    await prisma.income.create({
+      data: {
+        description: `Servicios de maquillaje y spa corporativo ${suffix}`,
+        amount: 950000,
+        category: IncomeCategory.SERVICES,
+        date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+        companyId,
+      }
+    });
+
+    await prisma.expense.create({
+      data: {
+        description: `Pago de servicios públicos y arrendamiento ${suffix}`,
+        amount: 650000,
+        category: ExpenseCategory.UTILITIES,
+        date: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000),
+        companyId,
+      }
+    });
+
+    await prisma.expense.create({
+      data: {
+        description: `Campaña publicitaria en Instagram y Google Ads ${suffix}`,
+        amount: 420000,
+        category: ExpenseCategory.MARKETING,
+        date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+        companyId,
+      }
+    });
+
+    // 9. RECURSOS HUMANOS (RRHH): CARGOS, EMPLEADOS Y NÓMINA DEMO
+    const position1 = await prisma.position.create({
+      data: {
+        name: `Asesor Comercial y Ventas ${suffix}`,
+        baseSalary: 1450000,
+        companyId,
+      }
+    });
+
+    const position2 = await prisma.position.create({
+      data: {
+        name: `Especialista en Belleza y Maquillaje ${suffix}`,
+        baseSalary: 1800000,
+        companyId,
+      }
+    });
+
+    const emp1 = await prisma.employee.create({
+      data: {
+        firstName: "Mariana",
+        lastName: `López Restrepo ${suffix}`,
+        documentId: `DOC-${suffix}-01`,
+        email: `mariana_${suffix}@gns-demo.com`,
+        phone: "3154567890",
+        address: "Calle 100 #15-30",
+        department: "Ventas",
+        positionId: position1.id,
+        hireDate: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
+        status: EmployeeStatus.ACTIVE,
+        bankName: "Bancolombia",
+        bankAccount: "987-654321-01",
+        companyId,
+      }
+    });
+
+    const emp2 = await prisma.employee.create({
+      data: {
+        firstName: "Andrés Felipe",
+        lastName: `Morales ${suffix}`,
+        documentId: `DOC-${suffix}-02`,
+        email: `andres_${suffix}@gns-demo.com`,
+        phone: "3189876543",
+        address: "Carrera 15 #80-45",
+        department: "Servicios & Estética",
+        positionId: position2.id,
+        hireDate: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
+        status: EmployeeStatus.ACTIVE,
+        bankName: "Davivienda",
+        bankAccount: "123-456789-02",
+        companyId,
+      }
+    });
+
+    const payroll = await prisma.payroll.create({
+      data: {
+        code: `NOM-${suffix}`,
+        periodStart: new Date(now.getFullYear(), now.getMonth(), 1),
+        periodEnd: new Date(now.getFullYear(), now.getMonth() + 1, 0),
+        paymentDate: now,
+        status: PayrollStatus.PAID,
+        totalAmount: 3250000,
+        companyId,
+        details: {
+          create: [
+            {
+              employeeId: emp1.id,
+              baseSalary: 1450000,
+              additions: 100000,
+              deductions: 50000,
+              netPay: 1500000,
+              companyId,
+            },
+            {
+              employeeId: emp2.id,
+              baseSalary: 1800000,
+              additions: 50000,
+              deductions: 100000,
+              netPay: 1750000,
+              companyId,
+            }
+          ]
+        }
+      }
+    });
+
+    // 10. USUARIOS DE PRUEBA (Para roles de venta/caja en la empresa)
+    const userRole = await prisma.role.findFirst({ where: { name: 'USER' } });
+    if (userRole) {
+      const demoPasswordHash = await bcrypt.hash('Demo123*', 10);
+      await prisma.user.upsert({
+        where: { email: `vendedor_${suffix}@gns-demo.com` },
+        update: {
+          companyId,
+          roleId: userRole.id,
+        },
+        create: {
+          name: `Asesor Demo ${suffix}`,
+          email: `vendedor_${suffix}@gns-demo.com`,
+          password: demoPasswordHash,
+          roleId: userRole.id,
+          companyId,
+          position: "Vendedor / Cajero",
+          preferences: { plainPassword: 'Demo123*' },
+        }
+      }).catch(() => {});
+    }
+
     revalidatePath("/", "layout");
-    return { success: true };
+    return {
+      success: true,
+      message: isSuperAdmin
+        ? "Se generaron exitosamente 100 productos, proveedores, ventas, finanzas, nómina y CRM para SuperAdmin."
+        : "Se generaron exitosamente 20 productos de demostración con sus grupos, categorías, ventas, finanzas, RRHH, usuario de prueba y CRM."
+    };
   } catch (error: any) {
     console.error(error);
     return { success: false, error: error.message || "Error al generar datos de prueba" };
@@ -312,32 +605,44 @@ export async function clearDemoData(targetCompanyId?: number) {
   try {
     const session = await getAuthSession();
     if (!session?.user?.id) throw new Error("No autenticado");
-    
+
     const isSuperAdmin = session.user.role === 'SUPERADMIN';
     const companyId = targetCompanyId || (await resolveActionCompanyId());
     if (!companyId) throw new Error("Compañía no encontrada");
 
-    // Limpieza completa por empresa conservando usuarios, licencias y la empresa misma
+    // Limpieza completa por empresa conservando usuarios principales y licencias
     await prisma.$transaction(async (tx) => {
       await tx.notification.deleteMany({ where: { companyId } });
       await tx.auditLog.deleteMany({ where: { companyId } });
       await tx.saleDetail.deleteMany({ where: { companyId } });
       await tx.sale.deleteMany({ where: { companyId } });
       await tx.opportunity.deleteMany({ where: { companyId } });
+      await tx.lead.deleteMany({ where: { companyId } }).catch(() => {});
+      await tx.activity.deleteMany({ where: { companyId } }).catch(() => {});
+      await tx.contact.deleteMany({ where: { companyId } }).catch(() => {});
+      await tx.quote.deleteMany({ where: { companyId } }).catch(() => {});
       await tx.customer.deleteMany({ where: { companyId } });
       await tx.product.deleteMany({ where: { companyId } });
       await tx.category.deleteMany({ where: { companyId } });
       await tx.productGroup.deleteMany({ where: { companyId } });
       await tx.supplier.deleteMany({ where: { companyId } });
+      await tx.income.deleteMany({ where: { companyId } }).catch(() => {});
+      await tx.expense.deleteMany({ where: { companyId } }).catch(() => {});
       await tx.invoiceCounter.deleteMany({ where: { companyId } });
-      
-      // Borrar empleados y posiciones de demostración/RRHH de la empresa si existen
+
+      // Borrar nómina, empleados y cargos de demostración
+      await tx.payrollDetail?.deleteMany({ where: { companyId } }).catch(() => {});
+      await tx.payroll?.deleteMany({ where: { companyId } }).catch(() => {});
+      await tx.employeeNovelty?.deleteMany({ where: { companyId } }).catch(() => {});
       await tx.employee?.deleteMany({ where: { companyId } }).catch(() => {});
       await tx.position?.deleteMany({ where: { companyId } }).catch(() => {});
+
+      // Borrar usuarios de prueba creados automáticamente (ej: @gns-demo.com)
+      await tx.user.deleteMany({ where: { companyId, email: { contains: '@gns-demo.com' } } }).catch(() => {});
     });
 
     revalidatePath("/", "layout");
-    return { success: true, message: "Datos transaccionales y de catálogo limpiados correctamente. Las cuentas de usuario y licencias fueron conservadas." };
+    return { success: true, message: "Datos transaccionales, de catálogo, finanzas, RRHH y CRM limpiados correctamente. Las cuentas de usuario principales fueron conservadas." };
   } catch (error: any) {
     console.error('[CLEAR_DEMO_DATA_ERROR]', error);
     return { success: false, error: error.message };
@@ -358,19 +663,29 @@ export async function clearGlobalSystemData() {
     await prisma.saleDetail.deleteMany();
     await prisma.sale.deleteMany();
     await prisma.opportunity.deleteMany();
+    await prisma.lead.deleteMany().catch(() => {});
+    await prisma.activity.deleteMany().catch(() => {});
+    await prisma.contact.deleteMany().catch(() => {});
+    await prisma.quote.deleteMany().catch(() => {});
     await prisma.customer.deleteMany();
     await prisma.product.deleteMany();
     await prisma.category.deleteMany();
     await prisma.productGroup.deleteMany();
     await prisma.supplier.deleteMany();
+    await prisma.income.deleteMany().catch(() => {});
+    await prisma.expense.deleteMany().catch(() => {});
     await prisma.invoiceCounter.deleteMany();
+    await prisma.payrollDetail?.deleteMany().catch(() => {});
+    await prisma.payroll?.deleteMany().catch(() => {});
+    await prisma.employeeNovelty?.deleteMany().catch(() => {});
     await prisma.employee?.deleteMany().catch(() => {});
     await prisma.position?.deleteMany().catch(() => {});
+    await prisma.user.deleteMany({ where: { email: { contains: '@gns-demo.com' } } }).catch(() => {});
 
     await prisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 1;');
 
     revalidatePath("/", "layout");
-    return { success: true, message: "Se han eliminado todos los productos, ventas y registros de todas las empresas. Todas las cuentas de usuario y empresas se conservan activas para seguir iniciando sesión." };
+    return { success: true, message: "Se han eliminado todos los productos, ventas, finanzas, RRHH y registros de todas las empresas. Todas las cuentas de usuario y empresas se conservan activas para seguir iniciando sesión." };
   } catch (error: any) {
     console.error('[CLEAR_GLOBAL_DATA_ERROR]', error);
     return { success: false, error: error.message };
