@@ -470,29 +470,50 @@ export function ProductsClient(props: {
               />
             </div>
 
-            {trackExpirationDates && (
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <button
                 type="button"
                 onClick={() => setShowFilters(!showFilters)}
-                className={`h-11 px-4 border rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer shrink-0 ${
-                  showFilters || filterExpiration !== 'ALL'
+                className={`h-11 px-4 border rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer shrink-0 w-full sm:w-auto ${
+                  showFilters || filterStatus || filterExpiration !== 'ALL'
                     ? 'border-primary/50 bg-primary/10 text-primary'
                     : 'border-border/80 bg-card text-foreground hover:bg-muted/60'
                 }`}
+                title="Mostrar más filtros"
               >
                 <SlidersHorizontal className="h-4 w-4" />
-                Vencimientos
-                {filterExpiration !== 'ALL' && (
+                <span>Más Filtros</span>
+                {(filterStatus || filterExpiration !== 'ALL') && (
                   <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-black">
-                    1
+                    {[filterStatus, filterExpiration !== 'ALL'].filter(Boolean).length}
                   </span>
                 )}
               </button>
-            )}
+
+              {(search || filterCategory || filterSupplier || filterStatus || filterGroup || filterType !== 'ALL' || filterExpiration !== 'ALL') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch('');
+                    setFilterCategory('');
+                    setFilterSupplier('');
+                    setFilterStatus('');
+                    setFilterGroup('');
+                    setFilterType('ALL');
+                    setFilterExpiration('ALL');
+                  }}
+                  className="h-11 px-3 border border-border/60 bg-card hover:bg-muted rounded-xl text-xs font-bold text-foreground flex items-center justify-center gap-1.5 transition cursor-pointer shrink-0"
+                  title="Limpiar todos los filtros"
+                >
+                  <RotateCcw className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="hidden sm:inline">Limpiar</span>
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* ── Fila Horizontal de Filtros Unificados ── */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5 items-center">
+          {/* ── Fila Horizontal de Filtros Principales (Orden -> Proveedor -> Grupo -> Categoría) ── */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 items-center">
             {/* 1. Filtro Orden */}
             <select
               value={sortField}
@@ -505,18 +526,7 @@ export function ProductsClient(props: {
               <option value="quantityAvailable">Por Stock</option>
             </select>
 
-            {/* 2. Filtro Estado */}
-            <select
-              value={filterStatus}
-              onChange={e => setFilterStatus(e.target.value)}
-              className={selectFilterCls}
-            >
-              <option value="">Todos los estados</option>
-              <option value="AVAILABLE">Disponible</option>
-              <option value="OUT_OF_STOCK">Sin Stock</option>
-            </select>
-
-            {/* 3. Filtro Proveedores */}
+            {/* 2. Filtro Proveedores */}
             <select
               value={filterSupplier}
               onChange={e => setFilterSupplier(e.target.value)}
@@ -526,7 +536,7 @@ export function ProductsClient(props: {
               {suppliers.map(s => <option key={s.id} value={s.id}>{s.companyName}</option>)}
             </select>
 
-            {/* 4. Filtro Grupos (Cascada según proveedor) */}
+            {/* 3. Filtro Grupos (Cascada según proveedor) */}
             <select
               value={filterGroup}
               onChange={e => setFilterGroup(e.target.value)}
@@ -536,7 +546,7 @@ export function ProductsClient(props: {
               {availableGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
             </select>
 
-            {/* 5. Filtro Categorías (Cascada según grupo o proveedor) */}
+            {/* 4. Filtro Categorías (Cascada según grupo o proveedor) */}
             <select
               value={filterCategory}
               onChange={e => setFilterCategory(e.target.value)}
@@ -545,51 +555,66 @@ export function ProductsClient(props: {
               <option value="">Todas las categorías</option>
               {availableCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
-
-            {/* 6. Botón Limpiar Filtros */}
-            <button
-              type="button"
-              onClick={() => {
-                setSearch('');
-                setFilterCategory('');
-                setFilterSupplier('');
-                setFilterStatus('');
-                setFilterGroup('');
-                setFilterType('ALL');
-                setFilterExpiration('ALL');
-              }}
-              className="h-10 px-3 border border-border/60 bg-card hover:bg-muted rounded-xl text-xs font-extrabold text-foreground flex items-center justify-center gap-2 transition cursor-pointer w-full"
-              title="Limpiar todos los filtros"
-            >
-              <RotateCcw className="h-3.5 w-3.5 text-muted-foreground" />
-              Limpiar filtros
-            </button>
           </div>
 
-          {/* ── Filtro Avanzado de Vencimientos de Lotes (opcional) ── */}
-          {trackExpirationDates && showFilters && (
-            <div className="pt-3 border-t border-border/50 flex flex-wrap items-center gap-3 animate-in slide-in-from-top-2 duration-200">
-              <span className="text-xs font-bold text-muted-foreground">Vencimiento de Lotes:</span>
-              <div className="flex gap-2">
-                {[
-                  { value: 'ALL', label: 'Todos los lotes' },
-                  { value: 'EXPIRING', label: `Próximos a vencer (${expirationAlertDays} días)` },
-                  { value: 'EXPIRED', label: 'Vencidos' }
-                ].map(opt => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setFilterExpiration(opt.value)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                      filterExpiration === opt.value
-                        ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30'
-                        : 'bg-muted/40 text-muted-foreground hover:text-foreground border border-border/40'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+          {/* ── Panel Desplegable de Más Filtros (Estado & Vencimientos / Próximos a Vencer) ── */}
+          {showFilters && (
+            <div className="pt-3 pb-1 border-t border-border/60 grid grid-cols-1 md:grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-200">
+              {/* Filtro por Estado */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
+                  Estado de Stock:
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { value: '', label: 'Todos los estados' },
+                    { value: 'AVAILABLE', label: 'Disponible' },
+                    { value: 'OUT_OF_STOCK', label: 'Sin Stock' },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setFilterStatus(opt.value)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                        filterStatus === opt.value
+                          ? 'bg-primary text-primary-foreground shadow-sm'
+                          : 'bg-muted/40 text-muted-foreground hover:text-foreground border border-border/40'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
+
+              {/* Filtro por Vencimientos de Lotes / Próximos a vencer */}
+              {trackExpirationDates && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
+                    Vencimiento de Lotes:
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { value: 'ALL', label: 'Todos los lotes' },
+                      { value: 'EXPIRING', label: `Próximos a vencer (${expirationAlertDays} días)` },
+                      { value: 'EXPIRED', label: 'Vencidos' }
+                    ].map(opt => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setFilterExpiration(opt.value)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                          filterExpiration === opt.value
+                            ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                            : 'bg-muted/40 text-muted-foreground hover:text-foreground border border-border/40'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
