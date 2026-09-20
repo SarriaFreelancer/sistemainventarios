@@ -93,7 +93,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <script
           defer
           src="https://analitics.sarriatech.tech/script.js"
-          data-website-id="4d062a37-0a9b-40f9-8573-2c3b83444999"
+          data-website-id="838ad5e0-101a-4a00-acd8-fbc1f47a6757"
         />
       </head>
 
