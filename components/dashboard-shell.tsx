@@ -183,9 +183,9 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
       roleThemeClass
     )}>
 
-      {/* Inyección dinámica de tokens de diseño y colores corporativos */}
-      <style dangerouslySetInnerHTML={{ __html: `
-        ${themeConfig?.primaryColor ? `
+      {/* Inyección de color institucional principal (botones, barras, resaltados y scrollbars) */}
+      {themeConfig?.primaryColor && (
+        <style dangerouslySetInnerHTML={{ __html: `
           :root, .dark, .theme-superadmin {
             --primary: ${themeConfig.primaryColor} !important;
             --ring: ${themeConfig.primaryColor} !important;
@@ -200,44 +200,8 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
           .dark ::-webkit-scrollbar-thumb {
             background: ${themeConfig.primaryColor} !important;
           }
-        ` : ''}
-
-        ${(themeConfig?.darkTextColor || themeConfig?.textColor) ? `
-          .dark {
-            --foreground: ${(themeConfig.darkTextColor || themeConfig.textColor)} !important;
-            --card-foreground: ${(themeConfig.darkTextColor || themeConfig.textColor)} !important;
-            --popover-foreground: ${(themeConfig.darkTextColor || themeConfig.textColor)} !important;
-          }
-          .dark .text-foreground {
-            color: ${(themeConfig.darkTextColor || themeConfig.textColor)} !important;
-          }
-        ` : ''}
-
-        ${themeConfig?.darkBgColor ? `
-          .dark {
-            --background: ${themeConfig.darkBgColor} !important;
-          }
-          .dark .bg-background {
-            background-color: ${themeConfig.darkBgColor} !important;
-          }
-        ` : ''}
-
-        ${themeConfig?.darkCardBg ? `
-          .dark {
-            --card: ${themeConfig.darkCardBg} !important;
-            --popover: ${themeConfig.darkCardBg} !important;
-          }
-          .dark .bg-card {
-            background-color: ${themeConfig.darkCardBg} !important;
-          }
-        ` : ''}
-
-        ${themeConfig?.darkSidebarBg ? `
-          aside {
-            background-color: ${themeConfig.darkSidebarBg} !important;
-          }
-        ` : ''}
-      `}} />
+        `}} />
+      )}
       <div className="flex flex-1 overflow-hidden h-full relative z-10">
 
         {/* ── Sidebar (Desktop) ── */}

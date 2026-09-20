@@ -277,30 +277,15 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
     setSaving(false);
 
     if (result.success) {
-      if (typeof document !== 'undefined') {
-        if (invoicePrimaryColor) {
-          document.documentElement.style.setProperty('--primary', invoicePrimaryColor);
-          document.documentElement.style.setProperty('--ring', invoicePrimaryColor);
-        }
-        if (darkTextColor) {
-          document.documentElement.style.setProperty('--foreground', darkTextColor);
-          document.documentElement.style.setProperty('--card-foreground', darkTextColor);
-        } else {
-          document.documentElement.style.removeProperty('--foreground');
-          document.documentElement.style.removeProperty('--card-foreground');
-        }
-        if (darkBgColor) {
-          document.documentElement.style.setProperty('--background', darkBgColor);
-        } else {
-          document.documentElement.style.removeProperty('--background');
-        }
-        if (darkCardBg) {
-          document.documentElement.style.setProperty('--card', darkCardBg);
-        } else {
-          document.documentElement.style.removeProperty('--card');
-        }
+      if (typeof document !== 'undefined' && invoicePrimaryColor) {
+        document.documentElement.style.setProperty('--primary', invoicePrimaryColor);
+        document.documentElement.style.setProperty('--ring', invoicePrimaryColor);
+        document.documentElement.style.removeProperty('--foreground');
+        document.documentElement.style.removeProperty('--card-foreground');
+        document.documentElement.style.removeProperty('--background');
+        document.documentElement.style.removeProperty('--card');
       }
-      await successAlert("Ajustes guardados", "Los parámetros del sistema, logotipo y personalización de fuentes/colores fueron actualizados con éxito.");
+      await successAlert("Ajustes guardados", "Los parámetros del sistema, logotipo y color institucional fueron actualizados con éxito.");
       router.refresh();
     } else {
       errorAlert("Error", result.error || "No se pudieron guardar los ajustes.");
