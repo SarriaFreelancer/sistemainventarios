@@ -70,14 +70,7 @@ export default async function SettingsPage() {
   }
 
   return (
-    <div className="flex-1 space-y-6">
-      <div className="flex flex-col gap-1.5">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Configuración General</h1>
-        <p className="text-sm text-muted-foreground">
-          Modifica los parámetros comerciales, control de stock y seguridad de tu empresa.
-        </p>
-      </div>
-
+    <div className="flex-1">
       {(() => {
         const fallbackSettings = {
           nit: "", phone: "", website: "", currency: "COP", timezone: "America/Bogota", dateFormat: "DD/MM/YYYY", currencyFormat: "$",

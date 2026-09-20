@@ -323,7 +323,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
 
       {/* ── Menú Lateral de Pestañas (Tabs) Fijo con Scroll Independiente ── */}
-      <div className="lg:col-span-1 lg:sticky lg:top-2 self-start bg-card rounded-2xl border border-border p-3 sm:p-4 shadow-sm space-y-1 max-h-[calc(100vh-2rem)] overflow-y-auto overscroll-contain">
+      <div className="lg:col-span-1 lg:sticky lg:top-0 self-start bg-card rounded-2xl border border-border p-3 sm:p-4 shadow-sm space-y-1 max-h-[calc(100vh-3.5rem)] overflow-y-auto overscroll-contain">
         <button
           onClick={() => setActiveTab("company")}
           className={`flex w-full items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold transition ${
@@ -488,7 +488,14 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
       </div>
 
       {/* ── Contenedor del Formulario ── */}
-      <div className="lg:col-span-3">
+      <div className="lg:col-span-3 space-y-6">
+        <div className="flex flex-col gap-1 pb-1">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Configuración General</h1>
+          <p className="text-sm text-muted-foreground">
+            Modifica los parámetros comerciales, control de stock y seguridad de tu empresa.
+          </p>
+        </div>
+
         {activeTab === "sessions" && (
           <div className="space-y-6">
             <ActiveSessionsManager role={role || "USER"} />
