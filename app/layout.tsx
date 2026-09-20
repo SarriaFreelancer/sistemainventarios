@@ -89,6 +89,12 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
           rel="stylesheet"
         />
+        {/* Analytics Tracker */}
+        <script
+          defer
+          src="https://analitics.sarriatech.tech/script.js"
+          data-website-id="4d062a37-0a9b-40f9-8573-2c3b83444999"
+        />
       </head>
 
       <body className="font-body-md bg-background text-foreground transition-colors duration-300" suppressHydrationWarning>
