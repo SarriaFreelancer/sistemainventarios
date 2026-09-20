@@ -43,7 +43,7 @@ export default function ActiveSessionsManager({ role, currentSessionToken }: Act
       const res = await fetch('/api/sessions');
       if (!res.ok) throw new Error('Error fetching sessions');
       const result = await res.json();
-      
+
       const formatSession = (s: any): Session => ({
         id: s.id,
         userId: s.userId,
@@ -94,14 +94,14 @@ export default function ActiveSessionsManager({ role, currentSessionToken }: Act
 
   const handleDisconnect = async (sessionId?: string, companyId?: string, all: boolean = false) => {
     const Swal = (await import('sweetalert2')).default;
-    
+
     let title = '¿Desconectar usuario?';
     let text = 'Se cerrará la sesión de este usuario.';
-    
+
     if (all) {
       title = '¿Desconectar todos los usuarios?';
-      text = companyId 
-        ? 'Se cerrarán todas las sesiones de esta empresa.' 
+      text = companyId
+        ? 'Se cerrarán todas las sesiones de esta empresa.'
         : 'Se cerrarán todas las sesiones del sistema.';
     }
 
@@ -144,10 +144,10 @@ export default function ActiveSessionsManager({ role, currentSessionToken }: Act
 
   const getPlanColor = (plan: string) => {
     switch (plan?.toLowerCase()) {
-      case 'basico': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
-      case 'intermedio': return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300';
-      case 'premium': return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
+      case 'basico': return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20';
+      case 'intermedio': return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20';
+      case 'premium': return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20';
+      default: return 'bg-muted text-foreground/80 border border-border';
     }
   };
 
@@ -156,14 +156,14 @@ export default function ActiveSessionsManager({ role, currentSessionToken }: Act
     const isWarning = active >= max;
 
     return (
-      <div className="flex flex-col gap-1 min-w-[150px]">
-        <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-          <span>{active} / {max} conexiones</span>
-          {isWarning && <span className="text-red-500 font-medium">Límite alcanzado</span>}
+      <div className="flex flex-col gap-1.5 min-w-[170px]">
+        <div className="flex justify-between text-xs font-bold text-foreground">
+          <span>{active} / {max === Infinity ? '∞' : max} conexiones</span>
+          {isWarning && <span className="text-red-500 font-extrabold">Límite alcanzado</span>}
         </div>
-        <div className="h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-          <div 
-            className={`h-full rounded-full ${isWarning ? 'bg-red-500' : 'bg-primary'}`}
+        <div className="h-2 w-full bg-muted rounded-full overflow-hidden border border-border/40">
+          <div
+            className={`h-full rounded-full transition-all duration-300 ${isWarning ? 'bg-red-500' : 'bg-primary'}`}
             style={{ width: `${percentage}%` }}
           />
         </div>
@@ -174,17 +174,18 @@ export default function ActiveSessionsManager({ role, currentSessionToken }: Act
   const renderSessionTable = (sessions: Session[], companyId?: string) => {
     if (!sessions || sessions.length === 0) {
       return (
-        <div className="flex flex-col items-center justify-center py-8 text-gray-500 dark:text-gray-400">
-          <WifiOff className="h-12 w-12 mb-3 text-gray-300 dark:text-gray-600" />
-          <p>No hay sesiones activas</p>
+        <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+          <WifiOff className="h-10 w-10 mb-3 text-muted-foreground/40" />
+          <p className="text-sm font-semibold text-foreground">No hay sesiones activas</p>
+          <p className="text-xs text-muted-foreground">No se registran usuarios conectados en este momento.</p>
         </div>
       );
     }
 
     return (
       <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-          <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-800 dark:text-gray-300 border-b dark:border-gray-700">
+        <table className="w-full text-sm text-left">
+          <thead className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider bg-muted/20 border-b border-border">
             <tr>
               <th className="px-4 py-3">Usuario</th>
               <th className="px-4 py-3">Email</th>
@@ -194,41 +195,47 @@ export default function ActiveSessionsManager({ role, currentSessionToken }: Act
               <th className="px-4 py-3 text-right">Acciones</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-border/60">
             {sessions.map((session) => {
               const isCurrentUser = session.token === currentSessionToken;
-              
+
               return (
-                <tr key={session.id} className="bg-white border-b dark:bg-gray-900 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                  <td className="px-4 py-3 font-medium text-gray-900 dark:text-white flex items-center gap-3">
+                <tr key={session.id} className="bg-card hover:bg-muted/30 transition-colors">
+                  <td className="px-4 py-3.5 font-bold text-foreground flex items-center gap-3">
                     {session.userImage ? (
-                      <img src={session.userImage} alt={session.userName} className="w-8 h-8 rounded-full" />
+                      <img src={session.userImage} alt={session.userName} className="w-8 h-8 rounded-full border border-border" />
                     ) : (
-                      <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
-                        {session.userName?.charAt(0) || 'U'}
+                      <div className="w-8 h-8 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-black text-xs">
+                        {session.userName?.charAt(0)?.toUpperCase() || 'U'}
                       </div>
                     )}
-                    {session.userName}
-                    {isCurrentUser && (
-                      <span className="ml-2 text-xs bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full text-gray-500">Tú</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">{session.userEmail}</td>
-                  <td className="px-4 py-3 font-mono text-xs">{session.ipAddress}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-col">
-                      <span>{session.browser}</span>
-                      <span className="text-xs text-gray-400">{session.os}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-foreground">{session.userName}</span>
+                      {isCurrentUser && (
+                        <span className="text-[10px] font-black bg-primary/15 text-primary border border-primary/25 px-2 py-0.5 rounded-full">Tú</span>
+                      )}
                     </div>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3.5 text-xs font-semibold text-foreground/80">{session.userEmail}</td>
+                  <td className="px-4 py-3.5">
+                    <span className="font-mono text-xs font-bold text-foreground bg-muted/60 px-2 py-1 rounded-lg border border-border/60">
+                      {session.ipAddress}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-foreground">{session.browser}</span>
+                      <span className="text-[11px] font-medium text-muted-foreground">{session.os}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3.5 text-xs font-semibold text-foreground/80">
                     {formatDistanceToNow(new Date(session.createdAt), { addSuffix: true, locale: es })}
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3.5 text-right">
                     {!isCurrentUser && (
                       <button
                         onClick={() => handleDisconnect(session.id)}
-                        className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-2 rounded-md transition-colors"
+                        className="text-red-500 hover:text-red-600 hover:bg-red-500/10 p-2 rounded-xl transition-colors cursor-pointer border border-transparent hover:border-red-500/20"
                         title="Desconectar usuario"
                       >
                         <LogOut className="w-4 h-4" />
@@ -246,7 +253,7 @@ export default function ActiveSessionsManager({ role, currentSessionToken }: Act
 
   if (loading && !data) {
     return (
-      <div className="flex justify-center items-center p-12">
+      <div className="flex justify-center items-center p-12 bg-card rounded-2xl border border-border">
         <RefreshCw className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
@@ -257,16 +264,16 @@ export default function ActiveSessionsManager({ role, currentSessionToken }: Act
     if (!companyData) return null;
 
     return (
-      <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-gray-200 dark:border-gray-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-border flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
               <Shield className="w-5 h-5 text-primary" />
               Gestión de Sesiones Activas
             </h2>
-            <div className="flex items-center gap-3 mt-1">
-              <span className="text-sm text-gray-500 dark:text-gray-400">{companyData.companyName}</span>
-              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getPlanColor(companyData.plan)}`}>
+            <div className="flex items-center gap-3 mt-1.5">
+              <span className="text-sm font-semibold text-muted-foreground">{companyData.companyName}</span>
+              <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${getPlanColor(companyData.plan)}`}>
                 {companyData.plan}
               </span>
             </div>
@@ -276,7 +283,7 @@ export default function ActiveSessionsManager({ role, currentSessionToken }: Act
             <button
               onClick={() => handleDisconnect(undefined, undefined, true)}
               disabled={companyData.sessions?.length <= 1}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-red-600 rounded-xl hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm shadow-red-500/20 cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
               Desconectar Todos
@@ -294,14 +301,19 @@ export default function ActiveSessionsManager({ role, currentSessionToken }: Act
 
     return (
       <div className="space-y-4">
-        <div className="flex justify-between items-center bg-white dark:bg-gray-900 p-4 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-            <Monitor className="w-5 h-5 text-primary" />
-            Control Global de Sesiones
-          </h2>
+        <div className="flex justify-between items-center bg-card p-5 rounded-2xl border border-border shadow-sm">
+          <div>
+            <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+              <Monitor className="w-5 h-5 text-primary" />
+              Control Global de Sesiones
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Monitoreo y administración de accesos en tiempo real para todas las empresas.
+            </p>
+          </div>
           <button
             onClick={() => handleDisconnect(undefined, undefined, true)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-white bg-red-600 rounded-xl hover:bg-red-700 transition-colors shadow-sm shadow-red-500/20 cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
             Desconectar Todas las Empresas
@@ -309,49 +321,49 @@ export default function ActiveSessionsManager({ role, currentSessionToken }: Act
         </div>
 
         {companiesData.length === 0 ? (
-          <div className="bg-white dark:bg-gray-900 p-8 rounded-lg border border-gray-200 dark:border-gray-800 text-center text-gray-500">
-            No hay empresas con sesiones activas.
+          <div className="bg-card p-10 rounded-2xl border border-border text-center text-muted-foreground">
+            <p className="font-semibold text-foreground">No hay empresas con sesiones activas</p>
           </div>
         ) : (
           companiesData.map((company) => {
             const isExpanded = expandedCompanies[company.companyId];
-            
+
             return (
-              <div key={company.companyId} className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
-                <div 
-                  className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+              <div key={company.companyId} className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+                <div
+                  className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer hover:bg-muted/30 transition-colors"
                   onClick={() => toggleCompany(company.companyId)}
                 >
                   <div className="flex items-center gap-3">
-                    <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                    <button className="text-muted-foreground hover:text-foreground">
                       {isExpanded ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
                     </button>
                     <div>
-                      <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                        <Building2 className="w-4 h-4 text-gray-400" />
+                      <h3 className="font-bold text-foreground flex items-center gap-2">
+                        <Building2 className="w-4 h-4 text-primary" />
                         {company.companyName}
                       </h3>
-                      <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full font-medium ${getPlanColor(company.plan)}`}>
+                      <span className={`inline-block mt-1 text-[11px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${getPlanColor(company.plan)}`}>
                         {company.plan}
                       </span>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-6" onClick={e => e.stopPropagation()}>
                     {renderUsageBar(company.activeConnections, company.maxConnections)}
                     <button
                       onClick={() => handleDisconnect(undefined, company.companyId, true)}
                       disabled={company.sessions?.length === 0}
-                      className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-md hover:bg-red-100 dark:hover:bg-red-900/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-red-600 bg-red-500/10 dark:text-red-400 border border-red-500/20 rounded-xl hover:bg-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
                     >
                       <LogOut className="w-4 h-4" />
                       Desconectar
                     </button>
                   </div>
                 </div>
-                
+
                 {isExpanded && (
-                  <div className="border-t border-gray-200 dark:border-gray-800">
+                  <div className="border-t border-border">
                     {renderSessionTable(company.sessions, company.companyId)}
                   </div>
                 )}
