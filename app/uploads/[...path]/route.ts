@@ -15,10 +15,10 @@ const MIME_TYPES: Record<string, string> = {
 
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ path: string[] }> | { path: string[] } }
+  context: { params: Promise<{ path: string[] }> }
 ) {
   try {
-    const resolvedParams = await Promise.resolve(context.params);
+    const resolvedParams = await context.params;
     const pathSegments = resolvedParams.path;
 
     if (!pathSegments || pathSegments.length === 0) {

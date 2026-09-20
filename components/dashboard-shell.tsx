@@ -34,6 +34,8 @@ import {
   HelpCircle,
   Briefcase,
   Clock,
+  Sparkles,
+  CreditCard,
 } from 'lucide-react';
 
 const LucideIcons = {
@@ -65,6 +67,8 @@ const LucideIcons = {
   HelpCircle,
   Briefcase,
   Clock,
+  Sparkles,
+  CreditCard,
 };
 import { cn } from '@/lib/utils';
 import { NotificationBell } from '@/components/notification-bell';
