@@ -10,7 +10,7 @@ const EditProductDialog = dynamic(() => import('@/components/edit-product-dialog
 const CreateProductDialog = dynamic(() => import('@/components/create-product-dialog').then(mod => mod.CreateProductDialog), { ssr: false });
 import {
   Package, Trash2, TrendingUp, Archive, DollarSign, ShoppingCart,
-  Search, SlidersHorizontal, ChevronUp, ChevronDown, ChevronsUpDown, Folder, RotateCcw, X
+  Search, SlidersHorizontal, ChevronUp, ChevronDown, ChevronsUpDown, Folder, RotateCcw, X, Clock
 } from "lucide-react";
 import { confirmAction, successAlert, errorAlert, brandAlert } from "@/lib/sweetalert";
 import { useRouter } from "next/navigation";
