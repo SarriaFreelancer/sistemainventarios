@@ -162,17 +162,17 @@ export function ProductsClient(props: {
     if (filterGroup) list = list.filter(p => p.productGroupId === filterGroup);
 
     // Expiration filter
-    if (trackExpirationDates && filterExpiration !== 'ALL') {
+    if (filterExpiration !== 'ALL') {
       const now = new Date();
       const alertDate = new Date();
       alertDate.setDate(alertDate.getDate() + expirationAlertDays);
       if (filterExpiration === 'EXPIRING') {
-        list = list.filter(p => p.batches?.some(b => {
+        list = list.filter(p => (p as any).batches?.some((b: any) => {
           const exp = new Date(b.expirationDate);
           return b.status === 'ACTIVE' && exp >= now && exp <= alertDate;
         }));
       } else if (filterExpiration === 'EXPIRED') {
-        list = list.filter(p => p.batches?.some(b => b.status === 'EXPIRED' || new Date(b.expirationDate) < now));
+        list = list.filter(p => (p as any).batches?.some((b: any) => b.status === 'EXPIRED' || new Date(b.expirationDate) < now));
       }
     }
 
@@ -588,33 +588,32 @@ export function ProductsClient(props: {
               </div>
 
               {/* Filtro por Vencimientos de Lotes / Próximos a vencer */}
-              {trackExpirationDates && (
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
-                    Vencimiento de Lotes:
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      { value: 'ALL', label: 'Todos los lotes' },
-                      { value: 'EXPIRING', label: `Próximos a vencer (${expirationAlertDays} días)` },
-                      { value: 'EXPIRED', label: 'Vencidos' }
-                    ].map(opt => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => setFilterExpiration(opt.value)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                          filterExpiration === opt.value
-                            ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30'
-                            : 'bg-muted/40 text-muted-foreground hover:text-foreground border border-border/40'
-                        }`}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5 text-amber-500" />
+                  Vencimiento de Lotes:
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { value: 'ALL', label: 'Todos los lotes' },
+                    { value: 'EXPIRING', label: `Próximos a vencer (${expirationAlertDays} días)` },
+                    { value: 'EXPIRED', label: 'Vencidos' }
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setFilterExpiration(opt.value)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                        filterExpiration === opt.value
+                          ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 shadow-sm'
+                          : 'bg-muted/40 text-muted-foreground hover:text-foreground border border-border/40'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
                 </div>
-              )}
+              </div>
             </div>
           )}
         </div>
