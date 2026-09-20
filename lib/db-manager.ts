@@ -2,8 +2,14 @@ import { PrismaClient as PlatformClient } from '@prisma-platform/client';
 import { PrismaClient as TenantClient } from '@prisma-tenant/client';
 import crypto from 'crypto';
 
-// The global platform client
-export const platformDb = new PlatformClient();
+// The global platform client with fallback to DATABASE_URL
+export const platformDb = new PlatformClient({
+  datasources: {
+    db: {
+      url: process.env.PLATFORM_DATABASE_URL || process.env.DATABASE_URL,
+    },
+  },
+});
 
 // Cache for tenant clients to avoid connection exhaustion
 const tenantClients = new Map<string, TenantClient>();
@@ -11,18 +17,18 @@ const tenantClients = new Map<string, TenantClient>();
 function decryptPassword(encrypted: string): string {
   const secretKey = process.env.ENCRYPTION_KEY;
   if (!secretKey) return encrypted; // Si no hay llave, asumimos texto plano por ahora (transición)
-  
+
   try {
     const parts = encrypted.split(':');
     if (parts.length !== 2) return encrypted; // No está en el formato cifrado
-    
+
     const iv = Buffer.from(parts[0], 'hex');
     const encryptedText = Buffer.from(parts[1], 'hex');
     const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(secretKey, 'hex'), iv);
-    
+
     let decrypted = decipher.update(encryptedText);
     decrypted = Buffer.concat([decrypted, decipher.final()]);
-    
+
     return decrypted.toString();
   } catch (error) {
     console.error('Error decrypting password', error);
@@ -33,13 +39,13 @@ function decryptPassword(encrypted: string): string {
 export function encryptPassword(text: string): string {
   const secretKey = process.env.ENCRYPTION_KEY;
   if (!secretKey) return text;
-  
+
   const iv = crypto.randomBytes(16);
   const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(secretKey, 'hex'), iv);
-  
+
   let encrypted = cipher.update(text);
   encrypted = Buffer.concat([encrypted, cipher.final()]);
-  
+
   return iv.toString('hex') + ':' + encrypted.toString('hex');
 }
 
@@ -55,7 +61,7 @@ export async function getTenantDb(companyId: string): Promise<TenantClient> {
   }
 
   const { server, databaseName } = company;
-  
+
   if (!server) {
     throw new Error(`La empresa ${companyId} no tiene un servidor asignado.`);
   }
@@ -69,7 +75,7 @@ export async function getTenantDb(companyId: string): Promise<TenantClient> {
 
   // 3. Construir URL de conexión
   const password = decryptPassword(server.password);
-  
+
   // mysql://USER:PASSWORD@HOST:PORT/DATABASE
   // TODO: Add support for postgresql / sqlserver depending on server.engine
   const connectionUrl = `mysql://${server.username}:${encodeURIComponent(password)}@${server.host}:${server.port}/${databaseName}`;
@@ -85,7 +91,7 @@ export async function getTenantDb(companyId: string): Promise<TenantClient> {
 
   // 5. Guardar en caché y retornar
   tenantClients.set(cacheKey, client);
-  
+
   return client;
 }
 

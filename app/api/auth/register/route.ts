@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { platformDb } from '@/lib/db-manager';
+import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import crypto from 'crypto';
 
@@ -18,13 +18,14 @@ export async function POST(request: Request) {
     const body = await request.json();
     const parsed = registerSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ message: 'Datos inválidos' }, { status: 400 });
+      return NextResponse.json({ message: 'Datos inválidos', errors: parsed.error.format() }, { status: 400 });
     }
 
     const { name, email, password, companyName, planId, amount } = parsed.data;
+    const normalizedEmail = email.toLowerCase().trim();
 
     // Verificar si el correo ya existe
-    const existingUser = await platformDb.user.findUnique({ where: { email } });
+    const existingUser = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (existingUser) {
       return NextResponse.json({ message: 'El correo ya está registrado' }, { status: 409 });
     }
@@ -33,15 +34,22 @@ export async function POST(request: Request) {
 
     // MODO SAAS (Crear cuenta desde Pricing con nueva Empresa y Pago)
     if (companyName && planId && amount !== undefined) {
-      const existingCompany = await platformDb.company.findUnique({ where: { name: companyName } });
+      const trimmedCompanyName = companyName.trim();
+      const existingCompany = await prisma.company.findUnique({ where: { name: trimmedCompanyName } });
       if (existingCompany) {
         return NextResponse.json({ message: 'El nombre de empresa ya está registrado' }, { status: 409 });
       }
 
       const orderReference = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
-      const result = await platformDb.$transaction(async (tx) => {
-        // Get plan configuration defaults
+      const result = await prisma.$transaction(async (tx) => {
+        // Asegurar que el rol ADMIN exista
+        let adminRole = await tx.role.findFirst({ where: { name: 'ADMIN' } });
+        if (!adminRole) {
+          adminRole = await tx.role.create({ data: { name: 'ADMIN' } });
+        }
+
+        // Obtener configuración de límites de planes
         const rawPlanId = planId ? planId.toLowerCase() : 'basico';
         const settingsKeys = [
           `plan_${rawPlanId}_max_users`,
@@ -65,13 +73,13 @@ export async function POST(request: Request) {
 
         const company = await tx.company.create({
           data: {
-            name: companyName,
+            name: trimmedCompanyName,
             planId: planId,
             status: 'SUSPENDED',
             maxUsers: maxUsers,
             maxProducts: maxProducts,
             maxSalesPerMonth: maxSalesPerMonth
-          } as any
+          }
         });
 
         const modulesKey = `plan_${rawPlanId}_modules`;
@@ -79,9 +87,9 @@ export async function POST(request: Request) {
 
         if (settingsMap[modulesKey]) {
           try {
-            const parsed = JSON.parse(settingsMap[modulesKey]);
-            if (Array.isArray(parsed)) {
-              moduleIdsToAssign = parsed;
+            const parsedMods = JSON.parse(settingsMap[modulesKey]);
+            if (Array.isArray(parsedMods)) {
+              moduleIdsToAssign = parsedMods;
             }
           } catch (e) {
             console.error("Error parsing plan modules:", e);
@@ -98,17 +106,18 @@ export async function POST(request: Request) {
             data: moduleIdsToAssign.map((mId: number) => ({
               companyId: company.id,
               moduleId: mId
-            }))
+            })),
+            skipDuplicates: true
           });
         }
 
         const user = await tx.user.create({
           data: {
             name,
-            email,
+            email: normalizedEmail,
             password: hashedPassword,
-            company: { connect: { id: company.id } },
-            role: { connect: { name: 'ADMIN' as const } }
+            companyId: company.id,
+            roleId: adminRole.id
           }
         });
 
@@ -126,19 +135,11 @@ export async function POST(request: Request) {
         return { company, user, payment };
       });
 
-      // Forzamos la llave nueva por si el servidor no fue reiniciado
-      const integrityKey = "PqnitYB0OzVsxRVJMPs7sg";
+      // Llave de integridad para Bold
+      const integrityKey = process.env.BOLD_INTEGRITY_KEY || "PqnitYB0OzVsxRVJMPs7sg";
       const amountStr = amount.toString();
       const hashString = `${orderReference}${amountStr}COP${integrityKey}`;
       const hash = crypto.createHash('sha256').update(hashString).digest('hex');
-
-      console.log("==== BOLD DEBUG (REGISTER) ====");
-      console.log("orderReference:", orderReference);
-      console.log("amountStr:", amountStr);
-      console.log("integrityKey:", integrityKey);
-      console.log("hashString:", hashString);
-      console.log("Generated hash:", hash);
-      console.log("===============================");
 
       return NextResponse.json({
         ok: true,
@@ -148,14 +149,20 @@ export async function POST(request: Request) {
       });
 
     } else if (companyName) {
-      // MODO REGISTRO CON EMPRESA PERO SIN PAGO AÚN
-      const existingCompany = await platformDb.company.findUnique({ where: { name: companyName } });
+      // MODO REGISTRO CON EMPRESA EN PERÍODO DE PRUEBA (15 días gratis)
+      const trimmedCompanyName = companyName.trim();
+      const existingCompany = await prisma.company.findUnique({ where: { name: trimmedCompanyName } });
       if (existingCompany) {
         return NextResponse.json({ message: 'El nombre de empresa ya está registrado' }, { status: 409 });
       }
 
-      const result = await platformDb.$transaction(async (tx) => {
-        // Get plan configuration defaults (basico by default here)
+      const result = await prisma.$transaction(async (tx) => {
+        // Asegurar que el rol ADMIN exista
+        let adminRole = await tx.role.findFirst({ where: { name: 'ADMIN' } });
+        if (!adminRole) {
+          adminRole = await tx.role.create({ data: { name: 'ADMIN' } });
+        }
+
         const settingsKeys = [
           `plan_basico_max_users`,
           `plan_basico_max_products`,
@@ -180,7 +187,7 @@ export async function POST(request: Request) {
 
         const company = await tx.company.create({
           data: {
-            name: companyName,
+            name: trimmedCompanyName,
             status: 'ACTIVE',
             isTrial: true,
             trialStartedAt: new Date(),
@@ -189,10 +196,10 @@ export async function POST(request: Request) {
             maxUsers: maxUsers,
             maxProducts: maxProducts,
             maxSalesPerMonth: maxSalesPerMonth
-          } as any
+          }
         });
 
-        // En período de prueba habilitamos todos los módulos para que prueben la plataforma completa
+        // En período de prueba habilitamos todos los módulos activos
         let moduleIdsToAssign: number[] = [];
         const allModules = await tx.module.findMany({ where: { isActive: true }, select: { id: true } });
         moduleIdsToAssign = allModules.map(m => m.id);
@@ -202,32 +209,39 @@ export async function POST(request: Request) {
             data: moduleIdsToAssign.map((mId: number) => ({
               companyId: company.id,
               moduleId: mId
-            }))
+            })),
+            skipDuplicates: true
           });
         }
 
         const user = await tx.user.create({
           data: {
             name,
-            email,
+            email: normalizedEmail,
             password: hashedPassword,
-            company: { connect: { id: company.id } },
-            role: { connect: { name: 'ADMIN' as const } }
+            companyId: company.id,
+            roleId: adminRole.id
           }
         });
 
         return { company, user };
       });
+
       return NextResponse.json({ ok: true, user: result.user, company: result.company });
 
     } else {
-      // MODO ESTÁNDAR (Crear Usuario sin empresa asociada)
-      const user = await platformDb.user.create({
+      // MODO ESTÁNDAR (Crear Usuario individual sin empresa)
+      let userRole = await prisma.role.findFirst({ where: { name: 'USER' } });
+      if (!userRole) {
+        userRole = await prisma.role.create({ data: { name: 'USER' } });
+      }
+
+      const user = await prisma.user.create({
         data: {
           name,
-          email,
+          email: normalizedEmail,
           password: hashedPassword,
-          role: { connect: { name: 'USER' as const } }
+          roleId: userRole.id
         }
       });
       return NextResponse.json({ ok: true, user });
@@ -235,6 +249,8 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     console.error('Error en registro:', error);
-    return NextResponse.json({ message: 'Error interno del servidor' }, { status: 500 });
+    return NextResponse.json({
+      message: error?.message || 'Error interno del servidor al procesar el registro'
+    }, { status: 500 });
   }
 }
