@@ -13,18 +13,34 @@ import {
   Clock,
   AlertCircle,
   ChevronDown,
-  Check
+  Check,
+  Building2,
+  Globe,
+  TrendingUp,
+  Layers,
+  ShieldCheck
 } from "lucide-react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { getFilteredDashboardData, DashboardFilterInput } from "@/app/actions/dashboard-actions";
+import {
+  getFilteredDashboardData,
+  getGlobalDashboardData,
+  DashboardFilterInput
+} from "@/app/actions/dashboard-actions";
 import { errorAlert } from "@/lib/sweetalert";
 
 const DashboardCharts = dynamic(
   () => import("@/components/dashboard-charts").then((m) => m.DashboardCharts),
   {
     loading: () => <div className="h-[400px] rounded-2xl bg-muted/30 animate-pulse" />
+  }
+);
+
+const GlobalDashboardView = dynamic(
+  () => import("@/components/dashboard/global-dashboard-view").then((m) => m.GlobalDashboardView),
+  {
+    loading: () => <div className="h-[500px] rounded-3xl bg-muted/30 animate-pulse" />
   }
 );
 
@@ -35,6 +51,8 @@ const WelcomeTour = dynamic(
 
 interface DashboardClientProps {
   initialData: any;
+  initialGlobalData?: any;
+  userRole?: string;
   allowedModules: any[];
   userId: string;
   tourCompleted: boolean;
@@ -42,17 +60,39 @@ interface DashboardClientProps {
 
 export function DashboardClient({
   initialData,
+  initialGlobalData,
+  userRole,
   allowedModules,
   userId,
   tourCompleted
 }: DashboardClientProps) {
+  const [viewMode, setViewMode] = useState<'tenant' | 'global'>('tenant');
   const [data, setData] = useState(initialData);
+  const [globalData, setGlobalData] = useState(initialGlobalData);
   const [isPending, startTransition] = useTransition();
 
   const [preset, setPreset] = useState<DashboardFilterInput['preset']>('all');
   const [dateFrom, setDateFrom] = useState<string>('');
   const [dateTo, setDateTo] = useState<string>('');
   const [showCustomRange, setShowCustomRange] = useState<boolean>(false);
+
+  const handleModeSwitch = (mode: 'tenant' | 'global') => {
+    setViewMode(mode);
+    if (mode === 'global' && !globalData) {
+      startTransition(async () => {
+        const res = await getGlobalDashboardData({
+          preset,
+          dateFrom,
+          dateTo
+        });
+        if (res.success && res.data) {
+          setGlobalData(res.data);
+        } else {
+          errorAlert("Error", res.error || "No se pudieron cargar los datos globales del dashboard");
+        }
+      });
+    }
+  };
 
   const handleApplyFilter = (selectedPreset: DashboardFilterInput['preset'], customFrom?: string, customTo?: string) => {
     setPreset(selectedPreset);
@@ -64,16 +104,30 @@ export function DashboardClient({
     }
 
     startTransition(async () => {
-      const res = await getFilteredDashboardData({
-        preset: selectedPreset,
-        dateFrom: customFrom || dateFrom,
-        dateTo: customTo || dateTo
-      });
+      if (viewMode === 'global') {
+        const res = await getGlobalDashboardData({
+          preset: selectedPreset,
+          dateFrom: customFrom || dateFrom,
+          dateTo: customTo || dateTo
+        });
 
-      if (res.success && res.data) {
-        setData(res.data);
+        if (res.success && res.data) {
+          setGlobalData(res.data);
+        } else {
+          errorAlert("Error", res.error || "No se pudieron obtener las métricas globales filtradas");
+        }
       } else {
-        errorAlert("Error", res.error || "No se pudieron obtener las métricas filtradas");
+        const res = await getFilteredDashboardData({
+          preset: selectedPreset,
+          dateFrom: customFrom || dateFrom,
+          dateTo: customTo || dateTo
+        });
+
+        if (res.success && res.data) {
+          setData(res.data);
+        } else {
+          errorAlert("Error", res.error || "No se pudieron obtener las métricas filtradas");
+        }
       }
     });
   };
@@ -106,24 +160,67 @@ export function DashboardClient({
         <WelcomeTour modules={allowedModules.map((m) => m.name)} userId={userId} />
       )}
 
-      {/* ── Header Premium con Selector de Calendario y Fechas ── */}
+      {/* ── Header Premium con Selector de Modo y Filtros de Fecha ── */}
       <div className="p-6 sm:p-8 rounded-[32px] bg-card border border-border shadow-md shadow-primary/5 relative overflow-hidden transition-colors duration-500 space-y-6">
         <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-[100px]" />
 
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           <div className="space-y-1.5">
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3.5 py-1 text-xs font-bold text-primary uppercase tracking-wider">
-              GNS Gestión de Negocios
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3.5 py-1 text-xs font-bold text-primary uppercase tracking-wider">
+                GNS Gestión de Negocios
+              </div>
+              {userRole === 'SUPERADMIN' && (
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-3 py-1 text-[11px] font-extrabold text-indigo-500">
+                  <ShieldCheck size={12} />
+                  SUPERADMINISTRADOR
+                </div>
+              )}
             </div>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
-              Bienvenido al Sistema de Gestión
+              {viewMode === 'global' ? "Panel de Control Global SaaS" : "Bienvenido al Sistema de Gestión"}
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground">
-              Supervisa las ventas, existencias e inventario filtrando por cualquier fecha o período.
+              {viewMode === 'global'
+                ? "Métricas consolidadas de todas las empresas registradas en la plataforma."
+                : "Supervisa las ventas, existencias e inventario filtrando por cualquier fecha o período."}
             </p>
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            {/* Switcher de Vista Exclusivo Superadmin */}
+            {userRole === 'SUPERADMIN' && (
+              <div className="flex items-center p-1 bg-muted/80 rounded-2xl border border-border shadow-inner shrink-0">
+                <button
+                  onClick={() => handleModeSwitch('tenant')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all duration-200 flex items-center gap-1.5 ${
+                    viewMode === 'tenant'
+                      ? "bg-card text-foreground shadow-sm border border-border/80"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  title="Vista de la Empresa Actual"
+                >
+                  <Building2 size={13} className={viewMode === 'tenant' ? "text-primary" : ""} />
+                  <span>Vista Empresa</span>
+                </button>
+                <button
+                  onClick={() => handleModeSwitch('global')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all duration-200 flex items-center gap-1.5 ${
+                    viewMode === 'global'
+                      ? "bg-primary text-primary-foreground shadow-md"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  title="Vista Global Multi-Empresa SaaS"
+                >
+                  <Globe size={13} className={viewMode === 'global' ? "text-primary-foreground animate-pulse" : "text-primary"} />
+                  <span>Vista Global</span>
+                  <span className={`text-[9px] font-black px-1.5 py-0.2 rounded-full ${viewMode === 'global' ? "bg-white/20 text-white" : "bg-primary/10 text-primary"}`}>
+                    SaaS
+                  </span>
+                </button>
+              </div>
+            )}
+
             <div className="flex items-center gap-3 bg-muted/60 border border-border px-4 py-3 rounded-2xl shrink-0">
               <CalendarIcon className="h-5 w-5 text-primary shrink-0" />
               <div className="text-left">
@@ -137,7 +234,7 @@ export function DashboardClient({
             <button
               onClick={() => handleApplyFilter('all')}
               disabled={isPending}
-              className="px-4 py-3 rounded-2xl bg-muted/60 hover:bg-muted border border-border text-foreground text-xs font-bold transition flex items-center justify-center gap-2 active:scale-95"
+              className="px-4 py-3 rounded-2xl bg-muted/60 hover:bg-muted border border-border text-foreground text-xs font-bold transition flex items-center justify-center gap-2 active:scale-95 shrink-0"
               title="Restablecer a Todo el Histórico"
             >
               <RefreshCw className={`h-4 w-4 text-primary ${isPending ? 'animate-spin' : ''}`} />
@@ -145,6 +242,7 @@ export function DashboardClient({
             </button>
           </div>
         </div>
+
 
         {/* ── BARRA DE BOTONES RÁPIDOS Y CALENDARIO DE FILTRADO ── */}
         <div className="relative z-10 pt-4 border-t border-border/60 flex flex-col gap-4">
@@ -232,266 +330,273 @@ export function DashboardClient({
         </div>
       </div>
 
-      {/* ── KPI Cards Dinámicas ── */}
-      <div id="tour-dashboard-kpi" className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 transition-opacity duration-300 ${isPending ? 'opacity-50' : 'opacity-100'}`}>
+      {/* ── CONTENIDO PRINCIPAL: MODO GLOBAL vs MODO EMPRESA ── */}
+      {viewMode === 'global' && globalData ? (
+        <GlobalDashboardView data={globalData} isPending={isPending} />
+      ) : (
+        <>
+          {/* ── KPI Cards Dinámicas (Vista Empresa) ── */}
+          <div id="tour-dashboard-kpi" className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 transition-opacity duration-300 ${isPending ? 'opacity-50' : 'opacity-100'}`}>
 
-        {/* KPI 1: Productos */}
-        <div className="p-6 rounded-[24px] bg-card border border-border shadow-sm flex flex-col justify-between h-36 hover:shadow-md hover:border-primary/20 transition-all duration-300 group">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">Productos Catálogo</p>
-            <div className="p-2 bg-primary/10 text-primary rounded-xl group-hover:scale-110 transition-transform">
-              <Package className="h-4 w-4" />
-            </div>
-          </div>
-          <div>
-            <p className="text-3xl font-black text-foreground">{data.productCount}</p>
-            <p className="text-[10px] text-muted-foreground mt-1">
-              Organizados en <span className="font-bold text-foreground">{data.categoryCount} categorías</span>
-            </p>
-          </div>
-        </div>
-
-        {/* KPI 2: Proveedores */}
-        <div className="p-6 rounded-[24px] bg-card border border-border shadow-sm flex flex-col justify-between h-36 hover:shadow-md hover:border-primary/20 transition-all duration-300 group">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">Proveedores</p>
-            <div className="p-2 bg-primary/10 text-primary rounded-xl group-hover:scale-110 transition-transform">
-              <Factory className="h-4 w-4" />
-            </div>
-          </div>
-          <div>
-            <p className="text-3xl font-black text-foreground">{data.supplierCount}</p>
-            <p className="text-[10px] text-muted-foreground mt-1">Contactos comerciales registrados</p>
-          </div>
-        </div>
-
-        {/* KPI 3: Total Ventas Filtradas */}
-        <div className="p-6 rounded-[24px] bg-card border border-border shadow-sm flex flex-col justify-between h-36 hover:shadow-md hover:border-primary/20 transition-all duration-300 group">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">Ventas en el Período</p>
-            <div className="p-2 bg-primary/10 text-primary rounded-xl group-hover:scale-110 transition-transform">
-              <ShoppingCart className="h-4 w-4" />
-            </div>
-          </div>
-          <div>
-            <p className="text-2xl font-black text-foreground truncate">
-              {Number(data.totalHistoricalSales ?? 0).toLocaleString("es-CO", {
-                style: "currency",
-                currency: "COP",
-                maximumFractionDigits: 0
-              })}
-            </p>
-            <p className="text-[10px] text-muted-foreground mt-1 truncate">
-              En <span className="font-bold text-foreground">{data.saleCount} facturaciones</span> ({preset === 'all' ? 'Histórico' : 'Filtrado'})
-            </p>
-          </div>
-        </div>
-
-        {/* KPI 4: Alert Stock */}
-        <div className="p-6 rounded-[24px] bg-card border border-border shadow-sm flex flex-col justify-between h-36 hover:shadow-md hover:border-red-500/20 transition-all duration-300 group">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">Productos sin Existencias</p>
-            <div className="p-2 bg-red-500/10 text-red-500 rounded-xl group-hover:scale-110 transition-transform">
-              <AlertTriangle className="h-4 w-4" />
-            </div>
-          </div>
-          <div>
-            <p className={`text-3xl font-black ${(data.outOfStockProducts?.length ?? 0) > 0 ? "text-red-500" : "text-foreground"}`}>
-              {data.outOfStockProducts?.length ?? 0}
-            </p>
-            <p className="text-[10px] text-muted-foreground mt-1">Requieren reabastecimiento urgente</p>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Gráficos de Recharts Dinámicos Filtrados por Fecha ── */}
-      <div id="tour-dashboard-stats" className={`space-y-6 transition-opacity duration-300 ${isPending ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
-        <DashboardCharts
-          salesByMonth={data.salesTrendData || []}
-          financialTrendData={data.financialTrendData || []}
-          topProducts={data.topProducts || []}
-          groupDistribution={data.groupDistribution || []}
-          marginPct={data.profitMargin || 0}
-          totalExpenses={data.totalExpenses || 0}
-          totalIncomes={data.totalIncomes || 0}
-          newCustomersCount={data.newCustomersCount || 0}
-          totalCustomersCount={data.totalCustomersCount || 0}
-        />
-      </div>
-
-      {/* ── Sección de Stock e Historial de Ventas Recientes en el Período ── */}
-      <div className={`grid gap-6 lg:grid-cols-2 transition-opacity duration-300 ${isPending ? 'opacity-50' : 'opacity-100'}`}>
-
-        {/* Panel Izquierdo: Alertas de Stock */}
-        <Card className="p-6">
-          <CardHeader className="p-0 pb-4 flex flex-row items-center justify-between border-b border-border/60">
-            <CardTitle className="text-base font-bold flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-primary" />
-              Alertas de Stock
-            </CardTitle>
-            <span className="text-[10px] font-bold text-muted-foreground uppercase">Estado Crítico</span>
-          </CardHeader>
-          <CardContent className="p-0 pt-4 space-y-4">
-            {/* Agotados */}
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-red-500 mb-2 flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-red-500 inline-block animate-ping" />
-                Agotados ({(data.outOfStockProducts?.length ?? 0)})
-              </p>
-              {(data.outOfStockProducts?.length ?? 0) === 0 ? (
-                <p className="text-xs text-muted-foreground italic px-2">¡Todo el catálogo tiene disponibilidad!</p>
-              ) : (
-                <div className="grid gap-2">
-                  {data.outOfStockProducts.map((p: any) => (
-                    <div key={p.id} className="flex justify-between items-center bg-red-500/5 border border-red-500/10 p-3 rounded-xl">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-red-500/10 text-red-500">{p.code}</span>
-                        <span className="text-xs font-bold text-foreground">{p.name}</span>
-                      </div>
-                      <span className="text-xs font-bold text-red-500">0 unidades</span>
-                    </div>
-                  ))}
+            {/* KPI 1: Productos */}
+            <div className="p-6 rounded-[24px] bg-card border border-border shadow-sm flex flex-col justify-between h-36 hover:shadow-md hover:border-primary/20 transition-all duration-300 group">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">Productos Catálogo</p>
+                <div className="p-2 bg-primary/10 text-primary rounded-xl group-hover:scale-110 transition-transform">
+                  <Package className="h-4 w-4" />
                 </div>
-              )}
+              </div>
+              <div>
+                <p className="text-3xl font-black text-foreground">{data.productCount}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Organizados en <span className="font-bold text-foreground">{data.categoryCount} categorías</span>
+                </p>
+              </div>
             </div>
 
-            {/* Poco Stock */}
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-amber-500 mb-2 flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-amber-500 inline-block" />
-                Existencias Bajas (1 a 10 u.)
-              </p>
-              {(data.lowStockProducts?.length ?? 0) === 0 ? (
-                <p className="text-xs text-muted-foreground italic px-2">No hay productos con existencias críticamente bajas.</p>
-              ) : (
-                <div className="grid gap-2">
-                  {data.lowStockProducts.map((p: any) => (
-                    <div key={p.id} className="flex justify-between items-center bg-amber-500/5 border border-amber-500/10 p-3 rounded-xl">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-600">{p.code}</span>
-                        <span className="text-xs font-bold text-foreground">{p.name}</span>
-                      </div>
-                      <span className="text-xs font-bold text-amber-600">{p.quantityAvailable} unidades</span>
-                    </div>
-                  ))}
+            {/* KPI 2: Proveedores */}
+            <div className="p-6 rounded-[24px] bg-card border border-border shadow-sm flex flex-col justify-between h-36 hover:shadow-md hover:border-primary/20 transition-all duration-300 group">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">Proveedores</p>
+                <div className="p-2 bg-primary/10 text-primary rounded-xl group-hover:scale-110 transition-transform">
+                  <Factory className="h-4 w-4" />
                 </div>
-              )}
+              </div>
+              <div>
+                <p className="text-3xl font-black text-foreground">{data.supplierCount}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">Contactos comerciales registrados</p>
+              </div>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Panel Derecho: Ventas Recientes en el Período */}
-        <Card className="p-6">
-          <CardHeader className="p-0 pb-4 flex flex-row items-center justify-between border-b border-border/60">
-            <CardTitle className="text-base font-bold flex items-center gap-2">
-              <ShoppingCart className="h-4 w-4 text-primary" />
-              Ventas Registradas en el Período
-            </CardTitle>
-            <Link href="/dashboard/sales" className="text-xs font-semibold text-primary hover:underline">
-              Ver Todas
-            </Link>
-          </CardHeader>
-          <CardContent className="p-0 pt-4">
-            {(data.recentSales?.length ?? 0) === 0 ? (
-              <p className="text-sm text-muted-foreground italic text-center py-8">
-                No se registraron ventas en la fecha/período seleccionado.
-              </p>
-            ) : (
-              <div className="divide-y divide-border/60">
-                {data.recentSales.map((sale: any) => (
-                  <div key={sale.id} className="flex items-center justify-between py-3.5 first:pt-0 last:pb-0">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-foreground">{sale.saleNumber}</span>
-                        <span className="text-[10px] font-medium text-muted-foreground">
-                          {new Date(sale.createdAt).toLocaleDateString("es-CO", {
-                            month: "short",
-                            day: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit"
-                          })}
-                        </span>
+            {/* KPI 3: Total Ventas Filtradas */}
+            <div className="p-6 rounded-[24px] bg-card border border-border shadow-sm flex flex-col justify-between h-36 hover:shadow-md hover:border-primary/20 transition-all duration-300 group">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">Ventas en el Período</p>
+                <div className="p-2 bg-primary/10 text-primary rounded-xl group-hover:scale-110 transition-transform">
+                  <ShoppingCart className="h-4 w-4" />
+                </div>
+              </div>
+              <div>
+                <p className="text-2xl font-black text-foreground truncate">
+                  {Number(data.totalHistoricalSales ?? 0).toLocaleString("es-CO", {
+                    style: "currency",
+                    currency: "COP",
+                    maximumFractionDigits: 0
+                  })}
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-1 truncate">
+                  En <span className="font-bold text-foreground">{data.saleCount} facturaciones</span> ({preset === 'all' ? 'Histórico' : 'Filtrado'})
+                </p>
+              </div>
+            </div>
+
+            {/* KPI 4: Alert Stock */}
+            <div className="p-6 rounded-[24px] bg-card border border-border shadow-sm flex flex-col justify-between h-36 hover:shadow-md hover:border-red-500/20 transition-all duration-300 group">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">Productos sin Existencias</p>
+                <div className="p-2 bg-red-500/10 text-red-500 rounded-xl group-hover:scale-110 transition-transform">
+                  <AlertTriangle className="h-4 w-4" />
+                </div>
+              </div>
+              <div>
+                <p className={`text-3xl font-black ${(data.outOfStockProducts?.length ?? 0) > 0 ? "text-red-500" : "text-foreground"}`}>
+                  {data.outOfStockProducts?.length ?? 0}
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-1">Requieren reabastecimiento urgente</p>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Gráficos de Recharts Dinámicos Filtrados por Fecha (Vista Empresa) ── */}
+          <div id="tour-dashboard-stats" className={`space-y-6 transition-opacity duration-300 ${isPending ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+            <DashboardCharts
+              salesByMonth={data.salesTrendData || []}
+              financialTrendData={data.financialTrendData || []}
+              topProducts={data.topProducts || []}
+              groupDistribution={data.groupDistribution || []}
+              marginPct={data.profitMargin || 0}
+              totalExpenses={data.totalExpenses || 0}
+              totalIncomes={data.totalIncomes || 0}
+              newCustomersCount={data.newCustomersCount || 0}
+              totalCustomersCount={data.totalCustomersCount || 0}
+            />
+          </div>
+
+          {/* ── Sección de Stock e Historial de Ventas Recientes en el Período ── */}
+          <div className={`grid gap-6 lg:grid-cols-2 transition-opacity duration-300 ${isPending ? 'opacity-50' : 'opacity-100'}`}>
+
+            {/* Panel Izquierdo: Alertas de Stock */}
+            <Card className="p-6">
+              <CardHeader className="p-0 pb-4 flex flex-row items-center justify-between border-b border-border/60">
+                <CardTitle className="text-base font-bold flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-primary" />
+                  Alertas de Stock
+                </CardTitle>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase">Estado Crítico</span>
+              </CardHeader>
+              <CardContent className="p-0 pt-4 space-y-4">
+                {/* Agotados */}
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-red-500 mb-2 flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-red-500 inline-block animate-ping" />
+                    Agotados ({(data.outOfStockProducts?.length ?? 0)})
+                  </p>
+                  {(data.outOfStockProducts?.length ?? 0) === 0 ? (
+                    <p className="text-xs text-muted-foreground italic px-2">¡Todo el catálogo tiene disponibilidad!</p>
+                  ) : (
+                    <div className="grid gap-2">
+                      {data.outOfStockProducts.map((p: any) => (
+                        <div key={p.id} className="flex justify-between items-center bg-red-500/5 border border-red-500/10 p-3 rounded-xl">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-red-500/10 text-red-500">{p.code}</span>
+                            <span className="text-xs font-bold text-foreground">{p.name}</span>
+                          </div>
+                          <span className="text-xs font-bold text-red-500">0 unidades</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Poco Stock */}
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-amber-500 mb-2 flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-amber-500 inline-block" />
+                    Existencias Bajas (1 a 10 u.)
+                  </p>
+                  {(data.lowStockProducts?.length ?? 0) === 0 ? (
+                    <p className="text-xs text-muted-foreground italic px-2">No hay productos con existencias críticamente bajas.</p>
+                  ) : (
+                    <div className="grid gap-2">
+                      {data.lowStockProducts.map((p: any) => (
+                        <div key={p.id} className="flex justify-between items-center bg-amber-500/5 border border-amber-500/10 p-3 rounded-xl">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-600">{p.code}</span>
+                            <span className="text-xs font-bold text-foreground">{p.name}</span>
+                          </div>
+                          <span className="text-xs font-bold text-amber-600">{p.quantityAvailable} unidades</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Panel Derecho: Ventas Recientes en el Período */}
+            <Card className="p-6">
+              <CardHeader className="p-0 pb-4 flex flex-row items-center justify-between border-b border-border/60">
+                <CardTitle className="text-base font-bold flex items-center gap-2">
+                  <ShoppingCart className="h-4 w-4 text-primary" />
+                  Ventas Registradas en el Período
+                </CardTitle>
+                <Link href="/dashboard/sales" className="text-xs font-semibold text-primary hover:underline">
+                  Ver Todas
+                </Link>
+              </CardHeader>
+              <CardContent className="p-0 pt-4">
+                {(data.recentSales?.length ?? 0) === 0 ? (
+                  <p className="text-sm text-muted-foreground italic text-center py-8">
+                    No se registraron ventas en la fecha/período seleccionado.
+                  </p>
+                ) : (
+                  <div className="divide-y divide-border/60">
+                    {data.recentSales.map((sale: any) => (
+                      <div key={sale.id} className="flex items-center justify-between py-3.5 first:pt-0 last:pb-0">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-foreground">{sale.saleNumber}</span>
+                            <span className="text-[10px] font-medium text-muted-foreground">
+                              {new Date(sale.createdAt).toLocaleDateString("es-CO", {
+                                month: "short",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit"
+                              })}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Cliente: <span className="font-semibold text-foreground">{sale.client ?? "Venta Directa"}</span>
+                            {sale.user?.name ? <span className="ml-2 text-[10px] text-primary">({sale.user.name})</span> : null}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-extrabold text-primary">
+                            {sale.total.toLocaleString("es-CO", {
+                              style: "currency",
+                              currency: "COP",
+                              maximumFractionDigits: 0
+                            })}
+                          </p>
+                          <span className="inline-block text-[9px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded uppercase">
+                            {sale.paymentMethod}
+                          </span>
+                        </div>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        Cliente: <span className="font-semibold text-foreground">{sale.client ?? "Venta Directa"}</span>
-                        {sale.user?.name ? <span className="ml-2 text-[10px] text-primary">({sale.user.name})</span> : null}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-extrabold text-primary">
-                        {sale.total.toLocaleString("es-CO", {
-                          style: "currency",
-                          currency: "COP",
-                          maximumFractionDigits: 0
-                        })}
-                      </p>
-                      <span className="inline-block text-[9px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded uppercase">
-                        {sale.paymentMethod}
-                      </span>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
-      {/* ── ACCESOS DIRECTOS INTELIGENTES (AL FINAL) ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500 mt-6 pt-6 border-t border-border/50">
-        {allowedModules.some(m => m.name.toLowerCase() === 'ventas' || m.name.toLowerCase() === 'dashboard') && (
-          <Link
-            href="/dashboard/sales"
-            className="group relative overflow-hidden p-4 rounded-xl bg-card border border-border shadow-sm hover:shadow-md hover:bg-muted/50 transition-all duration-300"
-          >
-            <div className="relative z-10 flex flex-col gap-2">
-              <div className="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
-                <ShoppingCart size={20} />
-              </div>
-              <span className="font-extrabold text-sm text-foreground tracking-wide">Nueva Venta</span>
-            </div>
-          </Link>
-        )}
-        {allowedModules.some(m => m.name.toLowerCase() === 'productos' || m.name.toLowerCase() === 'dashboard') && (
-          <Link
-            href="/dashboard/products"
-            className="group relative overflow-hidden p-4 rounded-xl bg-card border border-border shadow-sm hover:shadow-md hover:bg-muted/50 transition-all duration-300"
-          >
-            <div className="relative z-10 flex flex-col gap-2">
-              <div className="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
-                <Package size={20} />
-              </div>
-              <span className="font-extrabold text-sm text-foreground tracking-wide">Inventario</span>
-            </div>
-          </Link>
-        )}
-        {allowedModules.some(m => m.name.toLowerCase() === 'crm' || m.name.toLowerCase() === 'dashboard') && (
-          <Link
-            href="/dashboard/crm"
-            className="group relative overflow-hidden p-4 rounded-xl bg-card border border-border shadow-sm hover:shadow-md hover:bg-muted/50 transition-all duration-300"
-          >
-            <div className="relative z-10 flex flex-col gap-2">
-              <div className="w-10 h-10 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
-                <Factory size={20} />
-              </div>
-              <span className="font-extrabold text-sm text-foreground tracking-wide">Clientes CRM</span>
-            </div>
-          </Link>
-        )}
-        {allowedModules.some(m => m.name.toLowerCase() === 'finanzas' || m.name.toLowerCase() === 'dashboard') && (
-          <Link
-            href="/dashboard/finanzas"
-            className="group relative overflow-hidden p-4 rounded-xl bg-card border border-border shadow-sm hover:shadow-md hover:bg-muted/50 transition-all duration-300"
-          >
-            <div className="relative z-10 flex flex-col gap-2">
-              <div className="w-10 h-10 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
-                <AlertCircle size={20} />
-              </div>
-              <span className="font-extrabold text-sm text-foreground tracking-wide">Finanzas</span>
-            </div>
-          </Link>
-        )}
-      </div>
+          {/* ── ACCESOS DIRECTOS INTELIGENTES (AL FINAL) ── */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500 mt-6 pt-6 border-t border-border/50">
+            {allowedModules.some(m => m.name.toLowerCase() === 'ventas' || m.name.toLowerCase() === 'dashboard') && (
+              <Link
+                href="/dashboard/sales"
+                className="group relative overflow-hidden p-4 rounded-xl bg-card border border-border shadow-sm hover:shadow-md hover:bg-muted/50 transition-all duration-300"
+              >
+                <div className="relative z-10 flex flex-col gap-2">
+                  <div className="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
+                    <ShoppingCart size={20} />
+                  </div>
+                  <span className="font-extrabold text-sm text-foreground tracking-wide">Nueva Venta</span>
+                </div>
+              </Link>
+            )}
+            {allowedModules.some(m => m.name.toLowerCase() === 'productos' || m.name.toLowerCase() === 'dashboard') && (
+              <Link
+                href="/dashboard/products"
+                className="group relative overflow-hidden p-4 rounded-xl bg-card border border-border shadow-sm hover:shadow-md hover:bg-muted/50 transition-all duration-300"
+              >
+                <div className="relative z-10 flex flex-col gap-2">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
+                    <Package size={20} />
+                  </div>
+                  <span className="font-extrabold text-sm text-foreground tracking-wide">Inventario</span>
+                </div>
+              </Link>
+            )}
+            {allowedModules.some(m => m.name.toLowerCase() === 'crm' || m.name.toLowerCase() === 'dashboard') && (
+              <Link
+                href="/dashboard/crm"
+                className="group relative overflow-hidden p-4 rounded-xl bg-card border border-border shadow-sm hover:shadow-md hover:bg-muted/50 transition-all duration-300"
+              >
+                <div className="relative z-10 flex flex-col gap-2">
+                  <div className="w-10 h-10 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
+                    <Factory size={20} />
+                  </div>
+                  <span className="font-extrabold text-sm text-foreground tracking-wide">Clientes CRM</span>
+                </div>
+              </Link>
+            )}
+            {allowedModules.some(m => m.name.toLowerCase() === 'finanzas' || m.name.toLowerCase() === 'dashboard') && (
+              <Link
+                href="/dashboard/finanzas"
+                className="group relative overflow-hidden p-4 rounded-xl bg-card border border-border shadow-sm hover:shadow-md hover:bg-muted/50 transition-all duration-300"
+              >
+                <div className="relative z-10 flex flex-col gap-2">
+                  <div className="w-10 h-10 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
+                    <AlertCircle size={20} />
+                  </div>
+                  <span className="font-extrabold text-sm text-foreground tracking-wide">Finanzas</span>
+                </div>
+              </Link>
+            )}
+          </div>
+        </>
+      )}
 
     </div>
   );

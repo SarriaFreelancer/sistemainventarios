@@ -1,4 +1,4 @@
-import { getFilteredDashboardData } from '@/app/actions/dashboard-actions';
+import { getFilteredDashboardData, getGlobalDashboardData } from '@/app/actions/dashboard-actions';
 import { DashboardClient } from './dashboard-client';
 import { prisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
@@ -36,7 +36,7 @@ export default async function DashboardHomePage() {
   }
 
   const hasDashboardAccess = session.user.role === 'SUPERADMIN' || allowedModules.some(m => m.href === '/dashboard' || m.name.toLowerCase() === 'dashboard');
-  
+
   if (!hasDashboardAccess) {
     if (allowedModules.length > 0) {
       redirect(allowedModules[0].href || '/dashboard/sales');
@@ -53,7 +53,11 @@ export default async function DashboardHomePage() {
   const tourCompleted = prefs?.tourCompleted === true;
 
   // Cargar datos iniciales del dashboard (Histórico completo)
-  const initialRes = await getFilteredDashboardData({ preset: 'all' });
+  const [initialRes, initialGlobalRes] = await Promise.all([
+    getFilteredDashboardData({ preset: 'all' }),
+    session.user.role === 'SUPERADMIN' ? getGlobalDashboardData({ preset: 'all' }) : Promise.resolve(null)
+  ]);
+
   const initialData = initialRes.success && initialRes.data ? initialRes.data : {
     productCount: 0,
     categoryCount: 0,
@@ -74,9 +78,13 @@ export default async function DashboardHomePage() {
     totalCustomersCount: 0
   };
 
+  const initialGlobalData = initialGlobalRes?.success && initialGlobalRes.data ? initialGlobalRes.data : null;
+
   return (
     <DashboardClient
       initialData={initialData}
+      initialGlobalData={initialGlobalData}
+      userRole={session.user.role}
       allowedModules={allowedModules}
       userId={session.user.id}
       tourCompleted={tourCompleted}
