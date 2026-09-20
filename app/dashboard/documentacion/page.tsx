@@ -13,10 +13,14 @@ export default async function DocumentationPage() {
   const session = await getAuthSession();
   if (!session?.user) redirect("/auth/login");
 
-  const [aiConfigResult, apiKeys] = await Promise.all([
+  const [aiConfigResult, apiKeysResult] = await Promise.all([
     getCompanyAiConfig(),
     getApiKeys()
   ]);
+
+  const apiKeysList = Array.isArray(apiKeysResult)
+    ? apiKeysResult
+    : ((apiKeysResult as any)?.keys || []);
 
   return (
     <div className="flex-1 space-y-6">
@@ -32,7 +36,7 @@ export default async function DocumentationPage() {
       <DocumentationClient
         userRole={session.user.role}
         companyAiConfig={aiConfigResult.config}
-        apiKeys={apiKeys as any}
+        apiKeys={apiKeysList as any}
       />
     </div>
   );

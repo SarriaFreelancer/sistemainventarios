@@ -205,17 +205,31 @@ export async function deleteUser(formData: FormData) {
     });
     if (!userBefore) return { success: false, error: 'Usuario no encontrado' };
 
-    // Buscar un usuario de respaldo dentro de la misma empresa para preservar historial operativo si existe
-    const fallbackUser = userBefore.companyId
-      ? await prisma.user.findFirst({
-          where: {
-            companyId: userBefore.companyId,
-            id: { not: id }
-          },
-          orderBy: { id: 'asc' }
-        })
-      : null;
+    // Verificar si el usuario cuenta con transacciones u operaciones vinculadas en el sistema
+    const [
+      salesCount,
+      purchaseRequestsCount,
+      requisitionsCount,
+      warehouseMovementsCount,
+      warehouseTransfersCount
+    ] = await Promise.all([
+      prisma.sale.count({ where: { userId: id } }),
+      prisma.purchaseRequest.count({ where: { userId: id } }),
+      prisma.internalRequisition.count({ where: { userId: id } }),
+      prisma.warehouseMovement.count({ where: { assignedUserId: id } }),
+      prisma.warehouseTransfer.count({ where: { createdById: id } }),
+    ]);
 
+    const totalTransactions = salesCount + purchaseRequestsCount + requisitionsCount + warehouseMovementsCount + warehouseTransfersCount;
+
+    if (totalTransactions > 0) {
+      return {
+        success: false,
+        error: 'Este usuario no se puede eliminar porque cuenta con transacciones asociadas en el sistema. Puedes inhabilitarlo para restringir su acceso, o eliminar sus transacciones previamente.'
+      };
+    }
+
+    // Si no tiene transacciones activas, procedemos a limpiar referencias no transaccionales y eliminarlo
     await prisma.$transaction(async (tx) => {
       // 1. Desvincular ficha de empleado
       await tx.employee.updateMany({
@@ -223,68 +237,24 @@ export async function deleteUser(formData: FormData) {
         data: { userId: null }
       });
 
-      // 2. Desvincular ventas anuladas
+      // 2. Desvincular ventas anuladas y líneas de tiempo
       await tx.sale.updateMany({
         where: { voidedByUserId: id },
         data: { voidedByUserId: null }
       });
-
-      // 3. Reasignar ventas creadas al usuario principal de respaldo o limpiar si es necesario
-      if (fallbackUser) {
-        await tx.sale.updateMany({
-          where: { userId: id },
-          data: { userId: fallbackUser.id }
-        });
-      } else {
-        const userSales = await tx.sale.findMany({ where: { userId: id }, select: { id: true } });
-        const saleIds = userSales.map(s => s.id);
-        if (saleIds.length > 0) {
-          await tx.saleDetail.deleteMany({ where: { saleId: { in: saleIds } } });
-          await tx.sale.deleteMany({ where: { id: { in: saleIds } } });
-        }
-      }
-
-      // 4. Módulo WMS Bodegas (Movimientos, Traslados, Líneas de tiempo)
       await tx.warehouseTimeline.updateMany({
         where: { userId: id },
         data: { userId: null }
       });
-      await tx.warehouseMovement.updateMany({
-        where: { assignedUserId: id },
-        data: { assignedUserId: null }
-      });
-      await tx.warehouseTransfer.updateMany({
-        where: { createdById: id },
-        data: { createdById: null }
-      });
 
-      // 5. Compras y Requisiciones Internas
+      // 3. Limpiar autorizaciones de compra, solicitudes de api, anuncios, actividades, chats, notificaciones y sesiones
       await tx.purchaseApproval.deleteMany({ where: { userId: id } });
-      if (fallbackUser) {
-        await tx.purchaseRequest.updateMany({
-          where: { userId: id },
-          data: { userId: fallbackUser.id }
-        });
-        await tx.internalRequisition.updateMany({
-          where: { userId: id },
-          data: { userId: fallbackUser.id }
-        });
-      } else {
-        await tx.purchaseRequest.deleteMany({ where: { userId: id } });
-        await tx.internalRequisition.deleteMany({ where: { userId: id } });
-      }
-
-      // 6. Solicitudes de Integración API REST
       await tx.apiIntegrationRequest.deleteMany({ where: { requestedById: id } });
       await tx.apiIntegrationRequest.updateMany({
         where: { reviewedById: id },
         data: { reviewedById: null }
       });
-
-      // 7. Anuncios Globales
       await tx.systemAnnouncement.deleteMany({ where: { createdById: id } });
-
-      // 8. CRM Actividades, Presets, Mensajes de Chat, Participantes, Notificaciones, Sesiones
       await tx.activity.deleteMany({ where: { userId: id } });
       await tx.reportPreset.deleteMany({ where: { userId: id } });
       await tx.chatMessage.deleteMany({ where: { senderId: id } });
@@ -300,7 +270,7 @@ export async function deleteUser(formData: FormData) {
         data: { userId: null }
       });
 
-      // 9. Finalmente eliminar el usuario
+      // 4. Finalmente eliminar el usuario
       await tx.user.delete({ where: { id } });
     });
 
@@ -317,7 +287,7 @@ export async function deleteUser(formData: FormData) {
     return { success: true };
   } catch (error: any) {
     console.error('Error deleting user:', error);
-    return { success: false, error: 'No fue posible eliminar el usuario debido a dependencias en el sistema.' };
+    return { success: false, error: 'No fue posible eliminar el usuario: ' + (error.message || 'Error desconocido') };
   }
 }
 

@@ -68,7 +68,8 @@ export function DocumentationClient({ userRole, companyAiConfig, apiKeys = [] }:
     setOpenAccordions(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const activeApiKey = apiKeys.find(k => k.isActive)?.key || "sk_live_vuestra_llave_de_api_aqui";
+  const keysList = Array.isArray(apiKeys) ? apiKeys : ((apiKeys as any)?.keys || []);
+  const activeApiKey = keysList.find((k: any) => k?.active || k?.isActive)?.key || "sk_live_vuestra_llave_de_api_aqui";
 
   const navigationSections = [
     { id: "intro", title: "Visión General & Primeros Pasos", icon: BookOpen, badge: "Inicio" },

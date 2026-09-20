@@ -567,9 +567,9 @@ export function DeleteCompanyButton({ id, name }: { id: number; name: string }) 
 
   const handleDelete = async () => {
     const confirmed = await confirmAction(
-      '¿Eliminar Empresa?',
-      `Se eliminará "${name}" si no tiene usuarios asignados.`,
-      'Sí, eliminar',
+      '⚠️ ¿Eliminar Empresa Definitivamente?',
+      `ADVERTENCIA DE SEGURIDAD (SUPERADMIN): Se eliminará permanentemente "${name}", incluyendo todos sus usuarios, productos, historial contable, ventas, compras y configuraciones. Esta acción es totalmente irreversible. ¿Confirmas la eliminación total?`,
+      'Sí, eliminar todo',
       'Cancelar'
     );
     if (!confirmed) return;
@@ -579,7 +579,7 @@ export function DeleteCompanyButton({ id, name }: { id: number; name: string }) 
       formData.append('id', String(id));
       const result = await deleteCompany(formData);
       if (result?.success) {
-        successAlert('Empresa eliminada', `La empresa "${name}" fue removida.`);
+        successAlert('Empresa eliminada', `La empresa "${name}" y todos sus registros fueron removidos.`);
       } else {
         errorAlert('Error al eliminar', result?.error ?? 'No se pudo eliminar la empresa.');
       }
@@ -594,6 +594,7 @@ export function DeleteCompanyButton({ id, name }: { id: number; name: string }) 
       disabled={isPending}
       onClick={handleDelete}
       className="h-9 w-9 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
+      title="Eliminar empresa (Solo Superadmin)"
     >
       <Trash2 className="h-4 w-4" />
     </Button>
