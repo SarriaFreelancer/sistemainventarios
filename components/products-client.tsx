@@ -69,7 +69,7 @@ export function ProductsClient(props: {
   enableBatchDelete?: boolean;
   expirationAlertDays?: number;
 }) {
-  const { 
+  const {
     initialProducts, categories, suppliers, groups, userId, allowNegativeStock = false,
     maxProducts = 999999, currentProducts = 0, planName = 'Plan Premium',
     registerInventoryCostAsExpense = false, trackExpirationDates = false, enableBatchWriteOff = true, enableBatchDelete = false, expirationAlertDays = 30
@@ -145,11 +145,11 @@ export function ProductsClient(props: {
     }
     if (filterCategory) list = list.filter(p => p.categoryId === filterCategory);
     if (filterSupplier) list = list.filter(p => p.supplierId === filterSupplier);
-    
+
     if (filterType !== 'ALL') {
       list = list.filter(p => (p.type || 'SALE') === filterType);
     }
-    
+
     // CORRECTION of status filtering logic checking real stock quantity:
     if (filterStatus) {
       if (filterStatus === 'AVAILABLE') {
@@ -388,9 +388,9 @@ export function ProductsClient(props: {
           </div>
         </div>
         <div className="relative z-10 flex flex-col items-end gap-2">
-          <CreateProductDialog 
-            categories={categories} 
-            suppliers={suppliers} 
+          <CreateProductDialog
+            categories={categories}
+            suppliers={suppliers}
             groups={groups}
             disabled={currentProducts >= maxProducts}
             limitMessage={`Has alcanzado el límite de ${maxProducts} productos de tu ${planName}.`}
@@ -430,7 +430,7 @@ export function ProductsClient(props: {
 
       {/* ── Main Table Card with Connected Type Tabs & Filters ── */}
       <div className="rounded-[24px] bg-card border border-border shadow-sm overflow-hidden space-y-0">
-        
+
         {/* ── Type Tabs (Conectadas directamente a la tabla arriba) ── */}
         <div className="flex gap-2 overflow-x-auto p-3 bg-muted/20 border-b border-border/60">
           {[
@@ -470,24 +470,30 @@ export function ProductsClient(props: {
               />
             </div>
 
-            <button
-              type="button"
-              onClick={() => setShowFilters(!showFilters)}
-              className="h-11 px-4 border border-border/80 bg-card rounded-xl text-xs font-bold text-foreground flex items-center justify-center gap-2 hover:bg-muted/60 transition cursor-pointer shrink-0"
-            >
-              <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
-              Filtros
-              {(filterCategory || filterSupplier || filterStatus || filterGroup || filterExpiration !== 'ALL') && (
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-black">
-                  {[filterCategory, filterSupplier, filterStatus, filterGroup, filterExpiration !== 'ALL'].filter(Boolean).length}
-                </span>
-              )}
-            </button>
+            {trackExpirationDates && (
+              <button
+                type="button"
+                onClick={() => setShowFilters(!showFilters)}
+                className={`h-11 px-4 border rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer shrink-0 ${
+                  showFilters || filterExpiration !== 'ALL'
+                    ? 'border-primary/50 bg-primary/10 text-primary'
+                    : 'border-border/80 bg-card text-foreground hover:bg-muted/60'
+                }`}
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                Vencimientos
+                {filterExpiration !== 'ALL' && (
+                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-black">
+                    1
+                  </span>
+                )}
+              </button>
+            )}
           </div>
 
-          {/* ── Fila Horizontal de Filtros en la misma línea (Proveedores -> Grupos -> Categorías) ── */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2.5 items-center">
-            {/* Filtro Orden */}
+          {/* ── Fila Horizontal de Filtros Unificados ── */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5 items-center">
+            {/* 1. Filtro Orden */}
             <select
               value={sortField}
               onChange={e => setSortField(e.target.value as SortField)}
@@ -499,25 +505,48 @@ export function ProductsClient(props: {
               <option value="quantityAvailable">Por Stock</option>
             </select>
 
-            {/* 1. Filtro Proveedores */}
-            <select value={filterSupplier} onChange={e => setFilterSupplier(e.target.value)} className={selectFilterCls}>
+            {/* 2. Filtro Estado */}
+            <select
+              value={filterStatus}
+              onChange={e => setFilterStatus(e.target.value)}
+              className={selectFilterCls}
+            >
+              <option value="">Todos los estados</option>
+              <option value="AVAILABLE">Disponible</option>
+              <option value="OUT_OF_STOCK">Sin Stock</option>
+            </select>
+
+            {/* 3. Filtro Proveedores */}
+            <select
+              value={filterSupplier}
+              onChange={e => setFilterSupplier(e.target.value)}
+              className={selectFilterCls}
+            >
               <option value="">Todos los proveedores</option>
               {suppliers.map(s => <option key={s.id} value={s.id}>{s.companyName}</option>)}
             </select>
 
-            {/* 2. Filtro Grupos (Cascada según proveedor) */}
-            <select value={filterGroup} onChange={e => setFilterGroup(e.target.value)} className={selectFilterCls}>
+            {/* 4. Filtro Grupos (Cascada según proveedor) */}
+            <select
+              value={filterGroup}
+              onChange={e => setFilterGroup(e.target.value)}
+              className={selectFilterCls}
+            >
               <option value="">Todos los grupos</option>
               {availableGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
             </select>
 
-            {/* 3. Filtro Categorías (Cascada según grupo o proveedor) */}
-            <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className={selectFilterCls}>
+            {/* 5. Filtro Categorías (Cascada según grupo o proveedor) */}
+            <select
+              value={filterCategory}
+              onChange={e => setFilterCategory(e.target.value)}
+              className={selectFilterCls}
+            >
               <option value="">Todas las categorías</option>
               {availableCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
 
-            {/* Botón Limpiar Filtros al final de la misma línea */}
+            {/* 6. Botón Limpiar Filtros */}
             <button
               type="button"
               onClick={() => {
@@ -536,32 +565,34 @@ export function ProductsClient(props: {
               Limpiar filtros
             </button>
           </div>
-        </div>
 
-        {/* ── Expandable Filters Panel ── */}
-        {showFilters && (
-          <div className="px-5 py-4 bg-muted/10 border-b border-border/60 space-y-3 animate-in slide-in-from-top-2 duration-200">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <select value={filterSupplier} onChange={e => setFilterSupplier(e.target.value)} className={selectFilterCls}>
-                <option value="">Todos los proveedores</option>
-                {suppliers.map(s => <option key={s.id} value={s.id}>{s.companyName}</option>)}
-              </select>
-              <select value={filterGroup} onChange={e => setFilterGroup(e.target.value)} className={selectFilterCls}>
-                <option value="">Todos los grupos</option>
-                {availableGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-              </select>
-              <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className={selectFilterCls}>
-                <option value="">Todas las categorías</option>
-                {availableCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-              <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className={selectFilterCls}>
-                <option value="">Todos los estados</option>
-                <option value="AVAILABLE">Disponible</option>
-                <option value="OUT_OF_STOCK">Sin Stock</option>
-              </select>
+          {/* ── Filtro Avanzado de Vencimientos de Lotes (opcional) ── */}
+          {trackExpirationDates && showFilters && (
+            <div className="pt-3 border-t border-border/50 flex flex-wrap items-center gap-3 animate-in slide-in-from-top-2 duration-200">
+              <span className="text-xs font-bold text-muted-foreground">Vencimiento de Lotes:</span>
+              <div className="flex gap-2">
+                {[
+                  { value: 'ALL', label: 'Todos los lotes' },
+                  { value: 'EXPIRING', label: `Próximos a vencer (${expirationAlertDays} días)` },
+                  { value: 'EXPIRED', label: 'Vencidos' }
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setFilterExpiration(opt.value)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                      filterExpiration === opt.value
+                        ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                        : 'bg-muted/40 text-muted-foreground hover:text-foreground border border-border/40'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* ── Table (Desktop) ── */}
         {filteredProducts.length === 0 ? (
@@ -719,10 +750,10 @@ export function ProductsClient(props: {
                               Uso interno
                             </span>
                           )}
-                          <EditProductDialog 
-                            product={product} 
-                            categories={categories} 
-                            suppliers={suppliers} 
+                          <EditProductDialog
+                            product={product}
+                            categories={categories}
+                            suppliers={suppliers}
                             groups={groups}
                             registerInventoryCostAsExpense={registerInventoryCostAsExpense}
                             trackExpirationDates={trackExpirationDates}
@@ -771,7 +802,7 @@ export function ProductsClient(props: {
                                       ) : (
                                         <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 font-bold text-[10px]">OK</span>
                                       )}
-                                      
+
                                       {enableBatchWriteOff && (
                                         <button
                                           type="button"
