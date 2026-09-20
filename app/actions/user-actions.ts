@@ -198,22 +198,127 @@ export async function deleteUser(formData: FormData) {
   const id = Number(formData.get('id'));
   if (!id || isNaN(id)) return { success: false, error: 'ID inválida' };
 
-  const userBefore = await prisma.user.findUnique({ where: { id } });
-  if (!userBefore) return { success: false, error: 'Usuario no encontrado' };
+  try {
+    const userBefore = await prisma.user.findUnique({
+      where: { id },
+      include: { role: true }
+    });
+    if (!userBefore) return { success: false, error: 'Usuario no encontrado' };
 
-  await prisma.user.delete({ where: { id } });
+    // Buscar un usuario de respaldo dentro de la misma empresa para preservar historial operativo si existe
+    const fallbackUser = userBefore.companyId
+      ? await prisma.user.findFirst({
+          where: {
+            companyId: userBefore.companyId,
+            id: { not: id }
+          },
+          orderBy: { id: 'asc' }
+        })
+      : null;
 
-  await logActivity({
-    module: 'USERS',
-    action: 'DELETE',
-    entity: 'User',
-    entityId: id,
-    description: `Eliminó al usuario "${userBefore.name}" (Email: ${userBefore.email})`,
-    oldValues: userBefore
-  });
+    await prisma.$transaction(async (tx) => {
+      // 1. Desvincular ficha de empleado
+      await tx.employee.updateMany({
+        where: { userId: id },
+        data: { userId: null }
+      });
 
-  revalidatePath('/dashboard/users');
-  return { success: true };
+      // 2. Desvincular ventas anuladas
+      await tx.sale.updateMany({
+        where: { voidedByUserId: id },
+        data: { voidedByUserId: null }
+      });
+
+      // 3. Reasignar ventas creadas al usuario principal de respaldo o limpiar si es necesario
+      if (fallbackUser) {
+        await tx.sale.updateMany({
+          where: { userId: id },
+          data: { userId: fallbackUser.id }
+        });
+      } else {
+        const userSales = await tx.sale.findMany({ where: { userId: id }, select: { id: true } });
+        const saleIds = userSales.map(s => s.id);
+        if (saleIds.length > 0) {
+          await tx.saleDetail.deleteMany({ where: { saleId: { in: saleIds } } });
+          await tx.sale.deleteMany({ where: { id: { in: saleIds } } });
+        }
+      }
+
+      // 4. Módulo WMS Bodegas (Movimientos, Traslados, Líneas de tiempo)
+      await tx.warehouseTimeline.updateMany({
+        where: { userId: id },
+        data: { userId: null }
+      });
+      await tx.warehouseMovement.updateMany({
+        where: { assignedUserId: id },
+        data: { assignedUserId: null }
+      });
+      await tx.warehouseTransfer.updateMany({
+        where: { createdById: id },
+        data: { createdById: null }
+      });
+
+      // 5. Compras y Requisiciones Internas
+      await tx.purchaseApproval.deleteMany({ where: { userId: id } });
+      if (fallbackUser) {
+        await tx.purchaseRequest.updateMany({
+          where: { userId: id },
+          data: { userId: fallbackUser.id }
+        });
+        await tx.internalRequisition.updateMany({
+          where: { userId: id },
+          data: { userId: fallbackUser.id }
+        });
+      } else {
+        await tx.purchaseRequest.deleteMany({ where: { userId: id } });
+        await tx.internalRequisition.deleteMany({ where: { userId: id } });
+      }
+
+      // 6. Solicitudes de Integración API REST
+      await tx.apiIntegrationRequest.deleteMany({ where: { requestedById: id } });
+      await tx.apiIntegrationRequest.updateMany({
+        where: { reviewedById: id },
+        data: { reviewedById: null }
+      });
+
+      // 7. Anuncios Globales
+      await tx.systemAnnouncement.deleteMany({ where: { createdById: id } });
+
+      // 8. CRM Actividades, Presets, Mensajes de Chat, Participantes, Notificaciones, Sesiones
+      await tx.activity.deleteMany({ where: { userId: id } });
+      await tx.reportPreset.deleteMany({ where: { userId: id } });
+      await tx.chatMessage.deleteMany({ where: { senderId: id } });
+      await tx.chatParticipant.deleteMany({ where: { userId: id } });
+      await tx.notification.deleteMany({ where: { userId: id } });
+      await tx.userSession.deleteMany({ where: { userId: id } });
+      await tx.auditLog.updateMany({
+        where: { userId: id },
+        data: { userId: null }
+      });
+      await tx.loginHistory.updateMany({
+        where: { userId: id },
+        data: { userId: null }
+      });
+
+      // 9. Finalmente eliminar el usuario
+      await tx.user.delete({ where: { id } });
+    });
+
+    await logActivity({
+      module: 'USERS',
+      action: 'DELETE',
+      entity: 'User',
+      entityId: id,
+      description: `Eliminó al usuario "${userBefore.name}" (Email: ${userBefore.email})`,
+      oldValues: userBefore
+    });
+
+    revalidatePath('/dashboard/users');
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error deleting user:', error);
+    return { success: false, error: 'No fue posible eliminar el usuario debido a dependencias en el sistema.' };
+  }
 }
 
 export async function unlockUser(id: number) {
