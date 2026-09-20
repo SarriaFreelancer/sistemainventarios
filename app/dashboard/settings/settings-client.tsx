@@ -322,8 +322,8 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
 
-      {/* ── Menú Lateral de Pestañas (Tabs) ── */}
-      <div className="lg:col-span-1 bg-card rounded-2xl border border-border p-4 shadow-sm space-y-1">
+      {/* ── Menú Lateral de Pestañas (Tabs) Fijo con Scroll Independiente ── */}
+      <div className="lg:col-span-1 lg:sticky lg:top-2 self-start bg-card rounded-2xl border border-border p-3 sm:p-4 shadow-sm space-y-1 max-h-[calc(100vh-2rem)] overflow-y-auto overscroll-contain">
         <button
           onClick={() => setActiveTab("company")}
           className={`flex w-full items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold transition ${
