@@ -11,7 +11,7 @@
     "build:e2e": "cross-env NODE_ENV=production DATABASE_URL=$DATABASE_URL NEXTAUTH_URL=$NEXTAUTH_URL NEXTAUTH_SECRET=$NEXTAUTH_SECRET pnpm build",
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
-    "start": "next start",
+    "start": "prisma db push --skip-generate && next start",
     "lint": "next lint",
     "pm2:dev": "pm2 start ecosystem.config.cjs --only gns-dev",
     "pm2:prod": "pm2 start ecosystem.config.cjs --only gns",
