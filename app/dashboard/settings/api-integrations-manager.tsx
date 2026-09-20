@@ -29,9 +29,22 @@ import {
   EyeOff,
   Layers,
   HelpCircle,
-  ExternalLink
+  ExternalLink,
+  Lock,
+  AlertCircle,
+  Clock,
+  ShieldAlert,
+  Send,
+  CheckCheck
 } from "lucide-react";
-import { createApiKey, toggleApiKeyStatus, updateApiKeyPermissions, deleteApiKey } from "@/app/actions/api-key-actions";
+import {
+  createApiKey,
+  toggleApiKeyStatus,
+  updateApiKeyPermissions,
+  deleteApiKey,
+  requestApiAccess,
+  reviewApiRequest
+} from "@/app/actions/api-key-actions";
 import { successAlert, errorAlert, confirmAction } from "@/lib/sweetalert";
 
 const RESOURCES = [
@@ -805,7 +818,17 @@ export function ApiIntegrationsManager({
   apiData = { isSuperAdmin: false, keys: [], hasActiveIntegrations: false },
   companies = []
 }: {
-  apiData: { isSuperAdmin: boolean; keys: any[]; hasActiveIntegrations: boolean };
+  apiData: {
+    isSuperAdmin: boolean;
+    isAdmin?: boolean;
+    isTrialLocked?: boolean;
+    canRequest?: boolean;
+    requestStatus?: string | null;
+    rejectionReason?: string | null;
+    pendingRequests?: any[];
+    keys: any[];
+    hasActiveIntegrations: boolean;
+  };
   companies?: { id: number; name: string }[];
 }) {
   const isSuperAdmin = apiData.isSuperAdmin;
@@ -825,6 +848,22 @@ export function ApiIntegrationsManager({
   });
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageSnippet>("curl");
   const [visibleKeys, setVisibleKeys] = useState<Record<string, boolean>>({});
+
+  // Estados de control de período de prueba y solicitudes de activación
+  const [isTrialLocked, setIsTrialLocked] = useState(Boolean(apiData.isTrialLocked));
+  const [requestStatus, setRequestStatus] = useState<string | null>(apiData.requestStatus || null);
+  const [rejectionReason, setRejectionReason] = useState<string | null>(apiData.rejectionReason || null);
+  const [canRequest, setCanRequest] = useState(Boolean(apiData.canRequest));
+  const [pendingRequestsList, setPendingRequestsList] = useState<any[]>(apiData.pendingRequests || []);
+
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+  const [justification, setJustification] = useState("");
+  const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
+
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [rejectRequestId, setRejectRequestId] = useState<number | null>(null);
+  const [rejectReasonText, setRejectReasonText] = useState("");
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -919,6 +958,69 @@ export function ApiIntegrationsManager({
     }
   };
 
+  const handleSendRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!justification.trim() || justification.trim().length < 15) {
+      errorAlert("Justificación requerida", "Por favor ingresa una justificación detallada de al menos 15 caracteres.");
+      return;
+    }
+    setIsSubmittingRequest(true);
+    const res = await requestApiAccess(justification.trim());
+    setIsSubmittingRequest(false);
+    if (res.success) {
+      setRequestStatus("PENDING");
+      setCanRequest(false);
+      setIsRequestModalOpen(false);
+      setJustification("");
+      successAlert("Solicitud Enviada", "Tu solicitud fue remitida al Administrador Global. Te notificaremos una vez sea revisada.");
+    } else {
+      errorAlert("Error", res.error || "No se pudo enviar la solicitud.");
+    }
+  };
+
+  const handleApprove = async (reqItem: any) => {
+    const confirmed = await confirmAction(
+      "Aprobar Acceso a API",
+      `¿Deseas autorizar a la empresa "${reqItem.company?.name}" para generar y consumir llaves API REST?`,
+      "Sí, Aprobar Integración",
+      "Cancelar"
+    );
+    if (!confirmed) return;
+
+    setIsSubmittingReview(true);
+    const res = await reviewApiRequest(reqItem.id, "APPROVE");
+    setIsSubmittingReview(false);
+    if (res.success) {
+      setPendingRequestsList(prev => prev.map(r => r.id === reqItem.id ? { ...r, status: "APPROVED", reviewedAt: new Date() } : r));
+      successAlert("Aprobado con éxito", `La empresa ${reqItem.company?.name} ahora puede usar el módulo de APIs.`);
+    } else {
+      errorAlert("Error", res.error || "No se pudo aprobar la solicitud.");
+    }
+  };
+
+  const handleOpenReject = (reqId: number) => {
+    setRejectRequestId(reqId);
+    setRejectReasonText("");
+    setIsRejectModalOpen(true);
+  };
+
+  const handleConfirmReject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rejectRequestId) return;
+
+    setIsSubmittingReview(true);
+    const res = await reviewApiRequest(rejectRequestId, "REJECT", rejectReasonText);
+    setIsSubmittingReview(false);
+
+    if (res.success) {
+      setPendingRequestsList(prev => prev.map(r => r.id === rejectRequestId ? { ...r, status: "REJECTED", rejectionReason: rejectReasonText, reviewedAt: new Date() } : r));
+      setIsRejectModalOpen(false);
+      successAlert("Solicitud Rechazada", "Se ha registrado el rechazo y el motivo.");
+    } else {
+      errorAlert("Error", res.error || "No se pudo rechazar la solicitud.");
+    }
+  };
+
   const activeToken = keysList.find(k => k.active)?.key || "gns_live_tu_api_key_aqui";
   const currentModuleDoc = API_MODULES.find(m => m.id === selectedModule) || API_MODULES[0];
 
@@ -972,6 +1074,167 @@ export function ApiIntegrationsManager({
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
 
+      {/* ── BANDEJA DE SOLICITUDES PARA SUPERADMIN ── */}
+      {isSuperAdmin && (
+        <div className="bg-card border border-border/80 rounded-3xl p-6 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                <ShieldAlert size={18} />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-sm sm:text-base text-foreground">
+                  Solicitudes de Acceso a API REST (Empresas en Prueba)
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Revisa y aprueba las justificaciones de empresas en prueba que requieren generar Llaves API.
+                </p>
+              </div>
+            </div>
+            <span className="text-xs font-bold px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 self-start sm:self-center">
+              {pendingRequestsList.filter(r => r.status === "PENDING").length} Pendientes
+            </span>
+          </div>
+
+          {pendingRequestsList.length === 0 ? (
+            <div className="p-6 text-center border border-dashed border-border rounded-2xl">
+              <p className="text-xs text-muted-foreground">No hay solicitudes de integración pendientes ni registradas.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3">
+              {pendingRequestsList.map((req) => (
+                <div
+                  key={req.id}
+                  className={`p-4 rounded-2xl border transition flex flex-col md:flex-row items-start md:items-center justify-between gap-4 ${
+                    req.status === "PENDING"
+                      ? "bg-amber-500/5 border-amber-500/30"
+                      : req.status === "APPROVED"
+                      ? "bg-emerald-500/5 border-emerald-500/20 opacity-80"
+                      : "bg-rose-500/5 border-rose-500/20 opacity-70"
+                  }`}
+                >
+                  <div className="space-y-1.5 flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-black text-sm text-foreground">{req.company?.name || "Empresa"}</span>
+                      <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${
+                        req.status === "PENDING"
+                          ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
+                          : req.status === "APPROVED"
+                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                          : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20"
+                      }`}>
+                        {req.status === "PENDING" ? "Pendiente de Revisión" : req.status === "APPROVED" ? "Aprobada" : "Rechazada"}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">
+                        Solicitado por: <strong>{req.requestedBy?.name || req.requestedBy?.email}</strong> ({new Date(req.createdAt).toLocaleDateString("es-CO")})
+                      </span>
+                    </div>
+
+                    <div className="bg-background/80 border border-border/60 p-3 rounded-xl">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">
+                        Justificación comercial / técnica del cliente:
+                      </span>
+                      <p className="text-xs text-foreground italic">"{req.justification}"</p>
+                      {req.rejectionReason && (
+                        <p className="text-xs text-rose-500 font-semibold mt-1.5 pt-1.5 border-t border-border/40">
+                          Motivo de rechazo: {req.rejectionReason}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {req.status === "PENDING" && (
+                    <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
+                      <button
+                        type="button"
+                        onClick={() => handleApprove(req)}
+                        disabled={isSubmittingReview}
+                        className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50"
+                      >
+                        <CheckCheck size={14} />
+                        <span>Aprobar</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenReject(req.id)}
+                        disabled={isSubmittingReview}
+                        className="px-3.5 py-2 bg-rose-600/10 hover:bg-rose-600/20 text-rose-600 dark:text-rose-400 border border-rose-600/20 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        <XCircle size={14} />
+                        <span>Rechazar</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── BLOQUEO PARA CUENTAS DE PRUEBA GRATUITA SIN APROBACIÓN ── */}
+      {isTrialLocked && (
+        <div className="relative overflow-hidden rounded-3xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-background p-6 sm:p-8 shadow-sm">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="space-y-2.5 max-w-2xl">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-bold">
+                <Lock size={14} />
+                Módulo Protegido · Prueba Gratuita 15 Días
+              </div>
+              <h3 className="text-xl sm:text-2xl font-black tracking-tight text-foreground flex items-center gap-2.5">
+                <ShieldCheck size={24} className="text-amber-500" />
+                Integración API REST Inhabilitada Temporalmente
+              </h3>
+              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                Por políticas de ciberseguridad, aislamiento multi-empresa y prevención de abuso, la generación y consumo de Llaves API REST durante el período de prueba gratuita requiere una solicitud previa y justificación de uso ante el Administrador Global.
+              </p>
+
+              {requestStatus === "PENDING" && (
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex items-center gap-3">
+                  <Clock size={20} className="text-amber-500 shrink-0 animate-pulse" />
+                  <div>
+                    <p className="text-xs font-bold text-amber-700 dark:text-amber-300">
+                      Solicitud enviada y en revisión
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Tu solicitud de activación está siendo evaluada por el equipo de seguridad de SarriaTech. Te avisaremos cuando sea aprobada.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {requestStatus === "REJECTED" && (
+                <div className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-4 flex items-center gap-3">
+                  <AlertCircle size={20} className="text-rose-500 shrink-0" />
+                  <div>
+                    <p className="text-xs font-bold text-rose-600 dark:text-rose-400">
+                      Solicitud anterior no aprobada: "{rejectionReason || "No cumple con requisitos mínimos de seguridad"}"
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Puedes enviar una nueva solicitud detallando el sistema o plataforma externa con la que necesitas conectarte.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {canRequest && (
+              <button
+                type="button"
+                onClick={() => {
+                  setJustification("");
+                  setIsRequestModalOpen(true);
+                }}
+                className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black px-6 py-3.5 rounded-2xl text-xs sm:text-sm flex items-center gap-2.5 shadow-lg hover:shadow-amber-500/25 transition-all cursor-pointer shrink-0"
+              >
+                <Send size={16} />
+                <span>Solicitar Activación de APIs</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── BANNER PRINCIPAL DE INTEGRACIONES ── */}
       <div className="relative overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-background p-6 sm:p-8 shadow-sm">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
@@ -989,20 +1252,22 @@ export function ApiIntegrationsManager({
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              setCreatedKey(null);
-              setNewKeyName("");
-              setPermissions(DEFAULT_PERMISSIONS);
-              if (companies.length > 0) setSelectedCompanyId(companies[0].id);
-              setIsModalOpen(true);
-            }}
-            className="bg-primary text-primary-foreground font-extrabold px-5 py-3 rounded-2xl text-xs sm:text-sm flex items-center gap-2.5 hover:opacity-95 active:scale-95 transition-all shadow-lg hover:shadow-primary/25 cursor-pointer shrink-0"
-          >
-            <Plus size={18} />
-            <span>Generar Nueva Llave API</span>
-          </button>
+          {!isTrialLocked && (
+            <button
+              type="button"
+              onClick={() => {
+                setCreatedKey(null);
+                setNewKeyName("");
+                setPermissions(DEFAULT_PERMISSIONS);
+                if (companies.length > 0) setSelectedCompanyId(companies[0].id);
+                setIsModalOpen(true);
+              }}
+              className="bg-primary text-primary-foreground font-extrabold px-5 py-3 rounded-2xl text-xs sm:text-sm flex items-center gap-2.5 hover:opacity-95 active:scale-95 transition-all shadow-lg hover:shadow-primary/25 cursor-pointer shrink-0"
+            >
+              <Plus size={18} />
+              <span>Generar Nueva Llave API</span>
+            </button>
+          )}
         </div>
 
         {/* Barra de Autenticación Rápida */}
@@ -1615,6 +1880,124 @@ export function ApiIntegrationsManager({
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: SOLICITUD DE ACTIVACIÓN DE APIS (ADMIN) ── */}
+      {isRequestModalOpen && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-card border border-border rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-5 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-border/60 pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
+                  <Send size={16} />
+                </div>
+                <h3 className="font-extrabold text-base text-foreground">Solicitud de Activación de APIs</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsRequestModalOpen(false)}
+                className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
+              >
+                <XCircle size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSendRequest} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider block">
+                  Justificación de Uso & Plataformas Externas
+                </label>
+                <p className="text-[11px] text-muted-foreground">
+                  Describe detalladamente para qué requieres las APIs (ej. sincronizar inventario con Shopify, registrar pedidos desde un POS, integración con ERP externo, etc.).
+                </p>
+                <textarea
+                  value={justification}
+                  onChange={(e) => setJustification(e.target.value)}
+                  rows={4}
+                  required
+                  placeholder="Ej. Requerimos las llaves API REST para conectar nuestra tienda online en WooCommerce y sincronizar el stock disponible de productos cada hora..."
+                  className="w-full bg-muted/40 border border-border rounded-xl p-3 text-xs sm:text-sm focus:outline-none focus:border-primary resize-none"
+                />
+                <div className="flex justify-between text-[10px] text-muted-foreground">
+                  <span>Mínimo 15 caracteres</span>
+                  <span>{justification.length} / 1000</span>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsRequestModalOpen(false)}
+                  className="flex-1 py-2.5 bg-muted text-foreground font-bold rounded-xl text-xs hover:bg-muted/80 transition cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingRequest || justification.trim().length < 15}
+                  className="flex-1 py-2.5 bg-amber-500 text-slate-950 font-extrabold rounded-xl text-xs hover:bg-amber-600 transition disabled:opacity-50 shadow-md cursor-pointer"
+                >
+                  {isSubmittingRequest ? "Enviando Solicitud..." : "Enviar a Revisión"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: MOTIVO DE RECHAZO (SUPERADMIN) ── */}
+      {isRejectModalOpen && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-card border border-border rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-5 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-border/60 pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-500">
+                  <XCircle size={16} />
+                </div>
+                <h3 className="font-extrabold text-base text-foreground">Rechazar Solicitud de API</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsRejectModalOpen(false)}
+                className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
+              >
+                <XCircle size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmReject} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider block">
+                  Motivo de Rechazo (Opcional)
+                </label>
+                <textarea
+                  value={rejectReasonText}
+                  onChange={(e) => setRejectReasonText(e.target.value)}
+                  rows={3}
+                  placeholder="Ej. Justificación incompleta, requiere plan pago o especificación de IP fija..."
+                  className="w-full bg-muted/40 border border-border rounded-xl p-3 text-xs sm:text-sm focus:outline-none focus:border-primary resize-none"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsRejectModalOpen(false)}
+                  className="flex-1 py-2.5 bg-muted text-foreground font-bold rounded-xl text-xs hover:bg-muted/80 transition cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingReview}
+                  className="flex-1 py-2.5 bg-rose-600 text-white font-extrabold rounded-xl text-xs hover:bg-rose-700 transition disabled:opacity-50 shadow-md cursor-pointer"
+                >
+                  {isSubmittingReview ? "Procesando..." : "Confirmar Rechazo"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -35,6 +35,18 @@ export default async function DashboardHomePage() {
     allowedModules = roleModules.filter(rm => companyModuleIds.has(rm.moduleId)).map(rm => rm.module).filter(m => m.isActive);
   }
 
+  const userRecord = await prisma.user.findUnique({
+    where: { id: parseInt(session.user.id) },
+    select: { preferences: true }
+  });
+  const prefs = userRecord?.preferences as { tourCompleted?: boolean; allowedModuleIds?: number[] } | null;
+  const tourCompleted = prefs?.tourCompleted === true;
+
+  if (session.user.role !== 'SUPERADMIN' && Array.isArray(prefs?.allowedModuleIds)) {
+    const allowedSet = new Set(prefs.allowedModuleIds.map((id: any) => Number(id)));
+    allowedModules = allowedModules.filter(m => allowedSet.has(m.id));
+  }
+
   const hasDashboardAccess = session.user.role === 'SUPERADMIN' || allowedModules.some(m => m.href === '/dashboard' || m.name.toLowerCase() === 'dashboard');
 
   if (!hasDashboardAccess) {
@@ -44,13 +56,6 @@ export default async function DashboardHomePage() {
       redirect('/auth/login');
     }
   }
-
-  const userRecord = await prisma.user.findUnique({
-    where: { id: parseInt(session.user.id) },
-    select: { preferences: true }
-  });
-  const prefs = userRecord?.preferences as { tourCompleted?: boolean } | null;
-  const tourCompleted = prefs?.tourCompleted === true;
 
   // Cargar datos iniciales del dashboard (Histórico completo)
   const [initialRes, initialGlobalRes] = await Promise.all([

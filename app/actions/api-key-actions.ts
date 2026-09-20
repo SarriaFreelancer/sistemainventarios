@@ -7,40 +7,238 @@ import { revalidatePath } from "next/cache";
 
 export async function getApiKeys() {
   const session = await getAuthSession();
-  if (!session?.user) return { isSuperAdmin: false, keys: [], hasActiveIntegrations: false };
+  if (!session?.user) {
+    return {
+      isSuperAdmin: false,
+      isAdmin: false,
+      isTrialLocked: true,
+      canRequest: false,
+      requestStatus: null,
+      rejectionReason: null,
+      pendingRequests: [],
+      keys: [],
+      hasActiveIntegrations: false
+    };
+  }
 
-  const isSuperAdmin = session.user.role === "SUPERADMIN";
+  const role = session.user.role;
+  const isSuperAdmin = role === "SUPERADMIN";
+  const isAdmin = role === "ADMIN";
+
+  // Al desbloquearse el modulo de APIS debe ser para el ADMIN y SUPERADMIN nada más
+  if (!isSuperAdmin && !isAdmin) {
+    return {
+      isSuperAdmin: false,
+      isAdmin: false,
+      isTrialLocked: true,
+      canRequest: false,
+      requestStatus: null,
+      rejectionReason: null,
+      pendingRequests: [],
+      keys: [],
+      hasActiveIntegrations: false
+    };
+  }
 
   try {
     if (isSuperAdmin) {
-      const keys = await prisma.apiKey.findMany({
-        orderBy: { createdAt: "desc" },
-        include: {
-          company: { select: { id: true, name: true } }
-        }
-      });
-      return { isSuperAdmin: true, keys, hasActiveIntegrations: keys.some(k => k.active) };
-    } else {
-      // Para empresas normales (ADMIN / USER): Devolver llaves de su empresa
-      const companyId = Number(session.user.companyId);
-      if (!companyId) return { isSuperAdmin: false, keys: [], hasActiveIntegrations: false };
+      const [keys, pendingRequests] = await Promise.all([
+        prisma.apiKey.findMany({
+          orderBy: { createdAt: "desc" },
+          include: {
+            company: { select: { id: true, name: true, isTrial: true, apiAccessApproved: true } }
+          }
+        }),
+        prisma.apiIntegrationRequest.findMany({
+          orderBy: { createdAt: "desc" },
+          include: {
+            company: { select: { id: true, name: true, isTrial: true } },
+            requestedBy: { select: { id: true, name: true, email: true } },
+            reviewedBy: { select: { id: true, name: true } }
+          }
+        })
+      ]);
 
-      const keys = await prisma.apiKey.findMany({
+      return {
+        isSuperAdmin: true,
+        isAdmin: true,
+        isTrialLocked: false,
+        canRequest: false,
+        requestStatus: null,
+        rejectionReason: null,
+        pendingRequests,
+        keys,
+        hasActiveIntegrations: keys.some(k => k.active)
+      };
+    } else {
+      const companyId = Number(session.user.companyId);
+      if (!companyId) {
+        return {
+          isSuperAdmin: false,
+          isAdmin: true,
+          isTrialLocked: true,
+          canRequest: false,
+          requestStatus: null,
+          rejectionReason: null,
+          pendingRequests: [],
+          keys: [],
+          hasActiveIntegrations: false
+        };
+      }
+
+      const company = await prisma.company.findUnique({
+        where: { id: companyId },
+        select: { id: true, isTrial: true, apiAccessApproved: true, name: true }
+      });
+
+      // El módulo se bloquea si la empresa está en prueba gratuita y no ha sido aprobada
+      const isTrial = Boolean(company?.isTrial);
+      const isApproved = Boolean(company?.apiAccessApproved);
+      const isTrialLocked = isTrial && !isApproved;
+
+      // Obtener la solicitud más reciente de esta empresa
+      const latestRequest = await prisma.apiIntegrationRequest.findFirst({
         where: { companyId },
-        include: {
-          company: { select: { id: true, name: true } }
-        },
         orderBy: { createdAt: "desc" }
       });
+
+      let keys: any[] = [];
+      if (!isTrialLocked) {
+        keys = await prisma.apiKey.findMany({
+          where: { companyId },
+          include: {
+            company: { select: { id: true, name: true } }
+          },
+          orderBy: { createdAt: "desc" }
+        });
+      }
+
       return {
         isSuperAdmin: false,
+        isAdmin: true,
+        isTrialLocked,
+        canRequest: isTrialLocked && latestRequest?.status !== "PENDING",
+        requestStatus: latestRequest?.status || null,
+        rejectionReason: latestRequest?.rejectionReason || null,
+        pendingRequests: [],
         keys,
         hasActiveIntegrations: keys.some(k => k.active)
       };
     }
   } catch (error) {
     console.error("Error fetching API keys:", error);
-    return { isSuperAdmin: false, keys: [], hasActiveIntegrations: false };
+    return {
+      isSuperAdmin: false,
+      isAdmin: false,
+      isTrialLocked: true,
+      canRequest: false,
+      requestStatus: null,
+      rejectionReason: null,
+      pendingRequests: [],
+      keys: [],
+      hasActiveIntegrations: false
+    };
+  }
+}
+
+export async function requestApiAccess(justification: string) {
+  const session = await getAuthSession();
+  if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "SUPERADMIN")) {
+    return { success: false, error: "Solo el Administrador de la empresa puede solicitar acceso a las APIs REST." };
+  }
+
+  const companyId = Number(session.user.companyId);
+  const userId = Number(session.user.id);
+
+  if (!companyId || !userId) {
+    return { success: false, error: "No tienes una empresa vinculada a tu sesión." };
+  }
+
+  const cleanJustification = justification?.trim();
+  if (!cleanJustification || cleanJustification.length < 15) {
+    return { success: false, error: "Debes ingresar una justificación detallada de al menos 15 caracteres explicando el uso de la API (ej. Integración con Shopify, WooCommerce, ERP externo, etc.)." };
+  }
+
+  if (cleanJustification.length > 1000) {
+    return { success: false, error: "La justificación no puede exceder los 1000 caracteres." };
+  }
+
+  try {
+    const existingPending = await prisma.apiIntegrationRequest.findFirst({
+      where: { companyId, status: "PENDING" }
+    });
+
+    if (existingPending) {
+      return { success: false, error: "Ya tienes una solicitud de activación en revisión por el Administrador Global." };
+    }
+
+    await prisma.apiIntegrationRequest.create({
+      data: {
+        companyId,
+        requestedById: userId,
+        justification: cleanJustification,
+        status: "PENDING"
+      }
+    });
+
+    revalidatePath("/dashboard/settings");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error submitting API request:", error);
+    return { success: false, error: error.message || "Error al enviar la solicitud." };
+  }
+}
+
+export async function reviewApiRequest(requestId: number, action: "APPROVE" | "REJECT", rejectionReason?: string) {
+  const session = await getAuthSession();
+  if (!session?.user || session.user.role !== "SUPERADMIN") {
+    return { success: false, error: "Solo el SUPERADMIN puede aprobar o rechazar solicitudes de API." };
+  }
+
+  const reviewedById = Number(session.user.id);
+
+  try {
+    const req = await prisma.apiIntegrationRequest.findUnique({
+      where: { id: requestId }
+    });
+
+    if (!req) {
+      return { success: false, error: "Solicitud no encontrada." };
+    }
+
+    if (action === "APPROVE") {
+      await prisma.$transaction([
+        prisma.apiIntegrationRequest.update({
+          where: { id: requestId },
+          data: {
+            status: "APPROVED",
+            reviewedById,
+            reviewedAt: new Date(),
+            rejectionReason: null
+          }
+        }),
+        prisma.company.update({
+          where: { id: req.companyId },
+          data: { apiAccessApproved: true }
+        })
+      ]);
+    } else {
+      await prisma.apiIntegrationRequest.update({
+        where: { id: requestId },
+        data: {
+          status: "REJECTED",
+          reviewedById,
+          reviewedAt: new Date(),
+          rejectionReason: rejectionReason?.trim() || "No cumple con las políticas de seguridad requeridas."
+        }
+      });
+    }
+
+    revalidatePath("/dashboard/settings");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error reviewing API request:", error);
+    return { success: false, error: error.message || "Error al procesar la revisión." };
   }
 }
 
@@ -59,6 +257,17 @@ export async function createApiKey(data: { name: string; targetCompanyId?: numbe
 
   if (!targetCompanyId) {
     return { success: false, error: "Debes especificar la empresa a la que pertenecerá esta Llave API" };
+  }
+
+  // Comprobar que si la empresa está en prueba gratuita, tenga la aprobación
+  if (!isSuperAdmin) {
+    const company = await prisma.company.findUnique({
+      where: { id: targetCompanyId },
+      select: { isTrial: true, apiAccessApproved: true }
+    });
+    if (company?.isTrial && !company.apiAccessApproved) {
+      return { success: false, error: "Tu empresa está en período de prueba y requiere la aprobación previa del Administrador Global para generar Llaves API." };
+    }
   }
 
   try {

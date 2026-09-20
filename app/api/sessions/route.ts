@@ -4,7 +4,7 @@ import { getActiveSessionsForAdmin, removeSessionById, removeAllCompanySessions 
 
 export async function GET(request: NextRequest) {
   const session = await getAuthSession();
-  
+
   if (!session || !session.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   const session = await getAuthSession();
-  
+
   if (!session || !session.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -36,13 +36,17 @@ export async function DELETE(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { sessionId, companyId, all, sessionToken } = body; 
-    
+    const { sessionId, companyId, all, sessionToken } = body;
+
     // sessionToken is used to exclude the caller's own token from being deleted if provided
     const excludeToken = sessionToken;
 
-    if (all && companyId) {
-      const result = await removeAllCompanySessions(companyId, excludeToken);
+    if (all) {
+      const targetCompanyId = companyId || (session.user as any).companyId;
+      if (!targetCompanyId) {
+        return NextResponse.json({ error: 'No target company specified' }, { status: 400 });
+      }
+      const result = await removeAllCompanySessions(targetCompanyId, excludeToken);
       if (result.success) {
         return NextResponse.json({ success: true });
       }

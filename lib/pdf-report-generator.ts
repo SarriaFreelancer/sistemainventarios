@@ -16,7 +16,7 @@ export function generatePdfReport({
   filename,
   columns,
   data,
-  companyName = 'GNS Gestión de Negocios SarriaTech',
+  companyName = '',
 }: PdfReportOptions) {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
@@ -40,7 +40,8 @@ export function generatePdfReport({
     hour: '2-digit',
     minute: '2-digit',
   });
-  doc.text(`${companyName}  |  ${nowStr}`, 283, 14, { align: 'right' });
+  const headerRightText = companyName ? `${companyName}  |  ${nowStr}` : nowStr;
+  doc.text(headerRightText, 283, 14, { align: 'right' });
 
   // Subtitle info below header band
   let startY = 28;

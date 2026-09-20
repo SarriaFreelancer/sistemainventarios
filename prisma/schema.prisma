@@ -266,6 +266,8 @@ model User {
   warehouseMovements   WarehouseMovement[]
   warehouseTransfers   WarehouseTransfer[]
   warehouseTimelines   WarehouseTimeline[]
+  apiRequestsRequested ApiIntegrationRequest[]   @relation("RequestedApiRequests")
+  apiRequestsReviewed  ApiIntegrationRequest[]   @relation("ReviewedApiRequests")
 
   @@index([email])
   @@index([companyId])
@@ -333,12 +335,14 @@ model Company {
   city                     String?
   country                  String                    @default("Colombia")
   status                   String                    @default("ACTIVE")
+  apiAccessApproved        Boolean                   @default(false)
   themeConfig              Json?
   setting                  CompanySetting?
   createdAt                DateTime                  @default(now())
   updatedAt                DateTime                  @updatedAt
   users                    User[]
   apiKeys                  ApiKey[]
+  apiRequests              ApiIntegrationRequest[]
   modules                  CompanyModule[]
   customers                Customer[]
   opportunities            Opportunity[]
@@ -792,6 +796,27 @@ model ApiKey {
 
   @@index([companyId])
   @@index([key])
+}
+
+model ApiIntegrationRequest {
+  id              Int       @id @default(autoincrement())
+  companyId       Int
+  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  requestedById   Int
+  requestedBy     User      @relation("RequestedApiRequests", fields: [requestedById], references: [id], onDelete: Cascade)
+  justification   String    @db.Text
+  status          String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  reviewedById    Int?
+  reviewedBy      User?     @relation("ReviewedApiRequests", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt      DateTime?
+  rejectionReason String?   @db.Text
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([companyId])
+  @@index([status])
+  @@index([requestedById])
+  @@index([reviewedById])
 }
 
 model CompanySetting {

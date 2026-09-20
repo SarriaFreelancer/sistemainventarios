@@ -48,18 +48,18 @@ export async function createUser(formData: FormData) {
       where: { id: parsed.data.companyId },
       select: { planId: true, maxUsers: true, maxProducts: true, _count: { select: { users: true } } }
     });
-    
+
     if (company) {
       const limits = getPlanLimits(company.planId, { maxUsers: company.maxUsers, maxProducts: company.maxProducts });
       if (company._count.users >= limits.maxUsers) {
-        return { 
-          success: false, 
-          error: `Has alcanzado el límite de usuarios de tu plan (${limits.maxUsers}). Para crear más usuarios, actualiza tu plan.` 
+        return {
+          success: false,
+          error: `Has alcanzado el límite de usuarios de tu plan (${limits.maxUsers}). Para crear más usuarios, actualiza tu plan.`
         };
       }
     }
   }
-  
+
   if (parsed.data.companyId) {
     const settings = await prisma.companySetting.findUnique({ where: { companyId: parsed.data.companyId } });
     if (settings) {
@@ -67,6 +67,19 @@ export async function createUser(formData: FormData) {
       if (pwdErrors.length > 0) {
         return { success: false, error: pwdErrors.join(" ") };
       }
+    }
+  }
+
+  const allowedModuleIdsRaw = formData.get('allowedModuleIds');
+  let allowedModuleIds: number[] | undefined = undefined;
+  if (allowedModuleIdsRaw) {
+    try {
+      const parsedIds = JSON.parse(String(allowedModuleIdsRaw));
+      if (Array.isArray(parsedIds)) {
+        allowedModuleIds = parsedIds.map((id: any) => Number(id)).filter((id: number) => !isNaN(id));
+      }
+    } catch {
+      // Fallback si no es JSON válido
     }
   }
 
@@ -79,7 +92,10 @@ export async function createUser(formData: FormData) {
       password: passwordHash,
       roleId: parsed.data.roleId,
       companyId: parsed.data.companyId || undefined,
-      preferences: { plainPassword: parsed.data.password },
+      preferences: {
+        plainPassword: parsed.data.password,
+        ...(allowedModuleIds !== undefined ? { allowedModuleIds } : {})
+      },
     },
   });
 
@@ -111,11 +127,28 @@ export async function updateUser(formData: FormData) {
     return { success: false, error: parsed.error?.issues[0]?.message ?? 'Datos inválidos' };
   }
 
+  const existingUser = await prisma.user.findUnique({ where: { id } });
+  const currentPrefs = (existingUser?.preferences as any) || {};
+
+  const allowedModuleIdsRaw = formData.get('allowedModuleIds');
+  let newPreferences = { ...currentPrefs };
+  if (allowedModuleIdsRaw !== null && allowedModuleIdsRaw !== undefined) {
+    try {
+      const parsedIds = JSON.parse(String(allowedModuleIdsRaw));
+      if (Array.isArray(parsedIds)) {
+        newPreferences.allowedModuleIds = parsedIds.map((id: any) => Number(id)).filter((id: number) => !isNaN(id));
+      }
+    } catch {
+      // Fallback
+    }
+  }
+
   const data: any = {
     name: parsed.data.name,
     email: parsed.data.email,
     roleId: parsed.data.roleId,
     companyId: parsed.data.companyId || undefined,
+    preferences: newPreferences,
   };
 
   if (password) {
@@ -129,9 +162,8 @@ export async function updateUser(formData: FormData) {
       }
     }
     data.password = await bcrypt.hash(password, 10);
-    const existingUser = await prisma.user.findUnique({ where: { id } });
-    const currentPrefs = (existingUser?.preferences as any) || {};
-    data.preferences = { ...currentPrefs, plainPassword: password };
+    newPreferences.plainPassword = password;
+    data.preferences = newPreferences;
   }
 
   try {
@@ -219,7 +251,7 @@ export async function markTourAsCompleted(userId: number) {
     if (!user) return { success: false, error: 'Usuario no encontrado' };
 
     const currentPreferences = user.preferences ? (user.preferences as any) : {};
-    
+
     await prisma.user.update({
       where: { id: userId },
       data: {
@@ -243,7 +275,7 @@ export async function markCookiesAsAccepted(userId: number) {
     if (!user) return { success: false, error: 'Usuario no encontrado' };
 
     const currentPreferences = user.preferences ? (user.preferences as any) : {};
-    
+
     await prisma.user.update({
       where: { id: userId },
       data: {
@@ -267,7 +299,7 @@ export async function resetTourCompleted(userId: number) {
     if (!user) return { success: false, error: 'Usuario no encontrado' };
 
     const currentPreferences = user.preferences ? (user.preferences as any) : {};
-    
+
     await prisma.user.update({
       where: { id: userId },
       data: {

@@ -11,7 +11,18 @@ import { createUser, updateUser, deleteUser, unlockUser } from "@/app/actions/us
 
 interface Role { id: number; name: string; }
 interface Company { id: number; name: string; }
-interface User { id: number; name: string; email: string; image?: string | null; password?: string; role?: Role | null; company?: Company | null; isLocked?: boolean; }
+interface ModuleItem { id: number; name: string; icon?: string | null; description?: string | null; }
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  image?: string | null;
+  password?: string;
+  role?: Role | null;
+  company?: Company | null;
+  isLocked?: boolean;
+  allowedModuleIds?: number[] | null;
+}
 
 const inputCls = "bg-background/50 border-border/80 focus:border-primary focus:ring-4 focus:ring-primary/10 text-foreground placeholder:text-muted-foreground/50 h-11 rounded-xl";
 const selectCls = "flex h-11 w-full rounded-xl border border-border/80 bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all duration-300";
@@ -45,10 +56,31 @@ function UserPasswordCell({ password }: { password?: string }) {
   );
 }
 
-export function CreateUserDialog({ roles, companies, disabled = false, limitMessage = '' }: { roles: Role[]; companies: Company[], disabled?: boolean, limitMessage?: string }) {
+export function CreateUserDialog({
+  roles,
+  companies,
+  modules = [],
+  disabled = false,
+  limitMessage = ''
+}: {
+  roles: Role[];
+  companies: Company[];
+  modules?: ModuleItem[];
+  disabled?: boolean;
+  limitMessage?: string;
+}) {
   const [open, setOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [selectedModuleIds, setSelectedModuleIds] = useState<number[]>(() => modules.map(m => m.id));
+
+  const toggleModule = (id: number) => {
+    setSelectedModuleIds(prev =>
+      prev.includes(id) ? prev.filter(mId => mId !== id) : [...prev, id]
+    );
+  };
+  const selectAllModules = () => setSelectedModuleIds(modules.map(m => m.id));
+  const deselectAllModules = () => setSelectedModuleIds([]);
 
   async function handleAction(formData: FormData) {
     startTransition(async () => {
@@ -64,15 +96,16 @@ export function CreateUserDialog({ roles, companies, disabled = false, limitMess
 
   return (
     <>
-      <button 
+      <button
         type="button"
         onClick={() => {
           if (disabled) {
             errorAlert('Límite alcanzado', limitMessage);
             return;
           }
+          setSelectedModuleIds(modules.map(m => m.id));
           setOpen(true);
-        }} 
+        }}
         className={`px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white text-xs font-extrabold rounded-2xl shadow-sm transition flex items-center gap-2 cursor-pointer ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         <Plus className="h-4 w-4" />
@@ -81,7 +114,7 @@ export function CreateUserDialog({ roles, companies, disabled = false, limitMess
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[520px] rounded-[32px] border-border/60 bg-card p-8 shadow-2xl shadow-primary/10">
+        <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto rounded-[32px] border-border/60 bg-card p-8 shadow-2xl shadow-primary/10">
           <DialogHeader>
             <DialogTitle className="text-xl font-extrabold text-foreground flex items-center gap-2">
               <span className="w-2 h-6 bg-gradient-to-b from-primary to-[#C5A059] rounded-full" />
@@ -89,6 +122,7 @@ export function CreateUserDialog({ roles, companies, disabled = false, limitMess
             </DialogTitle>
           </DialogHeader>
           <form action={handleAction} className="space-y-5 mt-2">
+            <input type="hidden" name="allowedModuleIds" value={JSON.stringify(selectedModuleIds)} />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="user-name" className={labelCls}>Nombre</Label>
@@ -129,8 +163,59 @@ export function CreateUserDialog({ roles, companies, disabled = false, limitMess
                   ))}
                 </select>
               </div>
+
+              {modules.length > 0 && (
+                <div className="space-y-2.5 sm:col-span-2 pt-3 border-t border-border/50">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className={labelCls}>Módulos Permitidos</Label>
+                      <p className="text-[11px] text-muted-foreground">Selecciona a qué secciones puede acceder este usuario.</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={selectAllModules}
+                        className="text-[11px] font-bold text-primary hover:underline cursor-pointer"
+                      >
+                        Todos
+                      </button>
+                      <span className="text-muted-foreground text-xs">•</span>
+                      <button
+                        type="button"
+                        onClick={deselectAllModules}
+                        className="text-[11px] font-bold text-muted-foreground hover:text-foreground cursor-pointer"
+                      >
+                        Ninguno
+                      </button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-44 overflow-y-auto p-2 border border-border/60 rounded-2xl bg-muted/20">
+                    {modules.map((mod) => {
+                      const isChecked = selectedModuleIds.includes(mod.id);
+                      return (
+                        <label
+                          key={mod.id}
+                          className={`flex items-center gap-2 p-2 rounded-xl border text-xs cursor-pointer select-none transition ${
+                            isChecked
+                              ? 'bg-primary/10 border-primary/40 text-foreground font-semibold shadow-xs'
+                              : 'bg-background/40 border-border/40 text-muted-foreground hover:bg-muted/40'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => toggleModule(mod.id)}
+                            className="rounded border-border text-primary focus:ring-primary h-3.5 w-3.5"
+                          />
+                          <span className="truncate">{mod.name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="flex gap-3 pt-1">
+            <div className="flex gap-3 pt-2">
               <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1">Cancelar</Button>
               <Button type="submit" disabled={isPending} className="flex-1">
                 {isPending ? 'Guardando...' : 'Crear Usuario'}
@@ -143,10 +228,34 @@ export function CreateUserDialog({ roles, companies, disabled = false, limitMess
   );
 }
 
-export function EditUserDialog({ user, roles, companies }: { user: User; roles: Role[]; companies: Company[] }) {
+export function EditUserDialog({
+  user,
+  roles,
+  companies,
+  modules = []
+}: {
+  user: User;
+  roles: Role[];
+  companies: Company[];
+  modules?: ModuleItem[];
+}) {
   const [open, setOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [selectedModuleIds, setSelectedModuleIds] = useState<number[]>(() => {
+    if (Array.isArray(user.allowedModuleIds)) {
+      return user.allowedModuleIds;
+    }
+    return modules.map(m => m.id);
+  });
+
+  const toggleModule = (id: number) => {
+    setSelectedModuleIds(prev =>
+      prev.includes(id) ? prev.filter(mId => mId !== id) : [...prev, id]
+    );
+  };
+  const selectAllModules = () => setSelectedModuleIds(modules.map(m => m.id));
+  const deselectAllModules = () => setSelectedModuleIds([]);
 
   async function handleAction(formData: FormData) {
     startTransition(async () => {
@@ -163,7 +272,14 @@ export function EditUserDialog({ user, roles, companies }: { user: User; roles: 
   return (
     <>
       <Button
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          if (Array.isArray(user.allowedModuleIds)) {
+            setSelectedModuleIds(user.allowedModuleIds);
+          } else {
+            setSelectedModuleIds(modules.map(m => m.id));
+          }
+          setOpen(true);
+        }}
         variant="ghost"
         size="icon"
         className="h-9 w-9 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl transition-all"
@@ -172,7 +288,7 @@ export function EditUserDialog({ user, roles, companies }: { user: User; roles: 
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[520px] rounded-[32px] border-border/60 bg-card p-8 shadow-2xl shadow-primary/10">
+        <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto rounded-[32px] border-border/60 bg-card p-8 shadow-2xl shadow-primary/10">
           <DialogHeader>
             <DialogTitle className="text-xl font-extrabold text-foreground flex items-center gap-2">
               <span className="w-2 h-6 bg-gradient-to-b from-primary to-[#C5A059] rounded-full" />
@@ -181,6 +297,7 @@ export function EditUserDialog({ user, roles, companies }: { user: User; roles: 
           </DialogHeader>
           <form action={handleAction} className="space-y-5 mt-2">
             <input type="hidden" name="id" value={String(user.id)} />
+            <input type="hidden" name="allowedModuleIds" value={JSON.stringify(selectedModuleIds)} />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor={`edit-user-name-${user.id}`} className={labelCls}>Nombre</Label>
@@ -221,8 +338,59 @@ export function EditUserDialog({ user, roles, companies }: { user: User; roles: 
                   ))}
                 </select>
               </div>
+
+              {modules.length > 0 && (
+                <div className="space-y-2.5 sm:col-span-2 pt-3 border-t border-border/50">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className={labelCls}>Módulos Permitidos</Label>
+                      <p className="text-[11px] text-muted-foreground">Selecciona a qué secciones puede acceder este usuario.</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={selectAllModules}
+                        className="text-[11px] font-bold text-primary hover:underline cursor-pointer"
+                      >
+                        Todos
+                      </button>
+                      <span className="text-muted-foreground text-xs">•</span>
+                      <button
+                        type="button"
+                        onClick={deselectAllModules}
+                        className="text-[11px] font-bold text-muted-foreground hover:text-foreground cursor-pointer"
+                      >
+                        Ninguno
+                      </button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-44 overflow-y-auto p-2 border border-border/60 rounded-2xl bg-muted/20">
+                    {modules.map((mod) => {
+                      const isChecked = selectedModuleIds.includes(mod.id);
+                      return (
+                        <label
+                          key={mod.id}
+                          className={`flex items-center gap-2 p-2 rounded-xl border text-xs cursor-pointer select-none transition ${
+                            isChecked
+                              ? 'bg-primary/10 border-primary/40 text-foreground font-semibold shadow-xs'
+                              : 'bg-background/40 border-border/40 text-muted-foreground hover:bg-muted/40'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => toggleModule(mod.id)}
+                            className="rounded border-border text-primary focus:ring-primary h-3.5 w-3.5"
+                          />
+                          <span className="truncate">{mod.name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="flex gap-3 pt-1">
+            <div className="flex gap-3 pt-2">
               <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1">Cancelar</Button>
               <Button type="submit" disabled={isPending} className="flex-1">
                 {isPending ? 'Guardando...' : 'Guardar Cambios'}
@@ -291,17 +459,19 @@ function UnlockUserButton({ id, name }: { id: number, name: string }) {
   );
 }
 
-export function UsersClient({ 
-  users, 
-  roles, 
+export function UsersClient({
+  users,
+  roles,
   companies,
+  modules = [],
   maxUsers = 9999,
   currentUsers = 0,
   planName = 'Plan Premium'
-}: { 
-  users: User[]; 
-  roles: Role[]; 
+}: {
+  users: User[];
+  roles: Role[];
   companies: Company[];
+  modules?: ModuleItem[];
   maxUsers?: number;
   currentUsers?: number;
   planName?: string;
@@ -356,7 +526,7 @@ export function UsersClient({
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      
+
       {/* ── 1. Encabezado Módulo Usuarios ── */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-card border border-border/60 rounded-3xl p-6 shadow-sm">
         <div className="flex items-center gap-4">
@@ -370,9 +540,10 @@ export function UsersClient({
         </div>
 
         <div className="flex flex-col items-end gap-1.5 w-full sm:w-auto">
-          <CreateUserDialog 
-            roles={roles} 
-            companies={companies} 
+          <CreateUserDialog
+            roles={roles}
+            companies={companies}
+            modules={modules}
             disabled={currentUsers >= maxUsers}
             limitMessage={`Has alcanzado el límite de ${maxUsers} usuarios de tu ${planName}.`}
           />
@@ -386,7 +557,7 @@ export function UsersClient({
 
       {/* ── 2. Tarjetas de Estadísticas Principales (Sparklines) ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        
+
         {/* Total Usuarios */}
         <div className="bg-card border border-border/60 rounded-3xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between hover:shadow-md transition">
           <div className="flex items-start justify-between">
@@ -641,7 +812,7 @@ export function UsersClient({
                       {/* Acciones */}
                       <td className="py-3 px-4 text-center rounded-r-2xl">
                         <div className="flex items-center justify-center gap-1">
-                          <EditUserDialog user={user} roles={roles} companies={companies} />
+                          <EditUserDialog user={user} roles={roles} companies={companies} modules={modules} />
                           <DeleteUserButton id={user.id} name={user.name} />
                           {user.isLocked && <UnlockUserButton id={user.id} name={user.name} />}
                         </div>

@@ -88,8 +88,10 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
 
   const [saving, setSaving] = useState(false);
   const isSuperAdmin = role === "SUPERADMIN";
+  const isAdmin = role === "ADMIN";
 
   // Estados locales para los campos
+  const [companyName, setCompanyName] = useState((initialSettings as any).companyName || "");
   const [nit, setNit] = useState(initialSettings.nit || "");
   const [phone, setPhone] = useState(initialSettings.phone || "");
   const [website, setWebsite] = useState(initialSettings.website || "");
@@ -207,6 +209,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
     setSaving(true);
 
     const result = await updateCompanySettings({
+      companyName,
       nit,
       phone,
       website,
@@ -243,7 +246,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
       backupDay,
       backupPath,
       enableNotifications,
-      themeColor: undefined,
+      themeColor: invoicePrimaryColor,
       bgImage,
       darkBgColor,
       darkCardBg,
@@ -257,11 +260,11 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
       enableBatchDelete,
       autoExpenseOnWriteOff,
       invoiceConfig: {
-        companyName: invoiceCompanyName,
+        companyName: invoiceCompanyName || companyName,
         address: invoiceAddress,
         email: invoiceEmail,
         phone: invoicePhone,
-        nit: invoiceNit,
+        nit: invoiceNit || nit,
         website: invoiceWebsite,
         primaryColor: invoicePrimaryColor,
         secondaryColor: invoiceSecondaryColor,
@@ -274,7 +277,10 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
     setSaving(false);
 
     if (result.success) {
-      await successAlert("Ajustes guardados", "Los parámetros del sistema fueron actualizados con éxito.");
+      if (typeof document !== 'undefined' && invoicePrimaryColor) {
+        document.documentElement.style.setProperty('--primary', invoicePrimaryColor);
+      }
+      await successAlert("Ajustes guardados", "Los parámetros del sistema y el color institucional fueron actualizados con éxito.");
       router.refresh();
     } else {
       errorAlert("Error", result.error || "No se pudieron guardar los ajustes.");
@@ -363,15 +369,17 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
           <SlidersHorizontal size={16} />
           Respaldos & SMTP
         </button>
-        <button
-          onClick={() => setActiveTab("apiKeys")}
-          className={`flex w-full items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold transition ${
-            activeTab === "apiKeys" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
-          }`}
-        >
-          <Code2 size={16} />
-          Integraciones API REST
-        </button>
+        {(isSuperAdmin || isAdmin) && (
+          <button
+            onClick={() => setActiveTab("apiKeys")}
+            className={`flex w-full items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold transition ${
+              activeTab === "apiKeys" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
+            }`}
+          >
+            <Code2 size={16} />
+            Integraciones API REST
+          </button>
+        )}
         <button
           onClick={() => setActiveTab("ai")}
           className={`flex w-full items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold transition ${
@@ -399,15 +407,17 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
           <Upload size={16} />
           Importación Masiva
         </button>
-        <button
-          onClick={() => setActiveTab("onboarding")}
-          className={`flex w-full items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold transition ${
-            activeTab === "onboarding" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
-          }`}
-        >
-          <Sparkles size={16} />
-          Datos de Prueba
-        </button>
+        {(isSuperAdmin || isAdmin) && (
+          <button
+            onClick={() => setActiveTab("onboarding")}
+            className={`flex w-full items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold transition ${
+              activeTab === "onboarding" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
+            }`}
+          >
+            <Sparkles size={16} />
+            Datos de Prueba & Tour
+          </button>
+        )}
 
         {isSuperAdmin && (
           <div className="pt-4 pb-1">
@@ -548,13 +558,31 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
               <Building size={18} className="text-primary" />
               Parámetros de la Organización
             </h3>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-muted-foreground uppercase">Nombre de la Empresa (Razón Social o Comercial)</label>
+              <input
+                type="text"
+                value={companyName}
+                onChange={(e) => {
+                  setCompanyName(e.target.value);
+                  if (!invoiceCompanyName) setInvoiceCompanyName(e.target.value);
+                }}
+                className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none"
+                placeholder="e.g. Mi Empresa S.A.S."
+              />
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-muted-foreground uppercase">Código o NIT de Empresa</label>
                 <input
                   type="text"
                   value={nit}
-                  onChange={(e) => setNit(e.target.value)}
+                  onChange={(e) => {
+                    setNit(e.target.value);
+                    if (!invoiceNit) setInvoiceNit(e.target.value);
+                  }}
                   className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none"
                   placeholder="e.g. 900.222.111-9"
                 />

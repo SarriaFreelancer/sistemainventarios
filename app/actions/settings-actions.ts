@@ -77,7 +77,7 @@ export async function getCompanySettings() {
     if (!session?.user) {
       return { success: false, error: "No autorizado o sin empresa vinculada" };
     }
-    
+
     let companyId: number | null = session.user.companyId ? Number(session.user.companyId) : null;
     let targetCompany = companyId
       ? await prisma.company.findUnique({ where: { id: companyId } })
@@ -94,21 +94,22 @@ export async function getCompanySettings() {
     }
 
     companyId = targetCompany.id;
-    
+
     // Intentar obtener la configuración. Si no existe, la creamos (Upsert de seguridad)
     let settings = await prisma.companySetting.findUnique({
       where: { companyId }
     });
-    
+
     if (!settings) {
       settings = await prisma.companySetting.create({
         data: { companyId }
       });
     }
-    
+
     const themeConfig = (targetCompany.themeConfig as any) || {};
     const fullSettings = {
       ...settings,
+      companyName: targetCompany.name || "",
       bgImage: themeConfig.bgImage || "",
       themeColor: themeConfig.primaryColor || ""
     };
@@ -126,11 +127,11 @@ export async function updateCompanySettings(data: any) {
     if (!session?.user) {
       return { success: false, error: "No autorizado" };
     }
-    
+
     if (session.user.role !== 'ADMIN' && session.user.role !== 'SUPERADMIN') {
       return { success: false, error: "Permisos insuficientes. Solo los administradores pueden cambiar estos ajustes." };
     }
-    
+
     let companyId: number | null = session.user.companyId ? Number(session.user.companyId) : null;
     let targetCompany = companyId
       ? await prisma.company.findUnique({ where: { id: companyId } })
@@ -146,11 +147,19 @@ export async function updateCompanySettings(data: any) {
     }
 
     companyId = targetCompany.id;
-    
+
+    // Si se envía un nuevo nombre de empresa, actualizar el modelo Company
+    if (data.companyName && data.companyName.trim() && data.companyName.trim() !== targetCompany.name) {
+      await prisma.company.update({
+        where: { id: companyId },
+        data: { name: data.companyName.trim() }
+      });
+    }
+
     const settingsBefore = await prisma.companySetting.findUnique({
       where: { companyId }
     });
-    
+
     const updated = await prisma.companySetting.update({
       where: { companyId },
       data: {
@@ -202,7 +211,7 @@ export async function updateCompanySettings(data: any) {
         autoExpenseOnWriteOff: data.autoExpenseOnWriteOff !== undefined ? Boolean(data.autoExpenseOnWriteOff) : undefined,
       }
     });
-    
+
     if (
       data.themeColor !== undefined ||
       data.bgImage !== undefined ||
@@ -238,7 +247,7 @@ export async function updateCompanySettings(data: any) {
       oldValues: settingsBefore,
       newValues: updated
     });
-    
+
     revalidatePath("/", "layout");
     revalidatePath("/dashboard");
     return { success: true };

@@ -2,31 +2,35 @@
 
 import { prisma } from '@/lib/prisma';
 import { getAuthSession } from '@/auth';
-import { 
-  cleanupExpiredSessions, 
-  createActiveSession, 
-  checkSessionLimits, 
-  removeSessionByToken, 
-  removeSessionByIdInternal 
+import {
+  cleanupExpiredSessions,
+  createActiveSession,
+  checkSessionLimits,
+  removeSessionByToken,
+  removeSessionByIdInternal
 } from '@/lib/session-core';
 
 export { cleanupExpiredSessions, createActiveSession, checkSessionLimits, removeSessionByToken };
 
-export async function removeSessionById(sessionId: number) {
+export async function removeSessionById(sessionId: number | string) {
   const session = await getAuthSession();
-  
+
   if (!session || !session.user) {
     return { success: false, error: 'Unauthorized' };
   }
 
-  // handle different ways role might be shaped in session.user
   const role = (session.user as any).role?.name || (session.user as any).role || (session.user as any).roleName;
   if (role !== 'ADMIN' && role !== 'SUPERADMIN') {
     return { success: false, error: 'Forbidden' };
   }
 
+  const numericSessionId = Number(sessionId);
+  if (!numericSessionId) {
+    return { success: false, error: 'Invalid session ID' };
+  }
+
   const targetSession = await prisma.userSession.findUnique({
-    where: { id: sessionId }
+    where: { id: numericSessionId }
   });
 
   if (!targetSession) {
@@ -34,21 +38,22 @@ export async function removeSessionById(sessionId: number) {
   }
 
   if (role === 'ADMIN') {
-    if (targetSession.companyId !== (session.user as any).companyId) {
+    const userCompanyId = Number((session.user as any).companyId);
+    if (Number(targetSession.companyId) !== userCompanyId) {
       return { success: false, error: 'Forbidden' };
     }
   }
 
   try {
-    return await removeSessionByIdInternal(sessionId);
+    return await removeSessionByIdInternal(numericSessionId);
   } catch (error) {
     return { success: false, error: 'Failed to delete session' };
   }
 }
 
-export async function removeAllCompanySessions(companyId: number, excludeToken?: string) {
+export async function removeAllCompanySessions(companyId: number | string, excludeToken?: string) {
   const session = await getAuthSession();
-  
+
   if (!session || !session.user) {
     return { success: false, error: 'Unauthorized' };
   }
@@ -58,14 +63,16 @@ export async function removeAllCompanySessions(companyId: number, excludeToken?:
     return { success: false, error: 'Forbidden' };
   }
 
+  const numericCompanyId = Number(companyId);
   if (role === 'ADMIN') {
-    if (companyId !== (session.user as any).companyId) {
+    const userCompanyId = Number((session.user as any).companyId);
+    if (numericCompanyId !== userCompanyId) {
       return { success: false, error: 'Forbidden' };
     }
   }
 
   try {
-    const whereClause: any = { companyId };
+    const whereClause: any = { companyId: numericCompanyId };
     if (excludeToken) {
       whereClause.token = { not: excludeToken };
     }
@@ -81,7 +88,7 @@ export async function removeAllCompanySessions(companyId: number, excludeToken?:
 
 export async function getActiveSessionsForAdmin() {
   const authSession = await getAuthSession();
-  
+
   if (!authSession || !authSession.user) {
     return { success: false, error: 'Unauthorized' };
   }
@@ -121,12 +128,13 @@ export async function getActiveSessionsForAdmin() {
       maxUsers: c.maxUsers,
       sessions: c.sessions
     }));
-    
+
     return { success: true, data: { companies: result } };
   }
 
   if (role === 'ADMIN') {
-    const companyId = (authSession.user as any).companyId;
+    const rawCompanyId = (authSession.user as any).companyId;
+    const companyId = Number(rawCompanyId);
     if (!companyId) return { success: false, error: 'No company assigned' };
 
     const company = await prisma.company.findUnique({
@@ -156,12 +164,14 @@ export async function getActiveSessionsForAdmin() {
       return { success: false, error: 'Company not found' };
     }
 
-    return { 
-      success: true, 
-      data: { 
-        company: { id: company.id, name: company.name, planId: company.planId, maxUsers: company.maxUsers }, 
-        sessions: company.sessions 
-      } 
+    return {
+      success: true,
+      data: {
+        company: { id: company.id, name: company.name, planId: company.planId, maxUsers: company.maxUsers },
+        sessions: company.sessions
+      }
     };
   }
+
+  return { success: false, error: 'Role not supported' };
 }

@@ -67,6 +67,7 @@ model Company {
   city           String?
   country        String   @default("Colombia")
   status         String   @default("ACTIVE")
+  apiAccessApproved Boolean @default(false)
   themeConfig    Json?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -79,6 +80,7 @@ model Company {
   sessions             UserSession[]
   subscriptionPayments SubscriptionPayment[]
   apiKeys              ApiKey[]
+  apiRequests          ApiIntegrationRequest[]
 }
 
 model User {
@@ -100,6 +102,8 @@ model User {
   auditLogs      AuditLog[]
   loginHistories LoginHistory[]
   sessions       UserSession[]
+  apiRequestsRequested ApiIntegrationRequest[] @relation("RequestedApiRequests")
+  apiRequestsReviewed  ApiIntegrationRequest[] @relation("ReviewedApiRequests")
 
   @@index([email])
   @@index([companyId])
@@ -296,4 +300,25 @@ model ApiKey {
 
   @@index([companyId])
   @@index([key])
+}
+
+model ApiIntegrationRequest {
+  id              Int       @id @default(autoincrement())
+  companyId       Int
+  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  requestedById   Int
+  requestedBy     User      @relation("RequestedApiRequests", fields: [requestedById], references: [id], onDelete: Cascade)
+  justification   String    @db.Text
+  status          String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  reviewedById    Int?
+  reviewedBy      User?     @relation("ReviewedApiRequests", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt      DateTime?
+  rejectionReason String?   @db.Text
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([companyId])
+  @@index([status])
+  @@index([requestedById])
+  @@index([reviewedById])
 }

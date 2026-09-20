@@ -170,10 +170,10 @@ export function ReportDownloadButton({
   const [loadingExcel, setLoadingExcel] = useState(false);
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  
+
   // Selection mode: 'ALL' (todos los campos) vs 'CUSTOM' (escoger campos)
   const [exportMode, setExportMode] = useState<'ALL' | 'CUSTOM'>('ALL');
-  
+
   const [filters, setFilters] = useState<FiltersState>({
     categoryId: '',
     supplierId: '',
@@ -203,7 +203,7 @@ export function ReportDownloadButton({
 
   // Selected fields for custom export
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
-  
+
   // Saved DB presets state
   const [presets, setPresets] = useState<ReportPresetDB[]>([]);
   const [selectedPresetId, setSelectedPresetId] = useState<string>('');
@@ -339,7 +339,7 @@ export function ReportDownloadButton({
     if (filters.productType) mappings = mappings.filter(m => m.type === filters.productType);
     if (filters.productGroupId) mappings = mappings.filter(m => String(m.productGroupId) === String(filters.productGroupId));
     if (filters.categoryId) mappings = mappings.filter(m => String(m.categoryId) === String(filters.categoryId));
-    
+
     const validSupplierIds = new Set(mappings.map(m => m.supplierId));
     if (!filters.productType && !filters.productGroupId && !filters.categoryId) return lookupData.suppliers;
     return lookupData.suppliers.filter(s => validSupplierIds.has(s.id));
@@ -441,6 +441,7 @@ export function ReportDownloadButton({
         filename: `reporte_${reportType}.pdf`,
         columns: pdfColumns,
         data: rows,
+        companyName: json.companyName || '',
       });
     } catch (err) {
       console.error('PDF download failed:', err);

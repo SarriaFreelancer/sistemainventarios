@@ -178,6 +178,16 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
       .filter(rm => companyModuleIds.has(rm.moduleId))
       .map(rm => rm.module)
       .filter(m => m.isActive && m.href !== '/dashboard/companies');
+
+    const userRecord = await prisma.user.findUnique({
+      where: { id: Number(session.user.id) },
+      select: { preferences: true }
+    });
+    const userPrefs = (userRecord?.preferences as any) || {};
+    if (Array.isArray(userPrefs.allowedModuleIds)) {
+      const allowedSet = new Set(userPrefs.allowedModuleIds.map((id: any) => Number(id)));
+      allowedModules = allowedModules.filter(m => allowedSet.has(m.id));
+    }
   }
 
   // Garantizar que "Configuración" quede de último
