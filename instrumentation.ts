@@ -5,8 +5,43 @@ export async function register() {
     const path = await import('path');
     const { generateSqlInsert } = await import('./lib/sql-generator');
 
-    // Ejecutar cada 5 minutos para revisar configuraciones de respaldos
-    cron.schedule('*/5 * * * *', async () => {
+    // Helper para obtener la hora (HH:mm) y día de la semana (1=Lunes ... 7=Domingo) en la zona horaria de la empresa
+    function getCompanyCurrentTimeAndDay(timezone?: string | null) {
+      const targetTz = timezone && timezone.trim() ? timezone.trim() : 'America/Bogota';
+      const now = new Date();
+      try {
+        const dtf = new Intl.DateTimeFormat('en-US', {
+          timeZone: targetTz,
+          hour12: false,
+          hour: '2-digit',
+          minute: '2-digit',
+          weekday: 'short'
+        });
+        const parts = dtf.formatToParts(now);
+        const h = parts.find(p => p.type === 'hour')?.value.padStart(2, '0') || '00';
+        const m = parts.find(p => p.type === 'minute')?.value.padStart(2, '0') || '00';
+        const dayMap: Record<string, number> = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };
+        const dayName = parts.find(p => p.type === 'weekday')?.value || 'Mon';
+        return {
+          currentTime: `${h}:${m}`,
+          currentDay: dayMap[dayName] || 1,
+          stamp: `${h}${m}`
+        };
+      } catch (e) {
+        // Fallback si la timezone es inválida
+        const h = String(now.getHours()).padStart(2, '0');
+        const m = String(now.getMinutes()).padStart(2, '0');
+        const currentDay = now.getDay() === 0 ? 7 : now.getDay();
+        return {
+          currentTime: `${h}:${m}`,
+          currentDay,
+          stamp: `${h}${m}`
+        };
+      }
+    }
+
+    // Ejecutar cada minuto para revisar configuraciones de respaldos
+    cron.schedule('* * * * *', async () => {
       try {
         let prismaClient: any;
         try {
@@ -16,25 +51,24 @@ export async function register() {
         }
         if (!prismaClient) return;
 
-        const now = new Date();
-        const currentHour = String(now.getHours()).padStart(2, '0');
-        const currentMinute = String(now.getMinutes()).padStart(2, '0');
-        const currentTime = `${currentHour}:${currentMinute}`;
-        const currentDay = now.getDay() === 0 ? 7 : now.getDay(); // 1=Lunes, 7=Domingo
-
-        const settings = await prismaClient.companySetting.findMany({
+        // Obtener todas las configuraciones con respaldos automáticos
+        const allAutoSettings = await prismaClient.companySetting.findMany({
           where: {
-            OR: [
-              { backupFrequency: 'DAILY', backupTime: currentTime },
-              { backupFrequency: 'WEEKLY', backupTime: currentTime, backupDay: currentDay }
-            ]
+            backupFrequency: { in: ['DAILY', 'WEEKLY'] }
           }
         });
 
-        for (const setting of settings) {
-          if (!setting.backupPath) continue;
+        for (const setting of allAutoSettings) {
+          const { currentTime, currentDay, stamp } = getCompanyCurrentTimeAndDay(setting.timezone);
 
-          console.log(`[BACKUP] Generando respaldo automático para la empresa ${setting.companyId}...`);
+          const isDailyMatch = setting.backupFrequency === 'DAILY' && setting.backupTime === currentTime;
+          const isWeeklyMatch = setting.backupFrequency === 'WEEKLY' && setting.backupTime === currentTime && Number(setting.backupDay) === currentDay;
+
+          if (!isDailyMatch && !isWeeklyMatch) {
+            continue;
+          }
+
+          console.log(`[BACKUP] Generando respaldo automático para la empresa ${setting.companyId} (Hora local: ${currentTime}, Día: ${currentDay})...`);
 
           const tenantTables = [
             'User', 'ProductGroup', 'Category', 'Supplier', 'Product',
@@ -54,37 +88,61 @@ export async function register() {
             sqlDump += generateSqlInsert('Company', [company]);
           }
 
-          // Obtener datos de todas las tablas en paralelo para acelerar el backup
+          // Obtener datos de todas las tablas en paralelo
           const tableResults = await Promise.all(
-            tenantTables.map(table =>
-              (prismaClient as any)[table.charAt(0).toLowerCase() + table.slice(1)].findMany({
-                where: { companyId: setting.companyId }
-              })
-            )
+            tenantTables.map(table => {
+              const modelKey = table.charAt(0).toLowerCase() + table.slice(1);
+              const model = (prismaClient as any)[modelKey];
+              if (model && typeof model.findMany === 'function') {
+                return model.findMany({ where: { companyId: setting.companyId } });
+              }
+              return Promise.resolve([]);
+            })
           );
+
           for (let i = 0; i < tenantTables.length; i++) {
             sqlDump += generateSqlInsert(tenantTables[i], tableResults[i]);
           }
 
           sqlDump += `SET FOREIGN_KEY_CHECKS=1;\n`;
 
-          const fileName = `backup_tenant_${setting.companyId}_${new Date().toISOString().slice(0,10).replace(/-/g, '')}_${currentHour}${currentMinute}.sql`;
-          const filePath = path.join(setting.backupPath, fileName);
+          const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+          const fileName = `backup_tenant_${setting.companyId}_${dateStr}_${stamp}.sql`;
+
+          // Resolver carpeta de guardado con fallback seguro
+          let targetDir = setting.backupPath && setting.backupPath.trim() ? setting.backupPath.trim() : path.join(process.cwd(), 'backups');
 
           try {
-            // Asegurarse de que el directorio existe
-            if (!fs.existsSync(setting.backupPath)) {
-              fs.mkdirSync(setting.backupPath, { recursive: true });
+            if (!fs.existsSync(targetDir)) {
+              fs.mkdirSync(targetDir, { recursive: true });
             }
+          } catch (dirErr) {
+            // Si la ruta configurada falla (por ejemplo ruta de Windows en servidor Linux), usar fallback a ./backups
+            console.warn(`[BACKUP WARN] No se pudo crear/acceder a la ruta '${targetDir}'. Usando carpeta local del servidor './backups'...`);
+            targetDir = path.join(process.cwd(), 'backups');
+            if (!fs.existsSync(targetDir)) {
+              fs.mkdirSync(targetDir, { recursive: true });
+            }
+          }
+
+          const filePath = path.join(targetDir, fileName);
+
+          try {
             fs.writeFileSync(filePath, sqlDump, 'utf8');
             console.log(`[BACKUP] Respaldo guardado exitosamente en: ${filePath}`);
 
-            // Notificar a los admins
+            // Notificar a administradores y superadmins de la empresa
             if (setting.enableNotifications) {
-              const admins = await prismaClient.user.findMany({
-                where: { companyId: setting.companyId, role: { name: 'ADMIN' } }
+              const companyAdmins = await prismaClient.user.findMany({
+                where: {
+                  OR: [
+                    { companyId: setting.companyId, role: { name: { in: ['ADMIN', 'SUPERADMIN'] } } },
+                    { role: { name: 'SUPERADMIN' } }
+                  ]
+                }
               });
-              for (const admin of admins) {
+
+              for (const admin of companyAdmins) {
                 await prismaClient.notification.create({
                   data: {
                     userId: admin.id,
@@ -93,26 +151,31 @@ export async function register() {
                     message: `El respaldo de base de datos se ha completado correctamente y guardado en ${filePath}`,
                     type: 'SUCCESS'
                   }
-                });
+                }).catch(() => {});
               }
             }
-          } catch (err) {
-            console.error(`[BACKUP ERROR] No se pudo guardar el archivo en la ruta: ${setting.backupPath}`, err);
-            // Notificar a los admins sobre el error
+          } catch (err: any) {
+            console.error(`[BACKUP ERROR] No se pudo guardar el archivo en la ruta: ${filePath}`, err);
             if (setting.enableNotifications) {
-              const admins = await prismaClient.user.findMany({
-                where: { companyId: setting.companyId, role: { name: 'ADMIN' } }
+              const companyAdmins = await prismaClient.user.findMany({
+                where: {
+                  OR: [
+                    { companyId: setting.companyId, role: { name: { in: ['ADMIN', 'SUPERADMIN'] } } },
+                    { role: { name: 'SUPERADMIN' } }
+                  ]
+                }
               });
-              for (const admin of admins) {
+
+              for (const admin of companyAdmins) {
                 await prismaClient.notification.create({
                   data: {
                     userId: admin.id,
                     companyId: setting.companyId,
                     title: 'Error en Respaldo Automático',
-                    message: `No se pudo guardar el archivo de respaldo en la ruta: ${setting.backupPath}. Verifica los permisos.`,
+                    message: `No se pudo guardar el archivo de respaldo: ${err?.message || 'Error de escritura'}. Ruta intentada: ${filePath}`,
                     type: 'ERROR'
                   }
-                });
+                }).catch(() => {});
               }
             }
           }

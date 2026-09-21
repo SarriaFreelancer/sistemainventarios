@@ -152,20 +152,23 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
 
   // Facturación Personalizada
   const initialInvoiceConfig = (initialSettings as any).invoiceConfig || {};
+  const initialTheme = (initialSettings as any).themeConfig || {};
+  const currentCompanyThemeColor = (initialSettings as any).themeColor || initialTheme.primaryColor || "#3b82f6";
+
   const [invoiceCompanyName, setInvoiceCompanyName] = useState(initialInvoiceConfig.companyName || "");
   const [invoiceAddress, setInvoiceAddress] = useState(initialInvoiceConfig.address || "");
   const [invoiceEmail, setInvoiceEmail] = useState(initialInvoiceConfig.email || "");
   const [invoicePhone, setInvoicePhone] = useState(initialInvoiceConfig.phone || "");
   const [invoiceNit, setInvoiceNit] = useState(initialInvoiceConfig.nit || "");
   const [invoiceWebsite, setInvoiceWebsite] = useState(initialInvoiceConfig.website || "");
-  const [invoicePrimaryColor, setInvoicePrimaryColor] = useState(initialInvoiceConfig.primaryColor || "#b91c1c");
+  const [invoicePrimaryColor, setInvoicePrimaryColor] = useState(initialInvoiceConfig.primaryColor || currentCompanyThemeColor);
   const [invoiceSecondaryColor, setInvoiceSecondaryColor] = useState(initialInvoiceConfig.secondaryColor || "#C5A059");
   const [invoiceLogo, setInvoiceLogo] = useState(initialInvoiceConfig.logo || "");
   const [invoiceResolutionText, setInvoiceResolutionText] = useState(initialInvoiceConfig.resolutionText || "");
   const [invoiceFooterText, setInvoiceFooterText] = useState(initialInvoiceConfig.footerText || "Documento equivalente de venta generado de forma electrónica.");
 
   // Personalización Tema Oscuro & Fuentes
-  const initialTheme = (initialSettings as any).themeConfig || {};
+  const [themeColor, setThemeColor] = useState(currentCompanyThemeColor);
   const [darkBgColor, setDarkBgColor] = useState(initialTheme.darkBgColor || "");
   const [darkCardBg, setDarkCardBg] = useState(initialTheme.darkCardBg || "");
   const [darkSidebarBg, setDarkSidebarBg] = useState(initialTheme.darkSidebarBg || "");
@@ -178,25 +181,25 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
       setDarkSidebarBg('');
       // Conservar darkTextColor si el usuario ya escogió o desea uno personalizado
     } else if (presetKey === 'BLUE') {
-      setInvoicePrimaryColor('#3b82f6');
+      setThemeColor('#3b82f6');
       setDarkBgColor('#0a192f');
       setDarkCardBg('#0f2744');
       setDarkSidebarBg('#0d1f38');
       setDarkTextColor('#93c5fd');
     } else if (presetKey === 'PURPLE') {
-      setInvoicePrimaryColor('#8b5cf6');
+      setThemeColor('#8b5cf6');
       setDarkBgColor('#130d2b');
       setDarkCardBg('#1e1442');
       setDarkSidebarBg('#1a1038');
       setDarkTextColor('#c084fc');
     } else if (presetKey === 'EMERALD') {
-      setInvoicePrimaryColor('#10b981');
+      setThemeColor('#10b981');
       setDarkBgColor('#062319');
       setDarkCardBg('#0d3829');
       setDarkSidebarBg('#0a2e22');
       setDarkTextColor('#34d399');
     } else if (presetKey === 'AMBER') {
-      setInvoicePrimaryColor('#f59e0b');
+      setThemeColor('#f59e0b');
       setDarkBgColor('#1c1917');
       setDarkCardBg('#2b241c');
       setDarkSidebarBg('#241e17');
@@ -246,7 +249,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
       backupDay,
       backupPath,
       enableNotifications,
-      themeColor: invoicePrimaryColor,
+      themeColor: themeColor,
       bgImage,
       darkBgColor,
       darkCardBg,
@@ -277,9 +280,9 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
     setSaving(false);
 
     if (result.success) {
-      if (typeof document !== 'undefined' && invoicePrimaryColor) {
-        document.documentElement.style.setProperty('--primary', invoicePrimaryColor);
-        document.documentElement.style.setProperty('--ring', invoicePrimaryColor);
+      if (typeof document !== 'undefined' && themeColor) {
+        document.documentElement.style.setProperty('--primary', themeColor);
+        document.documentElement.style.setProperty('--ring', themeColor);
         document.documentElement.style.removeProperty('--foreground');
         document.documentElement.style.removeProperty('--card-foreground');
         document.documentElement.style.removeProperty('--background');
@@ -853,14 +856,14 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
                   <div className="flex gap-2 items-center">
                     <input
                       type="color"
-                      value={invoicePrimaryColor}
-                      onChange={(e) => setInvoicePrimaryColor(e.target.value)}
+                      value={themeColor}
+                      onChange={(e) => setThemeColor(e.target.value)}
                       className="w-9 h-8 border border-border rounded-lg cursor-pointer bg-transparent shrink-0"
                     />
                     <input
                       type="text"
-                      value={invoicePrimaryColor}
-                      onChange={(e) => setInvoicePrimaryColor(e.target.value)}
+                      value={themeColor}
+                      onChange={(e) => setThemeColor(e.target.value)}
                       className="w-full bg-card border border-border rounded-lg px-2.5 py-1 text-xs font-mono"
                     />
                   </div>
@@ -1419,14 +1422,17 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
                   )}
 
                   <div className="space-y-1.5 lg:col-span-1 sm:col-span-2">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase">Ruta de Guardado (Local/Servidor)</label>
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase">Ruta de Guardado (En Servidor)</label>
                     <input
                       type="text"
                       value={backupPath}
                       onChange={(e) => setBackupPath(e.target.value)}
-                      placeholder="/var/backups o C:\backups"
+                      placeholder="./backups o /var/backups"
                       className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-xs focus:outline-none"
                     />
+                    <p className="text-[10px] text-muted-foreground">
+                      * El cron guarda en el almacenamiento del servidor. Si se deja vacío o la ruta no existe, se guardará automáticamente en la carpeta segura <code className="text-primary font-mono">./backups</code> del proyecto.
+                    </p>
                   </div>
                 </div>
               )}
