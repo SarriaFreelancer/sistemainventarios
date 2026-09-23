@@ -7,6 +7,7 @@ import { getSessionCompanyId } from '@/lib/session';
 import { InactivityGuard } from '@/components/security/inactivity-guard';
 import SessionMonitor from '@/components/security/session-monitor';
 import { GlobalAnnouncer } from '@/components/global-announcer';
+import { FloatingChat } from '@/components/chat/floating-chat';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -17,61 +18,84 @@ async function ensureModulesInitialized() {
   if (isModulesInitialized) return;
   try {
     const requiredModules = [
-      { name: 'Auditoría', href: '/dashboard/audit', icon: 'ShieldAlert', description: 'Trazabilidad y registro de actividad' },
+      { name: 'Dashboard', href: '/dashboard', icon: 'LayoutDashboard', description: 'Panel de control principal y métricas clave' },
+      { name: 'Productos', href: '/dashboard/products', icon: 'Boxes', description: 'Inventario, precios, stock y catálogo de artículos' },
+      { name: 'Grupos', href: '/dashboard/groups', icon: 'Folder', description: 'Grupos y familias principales de productos' },
+      { name: 'Categorías', href: '/dashboard/categories', icon: 'Tags', description: 'Categorización jerárquica de inventario' },
       { name: 'Bodegas', href: '/dashboard/warehouses', icon: 'Building2', description: 'Gestión WMS multibodega, ubicaciones y traslados' },
+      { name: 'Proveedores', href: '/dashboard/suppliers', icon: 'Factory', description: 'Directorio de proveedores y compras' },
+      { name: 'Compras', href: '/dashboard/compras', icon: 'Truck', description: 'Órdenes de compra, recepciones y cuentas por pagar' },
+      { name: 'Ventas', href: '/dashboard/sales', icon: 'ShoppingCart', description: 'Punto de venta POS y facturación' },
+      { name: 'CRM', href: '/dashboard/crm', icon: 'Users', description: 'Gestión comercial, leads, oportunidades y clientes' },
+      { name: 'RRHH', href: '/dashboard/rrhh', icon: 'Users', description: 'Gestión de personal y nómina' },
+      { name: 'Finanzas', href: '/dashboard/finanzas', icon: 'DollarSign', description: 'Ingresos, gastos y flujo de caja' },
+      { name: 'Reportes', href: '/dashboard/reportes', icon: 'FileText', description: 'Informes avanzados exportables' },
+      { name: 'Analíticas', href: '/dashboard/analytics', icon: 'BarChart3', description: 'Métricas SaaS, actividad de usuarios y módulos' },
+      { name: 'Auditoría', href: '/dashboard/audit', icon: 'ShieldAlert', description: 'Trazabilidad y registro de actividad' },
+      { name: 'Empresas', href: '/dashboard/companies', icon: 'Building2', description: 'Gestión de empresas y subcuentas' },
       { name: 'Documentación', href: '/dashboard/documentacion', icon: 'HelpCircle', description: 'Manual del sistema, guías paso a paso e IA' },
       { name: 'Configuración', href: '/dashboard/settings', icon: 'Settings', description: 'Ajustes generales, seguridad e integraciones' },
-      { name: 'Analíticas', href: '/dashboard/analytics', icon: 'BarChart3', description: 'Métricas SaaS, actividad de usuarios y módulos' },
-      { name: 'RRHH', href: '/dashboard/rrhh', icon: 'Users', description: 'Gestión de personal y nómina' }
     ];
 
-    const existingModules = await prisma.module.findMany({
-      where: { name: { in: requiredModules.map(m => m.name) } },
-      select: { name: true }
-    });
-    const existingNames = new Set(existingModules.map(m => m.name));
-    const missingModules = requiredModules.filter(m => !existingNames.has(m.name));
+    const [superRole, adminRoleObj, userRoleObj] = await Promise.all([
+      prisma.role.findUnique({ where: { name: 'SUPERADMIN' } }),
+      prisma.role.findUnique({ where: { name: 'ADMIN' } }),
+      prisma.role.findUnique({ where: { name: 'USER' } })
+    ]);
 
-    for (const mod of missingModules) {
-      const created = await prisma.module.create({
-        data: {
-          name: mod.name,
-          href: mod.href,
-          icon: mod.icon,
-          description: mod.description,
+    const companies = await prisma.company.findMany({ select: { id: true } });
+
+    for (const reqMod of requiredModules) {
+      const mod = await prisma.module.upsert({
+        where: { name: reqMod.name },
+        update: {
+          href: reqMod.href,
+          icon: reqMod.icon,
+          description: reqMod.description,
+          isActive: true
+        },
+        create: {
+          name: reqMod.name,
+          href: reqMod.href,
+          icon: reqMod.icon,
+          description: reqMod.description,
           isActive: true
         }
       });
 
-      const [superRole, adminRoleObj] = await Promise.all([
-        prisma.role.findUnique({ where: { name: 'SUPERADMIN' } }),
-        prisma.role.findUnique({ where: { name: 'ADMIN' } })
-      ]);
-
-      const rolePromises: Promise<any>[] = [];
-      if (superRole) rolePromises.push(prisma.roleModule.create({ data: { roleId: superRole.id, moduleId: created.id } }).catch(() => {}));
-      if (adminRoleObj) rolePromises.push(prisma.roleModule.create({ data: { roleId: adminRoleObj.id, moduleId: created.id } }).catch(() => {}));
-
-      const companies = await prisma.company.findMany({ select: { id: true } });
-      for (const comp of companies) {
-        rolePromises.push(prisma.companyModule.create({ data: { companyId: comp.id, moduleId: created.id } }).catch(() => {}));
+      // Vincular a roles
+      if (superRole) {
+        await prisma.roleModule.upsert({
+          where: { roleId_moduleId: { roleId: superRole.id, moduleId: mod.id } },
+          update: {},
+          create: { roleId: superRole.id, moduleId: mod.id }
+        }).catch(() => {});
       }
-      await Promise.all(rolePromises);
-    }
 
-    const userRoleObj = await prisma.role.findUnique({ where: { name: 'USER' } });
-    if (userRoleObj) {
-      const assignedCount = await prisma.roleModule.count({ where: { roleId: userRoleObj.id } });
-      if (assignedCount === 0) {
-        const userModuleNames = ['Dashboard', 'Productos', 'Grupos', 'Categorías', 'Proveedores', 'Ventas', 'CRM', 'Compras', 'Finanzas', 'RRHH', 'Reportes'];
-        const modulesToAssign = await prisma.module.findMany({
-          where: { name: { in: userModuleNames } }
-        });
-        for (const mod of modulesToAssign) {
-          await prisma.roleModule.create({
-            data: { roleId: userRoleObj.id, moduleId: mod.id }
-          }).catch(() => {});
-        }
+      if (adminRoleObj && reqMod.name !== 'Empresas') {
+        await prisma.roleModule.upsert({
+          where: { roleId_moduleId: { roleId: adminRoleObj.id, moduleId: mod.id } },
+          update: {},
+          create: { roleId: adminRoleObj.id, moduleId: mod.id }
+        }).catch(() => {});
+      }
+
+      const isUserAllowed = ['Dashboard', 'Productos', 'Grupos', 'Categorías', 'Bodegas', 'Proveedores', 'Compras', 'Ventas', 'CRM', 'RRHH', 'Finanzas', 'Reportes', 'Documentación'].includes(reqMod.name);
+      if (userRoleObj && isUserAllowed) {
+        await prisma.roleModule.upsert({
+          where: { roleId_moduleId: { roleId: userRoleObj.id, moduleId: mod.id } },
+          update: {},
+          create: { roleId: userRoleObj.id, moduleId: mod.id }
+        }).catch(() => {});
+      }
+
+      // Vincular a todas las empresas
+      for (const comp of companies) {
+        await prisma.companyModule.upsert({
+          where: { companyId_moduleId: { companyId: comp.id, moduleId: mod.id } },
+          update: {},
+          create: { companyId: comp.id, moduleId: mod.id }
+        }).catch(() => {});
       }
     }
 
@@ -80,10 +104,6 @@ async function ensureModulesInitialized() {
     console.error('[MODULE_INIT_ERROR]', err);
   }
 }
-
-
-
-import { FloatingChat } from '@/components/chat/floating-chat';
 
 export default async function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const session = await getAuthSession();
@@ -197,10 +217,22 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     }
   }
 
-  // Garantizar que "Configuración" quede de último
+  // Asegurar que Documentación siempre esté disponible para todos los usuarios
+  const docModule = await prisma.module.findUnique({ where: { name: 'Documentación' } });
+  if (docModule && !allowedModules.some(m => m.href === '/dashboard/documentacion')) {
+    allowedModules.push(docModule);
+  }
+
+  // Ordenar módulos lógicamente: Documentación de penúltimo, Configuración de último
   const settingsModule = allowedModules.find(m => m.href === '/dashboard/settings');
-  const otherModules = allowedModules.filter(m => m.href !== '/dashboard/settings');
-  allowedModules = settingsModule ? [...otherModules, settingsModule] : otherModules;
+  const documentationModule = allowedModules.find(m => m.href === '/dashboard/documentacion');
+  const otherModules = allowedModules.filter(m => m.href !== '/dashboard/settings' && m.href !== '/dashboard/documentacion');
+
+  allowedModules = [
+    ...otherModules,
+    ...(documentationModule ? [documentationModule] : []),
+    ...(settingsModule ? [settingsModule] : [])
+  ];
 
   return (
     <InactivityGuard>

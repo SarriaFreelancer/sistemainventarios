@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { Building, Boxes, ShieldAlert, SlidersHorizontal, Receipt, Upload, Sparkles, Server, ArrowRightLeft, Database, KeyRound, DownloadCloud, Bell, Mail, Loader2, Save, Image as ImageIcon, Trash2, Clock, LayoutTemplate, Monitor, Shield, Palette, Code2 } from "lucide-react";
+import { Building, Boxes, ShieldAlert, SlidersHorizontal, Receipt, Upload, Sparkles, Server, ArrowRightLeft, Database, KeyRound, DownloadCloud, Bell, Mail, Loader2, Save, Image as ImageIcon, Trash2, Clock, LayoutTemplate, Monitor, Shield, Palette, Code2, ChevronDown, ChevronUp, Check, Menu, ListFilter } from "lucide-react";
 import { updateCompanySettings, uploadCompanyLogo, uploadCompanyBackgroundImage } from "@/app/actions/settings-actions";
 import { generateDemoData, clearDemoData } from "@/app/actions/demo-actions";
 import { successAlert, errorAlert } from "@/lib/sweetalert";
@@ -327,11 +327,132 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
     successAlert("Procesando", title);
   };
 
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const tabsList = [
+    { id: "company", label: "Datos de Empresa", icon: Building },
+    { id: "inventory", label: "Inventario & Ventas", icon: Boxes },
+    { id: "security", label: "Seguridad de Accesos", icon: Shield },
+    { id: "sessions", label: "Sesiones Activas", icon: Monitor },
+    { id: "integrations", label: "Respaldos & SMTP", icon: SlidersHorizontal },
+    ...((isSuperAdmin || isAdmin) ? [{ id: "apiKeys", label: "Integraciones API REST", icon: Code2 }] : []),
+    { id: "ai", label: "Inteligencia Artificial (IA)", icon: Sparkles },
+    { id: "invoice", label: "Facturación Personalizada", icon: Receipt },
+    { id: "imports", label: "Importación Masiva", icon: Upload },
+    ...((isSuperAdmin || isAdmin) ? [{ id: "onboarding", label: "Datos de Prueba & Tour", icon: Sparkles }] : []),
+    ...(canManageServers ? [
+      { id: "servers", label: isSuperAdmin ? "Servidores (Tenants)" : "Servidores Propios", icon: Server },
+      { id: "migrations", label: "Migraciones", icon: ArrowRightLeft }
+    ] : []),
+    ...(isSuperAdmin ? [
+      { id: "databases", label: "Bases de Datos", icon: Database },
+      { id: "licenses", label: "Licencias y Suscripciones", icon: KeyRound },
+      { id: "announcements", label: "Anuncios Globales", icon: Bell }
+    ] : [])
+  ];
+
+  const currentTabObj = tabsList.find(t => t.id === activeTab) || tabsList[0];
+  const CurrentTabIcon = currentTabObj.icon;
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
 
-      {/* ── Menú Lateral de Pestañas (Tabs) Fijo con Scroll Independiente ── */}
-      <div className="lg:col-span-1 lg:sticky lg:top-0 self-start bg-card rounded-2xl border border-border p-3 sm:p-4 shadow-sm space-y-1 max-h-[calc(100vh-3.5rem)] overflow-y-auto overscroll-contain">
+      {/* ── Submenú Adaptativo para Dispositivos Móviles (lg:hidden) ── */}
+      <div className="lg:hidden w-full space-y-3">
+        {/* Tarjeta de Control y Selección de Submódulo */}
+        <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="p-2 bg-primary/10 text-primary rounded-xl shrink-0">
+                <CurrentTabIcon size={18} />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                  Submódulo Activo
+                </span>
+                <p className="text-sm font-bold text-foreground truncate">
+                  {currentTabObj.label}
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="flex items-center gap-1.5 px-3 py-2 bg-primary/10 text-primary hover:bg-primary/20 font-bold rounded-xl text-xs transition active:scale-95 shrink-0"
+            >
+              <ListFilter size={14} />
+              <span>{isMobileMenuOpen ? "Contraer" : "Cambiar"}</span>
+              {isMobileMenuOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </button>
+          </div>
+
+          {/* Lista Desplegable Acordeón en Mobile */}
+          {isMobileMenuOpen && (
+            <div className="mt-4 pt-4 border-t border-border space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-200">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-2 mb-1">
+                Selecciona un submódulo de configuración:
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                {tabsList.map(tab => {
+                  const TabIcon = tab.icon;
+                  const isSelected = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => {
+                        setActiveTab(tab.id as any);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`flex items-center justify-between gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition text-left ${
+                        isSelected
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-muted-foreground hover:bg-primary/10 hover:text-foreground bg-muted/30"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <TabIcon size={15} className="shrink-0" />
+                        <span className="truncate">{tab.label}</span>
+                      </div>
+                      {isSelected && <Check size={14} className="shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Barra de Pestañas Rápidas Desplazable Horizontalmente */}
+        <div className="flex gap-2 overflow-x-auto pb-1.5 scrollbar-none">
+          {tabsList.map(tab => {
+            const TabIcon = tab.icon;
+            const isSelected = activeTab === tab.id;
+            return (
+              <button
+                key={`pill-${tab.id}`}
+                type="button"
+                onClick={() => {
+                  setActiveTab(tab.id as any);
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap shrink-0 transition ${
+                  isSelected
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-card border border-border text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <TabIcon size={14} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Menú Lateral de Pestañas Desktop (hidden lg:block lg:col-span-1) ── */}
+      <div className="hidden lg:block lg:col-span-1 lg:sticky lg:top-0 self-start bg-card rounded-2xl border border-border p-3 sm:p-4 shadow-sm space-y-1 max-h-[calc(100vh-3.5rem)] overflow-y-auto overscroll-contain">
         <button
           onClick={() => setActiveTab("company")}
           className={`flex w-full items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold transition ${
