@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { getAuthSession } from '@/auth';
 import { CompaniesClient } from '@/components/company-dialogs';
+import { SuperAdminPasswordRequests } from '@/components/security/superadmin-password-requests';
 import { redirect } from 'next/navigation';
 
 export const metadata = {
@@ -47,7 +48,8 @@ export default async function CompaniesPage() {
   }));
 
   return (
-    <div className="p-4 sm:p-6">
+    <div className="p-4 sm:p-6 space-y-6">
+      <SuperAdminPasswordRequests />
       <CompaniesClient companies={serializedCompanies} modules={allModules} />
     </div>
   );

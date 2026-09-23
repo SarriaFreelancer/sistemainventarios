@@ -246,6 +246,11 @@ model User {
   rememberMe           Boolean               @default(false)
   failedLoginAttempts  Int                   @default(0)
   isLocked             Boolean               @default(false)
+  passwordUpdatedAt    DateTime              @default(now())
+  passwordExpiresAt    DateTime?
+  mustChangePassword   Boolean               @default(false)
+  isTemporaryPassword  Boolean               @default(false)
+  securityPin          String?
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
   auditLogs            AuditLog[]
@@ -268,6 +273,7 @@ model User {
   warehouseTimelines   WarehouseTimeline[]
   apiRequestsRequested ApiIntegrationRequest[]   @relation("RequestedApiRequests")
   apiRequestsReviewed  ApiIntegrationRequest[]   @relation("ReviewedApiRequests")
+  passwordResetRequests PasswordResetRequest[]
 
   @@index([email])
   @@index([companyId])
@@ -391,6 +397,7 @@ model Company {
   warehouses               Warehouse[]
   warehouseTransfers       WarehouseTransfer[]
   subscriptionPayments     SubscriptionPayment[]
+  passwordResetRequests    PasswordResetRequest[]
 
   @@index([name])
 }
@@ -1549,4 +1556,23 @@ model ReportPreset {
   @@index([companyId])
   @@index([userId])
   @@index([reportType])
+}
+
+model PasswordResetRequest {
+  id                Int       @id @default(autoincrement())
+  userId            Int
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyId         Int?
+  company           Company?  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  status            String    @default("PENDING") // PENDING, APPROVED, REJECTED, COMPLETED
+  tempPassword      String?
+  plainTempPassword String?
+  requestedAt       DateTime  @default(now())
+  reviewedAt        DateTime?
+  reviewedBy        Int?
+  notes             String?
+
+  @@index([userId])
+  @@index([companyId])
+  @@index([status])
 }

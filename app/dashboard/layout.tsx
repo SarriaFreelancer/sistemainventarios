@@ -8,6 +8,7 @@ import { InactivityGuard } from '@/components/security/inactivity-guard';
 import SessionMonitor from '@/components/security/session-monitor';
 import { GlobalAnnouncer } from '@/components/global-announcer';
 import { FloatingChat } from '@/components/chat/floating-chat';
+import { ForcePasswordSetupModal } from '@/components/auth/force-password-setup-modal';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -241,6 +242,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
       )}
       <GlobalAnnouncer />
       <FloatingChat user={session.user} />
+      <ForcePasswordSetupModal />
       <DashboardShell
         session={session}
         modules={allowedModules}

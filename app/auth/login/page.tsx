@@ -33,6 +33,7 @@ import {
 import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
 import { successAlert, brandAlert } from '@/lib/sweetalert';
+import { requestPasswordResetBySuperAdmin } from '@/app/actions/password-actions';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -173,23 +174,36 @@ export default function LoginPage() {
 
   const handleRecoverPassword = async () => {
     const { value: email } = await brandAlert.fire({
-      title: 'Recuperar Contraseña',
-      text: 'Introduce tu correo y te enviaremos instrucciones.',
+      title: 'Restablecer Contraseña',
+      text: 'Introduce el correo electrónico del Administrador para solicitar el restablecimiento al SuperAdmin.',
       input: 'email',
-      inputPlaceholder: 'tu-correo@empresa.com',
+      inputPlaceholder: 'admin@tuempresa.com',
       showCancelButton: true,
-      confirmButtonText: 'Enviar',
+      confirmButtonText: 'Enviar Solicitud',
       cancelButtonText: 'Cancelar',
       customClass: {
-        popup: 'rounded-2xl border border-gray-100 shadow-2xl p-6 bg-white',
-        input: 'flex h-11 w-full rounded-xl border border-gray-200 px-4 py-2 mt-4 text-xs font-medium focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition',
-        confirmButton: 'bg-blue-600 text-white rounded-xl px-6 py-2.5 font-bold text-xs transition cursor-pointer',
-        cancelButton: 'bg-gray-100 text-gray-600 rounded-xl px-6 py-2.5 font-bold text-xs transition ml-2 cursor-pointer',
+        popup: 'rounded-2xl border border-gray-100 dark:border-slate-800 shadow-2xl p-6 bg-white dark:bg-[#0b1329] text-foreground',
+        input: 'flex h-11 w-full rounded-xl border border-gray-200 dark:border-slate-700 px-4 py-2 mt-4 text-xs font-medium focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition text-foreground bg-slate-50 dark:bg-slate-900',
+        confirmButton: 'bg-blue-600 text-white rounded-xl px-6 py-2.5 font-bold text-xs transition cursor-pointer hover:bg-blue-700',
+        cancelButton: 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 rounded-xl px-6 py-2.5 font-bold text-xs transition ml-2 cursor-pointer',
       },
       buttonsStyling: false,
     });
     if (email) {
-      successAlert('Enlace Enviado', `Instrucciones enviadas a ${email}`);
+      const res = await requestPasswordResetBySuperAdmin({ email });
+      if (res.success) {
+        brandAlert.fire({
+          title: 'Solicitud Enviada al SuperAdmin',
+          text: res.message || 'Tu solicitud de restablecimiento ha sido registrada. El SuperAdmin aprobará y generará tu nueva clave temporal.',
+          icon: 'success',
+          confirmButtonText: 'Entendido',
+          customClass: {
+            popup: 'rounded-2xl border border-gray-100 dark:border-slate-800 shadow-2xl p-6 bg-white dark:bg-[#0b1329] text-foreground',
+            confirmButton: 'bg-blue-600 text-white rounded-xl px-6 py-2.5 font-bold text-xs transition cursor-pointer',
+          },
+          buttonsStyling: false,
+        });
+      }
     }
   };
 

@@ -41,7 +41,7 @@ export function ProfileClient({ user }: ProfileClientProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState(user.image || PRESET_AVATARS[0]);
   const [theme, setTheme] = useState<"light" | "dark">(user.preferences?.theme || "light");
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Contraseñas
@@ -106,8 +106,8 @@ export function ProfileClient({ user }: ProfileClientProps) {
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentPass || !newPass || !confirmPass) {
-      errorAlert("Faltan datos", "Todos los campos de contraseña son obligatorios");
+    if (!newPass || !confirmPass) {
+      errorAlert("Faltan datos", "Debes ingresar y confirmar tu nueva contraseña");
       return;
     }
     if (newPass !== confirmPass) {
@@ -124,7 +124,7 @@ export function ProfileClient({ user }: ProfileClientProps) {
     setSavingPass(false);
 
     if (result.success) {
-      successAlert("Contraseña actualizada", "Tu contraseña ha sido cambiada de forma segura.");
+      successAlert("Contraseña actualizada", "Tu contraseña ha sido guardada de forma segura.");
       setCurrentPass("");
       setNewPass("");
       setConfirmPass("");
@@ -135,10 +135,10 @@ export function ProfileClient({ user }: ProfileClientProps) {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      
+
       {/* ── Tarjeta Lateral de Info del Usuario ── */}
       <div className="lg:col-span-1 bg-card rounded-3xl border border-border p-6 shadow-sm flex flex-col items-center justify-between text-center min-h-[500px]">
-        
+
         {/* Avatar e Información Principal */}
         <div className="space-y-4 w-full flex flex-col items-center">
           <div className="relative group w-28 h-28 rounded-full overflow-hidden border-4 border-primary/20 shadow-md bg-muted">
@@ -190,7 +190,7 @@ export function ProfileClient({ user }: ProfileClientProps) {
 
       {/* ── Paneles de Edición de Perfil y Contraseña ── */}
       <div className="lg:col-span-2 space-y-6">
-        
+
         {/* Formulario de Información Personal */}
         <div className="bg-card rounded-3xl border border-border p-6 shadow-sm">
           <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
@@ -249,11 +249,11 @@ export function ProfileClient({ user }: ProfileClientProps) {
             <div className="space-y-1.5 pt-2">
               <label className="text-xs font-bold text-muted-foreground uppercase">Subir Foto Desde Tu Equipo</label>
               <div className="flex items-center gap-3">
-                <input 
-                  type="file" 
-                  accept="image/png, image/jpeg, image/webp" 
+                <input
+                  type="file"
+                  accept="image/png, image/jpeg, image/webp"
                   ref={fileInputRef}
-                  className="hidden" 
+                  className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
@@ -264,7 +264,7 @@ export function ProfileClient({ user }: ProfileClientProps) {
                       setSelectedFile(file);
                       setPreviewImage(URL.createObjectURL(file));
                     }
-                  }} 
+                  }}
                 />
                 <button
                   type="button"
@@ -320,7 +320,9 @@ export function ProfileClient({ user }: ProfileClientProps) {
 
           <form onSubmit={handleUpdatePassword} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-muted-foreground uppercase">Contraseña Actual</label>
+              <label className="text-xs font-bold text-muted-foreground uppercase">
+                Contraseña Actual <span className="text-[10px] font-normal text-muted-foreground">(dejar en blanco si ingresaste con Google por primera vez)</span>
+              </label>
               <input
                 type="password"
                 value={currentPass}

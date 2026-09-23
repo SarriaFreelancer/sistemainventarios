@@ -68,14 +68,19 @@ export async function updatePassword(data: {
     const userId = Number(session.user.id);
 
     const user = await prisma.user.findUnique({
-      where: { id: userId }
+      where: { id: userId },
+      include: { role: true }
     });
 
     if (!user) return { success: false, error: "Usuario no encontrado" };
 
-    const valid = await bcrypt.compare(data.currentPass, user.password);
-    if (!valid) {
-      return { success: false, error: "La contraseña actual es incorrecta" };
+    // Si el usuario ya tenía contraseña previa, validarla
+    const hadPassword = user.password && user.password.trim() !== "";
+    if (hadPassword) {
+      const valid = await bcrypt.compare(data.currentPass, user.password);
+      if (!valid) {
+        return { success: false, error: "La contraseña actual es incorrecta" };
+      }
     }
 
     if (user.companyId) {
@@ -91,15 +96,25 @@ export async function updatePassword(data: {
     }
 
     const passwordHash = await bcrypt.hash(data.newPass, 10);
+    const now = new Date();
+    const isSuperAdmin = user.role?.name === "SUPERADMIN";
+    const expiresAt = isSuperAdmin ? null : new Date(now.getTime() + 180 * 24 * 60 * 60 * 1000);
 
     await prisma.user.update({
       where: { id: userId },
       data: {
-        password: passwordHash
+        password: passwordHash,
+        passwordUpdatedAt: now,
+        passwordExpiresAt: expiresAt,
+        mustChangePassword: false,
+        isTemporaryPassword: false,
+        failedLoginAttempts: 0,
+        isLocked: false
       }
     });
 
     await logActivity({
+      userId,
       module: "USERS",
       action: "UPDATE",
       entity: "User",

@@ -63,10 +63,9 @@ export const authOptions: AuthOptions = {
           throw new Error("Tu cuenta ha sido bloqueada por seguridad. Comunícate con tu administrador (o con el administrador global si eres admin).");
         }
 
-        // We no longer throw an error here, so suspended users can login to pay.
-        // But we still log the state.
-        if (user.company && user.company.status === "SUSPENDED") {
-          console.log('authorize: company suspended but allowing login for payment', user.company.name);
+        // Si el usuario fue creado por Google y aún no tiene contraseña interna
+        if (!user.password || user.password.trim() === "") {
+          throw new Error("Esta cuenta fue registrada con Google y aún no tiene una contraseña interna asignada. Inicia sesión con el botón 'Continuar con Google' o solicita restablecimiento al SuperAdmin.");
         }
 
         const valid = await bcrypt.compare(parsed.data.password, user.password);
