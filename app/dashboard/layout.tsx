@@ -23,7 +23,7 @@ async function ensureModulesInitialized() {
       { name: 'Productos', href: '/dashboard/products', icon: 'Boxes', description: 'Inventario, precios, stock y catálogo de artículos' },
       { name: 'Grupos', href: '/dashboard/groups', icon: 'Folder', description: 'Grupos y familias principales de productos' },
       { name: 'Categorías', href: '/dashboard/categories', icon: 'Tags', description: 'Categorización jerárquica de inventario' },
-      { name: 'Combos', href: '/dashboard/combos', icon: 'Layers', description: 'Paquetes comerciales de productos y kits promocionales' },
+      { name: 'Kits', href: '/dashboard/kits', icon: 'Layers', description: 'Inventario → Kits: Paquetes comerciales y promociones' },
       { name: 'Bodegas', href: '/dashboard/warehouses', icon: 'Building2', description: 'Gestión WMS multibodega, ubicaciones y traslados' },
       { name: 'Proveedores', href: '/dashboard/suppliers', icon: 'Factory', description: 'Directorio de proveedores y compras' },
       { name: 'Compras', href: '/dashboard/compras', icon: 'Truck', description: 'Órdenes de compra, recepciones y cuentas por pagar' },
@@ -82,7 +82,7 @@ async function ensureModulesInitialized() {
         }).catch(() => {});
       }
 
-      const isUserAllowed = ['Dashboard', 'Productos', 'Grupos', 'Categorías', 'Combos', 'Bodegas', 'Proveedores', 'Compras', 'Ventas', 'CRM', 'RRHH', 'Finanzas', 'Reportes', 'Documentación'].includes(reqMod.name);
+      const isUserAllowed = ['Dashboard', 'Productos', 'Grupos', 'Categorías', 'Kits', 'Combos', 'Bodegas', 'Proveedores', 'Compras', 'Ventas', 'CRM', 'RRHH', 'Finanzas', 'Reportes', 'Documentación'].includes(reqMod.name);
       if (userRoleObj && isUserAllowed) {
         await prisma.roleModule.upsert({
           where: { roleId_moduleId: { roleId: userRoleObj.id, moduleId: mod.id } },
@@ -221,9 +221,9 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     }
   }
 
-  // Filtrar el módulo de Combos si está deshabilitado en la configuración de la empresa
+  // Filtrar el módulo de Kits si está deshabilitado en la configuración de la empresa
   if (!isCombosEnabled && session.user.role !== 'SUPERADMIN') {
-    allowedModules = allowedModules.filter(m => m.href !== '/dashboard/combos');
+    allowedModules = allowedModules.filter(m => m.href !== '/dashboard/kits' && m.href !== '/dashboard/combos');
   }
 
   // Asegurar que Documentación siempre esté disponible para todos los usuarios

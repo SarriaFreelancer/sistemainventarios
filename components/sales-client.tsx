@@ -189,8 +189,8 @@ function NewSaleDialog({
     // Validación de política de stock comprometido
     if (enableCombos && !allowSaleFromCommittedCombos && committed > 0 && targetQty > freeStock && status === 'COMPLETED' && !allowNegativeStock) {
       errorAlert(
-        'Stock Comprometido en Combos',
-        `No puedes agregar más de ${freeStock} unidad(es) de "${product.name}" porque las demás (${committed} u.) están reservadas en combos activos y la política de venta de stock comprometido está desactivada.`
+        'Stock Comprometido en Kits',
+        `No puedes agregar más de ${freeStock} unidad(es) de "${product.name}" porque las demás (${committed} u.) están reservadas en kits activos y la política de venta de stock comprometido está desactivada.`
       );
       return;
     }
@@ -224,8 +224,8 @@ function NewSaleDialog({
   const addComboToCart = (combo: Combo) => {
     if (!allowNegativeStock && combo.completeCombos <= 0 && status === 'COMPLETED') {
       errorAlert(
-        'Combo Incompleto',
-        `No hay suficientes existencias de los productos componentes para armar el combo "${combo.name}".`
+        'Kit Incompleto',
+        `No hay suficientes existencias de los productos componentes para armar el kit "${combo.name}".`
       );
       return;
     }
@@ -234,7 +234,7 @@ function NewSaleDialog({
       const existing = prev.find(i => i.isCombo && i.comboId === String(combo.id));
       if (existing) {
         if (!allowNegativeStock && existing.quantity >= combo.completeCombos && status === 'COMPLETED') {
-          errorAlert('Límite de Combos Disponibles', `Solo hay ${combo.completeCombos} combo(s) disponibles para armar con el inventario actual.`);
+          errorAlert('Límite de Kits Disponibles', `Solo hay ${combo.completeCombos} kit(s) disponibles para armar con el inventario actual.`);
           return prev;
         }
         return prev.map(i => (i.isCombo && i.comboId === String(combo.id)) ? { ...i, quantity: i.quantity + 1 } : i);
@@ -410,7 +410,7 @@ function NewSaleDialog({
               <span className="w-2 h-7 bg-gradient-to-b from-primary to-[#C5A059] rounded-full" />
               Registrar Nueva Venta
             </DialogTitle>
-            <p className="text-sm text-muted-foreground mt-1">Busca productos o combos, ajusta cantidades y descuentos, luego confirma la venta.</p>
+            <p className="text-sm text-muted-foreground mt-1">Busca productos o kits, ajusta cantidades y descuentos, luego confirma la venta.</p>
           </DialogHeader>
 
           {/* Form Content Area: Two Column Layout */}
@@ -452,7 +452,7 @@ function NewSaleDialog({
                     }`}
                   >
                     <Layers className="w-3.5 h-3.5" />
-                    Combos ({combos.length})
+                    Kits ({combos.length})
                   </button>
                 </div>
               )}
@@ -460,7 +460,7 @@ function NewSaleDialog({
               {/* Product / Combo Search */}
               <div className="space-y-1.5 relative">
                 <Label className={labelCls}>
-                  {searchTab === 'COMBOS' ? 'Buscar Combos' : searchTab === 'PRODUCTS' ? 'Buscar Productos' : 'Buscar Productos o Combos'}
+                  {searchTab === 'COMBOS' ? 'Buscar Kits' : searchTab === 'PRODUCTS' ? 'Buscar Productos' : 'Buscar Productos o Kits'}
                 </Label>
                 <div className="relative">
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
@@ -468,10 +468,10 @@ function NewSaleDialog({
                     type="text"
                     placeholder={
                       searchTab === 'COMBOS'
-                        ? 'Escribe código o nombre del combo...'
+                        ? 'Escribe código o nombre del kit...'
                         : searchTab === 'PRODUCTS'
                         ? 'Escribe código o nombre del producto...'
-                        : 'Escribe código o nombre del producto o combo...'
+                        : 'Escribe código o nombre del producto o kit...'
                     }
                     value={productSearch}
                     onChange={e => setProductSearch(e.target.value)}
@@ -498,7 +498,7 @@ function NewSaleDialog({
                           <div>
                             <span className="text-sm text-foreground font-semibold flex items-center gap-1.5">
                               {c.name}
-                              <span className="text-[9px] uppercase px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-600 font-extrabold">COMBO</span>
+                              <span className="text-[9px] uppercase px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-600 font-extrabold">KIT</span>
                             </span>
                             <p className="text-[10px] text-muted-foreground">
                               {c.items.length} componentes · {c.items.map(it => `${it.quantity}x ${it.product.name}`).join(', ')}
@@ -510,7 +510,7 @@ function NewSaleDialog({
                             {c.finalPrice.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
                           </p>
                           <p className={`text-[10px] font-bold ${c.completeCombos > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                            {c.completeCombos > 0 ? `Disponibles: ${c.completeCombos} combos` : 'Agotado'}
+                            {c.completeCombos > 0 ? `Disponibles: ${c.completeCombos} kits` : 'Agotado'}
                           </p>
                         </div>
                       </button>
@@ -541,7 +541,7 @@ function NewSaleDialog({
 
                 {productSearch && filteredProducts.length === 0 && filteredCombos.length === 0 && (
                   <div className="absolute top-full left-0 right-0 z-50 rounded-xl border border-border bg-card shadow-xl mt-1 px-4 py-3">
-                    <p className="text-sm text-muted-foreground">No se encontraron productos ni combos con ese criterio.</p>
+                    <p className="text-sm text-muted-foreground">No se encontraron productos ni kits con ese criterio.</p>
                   </div>
                 )}
               </div>
@@ -550,7 +550,7 @@ function NewSaleDialog({
               {cart.length > 0 && (
                 <div className="grid grid-cols-[1.5rem_1fr_6rem_5rem_5rem_1.5rem] gap-x-2 px-2 shrink-0">
                   <span />
-                  <span className={labelCls}>Ítem / Combo</span>
+                  <span className={labelCls}>Ítem / Kit</span>
                   <span className={`${labelCls} text-center`}>Cantidad</span>
                   <span className={`${labelCls} text-center`}>Descuento</span>
                   <span className={`${labelCls} text-right`}>Subtotal</span>
@@ -564,7 +564,7 @@ function NewSaleDialog({
                   <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground/50 py-12">
                     <ShoppingBag className="h-12 w-12 mb-3 opacity-20" />
                     <p className="text-sm font-medium">El carrito está vacío</p>
-                    <p className="text-xs mt-1 opacity-70">Busca un producto o combo arriba para agregarlo</p>
+                    <p className="text-xs mt-1 opacity-70">Busca un producto o kit arriba para agregarlo</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -585,7 +585,7 @@ function NewSaleDialog({
                           <div className="flex items-center gap-1.5">
                             {item.isCombo && (
                               <span className="text-[9px] font-bold px-1 py-0.2 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 inline-flex items-center gap-0.5">
-                                <Layers className="w-2.5 h-2.5" /> COMBO
+                                <Layers className="w-2.5 h-2.5" /> KIT
                               </span>
                             )}
                             <p className="text-xs font-semibold text-foreground truncate">{item.name}</p>
@@ -1387,8 +1387,8 @@ function SaleDetailDialog({ sale, invoiceConfig }: { sale: Sale; invoiceConfig?:
             <div className="rounded-xl border border-border/60 overflow-hidden bg-muted/5">
               {sale.details.map(d => {
                 const isCombo = d.isCombo || Boolean(d.comboId);
-                const itemName = isCombo ? (d.comboName || d.combo?.name || 'Combo') : (d.product?.name || 'Producto');
-                const itemCode = isCombo ? (d.combo?.code || 'CMB') : (d.product?.code || '—');
+                const itemName = isCombo ? (d.comboName || d.combo?.name || 'Kit') : (d.product?.name || 'Producto');
+                const itemCode = isCombo ? (d.combo?.code || 'KIT') : (d.product?.code || '—');
 
                 return (
                   <div key={d.id} className="flex items-center justify-between px-3 py-2.5 border-b border-border/40 last:border-b-0 text-xs">

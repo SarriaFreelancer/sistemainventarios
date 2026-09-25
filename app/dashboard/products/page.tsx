@@ -4,7 +4,7 @@ import { getSessionCompanyId } from '@/lib/session';
 import { ProductsClient } from '@/components/products-client';
 import { redirect } from 'next/navigation';
 import { getPlanLimits } from '@/lib/plans';
-import { getProductsCommittedStockMap } from '@/app/actions/combo-actions';
+import { getProductsCommittedStockMap } from '@/app/actions/kit-actions';
 
 export const metadata = {
   title: 'Productos · GNS',
@@ -49,10 +49,12 @@ export default async function ProductsPage() {
   let committedStockMap: Record<string, { committedInCombos: number; combosInvolved: any[] }> = {};
   if (enableCombos) {
     const committedRes = await getProductsCommittedStockMap();
-    if (committedRes.success && committedRes.map) {
-      // Convertir keys numéricas a string para compatibilidad
-      for (const [k, v] of Object.entries(committedRes.map)) {
-        committedStockMap[String(k)] = v;
+    if (committedRes && typeof committedRes === 'object') {
+      for (const [k, v] of Object.entries(committedRes)) {
+        committedStockMap[String(k)] = {
+          committedInCombos: v.committedInCombos,
+          combosInvolved: v.combosDetails || [],
+        };
       }
     }
   }

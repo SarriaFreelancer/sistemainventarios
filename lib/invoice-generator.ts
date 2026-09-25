@@ -209,14 +209,14 @@ export async function generateInvoiceMedia(sale: InvoiceData, format: 'png' | 'j
     ctx.fillStyle = '#17121F';
     ctx.textAlign = 'left';
     const rawName = item.isCombo
-      ? `[COMBO] ${item.comboName || item.combo?.name || 'Combo'}`
+      ? `[KIT] ${item.comboName || item.combo?.name || 'Kit'}`
       : (item.product?.name || 'Producto');
     const pName = rawName.length > 40 ? rawName.substring(0, 38) + '...' : rawName;
     ctx.fillText(pName, 45, yCursor);
 
     // Product code in secondary color
     const rawCode = item.isCombo
-      ? (item.combo?.code || 'COMBO')
+      ? (item.combo?.code || 'KIT')
       : (item.product?.code || '—');
     ctx.font = '10px sans-serif';
     ctx.fillStyle = config.secondaryColor;

@@ -707,10 +707,10 @@ export function ProductsClient(props: {
                                 <div className="flex flex-col gap-0.5">
                                   <span
                                     className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 max-w-fit cursor-help"
-                                    title={`Comprometido en combos:\n${committedData.combosInvolved.map(c => `• ${c.comboName}: ${c.requiredQty} u. x ${c.completeCombos} combo(s)`).join('\n')}`}
+                                    title={`Comprometido en kits:\n${committedData.combosInvolved.map(c => `• ${c.comboName}: ${c.requiredQty} u. x ${c.completeCombos} kit(s)`).join('\n')}`}
                                   >
                                     <Layers className="w-2.5 h-2.5 shrink-0" />
-                                    {committedData.committedInCombos} en combos
+                                    {committedData.committedInCombos} en kits
                                   </span>
                                   <span className="text-[10px] text-muted-foreground font-medium">
                                     ({freeStock} libre{freeStock === 1 ? '' : 's'})
@@ -998,7 +998,7 @@ export function ProductsClient(props: {
                           <div className="mt-1 flex flex-col items-end gap-0.5">
                             <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 inline-flex items-center gap-1">
                               <Layers className="w-2.5 h-2.5" />
-                              {committedData.committedInCombos} en combos
+                              {committedData.committedInCombos} en kits
                             </span>
                             <span className="text-[9px] text-muted-foreground">({freeStock} libre{freeStock === 1 ? '' : 's'})</span>
                           </div>

@@ -1362,19 +1362,19 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
               </div>
             </div>
 
-            {/* SECCIÓN MÓDULO COMBOS */}
+            {/* SECCIÓN MÓDULO KITS */}
             <div className="space-y-4 border-t border-border/60 pt-6 mt-4">
               <h3 className="text-base font-bold text-foreground flex items-center gap-2">
                 <Layers size={18} className="text-primary" />
-                Módulo de Combos & Paquetes Comerciales
+                Módulo de Kits Comerciales (Inventario → Kits)
               </h3>
               <p className="text-xs text-muted-foreground -mt-2">Permite crear y comercializar paquetes de productos existentes con precios especiales sin duplicar inventario físico.</p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex items-center justify-between p-4 border border-border/80 bg-muted/10 rounded-2xl">
                   <div>
-                    <p className="text-sm font-bold text-foreground">Habilitar Módulo de Combos</p>
-                    <p className="text-xs text-muted-foreground">Muestra la sección de Combos en el menú, en el punto de venta y habilita su administración.</p>
+                    <p className="text-sm font-bold text-foreground">Habilitar Módulo de Kits</p>
+                    <p className="text-xs text-muted-foreground">Muestra la sección de Kits en el menú de inventario, en el punto de venta y habilita su administración.</p>
                   </div>
                   <input
                     type="checkbox"
@@ -1387,7 +1387,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
                 <div className="flex items-center justify-between p-4 border border-border/80 bg-muted/10 rounded-2xl">
                   <div>
                     <p className="text-sm font-bold text-foreground">Venta desde Productos Comprometidos</p>
-                    <p className="text-xs text-muted-foreground">Permite vender unidades individuales comprometidas en combos preguntando si se desea descompletarlos.</p>
+                    <p className="text-xs text-muted-foreground">Permite vender unidades individuales comprometidas en kits preguntando si se desea descompletarlos.</p>
                   </div>
                   <input
                     type="checkbox"

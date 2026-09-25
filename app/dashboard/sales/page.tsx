@@ -3,7 +3,7 @@ import { getAuthSession } from '@/auth';
 import { getSessionCompanyId } from '@/lib/session';
 import { SalesClient } from '@/components/sales-client';
 import { redirect } from 'next/navigation';
-import { getCombos } from '@/app/actions/combo-actions';
+import { getKits } from '@/app/actions/kit-actions';
 
 export const metadata = {
   title: 'Ventas · GNS',
@@ -41,7 +41,7 @@ export default async function SalesPage() {
       where: whereTenant,
       orderBy: { name: 'asc' },
     }),
-    getCombos(),
+    getKits(),
     companyId
       ? prisma.companySetting.findUnique({ where: { companyId } })
       : prisma.companySetting.findFirst(),
