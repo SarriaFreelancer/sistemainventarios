@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Layers,
@@ -23,6 +24,7 @@ import {
   AlertTriangle,
   Sparkles,
   Info,
+  ShoppingBag,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -493,6 +495,17 @@ export function KitsClient({
                     </button>
 
                     <div className="flex items-center gap-1">
+                      {kit.isActive && hasStock && (
+                        <Link
+                          href="/dashboard/sales"
+                          className="h-8 px-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm shadow-purple-600/20 transition active:scale-95"
+                          title="Vender este kit en el POS"
+                        >
+                          <ShoppingBag className="h-3.5 w-3.5" />
+                          <span>Vender</span>
+                        </Link>
+                      )}
+
                       <button
                         type="button"
                         onClick={() => handleOpenDetailModal(kit)}
