@@ -178,7 +178,7 @@ function NewSaleDialog({
   const subtotal = cart.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
   const total = Math.max(0, subtotal - discount - cart.reduce((s, i) => s + i.discount, 0));
 
-  const addProductToCart = (product: Product) => {
+  const addProductToCart = async (product: Product) => {
     const committed = committedStockMap[Number(product.id)] || 0;
     const freeStock = Math.max(0, product.quantityAvailable - committed);
 
@@ -193,6 +193,44 @@ function NewSaleDialog({
         `No puedes agregar más de ${freeStock} unidad(es) de "${product.name}" porque las demás (${committed} u.) están reservadas en kits activos y la política de venta de stock comprometido está desactivada.`
       );
       return;
+    }
+
+    if (enableCombos && allowSaleFromCommittedCombos && committed > 0 && targetQty > freeStock && status === 'COMPLETED' && !allowNegativeStock) {
+      const missing = targetQty - freeStock;
+      const { default: Swal } = await import('sweetalert2');
+      const res = await Swal.fire({
+        icon: 'warning',
+        title: '⚠️ Producto Comprometido en Kits',
+        html: `
+          <div class="text-left text-xs space-y-3 text-slate-700 dark:text-slate-300">
+            <p>Este producto hace parte de uno o varios kits comerciales.</p>
+            <div class="p-3 bg-slate-100 dark:bg-slate-800/80 rounded-2xl space-y-1.5 font-mono text-[11px] border border-slate-200 dark:border-slate-700">
+              <div class="flex justify-between"><span>Existencia física:</span> <strong>${product.quantityAvailable}</strong></div>
+              <div class="flex justify-between"><span>Comprometido en kits:</span> <strong class="text-purple-600 dark:text-purple-400">${committed}</strong></div>
+              <div class="flex justify-between"><span>Disponible sin kits:</span> <strong class="text-emerald-600 dark:text-emerald-400">${freeStock}</strong></div>
+              <hr class="border-slate-300 dark:border-slate-700 my-1"/>
+              <div class="flex justify-between"><span>Necesitas:</span> <strong>${targetQty}</strong></div>
+              <div class="flex justify-between"><span>Disponible libre:</span> <strong>${freeStock}</strong></div>
+              <div class="flex justify-between text-amber-600 font-bold"><span>Faltan:</span> <strong>${missing}</strong></div>
+            </div>
+            <p class="pt-1 font-semibold text-slate-800 dark:text-slate-200">¿Deseas descompletar kits para liberar ${missing} unidad(es) y continuar con la venta?</p>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Descompletar kits y continuar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#7c3aed',
+        cancelButtonColor: '#64748b',
+        customClass: {
+          popup: 'rounded-3xl border border-slate-200 dark:border-slate-800 p-6 bg-white dark:bg-[#0b1329]',
+          confirmButton: 'rounded-xl px-5 py-2.5 font-bold text-xs cursor-pointer',
+          cancelButton: 'rounded-xl px-5 py-2.5 font-bold text-xs cursor-pointer'
+        }
+      });
+
+      if (!res.isConfirmed) {
+        return;
+      }
     }
 
     if (!allowNegativeStock && targetQty > product.quantityAvailable && status === 'COMPLETED') {
@@ -256,18 +294,64 @@ function NewSaleDialog({
     setProductSearch('');
   };
 
-  const updateQty = (itemId: string, qty: number) => {
+  const updateQty = async (itemId: string, qty: number) => {
+    const item = cart.find(i => i.id === itemId);
+    if (!item) return;
+
+    if (!item.isCombo && item.productId && qty > item.quantity) {
+      const prodId = Number(item.productId);
+      const committed = committedStockMap[prodId] || 0;
+      const freeStock = Math.max(0, item.maxQty - committed);
+
+      if (enableCombos && !allowSaleFromCommittedCombos && committed > 0 && qty > freeStock && status === 'COMPLETED' && !allowNegativeStock) {
+        errorAlert(
+          'Stock Comprometido en Kits',
+          `No puedes vender más de ${freeStock} unidad(es) porque las demás (${committed} u.) están comprometidas en kits.`
+        );
+        return;
+      }
+
+      if (enableCombos && allowSaleFromCommittedCombos && committed > 0 && qty > freeStock && status === 'COMPLETED' && !allowNegativeStock) {
+        const missing = qty - freeStock;
+        const { default: Swal } = await import('sweetalert2');
+        const res = await Swal.fire({
+          icon: 'warning',
+          title: '⚠️ Producto Comprometido en Kits',
+          html: `
+            <div class="text-left text-xs space-y-3 text-slate-700 dark:text-slate-300">
+              <p>Este producto hace parte de uno o varios kits comerciales.</p>
+              <div class="p-3 bg-slate-100 dark:bg-slate-800/80 rounded-2xl space-y-1.5 font-mono text-[11px] border border-slate-200 dark:border-slate-700">
+                <div class="flex justify-between"><span>Existencia física:</span> <strong>${item.maxQty}</strong></div>
+                <div class="flex justify-between"><span>Comprometido en kits:</span> <strong class="text-purple-600 dark:text-purple-400">${committed}</strong></div>
+                <div class="flex justify-between"><span>Disponible sin kits:</span> <strong class="text-emerald-600 dark:text-emerald-400">${freeStock}</strong></div>
+                <hr class="border-slate-300 dark:border-slate-700 my-1"/>
+                <div class="flex justify-between"><span>Cantidad solicitada:</span> <strong>${qty}</strong></div>
+                <div class="flex justify-between text-amber-600 font-bold"><span>Faltan libres:</span> <strong>${missing}</strong></div>
+              </div>
+              <p class="pt-1 font-semibold text-slate-800 dark:text-slate-200">¿Deseas descompletar kits para liberar ${missing} unidad(es)?</p>
+            </div>
+          `,
+          showCancelButton: true,
+          confirmButtonText: 'Descompletar kits y continuar',
+          cancelButtonText: 'Cancelar',
+          confirmButtonColor: '#7c3aed',
+          cancelButtonColor: '#64748b',
+          customClass: {
+            popup: 'rounded-3xl border border-slate-200 dark:border-slate-800 p-6 bg-white dark:bg-[#0b1329]',
+            confirmButton: 'rounded-xl px-5 py-2.5 font-bold text-xs cursor-pointer',
+            cancelButton: 'rounded-xl px-5 py-2.5 font-bold text-xs cursor-pointer'
+          }
+        });
+
+        if (!res.isConfirmed) {
+          return;
+        }
+      }
+    }
+
     setCart(prev => prev.map(i => {
       if (i.id === itemId) {
-        let maxLimit = i.maxQty;
-        // Si es producto y la política de comprometidos está desactivada
-        if (!i.isCombo && enableCombos && !allowSaleFromCommittedCombos && i.productId) {
-          const committed = committedStockMap[Number(i.productId)] || 0;
-          if (committed > 0) {
-            maxLimit = Math.max(0, i.maxQty - committed);
-          }
-        }
-        const targetQty = status === 'COMPLETED' && !allowNegativeStock ? Math.min(Math.max(1, qty), maxLimit) : Math.max(1, qty);
+        const targetQty = status === 'COMPLETED' && !allowNegativeStock ? Math.min(Math.max(1, qty), i.maxQty) : Math.max(1, qty);
         return { ...i, quantity: targetQty };
       }
       return i;

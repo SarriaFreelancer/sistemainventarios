@@ -1364,40 +1364,83 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
 
             {/* SECCIÓN MÓDULO KITS */}
             <div className="space-y-4 border-t border-border/60 pt-6 mt-4">
-              <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-                <Layers size={18} className="text-primary" />
-                Módulo de Kits Comerciales (Inventario → Kits)
-              </h3>
-              <p className="text-xs text-muted-foreground -mt-2">Permite crear y comercializar paquetes de productos existentes con precios especiales sin duplicar inventario físico.</p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex items-center justify-between p-4 border border-border/80 bg-muted/10 rounded-2xl">
-                  <div>
-                    <p className="text-sm font-bold text-foreground">Habilitar Módulo de Kits</p>
-                    <p className="text-xs text-muted-foreground">Muestra la sección de Kits en el menú de inventario, en el punto de venta y habilita su administración.</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={enableCombos}
-                    onChange={(e) => setEnableCombos(e.target.checked)}
-                    className="w-4 h-4 text-primary bg-muted rounded border-border focus:ring-primary cursor-pointer"
-                  />
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                    <Layers size={18} className="text-primary" />
+                    Módulo de Kits Comerciales (Inventario → Kits)
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Permite crear y comercializar paquetes de productos existentes con precios y descuentos especiales sin duplicar inventario físico.
+                  </p>
                 </div>
-
-                <div className="flex items-center justify-between p-4 border border-border/80 bg-muted/10 rounded-2xl">
-                  <div>
-                    <p className="text-sm font-bold text-foreground">Venta desde Productos Comprometidos</p>
-                    <p className="text-xs text-muted-foreground">Permite vender unidades individuales comprometidas en kits preguntando si se desea descompletarlos.</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={allowSaleFromCommittedCombos}
-                    onChange={(e) => setAllowSaleFromCommittedCombos(e.target.checked)}
-                    disabled={!enableCombos}
-                    className="w-4 h-4 text-primary bg-muted rounded border-border focus:ring-primary cursor-pointer disabled:opacity-40"
-                  />
-                </div>
+                <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border ${
+                  enableCombos
+                    ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                    : 'bg-muted text-muted-foreground border-border'
+                }`}>
+                  {enableCombos ? 'MÓDULO ACTIVO' : 'MÓDULO INACTIVO'}
+                </span>
               </div>
+
+              {/* Interruptor Principal */}
+              <div className="flex items-center justify-between p-4 border border-border/80 bg-muted/10 rounded-2xl">
+                <div>
+                  <p className="text-sm font-bold text-foreground">Habilitar Módulo de Kits</p>
+                  <p className="text-xs text-muted-foreground">
+                    Muestra la sección de Kits en el menú de Inventario, activa el selector de Kits en el POS de ventas y habilita su administración.
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={enableCombos}
+                  onChange={(e) => setEnableCombos(e.target.checked)}
+                  className="w-5 h-5 text-primary bg-muted rounded border-border focus:ring-primary cursor-pointer shrink-0 ml-3"
+                />
+              </div>
+
+              {/* Sub-opciones y configuraciones avanzadas: Solo visibles cuando el módulo está activo */}
+              {enableCombos ? (
+                <div className="p-4 rounded-2xl bg-muted/30 border border-border/80 space-y-4">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5 text-primary" />
+                    Comportamiento y Políticas de Venta de Kits
+                  </h4>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Opción 1: Venta desde productos comprometidos */}
+                    <div className="flex items-start justify-between p-4 border border-border bg-card rounded-2xl space-x-3">
+                      <div>
+                        <p className="text-sm font-bold text-foreground">Venta desde Productos Comprometidos</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Si está habilitada, el vendedor puede vender unidades individuales comprometidas en kits; el sistema solicitará confirmación interactiva para descompletar kits. Si está deshabilitada, la venta individual quedará bloqueada.
+                        </p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={allowSaleFromCommittedCombos}
+                        onChange={(e) => setAllowSaleFromCommittedCombos(e.target.checked)}
+                        className="w-5 h-5 text-primary bg-muted rounded border-border focus:ring-primary cursor-pointer shrink-0 mt-0.5"
+                      />
+                    </div>
+
+                    {/* Opción 2: Resumen de Recompletado Dinámico */}
+                    <div className="p-4 border border-border bg-card rounded-2xl space-y-1">
+                      <p className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                        <Boxes className="h-4 w-4 text-emerald-500" />
+                        Recompletado y Stock Dinámico
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Los kits se calculan en tiempo real según el producto limitante: <code className="text-[10px] bg-muted px-1 py-0.5 rounded font-mono">MIN(stock/cant_req)</code>. Al recibir compras o entradas, los kits se recompletan automáticamente.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3.5 rounded-2xl bg-muted/20 border border-dashed border-border text-center text-xs text-muted-foreground">
+                  El módulo de Kits está desactivado. No se ejecutarán validaciones de kits en inventario ni aparecerán en el punto de venta.
+                </div>
+              )}
             </div>
           </div>
         )}
