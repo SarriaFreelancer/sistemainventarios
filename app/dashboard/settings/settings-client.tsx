@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { Building, Boxes, ShieldAlert, SlidersHorizontal, Receipt, Upload, Sparkles, Server, ArrowRightLeft, Database, KeyRound, DownloadCloud, Bell, Mail, Loader2, Save, Image as ImageIcon, Trash2, Clock, LayoutTemplate, Monitor, Shield, Palette, Code2, ChevronDown, ChevronUp, Check, Menu, ListFilter } from "lucide-react";
+import { Building, Boxes, ShieldAlert, SlidersHorizontal, Receipt, Upload, Sparkles, Server, ArrowRightLeft, Database, KeyRound, DownloadCloud, Bell, Mail, Loader2, Save, Image as ImageIcon, Trash2, Clock, LayoutTemplate, Monitor, Shield, Palette, Code2, ChevronDown, ChevronUp, Check, Menu, ListFilter, Layers } from "lucide-react";
 import { updateCompanySettings, uploadCompanyLogo, uploadCompanyBackgroundImage } from "@/app/actions/settings-actions";
 import { generateDemoData, clearDemoData } from "@/app/actions/demo-actions";
 import { successAlert, errorAlert } from "@/lib/sweetalert";
@@ -149,6 +149,9 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
   const [autoExpenseOnWriteOff, setAutoExpenseOnWriteOff] = useState((initialSettings as any).autoExpenseOnWriteOff ?? true);
   // Módulo WMS Bodegas
   const [enableWarehouses, setEnableWarehouses] = useState((initialSettings as any).enableWarehouses ?? false);
+  // Módulo Combos
+  const [enableCombos, setEnableCombos] = useState((initialSettings as any).enableCombos ?? false);
+  const [allowSaleFromCommittedCombos, setAllowSaleFromCommittedCombos] = useState((initialSettings as any).allowSaleFromCommittedCombos ?? false);
 
   // Facturación Personalizada
   const initialInvoiceConfig = (initialSettings as any).invoiceConfig || {};
@@ -240,6 +243,8 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
       enable2FA,
       allowAuditDeletion,
       enableWarehouses,
+      enableCombos,
+      allowSaleFromCommittedCombos,
       smtpHost,
       smtpPort: smtpPort ? Number(smtpPort) : null,
       smtpUser,
@@ -1354,6 +1359,44 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
                   onChange={(e) => setEnableWarehouses(e.target.checked)}
                   className="w-4 h-4 text-primary bg-muted rounded border-border focus:ring-primary cursor-pointer"
                 />
+              </div>
+            </div>
+
+            {/* SECCIÓN MÓDULO COMBOS */}
+            <div className="space-y-4 border-t border-border/60 pt-6 mt-4">
+              <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                <Layers size={18} className="text-primary" />
+                Módulo de Combos & Paquetes Comerciales
+              </h3>
+              <p className="text-xs text-muted-foreground -mt-2">Permite crear y comercializar paquetes de productos existentes con precios especiales sin duplicar inventario físico.</p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex items-center justify-between p-4 border border-border/80 bg-muted/10 rounded-2xl">
+                  <div>
+                    <p className="text-sm font-bold text-foreground">Habilitar Módulo de Combos</p>
+                    <p className="text-xs text-muted-foreground">Muestra la sección de Combos en el menú, en el punto de venta y habilita su administración.</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={enableCombos}
+                    onChange={(e) => setEnableCombos(e.target.checked)}
+                    className="w-4 h-4 text-primary bg-muted rounded border-border focus:ring-primary cursor-pointer"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-4 border border-border/80 bg-muted/10 rounded-2xl">
+                  <div>
+                    <p className="text-sm font-bold text-foreground">Venta desde Productos Comprometidos</p>
+                    <p className="text-xs text-muted-foreground">Permite vender unidades individuales comprometidas en combos preguntando si se desea descompletarlos.</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={allowSaleFromCommittedCombos}
+                    onChange={(e) => setAllowSaleFromCommittedCombos(e.target.checked)}
+                    disabled={!enableCombos}
+                    className="w-4 h-4 text-primary bg-muted rounded border-border focus:ring-primary cursor-pointer disabled:opacity-40"
+                  />
+                </div>
               </div>
             </div>
           </div>

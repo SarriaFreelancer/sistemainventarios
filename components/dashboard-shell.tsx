@@ -36,6 +36,8 @@ import {
   Clock,
   Sparkles,
   CreditCard,
+  Layers,
+  PackageOpen,
 } from 'lucide-react';
 
 const LucideIcons = {
@@ -69,6 +71,8 @@ const LucideIcons = {
   Clock,
   Sparkles,
   CreditCard,
+  Layers,
+  PackageOpen,
 };
 import { cn } from '@/lib/utils';
 import { NotificationBell } from '@/components/notification-bell';

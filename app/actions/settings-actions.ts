@@ -255,6 +255,9 @@ export async function updateCompanySettings(data: any) {
         allowAuditDeletion: data.allowAuditDeletion !== undefined ? Boolean(data.allowAuditDeletion) : undefined,
         enableWarehouses: data.enableWarehouses !== undefined ? Boolean(data.enableWarehouses) : undefined,
         autoExpenseOnWriteOff: data.autoExpenseOnWriteOff !== undefined ? Boolean(data.autoExpenseOnWriteOff) : undefined,
+        // Gestión de Combos
+        enableCombos: data.enableCombos !== undefined ? Boolean(data.enableCombos) : undefined,
+        allowSaleFromCommittedCombos: data.allowSaleFromCommittedCombos !== undefined ? Boolean(data.allowSaleFromCommittedCombos) : undefined,
       }
     });
 

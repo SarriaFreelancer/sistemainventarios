@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   ShoppingBag, Plus, Trash2, Search, FileDown,
-  TrendingUp, DollarSign, Receipt, Calendar, X, Package, Check, Download, AlertTriangle
+  TrendingUp, DollarSign, Receipt, Calendar, X, Package, Check, Download, AlertTriangle, Layers, Sparkles
 } from "lucide-react";
 import { confirmAction, successAlert, errorAlert, brandAlert } from "@/lib/sweetalert";
 // ExcelJS se importa dinámicamente cuando se necesita exportar (await import('exceljs'))
@@ -31,15 +31,40 @@ interface Product {
   quantityAvailable: number;
 }
 
+interface Combo {
+  id: number;
+  code?: string | null;
+  name: string;
+  description?: string | null;
+  finalPrice: number;
+  completeCombos: number;
+  statusAvailability: 'COMPLETE' | 'INCOMPLETE' | 'OUT_OF_STOCK';
+  items: {
+    id: number;
+    productId: number;
+    quantity: number;
+    product: {
+      id: number;
+      name: string;
+      code: string;
+      quantityAvailable: number;
+    };
+  }[];
+}
+
 interface SaleDetail {
   id: string;
-  productId: string;
+  productId?: string | null;
+  comboId?: string | null;
+  comboName?: string | null;
+  isCombo?: boolean;
   quantity: number;
   unitPrice: number;
   subtotal: number;
   discount: number;
   total: number;
-  product: { name: string; code: string };
+  product?: { name: string; code: string } | null;
+  combo?: { name: string; code?: string | null } | null;
 }
 
 interface Sale {
@@ -61,13 +86,17 @@ interface Sale {
 }
 
 interface CartItem {
-  productId: string;
-  code: string;
+  id: string; // unique key for react (productId o combo-comboId)
+  productId?: string | null;
+  comboId?: string | null;
+  isCombo?: boolean;
+  code?: string | null;
   name: string;
   quantity: number;
   unitPrice: number;
   maxQty: number;
   discount: number; // Row-level discount
+  items?: any[];
 }
 
 const PAYMENT_METHODS = ['EFECTIVO', 'TARJETA', 'TRANSFERENCIA', 'NEQUI', 'DAVIPLATA', 'OTRO'];
@@ -76,7 +105,25 @@ const inputCls = "bg-card border border-border focus:border-primary focus:ring-4
 const selectCls = "flex h-10 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all duration-300";
 const labelCls = "text-[10px] font-bold uppercase tracking-wider text-muted-foreground";
 
-function NewSaleDialog({ products, customers, userId, onSuccess, allowNegativeStock = false }: { products: Product[]; customers: { id: string; name: string; code: string }[]; userId: string; onSuccess?: () => void; allowNegativeStock?: boolean }) {
+function NewSaleDialog({
+  products,
+  customers,
+  combos = [],
+  userId,
+  onSuccess,
+  allowNegativeStock = false,
+  enableCombos = false,
+  allowSaleFromCommittedCombos = false,
+}: {
+  products: Product[];
+  customers: { id: string; name: string; code: string }[];
+  combos?: Combo[];
+  userId: string;
+  onSuccess?: () => void;
+  allowNegativeStock?: boolean;
+  enableCombos?: boolean;
+  allowSaleFromCommittedCombos?: boolean;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -91,29 +138,78 @@ function NewSaleDialog({ products, customers, userId, onSuccess, allowNegativeSt
   const [remarks, setRemarks] = useState('');
   const [status, setStatus] = useState<'PENDING' | 'COMPLETED'>('COMPLETED');
   const [productSearch, setProductSearch] = useState('');
+  const [searchTab, setSearchTab] = useState<'ALL' | 'PRODUCTS' | 'COMBOS'>('ALL');
   const [isPending, startTransition] = useTransition();
 
+  // Calcular mapa de stock comprometido para validación de política
+  const committedStockMap = useMemo(() => {
+    if (!enableCombos) return {};
+    const map: Record<number, number> = {};
+    for (const combo of combos) {
+      if (combo.completeCombos > 0) {
+        for (const it of combo.items) {
+          map[it.productId] = (map[it.productId] || 0) + (combo.completeCombos * it.quantity);
+        }
+      }
+    }
+    return map;
+  }, [combos, enableCombos]);
+
   const filteredProducts = useMemo(() => {
+    if (searchTab === 'COMBOS') return [];
     const q = productSearch.toLowerCase();
     if (!q) return [];
     return products.filter(p =>
       (status === 'PENDING' || allowNegativeStock || p.quantityAvailable > 0) &&
       (p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q))
     ).slice(0, 5);
-  }, [products, productSearch, status, allowNegativeStock]);
+  }, [products, productSearch, status, allowNegativeStock, searchTab]);
+
+  const filteredCombos = useMemo(() => {
+    if (!enableCombos || searchTab === 'PRODUCTS') return [];
+    const q = productSearch.toLowerCase();
+    if (!q) return [];
+    return combos.filter(c =>
+      (status === 'PENDING' || allowNegativeStock || c.completeCombos > 0) &&
+      (c.name.toLowerCase().includes(q) || (c.code ? c.code.toLowerCase().includes(q) : false))
+    ).slice(0, 5);
+  }, [combos, productSearch, status, allowNegativeStock, enableCombos, searchTab]);
 
   const subtotal = cart.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
   const total = Math.max(0, subtotal - discount - cart.reduce((s, i) => s + i.discount, 0));
 
-  const addToCart = (product: Product) => {
+  const addProductToCart = (product: Product) => {
+    const committed = committedStockMap[Number(product.id)] || 0;
+    const freeStock = Math.max(0, product.quantityAvailable - committed);
+
+    const existing = cart.find(i => !i.isCombo && i.productId === product.id);
+    const currentQty = existing ? existing.quantity : 0;
+    const targetQty = currentQty + 1;
+
+    // Validación de política de stock comprometido
+    if (enableCombos && !allowSaleFromCommittedCombos && committed > 0 && targetQty > freeStock && status === 'COMPLETED' && !allowNegativeStock) {
+      errorAlert(
+        'Stock Comprometido en Combos',
+        `No puedes agregar más de ${freeStock} unidad(es) de "${product.name}" porque las demás (${committed} u.) están reservadas en combos activos y la política de venta de stock comprometido está desactivada.`
+      );
+      return;
+    }
+
+    if (!allowNegativeStock && targetQty > product.quantityAvailable && status === 'COMPLETED') {
+      errorAlert('Stock Insuficiente', `Solo hay ${product.quantityAvailable} unidades disponibles de "${product.name}".`);
+      return;
+    }
+
     setCart(prev => {
-      const existing = prev.find(i => i.productId === product.id);
-      if (existing) {
-        if (!allowNegativeStock && existing.quantity >= existing.maxQty && status === 'COMPLETED') return prev;
-        return prev.map(i => i.productId === product.id ? { ...i, quantity: i.quantity + 1 } : i);
+      const idx = prev.findIndex(i => !i.isCombo && i.productId === product.id);
+      if (idx >= 0) {
+        return prev.map((i, index) => index === idx ? { ...i, quantity: i.quantity + 1 } : i);
       }
       return [...prev, {
+        id: `prod-${product.id}`,
         productId: product.id,
+        comboId: null,
+        isCombo: false,
         code: product.code,
         name: product.name,
         quantity: 1,
@@ -125,40 +221,86 @@ function NewSaleDialog({ products, customers, userId, onSuccess, allowNegativeSt
     setProductSearch('');
   };
 
-  const updateQty = (productId: string, qty: number) => {
+  const addComboToCart = (combo: Combo) => {
+    if (!allowNegativeStock && combo.completeCombos <= 0 && status === 'COMPLETED') {
+      errorAlert(
+        'Combo Incompleto',
+        `No hay suficientes existencias de los productos componentes para armar el combo "${combo.name}".`
+      );
+      return;
+    }
+
+    setCart(prev => {
+      const existing = prev.find(i => i.isCombo && i.comboId === String(combo.id));
+      if (existing) {
+        if (!allowNegativeStock && existing.quantity >= combo.completeCombos && status === 'COMPLETED') {
+          errorAlert('Límite de Combos Disponibles', `Solo hay ${combo.completeCombos} combo(s) disponibles para armar con el inventario actual.`);
+          return prev;
+        }
+        return prev.map(i => (i.isCombo && i.comboId === String(combo.id)) ? { ...i, quantity: i.quantity + 1 } : i);
+      }
+      return [...prev, {
+        id: `combo-${combo.id}`,
+        productId: null,
+        comboId: String(combo.id),
+        isCombo: true,
+        code: combo.code,
+        name: combo.name,
+        quantity: 1,
+        unitPrice: combo.finalPrice,
+        maxQty: combo.completeCombos,
+        discount: 0,
+        items: combo.items,
+      }];
+    });
+    setProductSearch('');
+  };
+
+  const updateQty = (itemId: string, qty: number) => {
     setCart(prev => prev.map(i => {
-      if (i.productId === productId) {
-        const targetQty = status === 'COMPLETED' && !allowNegativeStock ? Math.min(Math.max(1, qty), i.maxQty) : Math.max(1, qty);
+      if (i.id === itemId) {
+        let maxLimit = i.maxQty;
+        // Si es producto y la política de comprometidos está desactivada
+        if (!i.isCombo && enableCombos && !allowSaleFromCommittedCombos && i.productId) {
+          const committed = committedStockMap[Number(i.productId)] || 0;
+          if (committed > 0) {
+            maxLimit = Math.max(0, i.maxQty - committed);
+          }
+        }
+        const targetQty = status === 'COMPLETED' && !allowNegativeStock ? Math.min(Math.max(1, qty), maxLimit) : Math.max(1, qty);
         return { ...i, quantity: targetQty };
       }
       return i;
     }));
   };
 
-  const updateItemDiscount = (productId: string, desc: number) => {
+  const updateItemDiscount = (itemId: string, desc: number) => {
     setCart(prev => prev.map(i =>
-      i.productId === productId ? { ...i, discount: Math.max(0, desc) } : i
+      i.id === itemId ? { ...i, discount: Math.max(0, desc) } : i
     ));
   };
 
-  const removeFromCart = (productId: string) => {
-    setCart(prev => prev.filter(i => i.productId !== productId));
+  const removeFromCart = (itemId: string) => {
+    setCart(prev => prev.filter(i => i.id !== itemId));
+    setSelectedItems(prev => prev.filter(id => id !== itemId));
   };
 
   const resetForm = () => {
     setCart([]);
+    setSelectedItems([]);
     setClient('');
     setCustomerId('');
     setDiscount(0);
     setPaymentMethod('EFECTIVO');
     setRemarks('');
     setProductSearch('');
+    setSearchTab('ALL');
     setStatus('COMPLETED');
   };
 
   const handleSubmit = async () => {
     if (cart.length === 0) {
-      errorAlert('Carrito Vacío', 'Agrega al menos un producto a la venta.');
+      errorAlert('Carrito Vacío', 'Agrega al menos un producto o combo a la venta.');
       return;
     }
 
@@ -177,7 +319,10 @@ function NewSaleDialog({ products, customers, userId, onSuccess, allowNegativeSt
             ${cart.map(i => `
               <div class="flex justify-between items-start text-xs border-b border-border/40 pb-2 last:border-b-0">
                 <div>
-                  <p class="font-medium text-foreground">${i.name}</p>
+                  <div class="flex items-center gap-1.5">
+                    ${i.isCombo ? '<span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-600 border border-purple-500/20">COMBO</span>' : ''}
+                    <p class="font-medium text-foreground">${i.name}</p>
+                  </div>
                   <p class="text-[10px] text-muted-foreground">${i.quantity} u. x ${fmtVal(i.unitPrice)}</p>
                 </div>
                 <div class="text-right">
@@ -189,7 +334,7 @@ function NewSaleDialog({ products, customers, userId, onSuccess, allowNegativeSt
           </div>
           <div class="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-1.5 text-xs">
             <div class="flex justify-between text-muted-foreground">
-              <span>Subtotal Productos</span>
+              <span>Subtotal</span>
               <span>${fmtVal(subtotal)}</span>
             </div>
             ${(discount > 0 || cart.reduce((sum, i) => sum + i.discount, 0) > 0) ? `
@@ -228,7 +373,8 @@ function NewSaleDialog({ products, customers, userId, onSuccess, allowNegativeSt
         remarks: remarks || undefined,
         status,
         items: cart.map(i => ({
-          productId: i.productId,
+          productId: i.isCombo ? undefined : i.productId!,
+          comboId: i.isCombo ? Number(i.comboId) : undefined,
           quantity: i.quantity,
           unitPrice: i.unitPrice,
           discount: i.discount
@@ -264,33 +410,118 @@ function NewSaleDialog({ products, customers, userId, onSuccess, allowNegativeSt
               <span className="w-2 h-7 bg-gradient-to-b from-primary to-[#C5A059] rounded-full" />
               Registrar Nueva Venta
             </DialogTitle>
-            <p className="text-sm text-muted-foreground mt-1">Busca productos, ajusta cantidades y descuentos, luego confirma la venta.</p>
+            <p className="text-sm text-muted-foreground mt-1">Busca productos o combos, ajusta cantidades y descuentos, luego confirma la venta.</p>
           </DialogHeader>
 
           {/* Form Content Area: Two Column Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 mt-5 overflow-hidden flex-1 min-h-0">
             {/* Left Area (Product Search and Cart) */}
             <div className="lg:col-span-3 flex flex-col overflow-hidden h-full space-y-4">
-              {/* Product Search */}
+              {/* Selector de pestañas de búsqueda si combos está activo */}
+              {enableCombos && (
+                <div className="flex items-center gap-1.5 p-1 bg-muted/20 border border-border/60 rounded-xl shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setSearchTab('ALL')}
+                    className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                      searchTab === 'ALL'
+                        ? 'bg-card text-primary shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Todo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSearchTab('PRODUCTS')}
+                    className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                      searchTab === 'PRODUCTS'
+                        ? 'bg-card text-primary shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Productos
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSearchTab('COMBOS')}
+                    className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1 ${
+                      searchTab === 'COMBOS'
+                        ? 'bg-purple-600 text-white shadow-sm'
+                        : 'text-purple-600 dark:text-purple-400 hover:text-purple-700'
+                    }`}
+                  >
+                    <Layers className="w-3.5 h-3.5" />
+                    Combos ({combos.length})
+                  </button>
+                </div>
+              )}
+
+              {/* Product / Combo Search */}
               <div className="space-y-1.5 relative">
-                <Label className={labelCls}>Buscar y Agregar Productos</Label>
+                <Label className={labelCls}>
+                  {searchTab === 'COMBOS' ? 'Buscar Combos' : searchTab === 'PRODUCTS' ? 'Buscar Productos' : 'Buscar Productos o Combos'}
+                </Label>
                 <div className="relative">
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
                   <input
                     type="text"
-                    placeholder="Escribe código o nombre del producto..."
+                    placeholder={
+                      searchTab === 'COMBOS'
+                        ? 'Escribe código o nombre del combo...'
+                        : searchTab === 'PRODUCTS'
+                        ? 'Escribe código o nombre del producto...'
+                        : 'Escribe código o nombre del producto o combo...'
+                    }
                     value={productSearch}
                     onChange={e => setProductSearch(e.target.value)}
                     className="flex h-11 w-full rounded-xl border border-border bg-card pl-10 pr-4 py-2 text-sm text-foreground focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all placeholder:text-muted-foreground/50"
                   />
                 </div>
-                {productSearch && filteredProducts.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 z-50 rounded-xl border border-border bg-card shadow-xl mt-1 overflow-hidden">
+
+                {/* Dropdown de resultados */}
+                {productSearch && (filteredProducts.length > 0 || filteredCombos.length > 0) && (
+                  <div className="absolute top-full left-0 right-0 z-50 rounded-xl border border-border bg-card shadow-xl mt-1 overflow-hidden max-h-64 overflow-y-auto">
+                    {/* Resultados de Combos */}
+                    {filteredCombos.map(c => (
+                      <button
+                        key={`combo-${c.id}`}
+                        type="button"
+                        onClick={() => addComboToCart(c)}
+                        className="w-full flex items-center justify-between px-4 py-3 hover:bg-purple-500/10 transition-colors border-b border-border/40 text-left bg-purple-500/5"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/30 whitespace-nowrap flex items-center gap-1">
+                            <Layers className="w-3 h-3" />
+                            {c.code}
+                          </span>
+                          <div>
+                            <span className="text-sm text-foreground font-semibold flex items-center gap-1.5">
+                              {c.name}
+                              <span className="text-[9px] uppercase px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-600 font-extrabold">COMBO</span>
+                            </span>
+                            <p className="text-[10px] text-muted-foreground">
+                              {c.items.length} componentes · {c.items.map(it => `${it.quantity}x ${it.product.name}`).join(', ')}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0 ml-3">
+                          <p className="text-sm font-bold text-purple-600 dark:text-purple-400">
+                            {c.finalPrice.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
+                          </p>
+                          <p className={`text-[10px] font-bold ${c.completeCombos > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                            {c.completeCombos > 0 ? `Disponibles: ${c.completeCombos} combos` : 'Agotado'}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+
+                    {/* Resultados de Productos */}
                     {filteredProducts.map(p => (
                       <button
-                        key={p.id}
+                        key={`prod-${p.id}`}
                         type="button"
-                        onClick={() => addToCart(p)}
+                        onClick={() => addProductToCart(p)}
                         className="w-full flex items-center justify-between px-4 py-3 hover:bg-primary/5 transition-colors border-b border-border/40 last:border-b-0 text-left"
                       >
                         <div className="flex items-center gap-2.5">
@@ -307,9 +538,10 @@ function NewSaleDialog({ products, customers, userId, onSuccess, allowNegativeSt
                     ))}
                   </div>
                 )}
-                {productSearch && filteredProducts.length === 0 && (
+
+                {productSearch && filteredProducts.length === 0 && filteredCombos.length === 0 && (
                   <div className="absolute top-full left-0 right-0 z-50 rounded-xl border border-border bg-card shadow-xl mt-1 px-4 py-3">
-                    <p className="text-sm text-muted-foreground">No se encontraron productos con ese criterio.</p>
+                    <p className="text-sm text-muted-foreground">No se encontraron productos ni combos con ese criterio.</p>
                   </div>
                 )}
               </div>
@@ -318,7 +550,7 @@ function NewSaleDialog({ products, customers, userId, onSuccess, allowNegativeSt
               {cart.length > 0 && (
                 <div className="grid grid-cols-[1.5rem_1fr_6rem_5rem_5rem_1.5rem] gap-x-2 px-2 shrink-0">
                   <span />
-                  <span className={labelCls}>Producto</span>
+                  <span className={labelCls}>Ítem / Combo</span>
                   <span className={`${labelCls} text-center`}>Cantidad</span>
                   <span className={`${labelCls} text-center`}>Descuento</span>
                   <span className={`${labelCls} text-right`}>Subtotal</span>
@@ -332,23 +564,32 @@ function NewSaleDialog({ products, customers, userId, onSuccess, allowNegativeSt
                   <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground/50 py-12">
                     <ShoppingBag className="h-12 w-12 mb-3 opacity-20" />
                     <p className="text-sm font-medium">El carrito está vacío</p>
-                    <p className="text-xs mt-1 opacity-70">Busca un producto arriba para agregarlo</p>
+                    <p className="text-xs mt-1 opacity-70">Busca un producto o combo arriba para agregarlo</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
                     {cart.map(item => (
-                      <div key={item.productId} className="grid grid-cols-[1.5rem_1fr_6rem_5rem_5rem_1.5rem] gap-x-2 items-center p-2.5 rounded-xl bg-card border border-border/40 hover:border-primary/20 transition-all">
+                      <div key={item.id} className={`grid grid-cols-[1.5rem_1fr_6rem_5rem_5rem_1.5rem] gap-x-2 items-center p-2.5 rounded-xl border transition-all ${
+                        item.isCombo ? 'bg-purple-500/5 border-purple-500/20 hover:border-purple-500/40' : 'bg-card border-border/40 hover:border-primary/20'
+                      }`}>
                         <input
                           type="checkbox"
-                          checked={selectedItems.includes(item.productId)}
+                          checked={selectedItems.includes(item.id)}
                           onChange={e => {
-                            if (e.target.checked) setSelectedItems(prev => [...prev, item.productId]);
-                            else setSelectedItems(prev => prev.filter(id => id !== item.productId));
+                            if (e.target.checked) setSelectedItems(prev => [...prev, item.id]);
+                            else setSelectedItems(prev => prev.filter(id => id !== item.id));
                           }}
                           className="h-4 w-4 accent-primary"
                         />
                         <div className="min-w-0">
-                          <p className="text-xs font-semibold text-foreground truncate">{item.name}</p>
+                          <div className="flex items-center gap-1.5">
+                            {item.isCombo && (
+                              <span className="text-[9px] font-bold px-1 py-0.2 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 inline-flex items-center gap-0.5">
+                                <Layers className="w-2.5 h-2.5" /> COMBO
+                              </span>
+                            )}
+                            <p className="text-xs font-semibold text-foreground truncate">{item.name}</p>
+                          </div>
                           <p className="text-[10px] text-muted-foreground whitespace-nowrap">
                             {item.unitPrice.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })} c/u
                           </p>
@@ -357,19 +598,19 @@ function NewSaleDialog({ products, customers, userId, onSuccess, allowNegativeSt
                         <div className="flex items-center justify-center gap-1">
                           <button
                             type="button"
-                            onClick={() => updateQty(item.productId, item.quantity - 1)}
+                            onClick={() => updateQty(item.id, item.quantity - 1)}
                             className="h-6 w-6 rounded-md border border-border bg-card flex items-center justify-center text-foreground font-bold text-xs hover:bg-primary/10 transition-colors"
                           >−</button>
                           <input
                             type="number"
                             min="1"
                             value={item.quantity}
-                            onChange={e => updateQty(item.productId, parseInt(e.target.value) || 1)}
+                            onChange={e => updateQty(item.id, parseInt(e.target.value) || 1)}
                             className="w-9 h-6 text-center rounded-md border border-border bg-card text-xs font-bold text-foreground focus:outline-none focus:border-primary"
                           />
                           <button
                             type="button"
-                            onClick={() => updateQty(item.productId, item.quantity + 1)}
+                            onClick={() => updateQty(item.id, item.quantity + 1)}
                             className="h-6 w-6 rounded-md border border-border bg-card flex items-center justify-center text-foreground font-bold text-xs hover:bg-primary/10 transition-colors"
                           >+</button>
                         </div>
@@ -378,7 +619,7 @@ function NewSaleDialog({ products, customers, userId, onSuccess, allowNegativeSt
                           type="number"
                           placeholder="0"
                           value={item.discount || ''}
-                          onChange={e => updateItemDiscount(item.productId, parseFloat(e.target.value) || 0)}
+                          onChange={e => updateItemDiscount(item.id, parseFloat(e.target.value) || 0)}
                           className="h-7 w-full text-center rounded-md border border-border bg-card text-xs font-medium text-foreground focus:outline-none focus:border-primary"
                         />
                         {/* Row total */}
@@ -387,7 +628,7 @@ function NewSaleDialog({ products, customers, userId, onSuccess, allowNegativeSt
                         </p>
                         <button
                           type="button"
-                          onClick={() => removeFromCart(item.productId)}
+                          onClick={() => removeFromCart(item.id)}
                           className="h-6 w-6 text-muted-foreground hover:text-red-500 rounded-md hover:bg-red-500/10 flex items-center justify-center transition-colors"
                         >
                           <X className="h-3.5 w-3.5" />
@@ -578,7 +819,7 @@ function NewSaleDialog({ products, customers, userId, onSuccess, allowNegativeSt
               <Button
                 onClick={() => {
                   selectedItems.forEach(id => {
-                    const item = cart.find(i => i.productId === id);
+                    const item = cart.find(i => i.id === id);
                     if (item) {
                       const base = item.unitPrice * item.quantity;
                       const newDiscount = discountType === 'percentage' ? (base * discountValue) / 100 : discountValue;
@@ -603,15 +844,21 @@ function CompleteSaleDialog({
   sale,
   customers,
   products,
+  combos = [],
   userId,
   allowNegativeStock = false,
+  enableCombos = false,
+  allowSaleFromCommittedCombos = false,
   onSuccess
 }: {
   sale: Sale;
   customers: { id: string; name: string; code: string }[];
   products: Product[];
+  combos?: Combo[];
   userId: string;
   allowNegativeStock?: boolean;
+  enableCombos?: boolean;
+  allowSaleFromCommittedCombos?: boolean;
   onSuccess?: () => void;
 }) {
   const router = useRouter();
@@ -630,11 +877,30 @@ function CompleteSaleDialog({
     if (open) {
       setCart(
         sale.details.map(d => {
+          const isCombo = d.isCombo || Boolean(d.comboId);
+          if (isCombo) {
+            const combo = combos.find(c => String(c.id) === String(d.comboId));
+            return {
+              id: `combo-${d.comboId}`,
+              productId: null,
+              comboId: String(d.comboId),
+              isCombo: true,
+              code: d.combo?.code || combo?.code || 'CMB',
+              name: d.comboName || d.combo?.name || combo?.name || 'Combo',
+              quantity: d.quantity,
+              unitPrice: d.unitPrice,
+              maxQty: combo ? combo.completeCombos : 999999,
+              discount: d.discount || 0,
+            };
+          }
           const prod = products.find(p => p.id === d.productId);
           return {
+            id: `prod-${d.productId}`,
             productId: d.productId,
-            code: d.product.code,
-            name: d.product.name,
+            comboId: null,
+            isCombo: false,
+            code: d.product?.code || prod?.code || '—',
+            name: d.product?.name || prod?.name || 'Producto',
             quantity: d.quantity,
             unitPrice: d.unitPrice,
             maxQty: prod ? prod.quantityAvailable : 999999,
@@ -649,7 +915,7 @@ function CompleteSaleDialog({
       setRemarks(sale.remarks ?? '');
       setProductSearch('');
     }
-  }, [open, sale, products]);
+  }, [open, sale, products, combos]);
 
   const filteredProducts = useMemo(() => {
     if (!productSearch.trim()) return [];
@@ -662,13 +928,16 @@ function CompleteSaleDialog({
 
   const addToCart = (product: Product) => {
     setCart(prev => {
-      const existing = prev.find(i => i.productId === product.id);
+      const existing = prev.find(i => !i.isCombo && i.productId === product.id);
       if (existing) {
         if (!allowNegativeStock && existing.quantity >= existing.maxQty) return prev;
-        return prev.map(i => i.productId === product.id ? { ...i, quantity: i.quantity + 1 } : i);
+        return prev.map(i => (!i.isCombo && i.productId === product.id) ? { ...i, quantity: i.quantity + 1 } : i);
       }
       return [...prev, {
+        id: `prod-${product.id}`,
         productId: product.id,
+        comboId: null,
+        isCombo: false,
         code: product.code,
         name: product.name,
         quantity: 1,
@@ -680,9 +949,9 @@ function CompleteSaleDialog({
     setProductSearch('');
   };
 
-  const updateQty = (productId: string, qty: number) => {
+  const updateQty = (itemId: string, qty: number) => {
     setCart(prev => prev.map(i => {
-      if (i.productId === productId) {
+      if (i.id === itemId) {
         const targetQty = !allowNegativeStock ? Math.min(Math.max(1, qty), i.maxQty) : Math.max(1, qty);
         return { ...i, quantity: targetQty };
       }
@@ -690,14 +959,14 @@ function CompleteSaleDialog({
     }));
   };
 
-  const updateItemDiscount = (productId: string, desc: number) => {
+  const updateItemDiscount = (itemId: string, desc: number) => {
     setCart(prev => prev.map(i =>
-      i.productId === productId ? { ...i, discount: Math.max(0, desc) } : i
+      i.id === itemId ? { ...i, discount: Math.max(0, desc) } : i
     ));
   };
 
-  const removeFromCart = (productId: string) => {
-    setCart(prev => prev.filter(i => i.productId !== productId));
+  const removeFromCart = (itemId: string) => {
+    setCart(prev => prev.filter(i => i.id !== itemId));
   };
 
   const subtotal = cart.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
@@ -706,7 +975,7 @@ function CompleteSaleDialog({
 
   const handleCompletarAction = async () => {
     if (cart.length === 0) {
-      errorAlert('Carrito Vacío', 'La venta debe contener al menos un producto.');
+      errorAlert('Carrito Vacío', 'La venta debe contener al menos un producto o combo.');
       return;
     }
 
@@ -725,7 +994,10 @@ function CompleteSaleDialog({
             ${cart.map(i => `
               <div class="flex justify-between items-start text-xs border-b border-border/40 pb-2 last:border-b-0">
                 <div>
-                  <p class="font-medium text-foreground">${i.name}</p>
+                  <div class="flex items-center gap-1.5">
+                    ${i.isCombo ? '<span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-600 border border-purple-500/20">COMBO</span>' : ''}
+                    <p class="font-medium text-foreground">${i.name}</p>
+                  </div>
                   <p class="text-[10px] text-muted-foreground">${i.quantity} u. x ${fmtVal(i.unitPrice)}</p>
                 </div>
                 <div class="text-right">
@@ -774,7 +1046,8 @@ function CompleteSaleDialog({
         remarks: remarks || null,
         discount,
         items: cart.map(i => ({
-          productId: i.productId,
+          productId: i.isCombo ? undefined : i.productId,
+          comboId: i.isCombo ? Number(i.comboId) : undefined,
           quantity: i.quantity,
           unitPrice: i.unitPrice,
           discount: i.discount
@@ -886,7 +1159,7 @@ function CompleteSaleDialog({
                 ) : (
                   <div className="space-y-2">
                     {cart.map(item => (
-                      <div key={item.productId} className="grid grid-cols-[1fr_6rem_5rem_5rem_2rem] gap-x-2 items-center p-2.5 rounded-xl bg-card border border-border/40 hover:border-primary/20 transition-all">
+                      <div key={item.id} className="grid grid-cols-[1fr_6rem_5rem_5rem_2rem] gap-x-2 items-center p-2.5 rounded-xl bg-card border border-border/40 hover:border-primary/20 transition-all">
                         <div className="min-w-0">
                           <p className="text-xs font-semibold text-foreground truncate">{item.name}</p>
                           <p className="text-[10px] text-muted-foreground whitespace-nowrap">
@@ -897,19 +1170,19 @@ function CompleteSaleDialog({
                         <div className="flex items-center justify-center gap-1">
                           <button
                             type="button"
-                            onClick={() => updateQty(item.productId, item.quantity - 1)}
+                            onClick={() => updateQty(item.id, item.quantity - 1)}
                             className="h-6 w-6 rounded-md border border-border bg-card flex items-center justify-center text-foreground font-bold text-xs hover:bg-primary/10 transition-colors"
                           >−</button>
                           <input
                             type="number"
                             min="1"
                             value={item.quantity}
-                            onChange={e => updateQty(item.productId, parseInt(e.target.value) || 1)}
+                            onChange={e => updateQty(item.id, parseInt(e.target.value) || 1)}
                             className="w-9 h-6 text-center rounded-md border border-border bg-card text-xs font-bold text-foreground focus:outline-none focus:border-primary"
                           />
                           <button
                             type="button"
-                            onClick={() => updateQty(item.productId, item.quantity + 1)}
+                            onClick={() => updateQty(item.id, item.quantity + 1)}
                             className="h-6 w-6 rounded-md border border-border bg-card flex items-center justify-center text-foreground font-bold text-xs hover:bg-primary/10 transition-colors"
                           >+</button>
                         </div>
@@ -918,7 +1191,7 @@ function CompleteSaleDialog({
                           type="number"
                           placeholder="0"
                           value={item.discount || ''}
-                          onChange={e => updateItemDiscount(item.productId, parseFloat(e.target.value) || 0)}
+                          onChange={e => updateItemDiscount(item.id, parseFloat(e.target.value) || 0)}
                           className="h-7 w-full text-center rounded-md border border-border bg-card text-xs font-medium text-foreground focus:outline-none focus:border-primary"
                         />
                         {/* Row total */}
@@ -927,7 +1200,7 @@ function CompleteSaleDialog({
                         </p>
                         <button
                           type="button"
-                          onClick={() => removeFromCart(item.productId)}
+                          onClick={() => removeFromCart(item.id)}
                           className="h-6 w-6 text-muted-foreground hover:text-red-500 rounded-md hover:bg-red-500/10 flex items-center justify-center transition-colors"
                           title="Eliminar producto"
                         >
@@ -1112,19 +1385,31 @@ function SaleDetailDialog({ sale, invoiceConfig }: { sale: Sale; invoiceConfig?:
             </div>
 
             <div className="rounded-xl border border-border/60 overflow-hidden bg-muted/5">
-              {sale.details.map(d => (
-                <div key={d.id} className="flex items-center justify-between px-3 py-2.5 border-b border-border/40 last:border-b-0 text-xs">
-                  <div>
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary mr-1.5">{d.product.code}</span>
-                    <span className="font-medium text-foreground">{d.product.name}</span>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">
-                      {d.quantity} u. × {fmt(d.unitPrice)}
-                      {d.discount > 0 && <span className="text-red-500 font-semibold ml-1.5">Desc: -{fmt(d.discount)}</span>}
-                    </p>
+              {sale.details.map(d => {
+                const isCombo = d.isCombo || Boolean(d.comboId);
+                const itemName = isCombo ? (d.comboName || d.combo?.name || 'Combo') : (d.product?.name || 'Producto');
+                const itemCode = isCombo ? (d.combo?.code || 'CMB') : (d.product?.code || '—');
+
+                return (
+                  <div key={d.id} className="flex items-center justify-between px-3 py-2.5 border-b border-border/40 last:border-b-0 text-xs">
+                    <div>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded mr-1.5 ${
+                        isCombo
+                          ? 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/20'
+                          : 'bg-primary/10 text-primary'
+                      }`}>
+                        {isCombo ? `📦 ${itemCode}` : itemCode}
+                      </span>
+                      <span className="font-medium text-foreground">{itemName}</span>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        {d.quantity} u. × {fmt(d.unitPrice)}
+                        {d.discount > 0 && <span className="text-red-500 font-semibold ml-1.5">Desc: -{fmt(d.discount)}</span>}
+                      </p>
+                    </div>
+                    <span className="font-bold text-foreground shrink-0">{fmt(d.total)}</span>
                   </div>
-                  <span className="font-bold text-foreground shrink-0">{fmt(d.total)}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-1 text-xs">
@@ -1194,23 +1479,26 @@ function SaleDetailDialog({ sale, invoiceConfig }: { sale: Sale; invoiceConfig?:
 
 async function exportSalesToExcel(sales: Sale[]) {
   const rows = sales.flatMap(s =>
-    s.details.map(d => ({
-      'N° Venta': s.saleNumber,
-      'Fecha': new Date(s.createdAt).toLocaleDateString('es-CO'),
-      'Hora': new Date(s.createdAt).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }),
-      'Cliente': s.client ?? 'Consumidor final',
-      'Vendedor': s.user?.name ?? '—',
-      'Producto': d.product.name,
-      'Código': d.product.code,
-      'Cantidad': d.quantity,
-      'Precio Unitario': d.unitPrice,
-      'Subtotal Renglón': d.subtotal,
-      'Descuento Renglón': d.discount,
-      'Total Renglón': d.total,
-      'Total Factura': s.total,
-      'Método Pago': s.paymentMethod,
-      'Estado': s.status,
-    }))
+    s.details.map(d => {
+      const isCombo = d.isCombo || Boolean(d.comboId);
+      return {
+        'N° Venta': s.saleNumber,
+        'Fecha': new Date(s.createdAt).toLocaleDateString('es-CO'),
+        'Hora': new Date(s.createdAt).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }),
+        'Cliente': s.client ?? 'Consumidor final',
+        'Vendedor': s.user?.name ?? '—',
+        'Producto / Combo': isCombo ? `[COMBO] ${d.comboName || d.combo?.name || 'Combo'}` : (d.product?.name || '—'),
+        'Código': isCombo ? (d.combo?.code || 'CMB') : (d.product?.code || '—'),
+        'Cantidad': d.quantity,
+        'Precio Unitario': d.unitPrice,
+        'Subtotal Renglón': d.subtotal,
+        'Descuento Renglón': d.discount,
+        'Total Renglón': d.total,
+        'Total Factura': s.total,
+        'Método Pago': s.paymentMethod,
+        'Estado': s.status,
+      };
+    })
   );
 
   const ExcelJS = (await import('exceljs')).default;
@@ -1272,11 +1560,24 @@ export function SalesClient(props: {
   initialSales: Sale[];
   products: Product[];
   customers: { id: string; name: string; code: string }[];
+  combos?: Combo[];
   userId: string;
   invoiceConfig?: any;
   allowNegativeStock?: boolean;
+  enableCombos?: boolean;
+  allowSaleFromCommittedCombos?: boolean;
 }) {
-  const { initialSales, products, customers, userId, invoiceConfig, allowNegativeStock = false } = props;
+  const {
+    initialSales,
+    products,
+    customers,
+    combos = [],
+    userId,
+    invoiceConfig,
+    allowNegativeStock = false,
+    enableCombos = false,
+    allowSaleFromCommittedCombos = false,
+  } = props;
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -1344,8 +1645,6 @@ export function SalesClient(props: {
     });
   };
 
-
-
   const fmt = (n: number) => n.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
   const fmtDate = (d: string) => new Date(d).toLocaleDateString('es-CO', { month: 'short', day: 'numeric', year: 'numeric' });
   const selectFilterCls = "h-10 rounded-xl border border-border/80 bg-card px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/15 focus:border-primary transition-all";
@@ -1374,9 +1673,16 @@ export function SalesClient(props: {
             <FileDown className="h-4 w-4" />
             Exportar Excel
           </Button>
-          <NewSaleDialog products={products} customers={customers} userId={userId} onSuccess={() => {
-            // refresh happens automatically or via revalidatePath
-          }} allowNegativeStock={allowNegativeStock} />
+          <NewSaleDialog
+            products={products}
+            customers={customers}
+            combos={combos}
+            userId={userId}
+            onSuccess={() => {}}
+            allowNegativeStock={allowNegativeStock}
+            enableCombos={enableCombos}
+            allowSaleFromCommittedCombos={allowSaleFromCommittedCombos}
+          />
         </div>
       </div>
 
@@ -1475,7 +1781,7 @@ export function SalesClient(props: {
                       </div>
                     </td>
                     <td className="px-4 py-3.5">
-                      <span className="text-xs text-muted-foreground">{sale.details.length} prod.</span>
+                      <span className="text-xs text-muted-foreground">{sale.details.length} ítem(s)</span>
                       <br />
                       <SaleDetailDialog sale={sale} invoiceConfig={invoiceConfig} />
                     </td>
@@ -1505,8 +1811,11 @@ export function SalesClient(props: {
                             sale={sale}
                             customers={customers}
                             products={products}
+                            combos={combos}
                             userId={userId}
                             allowNegativeStock={allowNegativeStock}
+                            enableCombos={enableCombos}
+                            allowSaleFromCommittedCombos={allowSaleFromCommittedCombos}
                           />
                         )}
                         {sale.status !== 'VOIDED' && (
@@ -1566,8 +1875,11 @@ export function SalesClient(props: {
                         sale={sale}
                         customers={customers}
                         products={products}
+                        combos={combos}
                         userId={userId}
                         allowNegativeStock={allowNegativeStock}
+                        enableCombos={enableCombos}
+                        allowSaleFromCommittedCombos={allowSaleFromCommittedCombos}
                       />
                     )}
                     {sale.status !== 'VOIDED' && (

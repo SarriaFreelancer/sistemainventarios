@@ -17,11 +17,14 @@ const saleSchema = z.object({
   remarks: z.string().optional().nullable(),
   status: z.enum(['PENDING', 'COMPLETED', 'VOIDED']).default('COMPLETED'),
   items: z.array(z.object({
-    productId: z.coerce.number(),
+    productId: z.coerce.number().optional().nullable(),
+    comboId: z.coerce.number().optional().nullable(),
+    comboName: z.string().optional().nullable(),
+    isCombo: z.boolean().default(false),
     quantity: z.coerce.number().min(1),
     unitPrice: z.coerce.number().min(0),
     discount: z.coerce.number().min(0).default(0),
-  })).min(1, 'Debes agregar al menos un producto'),
+  })).min(1, 'Debes agregar al menos un producto o combo'),
 });
 
 export async function createSale(data: {
@@ -32,7 +35,7 @@ export async function createSale(data: {
   paymentMethod?: string;
   remarks?: string | null;
   status?: 'PENDING' | 'COMPLETED';
-  items: { productId: any; quantity: number; unitPrice: number; discount: number }[];
+  items: { productId?: any; comboId?: any; comboName?: string | null; isCombo?: boolean; quantity: number; unitPrice: number; discount: number }[];
 }) {
   try {
     const parsed = saleSchema.safeParse(data);
@@ -50,52 +53,68 @@ export async function createSale(data: {
 
     const validUserId = await resolveActionUserId(userId);
 
-    // Si el estado es COMPLETED, validar stock para todos los productos en el tenant actual
+    // Si el estado es COMPLETED, validar stock para todos los productos y combos en el tenant actual
     if (status === 'COMPLETED') {
       const settings = await prisma.companySetting.findUnique({ where: { companyId } });
       const allowNegativeStock = settings?.allowNegativeStock ?? false;
 
-      // Check for expired products if tracking is enabled
-      if (settings?.trackExpirationDates && settings?.blockExpiredSales) {
-        for (const item of items) {
-          const expiredBatches = await prisma.productBatch.findMany({
-            where: {
-              productId: item.productId,
-              status: 'EXPIRED',
-              product: { companyId },
-            },
-            include: { product: { select: { name: true } } },
+      for (const item of items) {
+        if (item.isCombo || item.comboId) {
+          const combo = await prisma.combo.findFirst({
+            where: { id: Number(item.comboId), companyId },
+            include: { items: { include: { product: true } } }
           });
-          // Also check batches that are ACTIVE but past expiration date
-          const pastDueBatches = await prisma.productBatch.findMany({
-            where: {
-              productId: item.productId,
-              status: 'ACTIVE',
-              expirationDate: { lt: new Date() },
-              product: { companyId },
-            },
-            include: { product: { select: { name: true } } },
-          });
-          const allExpired = [...expiredBatches, ...pastDueBatches];
-          if (allExpired.length > 0) {
-            const productName = allExpired[0].product.name;
+          if (!combo) return { success: false, error: `Combo no encontrado o no autorizado` };
+          if (!combo.isActive) return { success: false, error: `El combo "${combo.name}" está inactivo` };
+
+          for (const cItem of combo.items) {
+            const neededQty = item.quantity * cItem.quantity;
+            if (!allowNegativeStock && cItem.product.quantityAvailable < neededQty) {
+              return {
+                success: false,
+                error: `Stock insuficiente para "${cItem.product.name}" en el combo "${combo.name}". Disponible: ${cItem.product.quantityAvailable} u., Necesario: ${neededQty} u.`
+              };
+            }
+          }
+        } else if (item.productId) {
+          // Check for expired products if tracking is enabled
+          if (settings?.trackExpirationDates && settings?.blockExpiredSales) {
+            const expiredBatches = await prisma.productBatch.findMany({
+              where: {
+                productId: Number(item.productId),
+                status: 'EXPIRED',
+                product: { companyId },
+              },
+              include: { product: { select: { name: true } } },
+            });
+            const pastDueBatches = await prisma.productBatch.findMany({
+              where: {
+                productId: Number(item.productId),
+                status: 'ACTIVE',
+                expirationDate: { lt: new Date() },
+                product: { companyId },
+              },
+              include: { product: { select: { name: true } } },
+            });
+            const allExpired = [...expiredBatches, ...pastDueBatches];
+            if (allExpired.length > 0) {
+              const productName = allExpired[0].product.name;
+              return {
+                success: false,
+                error: `No se puede vender "${productName}": tiene ${allExpired.length} lote(s) vencido(s). Retire o actualice los lotes antes de vender.`
+              };
+            }
+          }
+
+          const whereProduct = await withTenantWhere({ id: Number(item.productId) });
+          const product = await prisma.product.findFirst({ where: whereProduct });
+          if (!product) return { success: false, error: `Producto no encontrado o no autorizado` };
+          if (!allowNegativeStock && product.quantityAvailable < item.quantity) {
             return {
               success: false,
-              error: `No se puede vender "${productName}": tiene ${allExpired.length} lote(s) vencido(s). Retire o actualice los lotes antes de vender.`
+              error: `Stock insuficiente para "${product.name}". Disponible: ${product.quantityAvailable} u.`
             };
           }
-        }
-      }
-
-      for (const item of items) {
-        const whereProduct = await withTenantWhere({ id: item.productId });
-        const product = await prisma.product.findFirst({ where: whereProduct });
-        if (!product) return { success: false, error: `Producto no encontrado o no autorizado` };
-        if (!allowNegativeStock && product.quantityAvailable < item.quantity) {
-          return {
-            success: false,
-            error: `Stock insuficiente para "${product.name}". Disponible: ${product.quantityAvailable} u.`
-          };
         }
       }
     }
@@ -125,7 +144,10 @@ export async function createSale(data: {
     const total = finalItems.reduce((sum, item) => sum + item.total, 0);
 
     const saleDetailData = finalItems.map(item => ({
-      productId: item.productId,
+      productId: item.isCombo ? null : (item.productId ? Number(item.productId) : null),
+      comboId: (item.isCombo || item.comboId) ? Number(item.comboId) : null,
+      comboName: (item.isCombo || item.comboId) ? (item.comboName || null) : null,
+      isCombo: Boolean(item.isCombo || item.comboId),
       quantity: item.quantity,
       unitPrice: item.unitPrice,
       subtotal: item.subtotal,
@@ -184,22 +206,52 @@ export async function createSale(data: {
 
       if (status === 'COMPLETED') {
         for (const item of finalItems) {
-          const product = await tx.product.findUnique({ where: { id: item.productId } });
-          if (product) {
-            const newQty = product.quantityAvailable - item.quantity;
-            await tx.product.update({
-              where: { id: item.productId },
-              data: {
-                quantityAvailable: newQty,
-                soldQuantity: { increment: item.quantity },
-                status: newQty <= 0 ? 'OUT_OF_STOCK' : 'AVAILABLE',
-              }
+          if (item.isCombo || item.comboId) {
+            const combo = await tx.combo.findUnique({
+              where: { id: Number(item.comboId) },
+              include: { items: true }
             });
+            if (combo) {
+              for (const cItem of combo.items) {
+                const neededQty = item.quantity * cItem.quantity;
+                const product = await tx.product.findUnique({ where: { id: cItem.productId } });
+                if (product) {
+                  const newQty = product.quantityAvailable - neededQty;
+                  await tx.product.update({
+                    where: { id: product.id },
+                    data: {
+                      quantityAvailable: newQty,
+                      soldQuantity: { increment: neededQty },
+                      status: newQty <= 0 ? 'OUT_OF_STOCK' : 'AVAILABLE',
+                    }
+                  });
 
-            if (newQty <= 0) {
-              lowStockProducts.push({ name: product.name, type: 'CERO', newQty });
-            } else if (newQty <= 10) {
-              lowStockProducts.push({ name: product.name, type: 'BAJO', newQty });
+                  if (newQty <= 0) {
+                    lowStockProducts.push({ name: product.name, type: 'CERO', newQty });
+                  } else if (newQty <= 10) {
+                    lowStockProducts.push({ name: product.name, type: 'BAJO', newQty });
+                  }
+                }
+              }
+            }
+          } else if (item.productId) {
+            const product = await tx.product.findUnique({ where: { id: Number(item.productId) } });
+            if (product) {
+              const newQty = product.quantityAvailable - item.quantity;
+              await tx.product.update({
+                where: { id: Number(item.productId) },
+                data: {
+                  quantityAvailable: newQty,
+                  soldQuantity: { increment: item.quantity },
+                  status: newQty <= 0 ? 'OUT_OF_STOCK' : 'AVAILABLE',
+                }
+              });
+
+              if (newQty <= 0) {
+                lowStockProducts.push({ name: product.name, type: 'CERO', newQty });
+              } else if (newQty <= 10) {
+                lowStockProducts.push({ name: product.name, type: 'BAJO', newQty });
+              }
             }
           }
         }
@@ -286,7 +338,7 @@ export async function completePendingSale(saleIdInput: any, updateData?: {
   customerId?: number | null;
   remarks?: string | null;
   discount?: number;
-  items?: { productId: any; quantity: number; unitPrice: number; discount?: number }[];
+  items?: { productId?: any; comboId?: any; quantity: number; unitPrice: number; discount?: number }[];
 }) {
   const saleId = Number(saleIdInput);
   if (isNaN(saleId)) return { success: false, error: 'ID inválido' };
@@ -297,7 +349,7 @@ export async function completePendingSale(saleIdInput: any, updateData?: {
 
       const sale = await tx.sale.findFirst({
         where: sessionCompanyId ? { id: saleId, companyId: sessionCompanyId } : { id: saleId },
-        include: { details: { include: { product: true } } }
+        include: { details: { include: { product: true, combo: { include: { items: { include: { product: true } } } } } } }
       });
 
       if (!sale) throw new Error('Venta no encontrada o no autorizada');
@@ -311,26 +363,42 @@ export async function completePendingSale(saleIdInput: any, updateData?: {
       // Determinar los items a procesar (los nuevos o los existentes)
       const itemsToProcess = (updateData?.items && updateData.items.length > 0)
         ? updateData.items.map(i => ({
-            productId: Number(i.productId),
+            productId: i.productId ? Number(i.productId) : null,
+            comboId: i.comboId ? Number(i.comboId) : null,
             quantity: Number(i.quantity),
             unitPrice: Number(i.unitPrice),
             discount: Number(i.discount || 0)
           }))
         : sale.details.map(d => ({
-            productId: d.productId,
+            productId: d.productId ? Number(d.productId) : null,
+            comboId: d.comboId ? Number(d.comboId) : null,
             quantity: d.quantity,
             unitPrice: Number(d.unitPrice),
             discount: Number(d.discount || 0)
           }));
 
-      // Validar existencias de todos los items
+      // Validar existencias de todos los items (productos y combos)
       for (const item of itemsToProcess) {
-        const product = await tx.product.findFirst({
-          where: { id: item.productId, ...(companyId ? { companyId } : {}) }
-        });
-        if (!product) throw new Error(`Producto #${item.productId} no encontrado`);
-        if (!allowNegativeStock && product.quantityAvailable < item.quantity) {
-          throw new Error(`Stock insuficiente para "${product.name}". Disponible: ${product.quantityAvailable} u.`);
+        if (item.comboId) {
+          const combo = await tx.combo.findFirst({
+            where: { id: item.comboId, ...(companyId ? { companyId } : {}) },
+            include: { items: { include: { product: true } } }
+          });
+          if (!combo) throw new Error(`Combo #${item.comboId} no encontrado`);
+          for (const cItem of combo.items) {
+            const required = cItem.quantity * item.quantity;
+            if (!allowNegativeStock && cItem.product.quantityAvailable < required) {
+              throw new Error(`Stock insuficiente para el componente "${cItem.product.name}" del combo "${combo.name}". Requerido: ${required}, disponible: ${cItem.product.quantityAvailable}`);
+            }
+          }
+        } else if (item.productId) {
+          const product = await tx.product.findFirst({
+            where: { id: item.productId, ...(companyId ? { companyId } : {}) }
+          });
+          if (!product) throw new Error(`Producto #${item.productId} no encontrado`);
+          if (!allowNegativeStock && product.quantityAvailable < item.quantity) {
+            throw new Error(`Stock insuficiente para "${product.name}". Disponible: ${product.quantityAvailable} u.`);
+          }
         }
       }
 
@@ -340,10 +408,18 @@ export async function completePendingSale(saleIdInput: any, updateData?: {
         for (const item of itemsToProcess) {
           const subtotal = item.quantity * item.unitPrice;
           const totalItem = Math.max(0, subtotal - item.discount);
+          let comboName: string | null = null;
+          if (item.comboId) {
+            const c = await tx.combo.findUnique({ where: { id: item.comboId }, select: { name: true } });
+            comboName = c?.name || null;
+          }
           await tx.saleDetail.create({
             data: {
               saleId,
-              productId: item.productId,
+              productId: item.productId || null,
+              comboId: item.comboId || null,
+              comboName,
+              isCombo: Boolean(item.comboId),
               quantity: item.quantity,
               unitPrice: item.unitPrice,
               subtotal,
@@ -354,28 +430,57 @@ export async function completePendingSale(saleIdInput: any, updateData?: {
         }
       }
 
-      // Descontar inventario para cada producto
+      // Descontar inventario para cada producto y componente de combo
       const lowStockProducts: any[] = [];
       for (const item of itemsToProcess) {
-        const product = await tx.product.findUnique({ where: { id: item.productId } });
-        if (product) {
-          let newQty = product.quantityAvailable - item.quantity;
-          if (!allowNegativeStock && newQty < 0) {
-            newQty = 0;
-          }
-          await tx.product.update({
-            where: { id: item.productId },
-            data: {
-              quantityAvailable: newQty,
-              soldQuantity: { increment: item.quantity },
-              status: newQty <= 0 ? 'OUT_OF_STOCK' : 'AVAILABLE',
-            }
+        if (item.comboId) {
+          const combo = await tx.combo.findUnique({
+            where: { id: item.comboId },
+            include: { items: { include: { product: true } } }
           });
+          if (combo) {
+            for (const cItem of combo.items) {
+              const reqQty = cItem.quantity * item.quantity;
+              let newQty = cItem.product.quantityAvailable - reqQty;
+              if (!allowNegativeStock && newQty < 0) newQty = 0;
 
-          if (newQty <= 0) {
-            lowStockProducts.push({ name: product.name, type: 'CERO', newQty });
-          } else if (newQty <= 10) {
-            lowStockProducts.push({ name: product.name, type: 'BAJO', newQty });
+              await tx.product.update({
+                where: { id: cItem.productId },
+                data: {
+                  quantityAvailable: newQty,
+                  soldQuantity: { increment: reqQty },
+                  status: newQty <= 0 ? 'OUT_OF_STOCK' : 'AVAILABLE',
+                }
+              });
+
+              if (newQty <= 0) {
+                lowStockProducts.push({ name: cItem.product.name, type: 'CERO', newQty });
+              } else if (newQty <= 10) {
+                lowStockProducts.push({ name: cItem.product.name, type: 'BAJO', newQty });
+              }
+            }
+          }
+        } else if (item.productId) {
+          const product = await tx.product.findUnique({ where: { id: item.productId } });
+          if (product) {
+            let newQty = product.quantityAvailable - item.quantity;
+            if (!allowNegativeStock && newQty < 0) {
+              newQty = 0;
+            }
+            await tx.product.update({
+              where: { id: item.productId },
+              data: {
+                quantityAvailable: newQty,
+                soldQuantity: { increment: item.quantity },
+                status: newQty <= 0 ? 'OUT_OF_STOCK' : 'AVAILABLE',
+              }
+            });
+
+            if (newQty <= 0) {
+              lowStockProducts.push({ name: product.name, type: 'CERO', newQty });
+            } else if (newQty <= 10) {
+              lowStockProducts.push({ name: product.name, type: 'BAJO', newQty });
+            }
           }
         }
       }
@@ -488,16 +593,39 @@ export async function voidSale(data: {
       // Si estaba completada, devolver existencias
       if (sale.status === 'COMPLETED') {
         for (const detail of sale.details) {
-          const newQty = detail.product.quantityAvailable + detail.quantity;
-          const newSold = Math.max(0, detail.product.soldQuantity - detail.quantity);
-          await tx.product.update({
-            where: { id: detail.productId },
-            data: {
-              quantityAvailable: newQty,
-              soldQuantity: newSold,
-              status: 'AVAILABLE',
+          if (detail.isCombo && detail.comboId) {
+            const combo = await tx.combo.findUnique({
+              where: { id: detail.comboId },
+              include: { items: true }
+            });
+            if (combo) {
+              for (const cItem of combo.items) {
+                const returnQty = detail.quantity * cItem.quantity;
+                const prod = await tx.product.findUnique({ where: { id: cItem.productId } });
+                if (prod) {
+                  await tx.product.update({
+                    where: { id: prod.id },
+                    data: {
+                      quantityAvailable: prod.quantityAvailable + returnQty,
+                      soldQuantity: Math.max(0, prod.soldQuantity - returnQty),
+                      status: 'AVAILABLE',
+                    }
+                  });
+                }
+              }
             }
-          });
+          } else if (detail.productId && detail.product) {
+            const newQty = detail.product.quantityAvailable + detail.quantity;
+            const newSold = Math.max(0, detail.product.soldQuantity - detail.quantity);
+            await tx.product.update({
+              where: { id: detail.productId },
+              data: {
+                quantityAvailable: newQty,
+                soldQuantity: newSold,
+                status: 'AVAILABLE',
+              }
+            });
+          }
         }
       }
 
@@ -551,18 +679,41 @@ export async function deleteSale(idInput: any) {
       // Devolver stock si estaba completada
       if (sale.status === 'COMPLETED') {
         for (const detail of sale.details) {
-          const product = await tx.product.findFirst({
-            where: { id: detail.productId }
-          });
-          if (product) {
-            await tx.product.update({
-              where: { id: detail.productId },
-              data: {
-                quantityAvailable: { increment: detail.quantity },
-                soldQuantity: { decrement: detail.quantity },
-                status: 'AVAILABLE',
-              }
+          if (detail.isCombo && detail.comboId) {
+            const combo = await tx.combo.findUnique({
+              where: { id: detail.comboId },
+              include: { items: true }
             });
+            if (combo) {
+              for (const cItem of combo.items) {
+                const returnQty = detail.quantity * cItem.quantity;
+                const prod = await tx.product.findUnique({ where: { id: cItem.productId } });
+                if (prod) {
+                  await tx.product.update({
+                    where: { id: prod.id },
+                    data: {
+                      quantityAvailable: prod.quantityAvailable + returnQty,
+                      soldQuantity: Math.max(0, prod.soldQuantity - returnQty),
+                      status: 'AVAILABLE',
+                    }
+                  });
+                }
+              }
+            }
+          } else if (detail.productId) {
+            const product = await tx.product.findFirst({
+              where: { id: detail.productId }
+            });
+            if (product) {
+              await tx.product.update({
+                where: { id: detail.productId },
+                data: {
+                  quantityAvailable: { increment: detail.quantity },
+                  soldQuantity: { decrement: detail.quantity },
+                  status: 'AVAILABLE',
+                }
+              });
+            }
           }
         }
       }

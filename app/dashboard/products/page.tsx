@@ -4,6 +4,7 @@ import { getSessionCompanyId } from '@/lib/session';
 import { ProductsClient } from '@/components/products-client';
 import { redirect } from 'next/navigation';
 import { getPlanLimits } from '@/lib/plans';
+import { getProductsCommittedStockMap } from '@/app/actions/combo-actions';
 
 export const metadata = {
   title: 'Productos · GNS',
@@ -43,6 +44,18 @@ export default async function ProductsPage() {
   const allowNegativeStock = settings?.allowNegativeStock ?? false;
   const registerInventoryCostAsExpense = settings?.registerInventoryCostAsExpense ?? false;
   const trackExpirationDates = settings?.trackExpirationDates ?? false;
+  const enableCombos = settings?.enableCombos ?? false;
+
+  let committedStockMap: Record<string, { committedInCombos: number; combosInvolved: any[] }> = {};
+  if (enableCombos) {
+    const committedRes = await getProductsCommittedStockMap();
+    if (committedRes.success && committedRes.map) {
+      // Convertir keys numéricas a string para compatibilidad
+      for (const [k, v] of Object.entries(committedRes.map)) {
+        committedStockMap[String(k)] = v;
+      }
+    }
+  }
 
   let planLimits = { maxProducts: 999999, planName: 'Plan Premium' };
   let currentProductsCount = 0;
@@ -53,7 +66,7 @@ export default async function ProductsPage() {
       where: { id: companyId },
       select: { planId: true, maxUsers: true, maxProducts: true, _count: { select: { products: true } } }
     });
-    
+
     if (activeCompany) {
       const limits = getPlanLimits(activeCompany.planId, { maxUsers: activeCompany.maxUsers, maxProducts: activeCompany.maxProducts });
       planLimits = { maxProducts: limits.maxProducts, planName: limits.name };
@@ -128,6 +141,8 @@ export default async function ProductsPage() {
         enableBatchWriteOff={(settings as any)?.enableBatchWriteOff ?? true}
         enableBatchDelete={(settings as any)?.enableBatchDelete ?? false}
         expirationAlertDays={settings?.expirationAlertDays ?? 30}
+        enableCombos={enableCombos}
+        committedStockMap={committedStockMap}
       />
     </div>
   );

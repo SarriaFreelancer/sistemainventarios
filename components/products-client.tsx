@@ -10,7 +10,7 @@ const EditProductDialog = dynamic(() => import('@/components/edit-product-dialog
 const CreateProductDialog = dynamic(() => import('@/components/create-product-dialog').then(mod => mod.CreateProductDialog), { ssr: false });
 import {
   Package, Trash2, TrendingUp, Archive, DollarSign, ShoppingCart,
-  Search, SlidersHorizontal, ChevronUp, ChevronDown, ChevronsUpDown, Folder, RotateCcw, X, Clock
+  Search, SlidersHorizontal, ChevronUp, ChevronDown, ChevronsUpDown, Folder, RotateCcw, X, Clock, Layers
 } from "lucide-react";
 import { confirmAction, successAlert, errorAlert, brandAlert } from "@/lib/sweetalert";
 import { useRouter } from "next/navigation";
@@ -68,11 +68,14 @@ export function ProductsClient(props: {
   enableBatchWriteOff?: boolean;
   enableBatchDelete?: boolean;
   expirationAlertDays?: number;
+  enableCombos?: boolean;
+  committedStockMap?: Record<string, { committedInCombos: number; combosInvolved: any[] }>;
 }) {
   const {
     initialProducts, categories, suppliers, groups, userId, allowNegativeStock = false,
     maxProducts = 999999, currentProducts = 0, planName = 'Plan Premium',
-    registerInventoryCostAsExpense = false, trackExpirationDates = false, enableBatchWriteOff = true, enableBatchDelete = false, expirationAlertDays = 30
+    registerInventoryCostAsExpense = false, trackExpirationDates = false, enableBatchWriteOff = true, enableBatchDelete = false, expirationAlertDays = 30,
+    enableCombos = false, committedStockMap = {}
   } = props;
   const router = useRouter();
   const [search, setSearch] = useState('');
@@ -690,9 +693,33 @@ export function ProductsClient(props: {
                         <span className="text-xs text-muted-foreground">{product.supplier?.companyName ?? '—'}</span>
                       </td>
                       <td className="px-4 py-3.5">
-                        <span className={`text-sm font-black ${isOut ? 'text-red-500' : 'text-foreground'}`}>
-                          {product.quantityAvailable}
-                        </span>
+                        {(() => {
+                          const committedData = committedStockMap[product.id];
+                          const hasCommitted = enableCombos && committedData && committedData.committedInCombos > 0;
+                          const freeStock = Math.max(0, product.quantityAvailable - (committedData?.committedInCombos || 0));
+
+                          return (
+                            <div className="flex flex-col gap-0.5">
+                              <span className={`text-sm font-black ${isOut ? 'text-red-500' : 'text-foreground'}`}>
+                                {product.quantityAvailable}
+                              </span>
+                              {hasCommitted && (
+                                <div className="flex flex-col gap-0.5">
+                                  <span
+                                    className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 max-w-fit cursor-help"
+                                    title={`Comprometido en combos:\n${committedData.combosInvolved.map(c => `• ${c.comboName}: ${c.requiredQty} u. x ${c.completeCombos} combo(s)`).join('\n')}`}
+                                  >
+                                    <Layers className="w-2.5 h-2.5 shrink-0" />
+                                    {committedData.committedInCombos} en combos
+                                  </span>
+                                  <span className="text-[10px] text-muted-foreground font-medium">
+                                    ({freeStock} libre{freeStock === 1 ? '' : 's'})
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td className="px-4 py-3.5 hidden xl:table-cell">
                         <span className="text-xs text-muted-foreground">
@@ -963,6 +990,20 @@ export function ProductsClient(props: {
                       <p className={`text-xs mt-1 ${isOut ? 'text-red-500 font-bold' : 'text-muted-foreground'}`}>
                         Stock: {product.quantityAvailable}
                       </p>
+                      {(() => {
+                        const committedData = committedStockMap[product.id];
+                        if (!enableCombos || !committedData || committedData.committedInCombos <= 0) return null;
+                        const freeStock = Math.max(0, product.quantityAvailable - committedData.committedInCombos);
+                        return (
+                          <div className="mt-1 flex flex-col items-end gap-0.5">
+                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 inline-flex items-center gap-1">
+                              <Layers className="w-2.5 h-2.5" />
+                              {committedData.committedInCombos} en combos
+                            </span>
+                            <span className="text-[9px] text-muted-foreground">({freeStock} libre{freeStock === 1 ? '' : 's'})</span>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                   <div className="flex items-center justify-between pt-1">

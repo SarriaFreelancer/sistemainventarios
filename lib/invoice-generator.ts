@@ -1,6 +1,9 @@
 
 interface InvoiceDetail {
-  product: { name: string; code: string };
+  product?: { name: string; code: string } | null;
+  combo?: { name: string; code?: string | null } | null;
+  comboName?: string | null;
+  isCombo?: boolean;
   quantity: number;
   unitPrice: number;
   subtotal: number;
@@ -79,7 +82,7 @@ export async function generateInvoiceMedia(sale: InvoiceData, format: 'png' | 'j
   ctx.strokeStyle = config.secondaryColor;
   ctx.lineWidth = 2;
   ctx.strokeRect(15, 15, canvas.width - 30, canvas.height - 30);
-  
+
   ctx.strokeStyle = config.primaryColor;
   ctx.lineWidth = 1;
   ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
@@ -200,27 +203,33 @@ export async function generateInvoiceMedia(sale: InvoiceData, format: 'png' | 'j
 
   // Table Rows
   ctx.font = '12px sans-serif';
-  
+
   sale.details.forEach(item => {
     ctx.font = '12px sans-serif';
     ctx.fillStyle = '#17121F';
     ctx.textAlign = 'left';
-    const pName = item.product.name.length > 40 ? item.product.name.substring(0, 38) + '...' : item.product.name;
+    const rawName = item.isCombo
+      ? `[COMBO] ${item.comboName || item.combo?.name || 'Combo'}`
+      : (item.product?.name || 'Producto');
+    const pName = rawName.length > 40 ? rawName.substring(0, 38) + '...' : rawName;
     ctx.fillText(pName, 45, yCursor);
-    
+
     // Product code in secondary color
+    const rawCode = item.isCombo
+      ? (item.combo?.code || 'COMBO')
+      : (item.product?.code || '—');
     ctx.font = '10px sans-serif';
     ctx.fillStyle = config.secondaryColor;
-    ctx.fillText(item.product.code, 45, yCursor + 14);
+    ctx.fillText(rawCode, 45, yCursor + 14);
 
     ctx.font = '12px sans-serif';
     ctx.fillStyle = '#17121F';
     ctx.textAlign = 'left';
     ctx.fillText(`${item.quantity} u.`, 430, yCursor);
-    
+
     ctx.textAlign = 'right';
     ctx.fillText(item.unitPrice.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }), 580, yCursor);
-    
+
     if (item.discount > 0) {
       ctx.fillStyle = '#EF4444';
       ctx.fillText(`-${item.discount.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}`, 690, yCursor);

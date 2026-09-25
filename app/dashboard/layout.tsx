@@ -23,6 +23,7 @@ async function ensureModulesInitialized() {
       { name: 'Productos', href: '/dashboard/products', icon: 'Boxes', description: 'Inventario, precios, stock y catálogo de artículos' },
       { name: 'Grupos', href: '/dashboard/groups', icon: 'Folder', description: 'Grupos y familias principales de productos' },
       { name: 'Categorías', href: '/dashboard/categories', icon: 'Tags', description: 'Categorización jerárquica de inventario' },
+      { name: 'Combos', href: '/dashboard/combos', icon: 'Layers', description: 'Paquetes comerciales de productos y kits promocionales' },
       { name: 'Bodegas', href: '/dashboard/warehouses', icon: 'Building2', description: 'Gestión WMS multibodega, ubicaciones y traslados' },
       { name: 'Proveedores', href: '/dashboard/suppliers', icon: 'Factory', description: 'Directorio de proveedores y compras' },
       { name: 'Compras', href: '/dashboard/compras', icon: 'Truck', description: 'Órdenes de compra, recepciones y cuentas por pagar' },
@@ -81,7 +82,7 @@ async function ensureModulesInitialized() {
         }).catch(() => {});
       }
 
-      const isUserAllowed = ['Dashboard', 'Productos', 'Grupos', 'Categorías', 'Bodegas', 'Proveedores', 'Compras', 'Ventas', 'CRM', 'RRHH', 'Finanzas', 'Reportes', 'Documentación'].includes(reqMod.name);
+      const isUserAllowed = ['Dashboard', 'Productos', 'Grupos', 'Categorías', 'Combos', 'Bodegas', 'Proveedores', 'Compras', 'Ventas', 'CRM', 'RRHH', 'Finanzas', 'Reportes', 'Documentación'].includes(reqMod.name);
       if (userRoleObj && isUserAllowed) {
         await prisma.roleModule.upsert({
           where: { roleId_moduleId: { roleId: userRoleObj.id, moduleId: mod.id } },
@@ -122,6 +123,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
 
   let companyName = '';
   let companyLogo: string | null = null;
+  let isCombosEnabled = false;
   let trialInfo: { isTrial: boolean; trialEndsAt: string | null; isExpired: boolean; daysLeft: number } | null = null;
 
   const tenantId = await getSessionCompanyId();
@@ -138,12 +140,13 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
       select: {
         name: true,
         themeConfig: true,
-        setting: { select: { invoiceConfig: true } }
+        setting: { select: { invoiceConfig: true, enableCombos: true } }
       }
     });
     companyTheme = company?.themeConfig;
     companyName = company?.name || '';
     companyLogo = (company?.setting?.invoiceConfig as any)?.logo || (company?.themeConfig as any)?.logo || null;
+    isCombosEnabled = company?.setting?.enableCombos ?? false;
 
     let isTrial = false;
     let trialEndsAt: Date | null = null;
@@ -216,6 +219,11 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
       const allowedSet = new Set(userPrefs.allowedModuleIds.map((id: any) => Number(id)));
       allowedModules = allowedModules.filter(m => allowedSet.has(m.id));
     }
+  }
+
+  // Filtrar el módulo de Combos si está deshabilitado en la configuración de la empresa
+  if (!isCombosEnabled && session.user.role !== 'SUPERADMIN') {
+    allowedModules = allowedModules.filter(m => m.href !== '/dashboard/combos');
   }
 
   // Asegurar que Documentación siempre esté disponible para todos los usuarios

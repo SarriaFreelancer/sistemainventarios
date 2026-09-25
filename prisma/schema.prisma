@@ -361,6 +361,7 @@ model Company {
   categories               Category[]
   suppliers                Supplier[]
   products                 Product[]
+  combos                   Combo[]
   sales                    Sale[]
   saleDetails              SaleDetail[]
   auditLogs                AuditLog[]
@@ -495,6 +496,7 @@ model Product {
   warehouseStocks          WarehouseStock[]
   warehouseMovementItems   WarehouseMovementItem[]
   warehouseTransferItems   WarehouseTransferItem[]
+  comboItems               ComboItem[]
 
   @@unique([code, companyId])
   @@index([name])
@@ -542,7 +544,10 @@ model Sale {
 model SaleDetail {
   id        Int      @id @default(autoincrement())
   saleId    Int
-  productId Int
+  productId Int?
+  comboId   Int?
+  comboName String?
+  isCombo   Boolean  @default(false)
   quantity  Int
   unitPrice Float
   subtotal  Float
@@ -553,10 +558,12 @@ model SaleDetail {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   sale      Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  product   Product  @relation(fields: [productId], references: [id])
+  product   Product? @relation(fields: [productId], references: [id])
+  combo     Combo?   @relation(fields: [comboId], references: [id])
 
   @@index([saleId])
   @@index([productId])
+  @@index([comboId])
   @@index([companyId])
 }
 
@@ -879,6 +886,9 @@ model CompanySetting {
   enableWarehouses               Boolean  @default(false)
   defaultSaleMode                String   @default("DIRECT")
   allowAutoInlineTransfer        Boolean  @default(true)
+  // --- Módulo Combos ---
+  enableCombos                   Boolean  @default(false)
+  allowSaleFromCommittedCombos   Boolean  @default(false)
   updatedAt                      DateTime @updatedAt
 }
 
@@ -1575,4 +1585,50 @@ model PasswordResetRequest {
   @@index([userId])
   @@index([companyId])
   @@index([status])
+}
+
+// ==========================================
+// MÓDULO COMBOS (PAQUETES COMERCIALES)
+// ==========================================
+
+model Combo {
+  id              Int          @id @default(autoincrement())
+  code            String?
+  name            String
+  description     String?      @db.Text
+  image           String?
+  pricingType     String       @default("DISCOUNT_PERCENT") // DISCOUNT_PERCENT | CUSTOM_PRICE
+  discountPercent Float        @default(0)
+  customPrice     Float?
+  calculatedCost  Float        @default(0)
+  commercialPrice Float        @default(0)
+  finalPrice      Float        @default(0)
+  targetQuantity  Int?
+  isActive        Boolean      @default(true)
+  companyId       Int?
+  company         Company?     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  items           ComboItem[]
+  saleDetails     SaleDetail[]
+
+  @@unique([name, companyId])
+  @@index([companyId])
+  @@index([isActive])
+}
+
+model ComboItem {
+  id        Int      @id @default(autoincrement())
+  comboId   Int
+  combo     Combo    @relation(fields: [comboId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int      @default(1)
+  companyId Int?
+
+  @@unique([comboId, productId])
+  @@index([comboId])
+  @@index([productId])
+  @@index([companyId])
 }

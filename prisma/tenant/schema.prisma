@@ -246,6 +246,7 @@ model Product {
   supplier           Supplier            @relation(fields: [supplierId], references: [id], map: "fk_prod_sup")
   saleDetails        SaleDetail[]
   purchaseOrderLines PurchaseOrderLine[]
+  comboItems         ComboItem[]
 
   @@unique([code, companyId])
   @@index([name])
@@ -289,7 +290,10 @@ model Sale {
 model SaleDetail {
   id        Int      @id @default(autoincrement())
   saleId    Int
-  productId Int
+  productId Int?
+  comboId   Int?
+  comboName String?
+  isCombo   Boolean  @default(false)
   quantity  Int
   unitPrice Float
   subtotal  Float
@@ -299,10 +303,12 @@ model SaleDetail {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   sale      Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade, map: "fk_sdetail_sale")
-  product   Product  @relation(fields: [productId], references: [id], map: "fk_sdetail_prod")
+  product   Product? @relation(fields: [productId], references: [id], map: "fk_sdetail_prod")
+  combo     Combo?   @relation(fields: [comboId], references: [id], map: "fk_sdetail_combo")
 
   @@index([saleId])
   @@index([productId])
+  @@index([comboId])
   @@index([companyId])
 }
 
@@ -410,5 +416,50 @@ model Branch {
   products  Product[]
   sales     Sale[]
 
+  @@index([companyId])
+}
+
+// ==========================================
+// MÓDULO COMBOS (PAQUETES COMERCIALES)
+// ==========================================
+
+model Combo {
+  id              Int          @id @default(autoincrement())
+  code            String?
+  name            String
+  description     String?      @db.Text
+  image           String?
+  pricingType     String       @default("DISCOUNT_PERCENT")
+  discountPercent Float        @default(0)
+  customPrice     Float?
+  calculatedCost  Float        @default(0)
+  commercialPrice Float        @default(0)
+  finalPrice      Float        @default(0)
+  targetQuantity  Int?
+  isActive        Boolean      @default(true)
+  companyId       String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  items           ComboItem[]
+  saleDetails     SaleDetail[]
+
+  @@unique([name, companyId])
+  @@index([companyId])
+  @@index([isActive])
+}
+
+model ComboItem {
+  id        Int      @id @default(autoincrement())
+  comboId   Int
+  combo     Combo    @relation(fields: [comboId], references: [id], onDelete: Cascade, map: "fk_citem_combo")
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade, map: "fk_citem_prod")
+  quantity  Int      @default(1)
+  companyId String?
+
+  @@unique([comboId, productId])
+  @@index([comboId])
+  @@index([productId])
   @@index([companyId])
 }
