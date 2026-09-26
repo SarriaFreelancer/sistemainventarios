@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma';
 import { logActivity } from '@/lib/audit';
 import { getPlanLimits } from '@/lib/plans';
 import { validatePassword } from '@/lib/password';
+import { getAuthSession } from '@/auth';
 
 const userCreateSchema = z.object({
   name: z.string().min(2, 'El nombre completo es obligatorio'),
@@ -25,16 +26,37 @@ const userUpdateSchema = z.object({
 });
 
 export async function createUser(formData: FormData) {
+  const session = await getAuthSession();
+  if (!session?.user) {
+    return { success: false, error: 'No autorizado' };
+  }
+
+  const currentUserRole = session.user.role;
+  const currentCompanyId = session.user.companyId ? Number(session.user.companyId) : undefined;
+
+  let targetCompanyId = formData.get('companyId') ? Number(formData.get('companyId')) : undefined;
+  if (currentUserRole === 'ADMIN') {
+    targetCompanyId = currentCompanyId;
+  }
+
   const parsed = userCreateSchema.safeParse({
     name: formData.get('name'),
     email: formData.get('email'),
     password: formData.get('password'),
     roleId: formData.get('roleId'),
-    companyId: formData.get('companyId') || undefined,
+    companyId: targetCompanyId,
   });
 
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' };
+  }
+
+  // Prevenir que un Admin de empresa asigne el rol SUPERADMIN
+  if (currentUserRole === 'ADMIN') {
+    const targetRole = await prisma.role.findUnique({ where: { id: parsed.data.roleId } });
+    if (targetRole?.name === 'SUPERADMIN') {
+      return { success: false, error: 'No tienes permisos para asignar el rol de Super Administrador' };
+    }
   }
 
   const existing = await prisma.user.findUnique({ where: { email: parsed.data.email } });
@@ -113,22 +135,59 @@ export async function createUser(formData: FormData) {
 }
 
 export async function updateUser(formData: FormData) {
+  const session = await getAuthSession();
+  if (!session?.user) {
+    return { success: false, error: 'No autorizado' };
+  }
+
+  const currentUserRole = session.user.role;
+  const currentCompanyId = session.user.companyId ? Number(session.user.companyId) : undefined;
+
   const id = Number(formData.get('id'));
   const password = String(formData.get('password') ?? '');
+
+  let targetCompanyId = formData.get('companyId') ? Number(formData.get('companyId')) : undefined;
+  if (currentUserRole === 'ADMIN') {
+    targetCompanyId = currentCompanyId;
+  }
+
   const parsed = userUpdateSchema.safeParse({
     name: formData.get('name'),
     email: formData.get('email'),
     password: password || undefined,
     roleId: formData.get('roleId'),
-    companyId: formData.get('companyId') || undefined,
+    companyId: targetCompanyId,
   });
 
   if (!parsed.success || !id || isNaN(id)) {
     return { success: false, error: parsed.error?.issues[0]?.message ?? 'Datos inválidos' };
   }
 
-  const existingUser = await prisma.user.findUnique({ where: { id } });
-  const currentPrefs = (existingUser?.preferences as any) || {};
+  const existingUser = await prisma.user.findUnique({
+    where: { id },
+    include: { role: true }
+  });
+  if (!existingUser) {
+    return { success: false, error: 'Usuario no encontrado' };
+  }
+
+  if (currentUserRole === 'ADMIN') {
+    // Un Admin no puede modificar a un SuperAdmin
+    if (existingUser.role?.name === 'SUPERADMIN') {
+      return { success: false, error: 'No tienes permisos para modificar a un Super Administrador' };
+    }
+    // Un Admin no puede modificar usuarios de otra empresa
+    if (existingUser.companyId && existingUser.companyId !== currentCompanyId) {
+      return { success: false, error: 'No tienes permisos para modificar usuarios de otra empresa' };
+    }
+    // Un Admin no puede asignar el rol de SuperAdmin
+    const targetRole = await prisma.role.findUnique({ where: { id: parsed.data.roleId } });
+    if (targetRole?.name === 'SUPERADMIN') {
+      return { success: false, error: 'No tienes permisos para asignar el rol de Super Administrador' };
+    }
+  }
+
+  const currentPrefs = (existingUser.preferences as any) || {};
 
   const allowedModuleIdsRaw = formData.get('allowedModuleIds');
   let newPreferences = { ...currentPrefs };
@@ -147,7 +206,7 @@ export async function updateUser(formData: FormData) {
     name: parsed.data.name,
     email: parsed.data.email,
     roleId: parsed.data.roleId,
-    companyId: parsed.data.companyId || undefined,
+    companyId: targetCompanyId || undefined,
     preferences: newPreferences,
   };
 
@@ -195,6 +254,14 @@ export async function updateUser(formData: FormData) {
 }
 
 export async function deleteUser(formData: FormData) {
+  const session = await getAuthSession();
+  if (!session?.user) {
+    return { success: false, error: 'No autorizado' };
+  }
+
+  const currentUserRole = session.user.role;
+  const currentCompanyId = session.user.companyId ? Number(session.user.companyId) : undefined;
+
   const id = Number(formData.get('id'));
   if (!id || isNaN(id)) return { success: false, error: 'ID inválida' };
 
@@ -204,6 +271,15 @@ export async function deleteUser(formData: FormData) {
       include: { role: true }
     });
     if (!userBefore) return { success: false, error: 'Usuario no encontrado' };
+
+    if (currentUserRole === 'ADMIN') {
+      if (userBefore.role?.name === 'SUPERADMIN') {
+        return { success: false, error: 'No se puede eliminar a un Super Administrador' };
+      }
+      if (userBefore.companyId && userBefore.companyId !== currentCompanyId) {
+        return { success: false, error: 'No tienes permisos para eliminar usuarios de otra empresa' };
+      }
+    }
 
     // Verificar si el usuario cuenta con transacciones u operaciones vinculadas en el sistema
     const [

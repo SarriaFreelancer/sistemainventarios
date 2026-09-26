@@ -124,25 +124,30 @@ export async function isSessionTokenValid(token: string) {
   const user = session.user;
   const isSuperAdmin = user.role?.name === 'SUPERADMIN';
 
+  // El SUPERADMIN siempre tiene acceso irrestricto y permanente:
+  if (isSuperAdmin) {
+    return { valid: true };
+  }
+
   // Si tiene empresa pero la empresa fue eliminada de la base de datos
-  if (session.companyId && !user.company && !isSuperAdmin) {
+  if (session.companyId && !user.company) {
     return { valid: false, reason: 'COMPANY_DELETED' };
   }
 
-  // Si la empresa existe pero está suspendida o inactiva (y no es SuperAdmin)
-  if (user.company && user.company.status !== 'ACTIVE' && !isSuperAdmin) {
+  // Si la empresa existe pero está suspendida o inactiva
+  if (user.company && user.company.status !== 'ACTIVE') {
     return { valid: false, reason: 'COMPANY_SUSPENDED' };
   }
 
   // Si la empresa está en período de prueba y ya venció
-  if (user.company && (user.company as any).isTrial && !isSuperAdmin) {
+  if (user.company && (user.company as any).isTrial) {
     const trialEndsAt = (user.company as any).trialEndsAt;
     if (trialEndsAt && new Date(trialEndsAt) < new Date()) {
       return { valid: false, reason: 'TRIAL_EXPIRED' };
     }
   }
 
-  if (session.expiresAt < new Date()) {
+  if (session.expiresAt && session.expiresAt < new Date()) {
     await removeSessionByToken(token);
     return { valid: false, reason: 'EXPIRED' };
   }

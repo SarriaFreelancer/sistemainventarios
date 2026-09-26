@@ -58,7 +58,7 @@ export default function LoginPage() {
   }, []);
 
   const router = useRouter();
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<z.infer<typeof loginSchema>>({
+  const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: { rememberMe: false }
   });
@@ -67,6 +67,18 @@ export default function LoginPage() {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       const reason = urlParams.get('reason');
+      const qEmail = urlParams.get('email');
+      const qPass = urlParams.get('password');
+
+      if (qEmail) setValue('email', qEmail);
+      if (qPass) setValue('password', qPass);
+
+      // Limpiar credenciales de la URL por seguridad y evitar envíos GET residuales
+      if (qEmail || qPass) {
+        const cleanUrl = window.location.pathname + (reason ? `?reason=${encodeURIComponent(reason)}` : '');
+        window.history.replaceState({}, document.title, cleanUrl);
+      }
+
       if (reason === 'inactivity') {
         setAuthStatus({
           type: 'error',
@@ -94,7 +106,7 @@ export default function LoginPage() {
         });
       }
     }
-  }, []);
+  }, [setValue]);
 
   const onSubmit = async (values: z.infer<typeof loginSchema>) => {
     setAuthStatus({ type: null, message: '' });
@@ -151,7 +163,7 @@ export default function LoginPage() {
           type: 'success',
           message: '¡Acceso autorizado correctamente! Ingresando al sistema...',
         });
-        router.replace('/dashboard');
+        window.location.href = '/dashboard';
         return;
       }
 
@@ -405,7 +417,15 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <form className="space-y-3" onSubmit={handleSubmit(onSubmit)}>
+          <form
+            className="space-y-3"
+            method="POST"
+            action="#"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSubmit(onSubmit)(e);
+            }}
+          >
 
             {/* Banner de Estado de Autenticación */}
             {authStatus.type && (

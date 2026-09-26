@@ -118,16 +118,19 @@ export const authOptions: AuthOptions = {
 
         // --- SESSION LIMITS LOGIC ---
         let sessionToken: string | null = null;
+        const isSuperAdmin = user.role?.name === 'SUPERADMIN';
         if (user.companyId) {
-          const limits = await checkSessionLimits(user.id, user.companyId);
+          if (!isSuperAdmin) {
+            const limits = await checkSessionLimits(user.id, user.companyId);
 
-          if (!limits.allowed) {
-            throw new Error(`Límite de licencias alcanzado. Se han utilizado ${limits.activeCount} de ${limits.maxUsers} conexiones permitidas. Comunícate con un administrador.`);
-          }
+            if (!limits.allowed) {
+              throw new Error(`Límite de licencias alcanzado. Se han utilizado ${limits.activeCount} de ${limits.maxUsers} conexiones permitidas. Comunícate con un administrador.`);
+            }
 
-          if (limits.closeSessionId) {
-            // User already has an active session, close it to allow this new one
-            await removeSessionByIdInternal(limits.closeSessionId);
+            if (limits.closeSessionId) {
+              // User already has an active session, close it to allow this new one
+              await removeSessionByIdInternal(limits.closeSessionId);
+            }
           }
 
           // Create new active session record
@@ -141,10 +144,10 @@ export const authOptions: AuthOptions = {
           image: user.image ?? null,
           role: user.role?.name,
           companyId: user.companyId ? String(user.companyId) : null,
-          companyStatus: user.company?.status || null,
-          companyPlan: user.company?.planId || null,
-          isTrial: (user.company as any)?.isTrial ?? false,
-          trialEndsAt: (user.company as any)?.trialEndsAt ? new Date((user.company as any).trialEndsAt).toISOString() : null,
+          companyStatus: isSuperAdmin ? 'ACTIVE' : (user.company?.status || null),
+          companyPlan: isSuperAdmin ? 'enterprise' : (user.company?.planId || null),
+          isTrial: isSuperAdmin ? false : ((user.company as any)?.isTrial ?? false),
+          trialEndsAt: isSuperAdmin ? null : ((user.company as any)?.trialEndsAt ? new Date((user.company as any).trialEndsAt).toISOString() : null),
           sessionToken // Add the token
         };
       },
@@ -381,11 +384,12 @@ export const authOptions: AuthOptions = {
               // El usuario o su empresa fue eliminada de la base de datos
               return null;
             }
+            const isSuper = dbUser.role?.name === 'SUPERADMIN';
             session.user.role = dbUser.role?.name;
-            session.user.companyStatus = dbUser.company?.status || null;
-            session.user.companyPlan = dbUser.company?.planId || null;
-            session.user.isTrial = (dbUser.company as any)?.isTrial ?? false;
-            session.user.trialEndsAt = (dbUser.company as any)?.trialEndsAt ? new Date((dbUser.company as any).trialEndsAt).toISOString() : null;
+            session.user.companyStatus = isSuper ? 'ACTIVE' : (dbUser.company?.status || null);
+            session.user.companyPlan = isSuper ? 'enterprise' : (dbUser.company?.planId || null);
+            session.user.isTrial = isSuper ? false : ((dbUser.company as any)?.isTrial ?? false);
+            session.user.trialEndsAt = isSuper ? null : ((dbUser.company as any)?.trialEndsAt ? new Date((dbUser.company as any).trialEndsAt).toISOString() : null);
             if (dbUser.image) session.user.image = dbUser.image;
             if (dbUser.name) session.user.name = dbUser.name;
             if (dbUser.preferences) {

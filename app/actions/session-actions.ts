@@ -72,7 +72,14 @@ export async function removeAllCompanySessions(companyId: number | string, exclu
   }
 
   try {
-    const whereClause: any = { companyId: numericCompanyId };
+    const whereClause: any = {
+      companyId: numericCompanyId,
+      user: {
+        role: {
+          name: { not: 'SUPERADMIN' }
+        }
+      }
+    };
     if (excludeToken) {
       whereClause.token = { not: excludeToken };
     }

@@ -156,8 +156,8 @@ export function CreateUserDialog({
               </div>
               <div className="space-y-1.5 sm:col-span-2">
                 <Label htmlFor="user-company" className={labelCls}>Empresa</Label>
-                <select id="user-company" name="companyId" className={selectCls}>
-                  <option value="">Sin empresa</option>
+                <select id="user-company" name="companyId" defaultValue={companies.length === 1 ? companies[0].id : ''} className={selectCls}>
+                  {companies.length !== 1 && <option value="">Sin empresa</option>}
                   {companies.map((company) => (
                     <option key={company.id} value={company.id}>{company.name}</option>
                   ))}
@@ -331,8 +331,8 @@ export function EditUserDialog({
               </div>
               <div className="space-y-1.5 sm:col-span-2">
                 <Label htmlFor={`edit-user-company-${user.id}`} className={labelCls}>Empresa</Label>
-                <select id={`edit-user-company-${user.id}`} name="companyId" defaultValue={user.company?.id ?? ''} className={selectCls}>
-                  <option value="">Sin empresa</option>
+                <select id={`edit-user-company-${user.id}`} name="companyId" defaultValue={user.company?.id ?? (companies.length === 1 ? companies[0].id : '')} className={selectCls}>
+                  {companies.length !== 1 && <option value="">Sin empresa</option>}
                   {companies.map((company) => (
                     <option key={company.id} value={company.id}>{company.name}</option>
                   ))}

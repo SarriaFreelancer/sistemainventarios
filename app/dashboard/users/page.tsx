@@ -25,7 +25,7 @@ export default async function UsersPage() {
       orderBy: { name: 'asc' },
     }),
     prisma.role.findMany({
-      where: isAdmin ? { name: 'USER' } : {}, // Admin can only create USERs? Wait, they might create other admins. Let's say they can see all roles except SUPERADMIN.
+      where: isAdmin ? { name: { in: ['ADMIN', 'USER'] } } : {},
       orderBy: { name: 'asc' }
     }),
     prisma.company.findMany({
