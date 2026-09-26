@@ -117,7 +117,9 @@ export default function ActiveSessionsManager({ role, currentSessionToken }: Act
 
     if (result.isConfirmed) {
       try {
-        const body = all ? { companyId, all: true } : { sessionId };
+        const body = all
+          ? { companyId, all: true, sessionToken: currentSessionToken }
+          : { sessionId, sessionToken: currentSessionToken };
         const res = await fetch('/api/sessions', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },

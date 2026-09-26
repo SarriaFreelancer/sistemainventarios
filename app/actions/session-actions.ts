@@ -93,6 +93,42 @@ export async function removeAllCompanySessions(companyId: number | string, exclu
   }
 }
 
+export async function removeAllCompaniesSessionsGlobal(excludeToken?: string) {
+  const session = await getAuthSession();
+
+  if (!session || !session.user) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  const role = (session.user as any).role?.name || (session.user as any).role || (session.user as any).roleName;
+  if (role !== 'SUPERADMIN') {
+    return { success: false, error: 'Forbidden' };
+  }
+
+  try {
+    const whereClause: any = {
+      company: {
+        name: { not: 'Global' }
+      },
+      user: {
+        role: {
+          name: { not: 'SUPERADMIN' }
+        }
+      }
+    };
+    if (excludeToken) {
+      whereClause.token = { not: excludeToken };
+    }
+
+    await prisma.userSession.deleteMany({
+      where: whereClause
+    });
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: 'Failed to delete global sessions' };
+  }
+}
+
 export async function getActiveSessionsForAdmin() {
   const authSession = await getAuthSession();
 

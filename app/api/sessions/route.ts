@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthSession } from '@/auth';
-import { getActiveSessionsForAdmin, removeSessionById, removeAllCompanySessions } from '@/app/actions/session-actions';
+import {
+  getActiveSessionsForAdmin,
+  removeSessionById,
+  removeAllCompanySessions,
+  removeAllCompaniesSessionsGlobal
+} from '@/app/actions/session-actions';
 
 export async function GET(request: NextRequest) {
   const session = await getAuthSession();
@@ -42,6 +47,15 @@ export async function DELETE(request: NextRequest) {
     const excludeToken = sessionToken;
 
     if (all) {
+      if (role === 'SUPERADMIN' && !companyId) {
+        // Desconectar todas las empresas globalmente, protegiendo a la empresa 'Global' y al SuperAdmin
+        const result = await removeAllCompaniesSessionsGlobal(excludeToken);
+        if (result.success) {
+          return NextResponse.json({ success: true });
+        }
+        return NextResponse.json({ error: result.error }, { status: 400 });
+      }
+
       const targetCompanyId = companyId || (session.user as any).companyId;
       if (!targetCompanyId) {
         return NextResponse.json({ error: 'No target company specified' }, { status: 400 });
