@@ -20,8 +20,6 @@ const nextConfig: NextConfig = {
       '@radix-ui/react-dropdown-menu',
       '@radix-ui/react-select',
     ],
-    webpackMemoryOptimizations: true,
-    cpus: 1,
   },
   async headers() {
     return [
