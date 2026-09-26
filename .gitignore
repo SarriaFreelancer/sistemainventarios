@@ -41,3 +41,7 @@ test-results/
 
 # User uploads
 public/uploads/
+
+# Backups
+backups/
+*.sql

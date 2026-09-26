@@ -32,6 +32,7 @@ async function ensureModulesInitialized() {
       { name: 'RRHH', href: '/dashboard/rrhh', icon: 'Users', description: 'Gestión de personal y nómina' },
       { name: 'Finanzas', href: '/dashboard/finanzas', icon: 'DollarSign', description: 'Ingresos, gastos y flujo de caja' },
       { name: 'Reportes', href: '/dashboard/reportes', icon: 'FileText', description: 'Informes avanzados exportables' },
+      { name: 'Asistente IA', href: '/dashboard/ia', icon: 'Sparkles', description: 'Inteligencia Artificial Groq para optimización de inventarios, stock, costos y consejos de negocio' },
       { name: 'Analíticas', href: '/dashboard/analytics', icon: 'BarChart3', description: 'Métricas SaaS, actividad de usuarios y módulos' },
       { name: 'Auditoría', href: '/dashboard/audit', icon: 'ShieldAlert', description: 'Trazabilidad y registro de actividad' },
       { name: 'Empresas', href: '/dashboard/companies', icon: 'Building2', description: 'Gestión de empresas y subcuentas' },
@@ -82,7 +83,7 @@ async function ensureModulesInitialized() {
         }).catch(() => {});
       }
 
-      const isUserAllowed = ['Dashboard', 'Productos', 'Grupos', 'Categorías', 'Kits', 'Combos', 'Bodegas', 'Proveedores', 'Compras', 'Ventas', 'CRM', 'RRHH', 'Finanzas', 'Reportes', 'Documentación'].includes(reqMod.name);
+      const isUserAllowed = ['Dashboard', 'Productos', 'Grupos', 'Categorías', 'Kits', 'Combos', 'Bodegas', 'Proveedores', 'Compras', 'Ventas', 'CRM', 'RRHH', 'Finanzas', 'Reportes', 'Asistente IA', 'Documentación'].includes(reqMod.name);
       if (userRoleObj && isUserAllowed) {
         await prisma.roleModule.upsert({
           where: { roleId_moduleId: { roleId: userRoleObj.id, moduleId: mod.id } },
