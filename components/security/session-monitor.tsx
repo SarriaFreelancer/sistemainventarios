@@ -41,33 +41,46 @@ export default function SessionMonitor({ sessionToken }: SessionMonitorProps) {
 
           const Swal = (await import('sweetalert2')).default;
 
-          let text = 'Tu sesión ya no es válida.';
+          let modalTitle = 'Sesión Finalizada';
+          let text = 'Tu sesión fue finalizada por un administrador del sistema.';
           let redirectUrl = '/auth/login?reason=admin_disconnect';
           let btnText = 'Ir al Login';
 
-          if (data.reason === 'USER_DELETED' || data.reason === 'COMPANY_DELETED') {
-            text = 'Tu usuario o empresa ha sido eliminada del sistema. Para continuar, por favor regístrate nuevamente y selecciona un plan.';
+          if (data.reason === 'USER_DELETED') {
+            modalTitle = 'Cuenta Eliminada';
+            text = 'Tu usuario ha sido eliminado por el administrador de la empresa.';
+            redirectUrl = '/auth/login?reason=deleted';
+            btnText = 'Entendido';
+          } else if (data.reason === 'COMPANY_DELETED') {
+            modalTitle = 'Empresa Eliminada';
+            text = 'Tu empresa ha sido eliminada del sistema. Para continuar, por favor regístrate nuevamente y selecciona un plan.';
             redirectUrl = '/auth/login?reason=deleted';
             btnText = 'Entendido';
           } else if (data.reason === 'TRIAL_EXPIRED') {
+            modalTitle = 'Período de Prueba Finalizado';
             text = 'El período de prueba de tu empresa ha finalizado. Para reactivar el acceso a los módulos y funciones del sistema, por favor adquiere un plan o comunícate con el administrador.';
             redirectUrl = '/auth/login?reason=trial_expired';
             btnText = 'Ver Planes';
           } else if (data.reason === 'COMPANY_SUSPENDED') {
+            modalTitle = 'Licencia Suspendida';
             text = 'La suscripción de tu empresa se encuentra inactiva o suspendida. Por favor, selecciona y paga tu plan para acceder al sistema.';
             redirectUrl = '/#planes';
             btnText = 'Ver Planes';
           } else if (data.reason === 'TERMINATED_BY_ADMIN') {
-            text = 'Tu sesión fue finalizada por un administrador del sistema.';
+            modalTitle = 'Sesión Desconectada';
+            text = 'Tu sesión ha sido finalizada por un administrador del sistema.';
             redirectUrl = '/auth/login?reason=admin_disconnect';
+            btnText = 'Ir al Login';
           } else if (data.reason === 'EXPIRED') {
+            modalTitle = 'Sesión Expirada';
             text = 'Tu sesión ha expirado por inactividad.';
             redirectUrl = '/auth/login?reason=inactivity';
+            btnText = 'Ir al Login';
           }
 
           await Swal.fire({
             icon: 'warning',
-            title: 'Acceso Restringido',
+            title: modalTitle,
             text,
             confirmButtonText: btnText,
             confirmButtonColor: '#dc2626',

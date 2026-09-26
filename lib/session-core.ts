@@ -111,7 +111,13 @@ export async function isSessionTokenValid(token: string) {
     }
   });
 
-  if (!session || !session.user) {
+  // Si no se encuentra la sesión, fue desconectada o finalizada por un administrador
+  if (!session) {
+    return { valid: false, reason: 'TERMINATED_BY_ADMIN' };
+  }
+
+  // Si la sesión existe pero el usuario fue eliminado de la base de datos
+  if (!session.user) {
     return { valid: false, reason: 'USER_DELETED' };
   }
 

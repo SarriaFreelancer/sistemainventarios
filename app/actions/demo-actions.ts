@@ -791,198 +791,167 @@ export async function clearDemoData({
     const companyId = targetCompanyId || (await resolveActionCompanyId());
     if (!companyId) throw new Error("Compañía no encontrada");
 
-    if (mode === 'ONLY_DEMO') {
-      // 1. Obtener los identificadores de lote de prueba guardados en AuditLog
-      const demoBatches = await prisma.auditLog.findMany({
-        where: {
-          companyId,
-          module: "DEMO_DATA",
-          action: "BATCH_CREATED"
-        }
-      });
-
-      const productIds = new Set<number>();
-      const categoryIds = new Set<number>();
-      const groupIds = new Set<number>();
-      const supplierIds = new Set<number>();
-      const customerIds = new Set<number>();
-      const leadIds = new Set<number>();
-      const opportunityIds = new Set<number>();
-      const activityIds = new Set<number>();
-      const contactIds = new Set<number>();
-      const quoteIds = new Set<number>();
-      const saleIds = new Set<number>();
-      const incomeIds = new Set<number>();
-      const expenseIds = new Set<number>();
-      const positionIds = new Set<number>();
-      const employeeIds = new Set<number>();
-      const payrollIds = new Set<number>();
-      const userIds = new Set<number>();
-      const suffixes: string[] = [];
-
-      demoBatches.forEach(batch => {
-        const val = batch.newValues as any;
-        if (val) {
-          if (val.batchSuffix) suffixes.push(val.batchSuffix);
-          val.productIds?.forEach((id: number) => productIds.add(id));
-          val.categoryIds?.forEach((id: number) => categoryIds.add(id));
-          val.groupIds?.forEach((id: number) => groupIds.add(id));
-          val.supplierIds?.forEach((id: number) => supplierIds.add(id));
-          val.customerIds?.forEach((id: number) => customerIds.add(id));
-          val.leadIds?.forEach((id: number) => leadIds.add(id));
-          val.opportunityIds?.forEach((id: number) => opportunityIds.add(id));
-          val.activityIds?.forEach((id: number) => activityIds.add(id));
-          val.contactIds?.forEach((id: number) => contactIds.add(id));
-          val.quoteIds?.forEach((id: number) => quoteIds.add(id));
-          val.saleIds?.forEach((id: number) => saleIds.add(id));
-          val.incomeIds?.forEach((id: number) => incomeIds.add(id));
-          val.expenseIds?.forEach((id: number) => expenseIds.add(id));
-          val.positionIds?.forEach((id: number) => positionIds.add(id));
-          val.employeeIds?.forEach((id: number) => employeeIds.add(id));
-          val.payrollIds?.forEach((id: number) => payrollIds.add(id));
-          val.userIds?.forEach((id: number) => userIds.add(id));
-        }
-      });
-
-      await prisma.$transaction(async (tx) => {
-        // Eliminar detalles de ventas y ventas demo
-        if (saleIds.size > 0 || productIds.size > 0) {
-          await tx.saleDetail.deleteMany({
-            where: {
-              companyId,
-              OR: [
-                saleIds.size > 0 ? { saleId: { in: Array.from(saleIds) } } : {},
-                productIds.size > 0 ? { productId: { in: Array.from(productIds) } } : {},
-              ]
-            }
-          }).catch(() => {});
-        }
-
-        if (saleIds.size > 0) {
-          await tx.sale.deleteMany({
-            where: { companyId, id: { in: Array.from(saleIds) } }
-          }).catch(() => {});
-        }
-
-        // CRM: Cotizaciones, Actividades, Contactos, Oportunidades, Leads demo
-        if (quoteIds.size > 0) {
-          await tx.quote.deleteMany({ where: { companyId, id: { in: Array.from(quoteIds) } } }).catch(() => {});
-        }
-        if (activityIds.size > 0) {
-          await tx.activity.deleteMany({ where: { companyId, id: { in: Array.from(activityIds) } } }).catch(() => {});
-        }
-        if (contactIds.size > 0) {
-          await tx.contact.deleteMany({ where: { companyId, id: { in: Array.from(contactIds) } } }).catch(() => {});
-        }
-        if (opportunityIds.size > 0) {
-          await tx.opportunity.deleteMany({ where: { companyId, id: { in: Array.from(opportunityIds) } } }).catch(() => {});
-        }
-        if (leadIds.size > 0) {
-          await tx.lead.deleteMany({ where: { companyId, id: { in: Array.from(leadIds) } } }).catch(() => {});
-        }
-
-        // Nómina y RRHH demo
-        if (payrollIds.size > 0) {
-          await tx.payrollDetail?.deleteMany({ where: { companyId, payrollId: { in: Array.from(payrollIds) } } }).catch(() => {});
-          await tx.payroll?.deleteMany({ where: { companyId, id: { in: Array.from(payrollIds) } } }).catch(() => {});
-        }
-        await tx.payroll?.deleteMany({ where: { companyId, code: { startsWith: 'NOM-' } } }).catch(() => {});
-
-        if (employeeIds.size > 0) {
-          await tx.employeeNovelty?.deleteMany({ where: { companyId, employeeId: { in: Array.from(employeeIds) } } }).catch(() => {});
-          await tx.employee?.deleteMany({ where: { companyId, id: { in: Array.from(employeeIds) } } }).catch(() => {});
-        }
-        await tx.employee?.deleteMany({ where: { companyId, email: { contains: '@gns-demo.com' } } }).catch(() => {});
-
-        if (positionIds.size > 0) {
-          await tx.position?.deleteMany({ where: { companyId, id: { in: Array.from(positionIds) } } }).catch(() => {});
-        }
-
-        // Finanzas demo
-        if (incomeIds.size > 0) {
-          await tx.income.deleteMany({ where: { companyId, id: { in: Array.from(incomeIds) } } }).catch(() => {});
-        }
-        if (expenseIds.size > 0) {
-          await tx.expense.deleteMany({ where: { companyId, id: { in: Array.from(expenseIds) } } }).catch(() => {});
-        }
-
-        // Productos de demostración (SOLO los IDs de demostración)
-        if (productIds.size > 0) {
-          await tx.product.deleteMany({ where: { companyId, id: { in: Array.from(productIds) } } }).catch(() => {});
-        }
-
-        // Categorías de demostración
-        if (categoryIds.size > 0) {
-          await tx.category.deleteMany({ where: { companyId, id: { in: Array.from(categoryIds) } } }).catch(() => {});
-        }
-
-        // Grupos de productos de demostración
-        if (groupIds.size > 0) {
-          await tx.productGroup.deleteMany({ where: { companyId, id: { in: Array.from(groupIds) } } }).catch(() => {});
-        }
-
-        // Proveedores de demostración
-        if (supplierIds.size > 0) {
-          await tx.supplier.deleteMany({ where: { companyId, id: { in: Array.from(supplierIds) } } }).catch(() => {});
-        }
-
-        // Clientes de demostración
-        if (customerIds.size > 0) {
-          await tx.customer.deleteMany({ where: { companyId, id: { in: Array.from(customerIds) } } }).catch(() => {});
-        }
-
-        // Usuarios demo temporales
-        await tx.user.deleteMany({ where: { companyId, email: { contains: '@gns-demo.com' } } }).catch(() => {});
-
-        // Eliminar los registros de seguimiento del lote de prueba
-        await tx.auditLog.deleteMany({
-          where: { companyId, module: "DEMO_DATA" }
-        });
-      });
-
-      revalidatePath("/", "layout");
+    // Protección estricta: solo permitir eliminación de registros pertenecientes a lotes de prueba
+    if (mode !== 'ONLY_DEMO') {
       return {
-        success: true,
-        message: "Se han eliminado exitosamente todos los datos de prueba. Todos tus productos, clientes y registros creados manualmente se conservan intactos."
-      };
-    } else {
-      // MODE === 'ALL': Limpieza completa por empresa conservando usuarios principales y licencias
-      await prisma.$transaction(async (tx) => {
-        await tx.notification.deleteMany({ where: { companyId } });
-        await tx.auditLog.deleteMany({ where: { companyId } });
-        await tx.saleDetail.deleteMany({ where: { companyId } });
-        await tx.sale.deleteMany({ where: { companyId } });
-        await tx.opportunity.deleteMany({ where: { companyId } });
-        await tx.lead.deleteMany({ where: { companyId } }).catch(() => {});
-        await tx.activity.deleteMany({ where: { companyId } }).catch(() => {});
-        await tx.contact.deleteMany({ where: { companyId } }).catch(() => {});
-        await tx.quote.deleteMany({ where: { companyId } }).catch(() => {});
-        await tx.customer.deleteMany({ where: { companyId } });
-        await tx.product.deleteMany({ where: { companyId } });
-        await tx.category.deleteMany({ where: { companyId } });
-        await tx.productGroup.deleteMany({ where: { companyId } });
-        await tx.supplier.deleteMany({ where: { companyId } });
-        await tx.income.deleteMany({ where: { companyId } }).catch(() => {});
-        await tx.expense.deleteMany({ where: { companyId } }).catch(() => {});
-        await tx.invoiceCounter.deleteMany({ where: { companyId } });
-
-        // Borrar nómina, empleados y cargos de demostración
-        await tx.payrollDetail?.deleteMany({ where: { companyId } }).catch(() => {});
-        await tx.payroll?.deleteMany({ where: { companyId } }).catch(() => {});
-        await tx.employeeNovelty?.deleteMany({ where: { companyId } }).catch(() => {});
-        await tx.employee?.deleteMany({ where: { companyId } }).catch(() => {});
-        await tx.position?.deleteMany({ where: { companyId } }).catch(() => {});
-
-        // Borrar usuarios de prueba creados automáticamente (ej: @gns-demo.com)
-        await tx.user.deleteMany({ where: { companyId, email: { contains: '@gns-demo.com' } } }).catch(() => {});
-      });
-
-      revalidatePath("/", "layout");
-      return {
-        success: true,
-        message: "Datos transaccionales, de catálogo, finanzas, RRHH y CRM eliminados correctamente. Las cuentas de usuario principales fueron conservadas."
+        success: false,
+        error: "Por seguridad de la plataforma, los datos reales de la empresa no pueden ser eliminados masivamente. Solo se permite limpiar lotes de prueba."
       };
     }
+
+    // 1. Obtener los identificadores de lote de prueba guardados en AuditLog
+    const demoBatches = await prisma.auditLog.findMany({
+      where: {
+        companyId,
+        module: "DEMO_DATA",
+        action: "BATCH_CREATED"
+      }
+    });
+
+    const productIds = new Set<number>();
+    const categoryIds = new Set<number>();
+    const groupIds = new Set<number>();
+    const supplierIds = new Set<number>();
+    const customerIds = new Set<number>();
+    const leadIds = new Set<number>();
+    const opportunityIds = new Set<number>();
+    const activityIds = new Set<number>();
+    const contactIds = new Set<number>();
+    const quoteIds = new Set<number>();
+    const saleIds = new Set<number>();
+    const incomeIds = new Set<number>();
+    const expenseIds = new Set<number>();
+    const positionIds = new Set<number>();
+    const employeeIds = new Set<number>();
+    const payrollIds = new Set<number>();
+    const userIds = new Set<number>();
+    const suffixes: string[] = [];
+
+    demoBatches.forEach(batch => {
+      const val = batch.newValues as any;
+      if (val) {
+        if (val.batchSuffix) suffixes.push(val.batchSuffix);
+        val.productIds?.forEach((id: number) => productIds.add(id));
+        val.categoryIds?.forEach((id: number) => categoryIds.add(id));
+        val.groupIds?.forEach((id: number) => groupIds.add(id));
+        val.supplierIds?.forEach((id: number) => supplierIds.add(id));
+        val.customerIds?.forEach((id: number) => customerIds.add(id));
+        val.leadIds?.forEach((id: number) => leadIds.add(id));
+        val.opportunityIds?.forEach((id: number) => opportunityIds.add(id));
+        val.activityIds?.forEach((id: number) => activityIds.add(id));
+        val.contactIds?.forEach((id: number) => contactIds.add(id));
+        val.quoteIds?.forEach((id: number) => quoteIds.add(id));
+        val.saleIds?.forEach((id: number) => saleIds.add(id));
+        val.incomeIds?.forEach((id: number) => incomeIds.add(id));
+        val.expenseIds?.forEach((id: number) => expenseIds.add(id));
+        val.positionIds?.forEach((id: number) => positionIds.add(id));
+        val.employeeIds?.forEach((id: number) => employeeIds.add(id));
+        val.payrollIds?.forEach((id: number) => payrollIds.add(id));
+        val.userIds?.forEach((id: number) => userIds.add(id));
+      }
+    });
+
+    await prisma.$transaction(async (tx) => {
+      // Eliminar detalles de ventas y ventas demo
+      if (saleIds.size > 0 || productIds.size > 0) {
+        await tx.saleDetail.deleteMany({
+          where: {
+            companyId,
+            OR: [
+              saleIds.size > 0 ? { saleId: { in: Array.from(saleIds) } } : {},
+              productIds.size > 0 ? { productId: { in: Array.from(productIds) } } : {},
+            ]
+          }
+        }).catch(() => {});
+      }
+
+      if (saleIds.size > 0) {
+        await tx.sale.deleteMany({
+          where: { companyId, id: { in: Array.from(saleIds) } }
+        }).catch(() => {});
+      }
+
+      // CRM: Cotizaciones, Actividades, Contactos, Oportunidades, Leads demo
+      if (quoteIds.size > 0) {
+        await tx.quote.deleteMany({ where: { companyId, id: { in: Array.from(quoteIds) } } }).catch(() => {});
+      }
+      if (activityIds.size > 0) {
+        await tx.activity.deleteMany({ where: { companyId, id: { in: Array.from(activityIds) } } }).catch(() => {});
+      }
+      if (contactIds.size > 0) {
+        await tx.contact.deleteMany({ where: { companyId, id: { in: Array.from(contactIds) } } }).catch(() => {});
+      }
+      if (opportunityIds.size > 0) {
+        await tx.opportunity.deleteMany({ where: { companyId, id: { in: Array.from(opportunityIds) } } }).catch(() => {});
+      }
+      if (leadIds.size > 0) {
+        await tx.lead.deleteMany({ where: { companyId, id: { in: Array.from(leadIds) } } }).catch(() => {});
+      }
+
+      // Nómina y RRHH demo
+      if (payrollIds.size > 0) {
+        await tx.payrollDetail?.deleteMany({ where: { companyId, payrollId: { in: Array.from(payrollIds) } } }).catch(() => {});
+        await tx.payroll?.deleteMany({ where: { companyId, id: { in: Array.from(payrollIds) } } }).catch(() => {});
+      }
+      await tx.payroll?.deleteMany({ where: { companyId, code: { startsWith: 'NOM-' } } }).catch(() => {});
+
+      if (employeeIds.size > 0) {
+        await tx.employeeNovelty?.deleteMany({ where: { companyId, employeeId: { in: Array.from(employeeIds) } } }).catch(() => {});
+        await tx.employee?.deleteMany({ where: { companyId, id: { in: Array.from(employeeIds) } } }).catch(() => {});
+      }
+      await tx.employee?.deleteMany({ where: { companyId, email: { contains: '@gns-demo.com' } } }).catch(() => {});
+
+      if (positionIds.size > 0) {
+        await tx.position?.deleteMany({ where: { companyId, id: { in: Array.from(positionIds) } } }).catch(() => {});
+      }
+
+      // Finanzas demo
+      if (incomeIds.size > 0) {
+        await tx.income.deleteMany({ where: { companyId, id: { in: Array.from(incomeIds) } } }).catch(() => {});
+      }
+      if (expenseIds.size > 0) {
+        await tx.expense.deleteMany({ where: { companyId, id: { in: Array.from(expenseIds) } } }).catch(() => {});
+      }
+
+      // Productos de demostración (SOLO los IDs de demostración)
+      if (productIds.size > 0) {
+        await tx.product.deleteMany({ where: { companyId, id: { in: Array.from(productIds) } } }).catch(() => {});
+      }
+
+      // Categorías de demostración
+      if (categoryIds.size > 0) {
+        await tx.category.deleteMany({ where: { companyId, id: { in: Array.from(categoryIds) } } }).catch(() => {});
+      }
+
+      // Grupos de productos de demostración
+      if (groupIds.size > 0) {
+        await tx.productGroup.deleteMany({ where: { companyId, id: { in: Array.from(groupIds) } } }).catch(() => {});
+      }
+
+      // Proveedores de demostración
+      if (supplierIds.size > 0) {
+        await tx.supplier.deleteMany({ where: { companyId, id: { in: Array.from(supplierIds) } } }).catch(() => {});
+      }
+
+      // Clientes de demostración
+      if (customerIds.size > 0) {
+        await tx.customer.deleteMany({ where: { companyId, id: { in: Array.from(customerIds) } } }).catch(() => {});
+      }
+
+      // Usuarios demo temporales
+      await tx.user.deleteMany({ where: { companyId, email: { contains: '@gns-demo.com' } } }).catch(() => {});
+
+      // Eliminar los registros de seguimiento del lote de prueba
+      await tx.auditLog.deleteMany({
+        where: { companyId, module: "DEMO_DATA" }
+      });
+    });
+
+    revalidatePath("/", "layout");
+    return {
+      success: true,
+      message: "Se han eliminado exitosamente todos los datos de prueba. Todos tus productos, clientes y registros creados manualmente se conservan intactos."
+    };
   } catch (error: any) {
     console.error('[CLEAR_DEMO_DATA_ERROR]', error);
     return { success: false, error: error.message || "Error al procesar la eliminación de datos." };
@@ -990,65 +959,11 @@ export async function clearDemoData({
 }
 
 /**
- * Limpieza global del sistema (Solo SuperAdmin con verificación de contraseña).
+ * Limpieza global del sistema (Deshabilitada para protección de datos de producción).
  */
 export async function clearGlobalSystemData({ password }: { password?: string } = {}) {
-  try {
-    const session = await getAuthSession();
-    if (!session?.user?.id || session.user.role !== 'SUPERADMIN') {
-      return { success: false, error: "Solo el SUPERADMIN puede ejecutar una limpieza global del sistema." };
-    }
-
-    const userId = Number(session.user.id);
-    const currentUser = await prisma.user.findUnique({
-      where: { id: userId }
-    });
-
-    if (!currentUser || !currentUser.password) {
-      return { success: false, error: "Credenciales de SuperAdmin no encontradas." };
-    }
-
-    if (!password || password.trim() === '') {
-      return { success: false, error: "Debes ingresar tu contraseña de SuperAdmin para autorizar el Reset Global." };
-    }
-
-    const isMatch = await bcrypt.compare(password, currentUser.password);
-    if (!isMatch) {
-      return { success: false, error: "Contraseña de SuperAdmin incorrecta. Autorización denegada." };
-    }
-
-    await prisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 0;');
-
-    await prisma.notification.deleteMany();
-    await prisma.auditLog.deleteMany();
-    await prisma.saleDetail.deleteMany();
-    await prisma.sale.deleteMany();
-    await prisma.opportunity.deleteMany();
-    await prisma.lead.deleteMany().catch(() => {});
-    await prisma.activity.deleteMany().catch(() => {});
-    await prisma.contact.deleteMany().catch(() => {});
-    await prisma.quote.deleteMany().catch(() => {});
-    await prisma.customer.deleteMany();
-    await prisma.product.deleteMany();
-    await prisma.category.deleteMany();
-    await prisma.productGroup.deleteMany();
-    await prisma.supplier.deleteMany();
-    await prisma.income.deleteMany().catch(() => {});
-    await prisma.expense.deleteMany().catch(() => {});
-    await prisma.invoiceCounter.deleteMany();
-    await prisma.payrollDetail?.deleteMany().catch(() => {});
-    await prisma.payroll?.deleteMany().catch(() => {});
-    await prisma.employeeNovelty?.deleteMany().catch(() => {});
-    await prisma.employee?.deleteMany().catch(() => {});
-    await prisma.position?.deleteMany().catch(() => {});
-    await prisma.user.deleteMany({ where: { email: { contains: '@gns-demo.com' } } }).catch(() => {});
-
-    await prisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 1;');
-
-    revalidatePath("/", "layout");
-    return { success: true, message: "Se han eliminado todos los productos, ventas, finanzas, RRHH y registros de todas las empresas. Todas las cuentas de usuario y empresas se conservan activas para seguir iniciando sesión." };
-  } catch (error: any) {
-    console.error('[CLEAR_GLOBAL_DATA_ERROR]', error);
-    return { success: false, error: error.message || "Error al ejecutar la limpieza global." };
-  }
+  return {
+    success: false,
+    error: "Por política de seguridad y protección de datos, el vaciado global transaccional está deshabilitado. Solo se permite limpiar lotes de prueba por empresa."
+  };
 }
