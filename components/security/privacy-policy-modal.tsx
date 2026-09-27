@@ -1,7 +1,7 @@
 "use client";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ShieldCheck, Lock, Eye, FileText, CheckCircle2 } from "lucide-react";
+import { ShieldCheck, Lock, Eye, FileText, CheckCircle2, Sparkles } from "lucide-react";
 
 interface PrivacyPolicyModalProps {
   open: boolean;
