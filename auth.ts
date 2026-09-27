@@ -382,7 +382,7 @@ export const authOptions: AuthOptions = {
           try {
             const dbUser = await prisma.user.findUnique({
               where: { id: Number(token.id) },
-              include: { company: true, role: true }
+              include: { company: true, role: true, branch: true }
             });
             if (!dbUser || (dbUser.companyId && !dbUser.company && dbUser.role?.name !== 'SUPERADMIN')) {
               // El usuario o su empresa fue eliminada de la base de datos
@@ -394,6 +394,14 @@ export const authOptions: AuthOptions = {
             session.user.companyPlan = isSuper ? 'enterprise' : (dbUser.company?.planId || null);
             session.user.isTrial = isSuper ? false : ((dbUser.company as any)?.isTrial ?? false);
             session.user.trialEndsAt = isSuper ? null : ((dbUser.company as any)?.trialEndsAt ? new Date((dbUser.company as any).trialEndsAt).toISOString() : null);
+            session.user.branchId = dbUser.branchId;
+            session.user.branch = dbUser.branch ? {
+              id: dbUser.branch.id,
+              name: dbUser.branch.name,
+              code: dbUser.branch.code,
+              city: dbUser.branch.city,
+              isMain: dbUser.branch.isMain,
+            } : null;
             if (dbUser.image) session.user.image = dbUser.image;
             if (dbUser.name) session.user.name = dbUser.name;
             if (dbUser.preferences) {

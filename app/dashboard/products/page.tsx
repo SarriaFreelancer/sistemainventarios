@@ -16,12 +16,33 @@ export default async function ProductsPage() {
   if (!session?.user?.id) redirect('/auth/login');
 
   const companyId = await getSessionCompanyId();
-  const whereTenant = companyId ? { companyId } : {};
+  const whereTenant: any = companyId ? { companyId } : {};
+
+  const dbUser = await prisma.user.findUnique({
+    where: { id: Number(session.user.id) },
+    select: { branchId: true, branch: { select: { id: true, name: true, isMain: true } } }
+  });
+
+  const isBranchUser = session.user.role !== 'SUPERADMIN' && dbUser?.branchId && !dbUser?.branch?.isMain;
+
+  const productWhere: any = { ...whereTenant };
+  if (isBranchUser) {
+    productWhere.OR = [
+      { branchId: dbUser.branchId },
+      { branchId: null },
+      { branch: { isMain: true } },
+    ];
+  }
 
   const [products, categories, suppliers, groups] = await Promise.all([
     prisma.product.findMany({
-      where: whereTenant,
-      include: { category: true, supplier: true, productGroup: true },
+      where: productWhere,
+      include: {
+        category: true,
+        supplier: true,
+        productGroup: true,
+        branch: { select: { id: true, name: true, isMain: true, city: true } }
+      },
       orderBy: { name: 'asc' },
     }),
     prisma.category.findMany({
@@ -113,6 +134,7 @@ export default async function ProductsPage() {
     category: p.category ? { id: String(p.category.id), name: p.category.name, isPerishable: p.category.isPerishable } : null,
     supplier: p.supplier ? { id: String(p.supplier.id), companyName: p.supplier.companyName } : null,
     productGroup: p.productGroup ? { id: String(p.productGroup.id), name: p.productGroup.name } : null,
+    branch: p.branch ? { id: p.branch.id, name: p.branch.name, isMain: p.branch.isMain, city: p.branch.city } : null,
     batches: productBatchesMap[String(p.id)] || [],
   }));
 

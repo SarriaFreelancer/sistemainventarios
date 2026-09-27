@@ -448,16 +448,59 @@ export function EnterpriseClient({
           </div>
         </div>
 
-        {/* Timeline Trends Chart */}
+        {/* Products by Branch Comparative Chart */}
         <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-emerald-500" />
-                Tendencia Temporal de Ventas
+                <Boxes className="w-5 h-5 text-indigo-500" />
+                Total Productos por Sede (Catálogo)
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Evolución diaria de ingresos en la red
+                Cantidad de referencias registradas y disponibles en cada sede
+              </p>
+            </div>
+            <div className="px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-xs font-bold">
+              Total Red: {branchInventory.reduce((acc: number, b: any) => acc + (b.count || 0), 0)} ítems
+            </div>
+          </div>
+
+          <div className="h-72 w-full">
+            {branchInventory.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-slate-400">
+                <Boxes className="w-10 h-10 mb-2 opacity-30" />
+                <p className="text-sm">Sin productos registrados en las sedes</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={branchInventory} margin={{ top: 10, right: 20, left: 10, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+                  <XAxis dataKey="branchName" tick={{ fontSize: 11 }} interval={0} angle={-15} textAnchor="end" />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip
+                    formatter={(val: any, name: any) => [
+                      `${val} referencias`,
+                      "Productos Registrados"
+                    ]}
+                    labelFormatter={(label) => `Sede: ${label}`}
+                  />
+                  <Bar dataKey="count" fill="#6366f1" radius={[6, 6, 0, 0]} name="Productos" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+
+        {/* Timeline Trends Chart */}
+        <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm lg:col-span-2">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-emerald-500" />
+                Tendencia Temporal de Ventas por Sede
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Evolución diaria de ingresos desagregada por cada sede
               </p>
             </div>
           </div>

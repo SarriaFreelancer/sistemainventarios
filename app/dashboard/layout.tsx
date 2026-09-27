@@ -245,6 +245,16 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     ...(settingsModule ? [settingsModule] : [])
   ];
 
+  // Identificador de Sede actual
+  let currentBranch: { id: number; name: string; code?: string | null; city?: string | null; isMain?: boolean } | null = (session.user as any)?.branch || null;
+  if (!currentBranch && targetCompanyId) {
+    const mainBranch = await prisma.branch.findFirst({
+      where: { companyId: targetCompanyId, isMain: true },
+      select: { id: true, name: true, code: true, city: true, isMain: true }
+    });
+    currentBranch = mainBranch || null;
+  }
+
   return (
     <InactivityGuard>
       {(session.user as any).sessionToken && (
@@ -260,6 +270,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         companyName={companyName}
         companyLogo={companyLogo}
         trialInfo={trialInfo}
+        currentBranch={currentBranch}
       >
         {children}
       </DashboardShell>
