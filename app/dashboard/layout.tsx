@@ -24,6 +24,7 @@ async function ensureModulesInitialized() {
       { name: 'Grupos', href: '/dashboard/groups', icon: 'Folder', description: 'Grupos y familias principales de productos' },
       { name: 'Categorías', href: '/dashboard/categories', icon: 'Tags', description: 'Categorización jerárquica de inventario' },
       { name: 'Kits', href: '/dashboard/kits', icon: 'Layers', description: 'Inventario → Kits: Paquetes comerciales y promociones' },
+      { name: 'Enterprise Multi-Sedes', href: '/dashboard/enterprise', icon: 'Network', description: 'Consolidado Multi-Sedes, comparativa de ventas e inventario entre sedes' },
       { name: 'Bodegas', href: '/dashboard/warehouses', icon: 'Building2', description: 'Gestión WMS multibodega, ubicaciones y traslados' },
       { name: 'Proveedores', href: '/dashboard/suppliers', icon: 'Factory', description: 'Directorio de proveedores y compras' },
       { name: 'Compras', href: '/dashboard/compras', icon: 'Truck', description: 'Órdenes de compra, recepciones y cuentas por pagar' },

@@ -49,6 +49,8 @@ model Company {
   id     Int     @id @default(autoincrement())
   name   String  @unique
   planId String?
+  isEnterprise Boolean @default(false)
+  maxBranches  Int?    @default(1)
 
   isTrial        Boolean   @default(false)
   trialStartedAt DateTime?
@@ -81,6 +83,7 @@ model Company {
   subscriptionPayments SubscriptionPayment[]
   apiKeys              ApiKey[]
   apiRequests          ApiIntegrationRequest[]
+  branchRequests       BranchRequest[]
   passwordResetRequests PasswordResetRequest[]
 }
 
@@ -110,6 +113,8 @@ model User {
   sessions             UserSession[]
   apiRequestsRequested ApiIntegrationRequest[] @relation("RequestedApiRequests")
   apiRequestsReviewed  ApiIntegrationRequest[] @relation("ReviewedApiRequests")
+  requestedBranchRequests BranchRequest[]      @relation("RequestedBranchRequests")
+  reviewedBranchRequests  BranchRequest[]      @relation("ReviewedBranchRequests")
   passwordResetRequests PasswordResetRequest[]
 
   @@index([email])
@@ -338,6 +343,31 @@ model ApiIntegrationRequest {
   status          String    @default("PENDING") // PENDING, APPROVED, REJECTED
   reviewedById    Int?
   reviewedBy      User?     @relation("ReviewedApiRequests", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt      DateTime?
+  rejectionReason String?   @db.Text
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([companyId])
+  @@index([status])
+  @@index([requestedById])
+  @@index([reviewedById])
+}
+
+model BranchRequest {
+  id              Int       @id @default(autoincrement())
+  companyId       Int
+  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  requestedById   Int
+  requestedBy     User      @relation("RequestedBranchRequests", fields: [requestedById], references: [id], onDelete: Cascade)
+  branchName      String
+  city            String?
+  address         String?
+  phone           String?
+  justification   String    @db.Text
+  status          String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  reviewedById    Int?
+  reviewedBy      User?     @relation("ReviewedBranchRequests", fields: [reviewedById], references: [id], onDelete: SetNull)
   reviewedAt      DateTime?
   rejectionReason String?   @db.Text
   createdAt       DateTime  @default(now())
