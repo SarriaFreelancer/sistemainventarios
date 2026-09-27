@@ -3,7 +3,7 @@
 import { getAuthSession } from '@/auth';
 import { getSessionCompanyId } from '@/lib/session';
 import { prisma } from '@/lib/prisma';
-import { getGroqClient, GROQ_DEFAULT_MODEL, GNS_AI_SYSTEM_PROMPT } from '@/lib/groq';
+import { getGroqClient, GROQ_DEFAULT_MODEL, GROQ_FALLBACK_MODELS, GNS_AI_SYSTEM_PROMPT } from '@/lib/groq';
 
 export interface BusinessMetrics {
   totalProducts: number;
@@ -299,22 +299,48 @@ Sé muy claro, inspirador, estratégico y profesional.
         break;
     }
 
-    const completion = await groq.chat.completions.create({
-      model: GROQ_DEFAULT_MODEL,
-      messages: [
-        { role: 'system', content: `${GNS_AI_SYSTEM_PROMPT}\n\n${context}` },
-        { role: 'user', content: userPrompt },
-      ],
-      temperature: 0.4,
-      max_tokens: 2500,
-    });
+    let lastError: any = null;
+    let analysis = '';
+    let modelUsed = GROQ_DEFAULT_MODEL;
 
-    const analysis = completion.choices[0]?.message?.content || 'No se recibió respuesta del modelo.';
+    for (const model of GROQ_FALLBACK_MODELS) {
+      try {
+        const completion = await groq.chat.completions.create({
+          model,
+          messages: [
+            { role: 'system', content: `${GNS_AI_SYSTEM_PROMPT}\n\n${context}` },
+            { role: 'user', content: userPrompt },
+          ],
+          temperature: 0.4,
+          max_tokens: 2500,
+        });
+
+        analysis = completion.choices[0]?.message?.content || 'No se recibió respuesta del modelo.';
+        modelUsed = completion.model || model;
+        lastError = null;
+        break;
+      } catch (err: any) {
+        lastError = err;
+        const isModelError =
+          err?.status === 404 ||
+          err?.code === 'model_not_found' ||
+          err?.message?.includes('model') ||
+          err?.message?.includes('does not exist');
+        if (!isModelError) {
+          throw err;
+        }
+        console.warn(`[GROQ_FALLBACK] Modelo ${model} no disponible, intentando siguiente fallback...`);
+      }
+    }
+
+    if (lastError && !analysis) {
+      throw lastError;
+    }
 
     return {
       success: true,
       analysis,
-      modelUsed: completion.model || GROQ_DEFAULT_MODEL,
+      modelUsed,
     };
   } catch (error: any) {
     console.error('[RUN_AI_DIAGNOSTIC_ERROR]', error);
@@ -351,22 +377,48 @@ export async function sendAiChatMessage(
       content: m.content,
     }));
 
-    const completion = await groq.chat.completions.create({
-      model: GROQ_DEFAULT_MODEL,
-      messages: [
-        { role: 'system', content: systemContent },
-        ...cleanMessages,
-      ],
-      temperature: 0.6,
-      max_tokens: 2048,
-    });
+    let lastError: any = null;
+    let reply = '';
+    let modelUsed = GROQ_DEFAULT_MODEL;
 
-    const reply = completion.choices[0]?.message?.content || 'No se generó respuesta.';
+    for (const model of GROQ_FALLBACK_MODELS) {
+      try {
+        const completion = await groq.chat.completions.create({
+          model,
+          messages: [
+            { role: 'system', content: systemContent },
+            ...cleanMessages,
+          ],
+          temperature: 0.6,
+          max_tokens: 2048,
+        });
+
+        reply = completion.choices[0]?.message?.content || 'No se generó respuesta.';
+        modelUsed = completion.model || model;
+        lastError = null;
+        break;
+      } catch (err: any) {
+        lastError = err;
+        const isModelError =
+          err?.status === 404 ||
+          err?.code === 'model_not_found' ||
+          err?.message?.includes('model') ||
+          err?.message?.includes('does not exist');
+        if (!isModelError) {
+          throw err;
+        }
+        console.warn(`[GROQ_FALLBACK] Modelo ${model} no disponible en chat, intentando siguiente fallback...`);
+      }
+    }
+
+    if (lastError && !reply) {
+      throw lastError;
+    }
 
     return {
       success: true,
       message: reply,
-      modelUsed: completion.model || GROQ_DEFAULT_MODEL,
+      modelUsed,
     };
   } catch (error: any) {
     console.error('[SEND_AI_CHAT_ERROR]', error);

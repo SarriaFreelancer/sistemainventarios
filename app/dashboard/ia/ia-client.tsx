@@ -70,7 +70,7 @@ export function IaClient({
     {
       id: 'welcome',
       role: 'assistant',
-      content: `¡Hola! Soy **GNS AI Advisor**, tu consultor inteligente de inventarios y negocios impulsado por **Groq LPU (Llama 3.3 70B)**.
+      content: `¡Hola! Soy **GNS AI Advisor**, tu consultor inteligente de inventarios y negocios impulsado por **Groq LPU (GPT-OSS 120B)**.
 
 Tengo acceso seguro y en tiempo real a las métricas de **${companyName || 'tu empresa'}** (catálogo, existencias, costos, ventas recientes y kits comerciales).
 
@@ -213,7 +213,7 @@ Puedes pulsar cualquiera de las **auditorías rápidas** de arriba o preguntarme
               </h1>
               <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center gap-1">
                 <Zap className="h-2.5 w-2.5 fill-current" />
-                GROQ LPU · LLAMA 3.3 70B
+                GROQ LPU · GPT-OSS 120B
               </span>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
