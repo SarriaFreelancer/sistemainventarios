@@ -1,12 +1,17 @@
 import Groq from 'groq-sdk';
 
-// Default models to use for high-speed & high-reasoning inference on Groq
-export const GROQ_DEFAULT_MODEL = 'openai/gpt-oss-120b';
-export const GROQ_FAST_MODEL = 'openai/gpt-oss-20b';
+// Modelos activos de alto razonamiento y velocidad ultra rápida en Groq LPU
+export const GROQ_DEFAULT_MODEL = 'llama-3.3-70b-versatile';
+export const GROQ_FAST_MODEL = 'llama-3.1-8b-instant';
+export const GROQ_REASONING_MODEL = 'deepseek-r1-distill-llama-70b';
+
 export const GROQ_FALLBACK_MODELS = [
+  'llama-3.3-70b-versatile',
+  'deepseek-r1-distill-llama-70b',
+  'llama-3.1-8b-instant',
+  'mixtral-8x7b-32768',
+  'gemma2-9b-it',
   'openai/gpt-oss-120b',
-  'openai/gpt-oss-20b',
-  'qwen/qwen3.8-27b',
 ];
 
 let groqInstance: Groq | null = null;

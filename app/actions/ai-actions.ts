@@ -236,7 +236,10 @@ DESEMPEÑO EN VENTAS (ÚLTIMOS 30 DÍAS):
 /**
  * Ejecuta una auditoría rápida de 1 clic con Groq LPU
  */
-export async function runAiDiagnostic(type: 'stock' | 'margins' | 'kits' | 'general'): Promise<{
+export async function runAiDiagnostic(
+  type: 'stock' | 'margins' | 'kits' | 'general',
+  customModel?: string
+): Promise<{
   success: boolean;
   analysis?: string;
   modelUsed?: string;
@@ -299,11 +302,13 @@ Sé muy claro, inspirador, estratégico y profesional.
         break;
     }
 
+    const modelsToTry = customModel ? [customModel, ...GROQ_FALLBACK_MODELS.filter(m => m !== customModel)] : GROQ_FALLBACK_MODELS;
+
     let lastError: any = null;
     let analysis = '';
-    let modelUsed = GROQ_DEFAULT_MODEL;
+    let modelUsed = customModel || GROQ_DEFAULT_MODEL;
 
-    for (const model of GROQ_FALLBACK_MODELS) {
+    for (const model of modelsToTry) {
       try {
         const completion = await groq.chat.completions.create({
           model,
@@ -353,7 +358,8 @@ Sé muy claro, inspirador, estratégico y profesional.
  */
 export async function sendAiChatMessage(
   messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>,
-  includeContext = true
+  includeContext = true,
+  customModel?: string
 ): Promise<{
   success: boolean;
   message?: string;
@@ -377,11 +383,13 @@ export async function sendAiChatMessage(
       content: m.content,
     }));
 
+    const modelsToTry = customModel ? [customModel, ...GROQ_FALLBACK_MODELS.filter(m => m !== customModel)] : GROQ_FALLBACK_MODELS;
+
     let lastError: any = null;
     let reply = '';
-    let modelUsed = GROQ_DEFAULT_MODEL;
+    let modelUsed = customModel || GROQ_DEFAULT_MODEL;
 
-    for (const model of GROQ_FALLBACK_MODELS) {
+    for (const model of modelsToTry) {
       try {
         const completion = await groq.chat.completions.create({
           model,
