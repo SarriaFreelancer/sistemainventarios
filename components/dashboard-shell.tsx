@@ -291,6 +291,9 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                         src={session.user?.image || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80"}
                         alt="Avatar"
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(session.user?.name || 'User')}&background=random`;
+                        }}
                       />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -401,6 +404,17 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                       src={companyLogo}
                       alt={companyName || "Empresa"}
                       className="h-full w-full object-contain transition-transform"
+                      onError={(e) => {
+                        // Si la imagen falla al cargar, ocultar y mostrar fallback
+                        (e.target as HTMLElement).style.display = 'none';
+                        const parent = (e.target as HTMLElement).parentElement;
+                        if (parent && !parent.querySelector('.logo-fallback-icon')) {
+                          const iconDiv = document.createElement('div');
+                          iconDiv.className = 'logo-fallback-icon text-primary font-black text-xs flex items-center justify-center';
+                          iconDiv.innerText = (companyName || 'GNS').substring(0, 2).toUpperCase();
+                          parent.appendChild(iconDiv);
+                        }
+                      }}
                     />
                   ) : (
                     <LucideIcons.Building2 size={20} className="text-primary" />
@@ -459,6 +473,9 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                       src={session.user?.image || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80"}
                       alt="Avatar"
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(session.user?.name || 'User')}&background=random`;
+                      }}
                     />
                   </div>
                   <div className="hidden md:flex flex-col text-left">

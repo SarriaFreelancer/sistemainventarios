@@ -235,7 +235,7 @@ model User {
   name                 String
   email                String                @unique
   password             String
-  image                String?
+  image                String?               @db.LongText
   roleId               Int?
   role                 Role?                 @relation(fields: [roleId], references: [id])
   companyId            Int?
@@ -1596,7 +1596,7 @@ model Combo {
   code            String?
   name            String
   description     String?      @db.Text
-  image           String?
+  image           String?      @db.LongText
   pricingType     String       @default("DISCOUNT_PERCENT") // DISCOUNT_PERCENT | CUSTOM_PRICE
   discountPercent Float        @default(0)
   customPrice     Float?

@@ -129,38 +129,34 @@ export async function updatePassword(data: {
   }
 }
 
+import { optimizeImage, saveLocalImageBackup } from "@/lib/image-optimizer";
+
 export async function uploadProfileImage(base64Data: string) {
   try {
     const session = await getAuthSession();
     if (!session?.user?.id) return { success: false, error: "No autenticado" };
 
-    const matches = base64Data.match(/^data:image\/([a-zA-Z0-9\+\-\.]+);base64,(.+)$/);
-    if (!matches || matches.length !== 3) {
-      return { success: false, error: "Formato de imagen inválido" };
+    if (!base64Data || typeof base64Data !== 'string') {
+      return { success: false, error: "Archivo de imagen inválido o vacío" };
     }
 
-    const rawSubtype = matches[1].toLowerCase();
-    const extension = (rawSubtype === 'jpeg' || rawSubtype === 'pjpeg') ? 'jpg' : rawSubtype === 'x-png' ? 'png' : rawSubtype;
-    const imageBuffer = Buffer.from(matches[2], 'base64');
+    // Optimizar imagen de perfil a WebP liviano y cuadrado (máx 256x256 píxeles)
+    const optimized = await optimizeImage(base64Data, {
+      maxWidth: 256,
+      maxHeight: 256,
+      quality: 80,
+      format: 'webp',
+      fit: 'cover',
+    });
 
-    if (!['png', 'jpg', 'jpeg', 'webp', 'svg+xml'].includes(extension) && !extension.includes('png') && !extension.includes('jpg') && !extension.includes('jpeg')) {
-      return { success: false, error: "Solo se permiten imágenes PNG, JPG, JPEG o WEBP" };
-    }
+    const permanentUrl = optimized.dataUri;
 
-    const fileName = `user-${session.user.id}-${Date.now()}.${extension}`;
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'users');
+    // Respaldo secundario en disco
+    await saveLocalImageBackup(optimized.buffer, 'users', `user-${session.user.id}`);
 
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-
-    const filePath = path.join(uploadDir, fileName);
-    await fs.promises.writeFile(filePath, imageBuffer);
-
-    const publicUrl = `/uploads/users/${fileName}`;
-    return { success: true, url: publicUrl };
+    return { success: true, url: permanentUrl };
   } catch (error: any) {
     console.error("[UPLOAD_PROFILE_IMAGE]", error);
-    return { success: false, error: "No se pudo subir la imagen" };
+    return { success: false, error: error.message || "No se pudo optimizar ni subir la foto de perfil" };
   }
 }

@@ -7,31 +7,30 @@ import { logActivity } from "@/lib/audit";
 import fs from "fs";
 import path from "path";
 
+import { optimizeImage, saveLocalImageBackup } from "@/lib/image-optimizer";
+
 export async function uploadCompanyLogo(base64Data: string) {
   try {
     const session = await getAuthSession();
     if (!session?.user) return { success: false, error: "No autenticado" };
 
-    const matches = base64Data.match(/^data:image\/([a-zA-Z]+);base64,(.+)$/);
-    if (!matches || matches.length !== 3) {
-      return { success: false, error: "Formato de imagen inválido" };
+    if (!base64Data || typeof base64Data !== 'string') {
+      return { success: false, error: "Archivo de imagen inválido o vacío" };
     }
 
-    const extRaw = matches[1].toLowerCase();
-    const extension = extRaw === 'jpeg' ? 'jpg' : extRaw;
-    const imageBuffer = Buffer.from(matches[2], 'base64');
+    // Optimizar imagen a formato WebP liviano y nítido (máx 500x500 píxeles)
+    const optimized = await optimizeImage(base64Data, {
+      maxWidth: 500,
+      maxHeight: 500,
+      quality: 85,
+      format: 'webp',
+      fit: 'inside'
+    });
 
-    const fileName = `logo-${session.user.companyId || 'company'}-${Date.now()}.${extension}`;
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'logos');
+    const permanentUrl = optimized.dataUri;
 
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-
-    const filePath = path.join(uploadDir, fileName);
-    await fs.promises.writeFile(filePath, imageBuffer);
-
-    const publicUrl = `/uploads/logos/${fileName}`;
+    // Respaldo secundario en disco (si el filesystem lo permite)
+    await saveLocalImageBackup(optimized.buffer, 'logos', `logo-${session.user.companyId || 'company'}`);
 
     // Actualizar inmediatamente el logo en la base de datos para la empresa activa
     let companyId: number | null = session.user.companyId ? Number(session.user.companyId) : null;
@@ -52,10 +51,10 @@ export async function uploadCompanyLogo(base64Data: string) {
         where: { companyId },
         create: {
           companyId,
-          invoiceConfig: { ...currentInvoiceConfig, logo: publicUrl }
+          invoiceConfig: { ...currentInvoiceConfig, logo: permanentUrl }
         },
         update: {
-          invoiceConfig: { ...currentInvoiceConfig, logo: publicUrl }
+          invoiceConfig: { ...currentInvoiceConfig, logo: permanentUrl }
         }
       });
 
@@ -63,7 +62,7 @@ export async function uploadCompanyLogo(base64Data: string) {
       await prisma.company.update({
         where: { id: companyId },
         data: {
-          themeConfig: { ...currentTheme, logo: publicUrl }
+          themeConfig: { ...currentTheme, logo: permanentUrl }
         }
       });
     }
@@ -71,10 +70,10 @@ export async function uploadCompanyLogo(base64Data: string) {
     revalidatePath("/", "layout");
     revalidatePath("/dashboard");
 
-    return { success: true, url: publicUrl };
+    return { success: true, url: permanentUrl };
   } catch (error: any) {
     console.error("[UPLOAD_COMPANY_LOGO]", error);
-    return { success: false, error: "Error al guardar el logo de la empresa" };
+    return { success: false, error: error.message || "Error al optimizar y guardar el logo de la empresa" };
   }
 }
 
@@ -83,30 +82,26 @@ export async function uploadCompanyBackgroundImage(base64Data: string) {
     const session = await getAuthSession();
     if (!session?.user) return { success: false, error: "No autenticado" };
 
-    const matches = base64Data.match(/^data:image\/([a-zA-Z]+);base64,(.+)$/);
-    if (!matches || matches.length !== 3) {
-      return { success: false, error: "Formato de imagen inválido" };
+    if (!base64Data || typeof base64Data !== 'string') {
+      return { success: false, error: "Archivo de imagen inválido o vacío" };
     }
 
-    const extRaw = matches[1].toLowerCase();
-    const extension = extRaw === 'jpeg' ? 'jpg' : extRaw;
-    const imageBuffer = Buffer.from(matches[2], 'base64');
+    // Optimizar imagen de fondo a WebP full HD liviano (máx 1920x1080 píxeles)
+    const optimized = await optimizeImage(base64Data, {
+      maxWidth: 1920,
+      maxHeight: 1080,
+      quality: 75,
+      format: 'webp',
+      fit: 'inside'
+    });
 
-    const fileName = `bg-${session.user.companyId || 'company'}-${Date.now()}.${extension}`;
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'backgrounds');
+    // Respaldo secundario en disco
+    await saveLocalImageBackup(optimized.buffer, 'backgrounds', `bg-${session.user.companyId || 'company'}`);
 
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-
-    const filePath = path.join(uploadDir, fileName);
-    await fs.promises.writeFile(filePath, imageBuffer);
-
-    const publicUrl = `/uploads/backgrounds/${fileName}`;
-    return { success: true, url: publicUrl };
+    return { success: true, url: optimized.dataUri };
   } catch (error: any) {
     console.error("[UPLOAD_COMPANY_BG]", error);
-    return { success: false, error: "Error al guardar la imagen de fondo" };
+    return { success: false, error: error.message || "Error al optimizar y guardar la imagen de fondo" };
   }
 }
 

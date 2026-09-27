@@ -251,14 +251,14 @@ export function ProfileClient({ user }: ProfileClientProps) {
               <div className="flex items-center gap-3">
                 <input
                   type="file"
-                  accept="image/png, image/jpeg, image/webp"
+                  accept="image/*"
                   ref={fileInputRef}
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      if (file.size > 2 * 1024 * 1024) {
-                        errorAlert("Archivo muy grande", "La imagen no debe superar los 2MB.");
+                      if (file.size > 10 * 1024 * 1024) {
+                        errorAlert("Archivo muy grande", "La imagen no debe superar los 10MB.");
                         return;
                       }
                       setSelectedFile(file);

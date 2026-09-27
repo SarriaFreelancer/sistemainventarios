@@ -428,7 +428,7 @@ model Combo {
   code            String?
   name            String
   description     String?      @db.Text
-  image           String?
+  image           String?      @db.LongText
   pricingType     String       @default("DISCOUNT_PERCENT")
   discountPercent Float        @default(0)
   customPrice     Float?

@@ -769,7 +769,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
                   Subir Archivo
                   <input
                     type="file"
-                    accept="image/png, image/jpeg, image/webp, image/svg+xml"
+                    accept="image/*"
                     className="hidden"
                     onChange={async (e) => {
                       const file = e.target.files?.[0];
@@ -827,7 +827,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
                   Subir Fondo
                   <input
                     type="file"
-                    accept="image/png, image/jpeg, image/webp"
+                    accept="image/*"
                     className="hidden"
                     onChange={async (e) => {
                       const file = e.target.files?.[0];
