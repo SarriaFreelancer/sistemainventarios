@@ -17,8 +17,7 @@ import { useRouter } from "next/navigation";
 
 interface Category { id: string; name: string; }
 interface Supplier { id: string; companyName: string; }
-interface ProductGroup { id: string; name: string; }
-
+interface ProductGroup { id: string; name: string; color?: string; }
 interface Product {
   id: string;
   code: string;
@@ -36,6 +35,7 @@ interface Product {
   supplier: { id: string; companyName: string } | null;
   productGroup: ProductGroup | null;
   branch?: { id: number; name: string; isMain?: boolean; city?: string | null } | null;
+  branchStocks?: { branchId: number; branchName: string; quantity: number; isCurrent?: boolean }[];
   batches?: ProductBatchInfo[];
 }
 
@@ -57,6 +57,8 @@ export function ProductsClient(props: {
   suppliers: Supplier[];
   groups: ProductGroup[];
   userId: string;
+  branches?: { id: number; name: string; isMain?: boolean; city?: string | null }[];
+  isEnterprise?: boolean;
   allowNegativeStock?: boolean;
   maxProducts?: number;
   currentProducts?: number;
@@ -73,7 +75,7 @@ export function ProductsClient(props: {
   committedStockMap?: Record<string, { committedInCombos: number; combosInvolved: any[] }>;
 }) {
   const {
-    initialProducts, categories, suppliers, groups, userId, allowNegativeStock = false,
+    initialProducts, categories, suppliers, groups, userId, branches = [], isEnterprise = false, allowNegativeStock = false,
     maxProducts = 999999, currentProducts = 0, planName = 'Plan Premium',
     registerInventoryCostAsExpense = false, trackExpirationDates = false, enableBatchWriteOff = true, enableBatchDelete = false, expirationAlertDays = 30,
     enableCombos = false, committedStockMap = {}
@@ -396,6 +398,8 @@ export function ProductsClient(props: {
             categories={categories}
             suppliers={suppliers}
             groups={groups}
+            branches={branches}
+            isEnterprise={isEnterprise}
             disabled={currentProducts >= maxProducts}
             limitMessage={`Has alcanzado el límite de ${maxProducts} productos de tu ${planName}.`}
             registerInventoryCostAsExpense={registerInventoryCostAsExpense}
@@ -721,6 +725,14 @@ export function ProductsClient(props: {
                                   <span className="text-[10px] text-muted-foreground font-medium">
                                     ({freeStock} libre{freeStock === 1 ? '' : 's'})
                                   </span>
+                                </div>
+                              )}
+                              {isEnterprise && product.branchStocks && product.branchStocks.length > 1 && (
+                                <div
+                                  className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 max-w-fit cursor-help mt-0.5"
+                                  title={`Existencias en Red Enterprise:\n${product.branchStocks.map(bs => `• ${bs.branchName}: ${bs.quantity} u.`).join('\n')}`}
+                                >
+                                  <span>🏢 Red: {product.branchStocks.reduce((a, b) => a + b.quantity, 0)} u.</span>
                                 </div>
                               )}
                             </div>

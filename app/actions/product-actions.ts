@@ -66,7 +66,28 @@ export async function createProduct(formData: FormData) {
       }
     }
 
-    const quantity = parsed.data.quantityAvailable;
+    // Parse branch stock distribution if provided (Enterprise Multi-Sedes)
+    const branchStockPayload = formData.get('branchStockDistribution');
+    let branchStockMap: Record<number, number> = {};
+    if (branchStockPayload && typeof branchStockPayload === 'string') {
+      try {
+        branchStockMap = JSON.parse(branchStockPayload);
+      } catch (e) {
+        console.error("Error parsing branchStockDistribution:", e);
+      }
+    }
+
+    // Identificar sede principal
+    const mainBranch = companyId ? await prisma.branch.findFirst({
+      where: { companyId, isMain: true }
+    }) : null;
+
+    let mainBranchStock = parsed.data.quantityAvailable;
+    if (mainBranch && branchStockMap[mainBranch.id] !== undefined) {
+      mainBranchStock = Number(branchStockMap[mainBranch.id]) || 0;
+    }
+
+    const quantity = mainBranchStock;
     const status = quantity === 0 ? ProductStatus.OUT_OF_STOCK : ProductStatus.AVAILABLE;
 
     const data = await withTenantData({
@@ -81,9 +102,72 @@ export async function createProduct(formData: FormData) {
       type: parsed.data.type,
       soldQuantity: 0,
       productGroupId: parsed.data.productGroupId || null,
+      branchId: mainBranch?.id || null,
     });
 
     const newProduct = await prisma.product.create({ data });
+
+    // Si hay bodega en la sede principal, crear WarehouseStock inicial
+    if (mainBranch && companyId) {
+      const mainWarehouse = await prisma.warehouse.findFirst({
+        where: { companyId, branchId: mainBranch.id }
+      });
+      if (mainWarehouse) {
+        await prisma.warehouseStock.create({
+          data: {
+            productId: newProduct.id,
+            warehouseId: mainWarehouse.id,
+            physical: quantity,
+            companyId,
+          }
+        });
+      }
+    }
+
+    // Replicar en las sedes secundarias con sus respectivas existencias
+    if (companyId && Object.keys(branchStockMap).length > 0) {
+      for (const [bIdStr, bQty] of Object.entries(branchStockMap)) {
+        const targetBranchId = Number(bIdStr);
+        if (mainBranch && targetBranchId === mainBranch.id) continue;
+
+        const branchQty = Number(bQty) || 0;
+        const branchProdCode = `${parsed.data.code}-S${targetBranchId}`;
+
+        const branchProduct = await prisma.product.create({
+          data: {
+            code: branchProdCode,
+            name: parsed.data.name,
+            categoryId: parsed.data.categoryId,
+            supplierId: parsed.data.supplierId,
+            unitCost: parsed.data.unitCost,
+            salePrice: parsed.data.salePrice,
+            quantityAvailable: branchQty,
+            status: branchQty > 0 ? ProductStatus.AVAILABLE : ProductStatus.OUT_OF_STOCK,
+            type: parsed.data.type,
+            soldQuantity: 0,
+            productGroupId: parsed.data.productGroupId || null,
+            companyId,
+            branchId: targetBranchId,
+            isInheritedFromMain: true,
+            mainProductId: newProduct.id,
+          }
+        });
+
+        const branchWarehouse = await prisma.warehouse.findFirst({
+          where: { companyId, branchId: targetBranchId }
+        });
+        if (branchWarehouse) {
+          await prisma.warehouseStock.create({
+            data: {
+              productId: branchProduct.id,
+              warehouseId: branchWarehouse.id,
+              physical: branchQty,
+              companyId,
+            }
+          });
+        }
+      }
+    }
 
     if (parsed.data.batchNumber && parsed.data.expirationDate && quantity > 0) {
       await prisma.productBatch.create({
