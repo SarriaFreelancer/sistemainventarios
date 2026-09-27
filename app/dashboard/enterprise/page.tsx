@@ -15,6 +15,14 @@ export default async function EnterpriseDashboardPage() {
     redirect("/auth/login");
   }
 
+  const userObj = session.user as any;
+  const isEnterpriseActive = userObj.role === 'SUPERADMIN' || userObj.companyPlan === 'ENTERPRISE' || userObj.companyPlan === 'enterprise';
+  const isSecondaryBranchUser = userObj.branch && !userObj.branch?.isMain;
+
+  if (!isEnterpriseActive || isSecondaryBranchUser) {
+    redirect("/dashboard");
+  }
+
   // Cargar datos iniciales
   const [dashboardRes, branchesRes] = await Promise.all([
     getEnterpriseMasterDashboardData({ period: "month" }),

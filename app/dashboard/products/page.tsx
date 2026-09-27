@@ -18,23 +18,47 @@ export default async function ProductsPage() {
   const companyId = await getSessionCompanyId();
   const whereTenant: any = companyId ? { companyId } : {};
 
-  const dbUser = await prisma.user.findUnique({
-    where: { id: Number(session.user.id) },
-    select: { branchId: true, branch: { select: { id: true, name: true, isMain: true } } }
-  });
+  const [dbUser, company, branches] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: Number(session.user.id) },
+      select: { branchId: true, branch: { select: { id: true, name: true, isMain: true } } }
+    }),
+    companyId ? prisma.company.findUnique({
+      where: { id: companyId },
+      select: {
+        planId: true,
+        isEnterprise: true,
+        maxUsers: true,
+        maxProducts: true,
+        _count: { select: { products: true, branches: true } }
+      }
+    }) : null,
+    companyId ? prisma.branch.findMany({
+      where: { companyId },
+      orderBy: [{ isMain: 'desc' }, { name: 'asc' }],
+      select: { id: true, name: true, code: true, city: true, isMain: true }
+    }) : []
+  ]);
 
+  const isEnterprise = company?.isEnterprise || company?.planId === 'ENTERPRISE' || session.user.role === 'SUPERADMIN';
+  const mainBranch = branches.find(b => b.isMain) || branches[0] || null;
   const isBranchUser = session.user.role !== 'SUPERADMIN' && dbUser?.branchId && !dbUser?.branch?.isMain;
 
+  // AISLAMIENTO ESTRICTO DE PRODUCTOS POR SEDE
   const productWhere: any = { ...whereTenant };
   if (isBranchUser) {
+    // Si es usuario de sede secundaria: solo ve sus propios productos
+    productWhere.branchId = dbUser.branchId;
+  } else if (branches.length > 1 && mainBranch) {
+    // Si está en la Sede Principal: solo ve productos de la sede principal (sin mezclar sedes secundarias)
     productWhere.OR = [
-      { branchId: dbUser.branchId },
+      { branchId: mainBranch.id },
       { branchId: null },
-      { branch: { isMain: true } },
+      { branch: { isMain: true } }
     ];
   }
 
-  const [products, categories, suppliers, groups] = await Promise.all([
+  const [products, categories, suppliers, groups, productClones] = await Promise.all([
     prisma.product.findMany({
       where: productWhere,
       include: {
@@ -57,7 +81,35 @@ export default async function ProductsPage() {
       where: whereTenant,
       orderBy: { name: 'asc' }
     }),
+    isEnterprise && companyId ? prisma.product.findMany({
+      where: {
+        companyId,
+        mainProductId: { not: null }
+      },
+      select: {
+        id: true,
+        mainProductId: true,
+        branchId: true,
+        quantityAvailable: true,
+        branch: { select: { id: true, name: true, city: true, isMain: true } }
+      }
+    }) : Promise.resolve([])
   ]);
+
+  // Mapa de existencias en otras sedes (Enterprise)
+  const clonesMap: Record<number, { branchId: number; branchName: string; quantity: number }[]> = {};
+  if (Array.isArray(productClones)) {
+    productClones.forEach((c) => {
+      if (c.mainProductId && c.branch) {
+        if (!clonesMap[c.mainProductId]) clonesMap[c.mainProductId] = [];
+        clonesMap[c.mainProductId].push({
+          branchId: c.branch.id,
+          branchName: c.branch.name,
+          quantity: c.quantityAvailable
+        });
+      }
+    });
+  }
 
   const settings = companyId
     ? await prisma.companySetting.findUnique({ where: { companyId } })
@@ -84,18 +136,11 @@ export default async function ProductsPage() {
   let currentProductsCount = 0;
   let allowExpirationTracking = true;
 
-  if (companyId) {
-    const activeCompany = await prisma.company.findUnique({
-      where: { id: companyId },
-      select: { planId: true, maxUsers: true, maxProducts: true, _count: { select: { products: true } } }
-    });
-
-    if (activeCompany) {
-      const limits = getPlanLimits(activeCompany.planId, { maxUsers: activeCompany.maxUsers, maxProducts: activeCompany.maxProducts });
-      planLimits = { maxProducts: limits.maxProducts, planName: limits.name };
-      currentProductsCount = activeCompany._count.products;
-      allowExpirationTracking = limits.allowExpirationTracking;
-    }
+  if (company) {
+    const limits = getPlanLimits(company.planId, { maxUsers: company.maxUsers, maxProducts: company.maxProducts });
+    planLimits = { maxProducts: limits.maxProducts, planName: limits.name };
+    currentProductsCount = company._count.products;
+    allowExpirationTracking = limits.allowExpirationTracking;
   }
 
   // Fetch batches with products for all products with expiration tracking or perishable categories
@@ -135,6 +180,15 @@ export default async function ProductsPage() {
     supplier: p.supplier ? { id: String(p.supplier.id), companyName: p.supplier.companyName } : null,
     productGroup: p.productGroup ? { id: String(p.productGroup.id), name: p.productGroup.name } : null,
     branch: p.branch ? { id: p.branch.id, name: p.branch.name, isMain: p.branch.isMain, city: p.branch.city } : null,
+    branchStocks: isEnterprise ? [
+      {
+        branchId: p.branch?.id || mainBranch?.id || 0,
+        branchName: p.branch?.name || mainBranch?.name || 'Sede Principal',
+        quantity: p.quantityAvailable,
+        isCurrent: true
+      },
+      ...(clonesMap[p.id] || [])
+    ] : [],
     batches: productBatchesMap[String(p.id)] || [],
   }));
 
@@ -154,6 +208,8 @@ export default async function ProductsPage() {
         categories={serializedCategories}
         suppliers={serializedSuppliers}
         groups={serializedGroups}
+        branches={branches}
+        isEnterprise={isEnterprise}
         allowNegativeStock={allowNegativeStock}
         registerInventoryCostAsExpense={registerInventoryCostAsExpense}
         userId={session.user.id}

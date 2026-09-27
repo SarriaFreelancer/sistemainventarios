@@ -126,6 +126,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   let companyName = '';
   let companyLogo: string | null = null;
   let isCombosEnabled = false;
+  let isEnterpriseCompany = false;
   let trialInfo: { isTrial: boolean; trialEndsAt: string | null; isExpired: boolean; daysLeft: number } | null = null;
 
   const tenantId = await getSessionCompanyId();
@@ -141,6 +142,8 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
       where: { id: targetCompanyId },
       select: {
         name: true,
+        planId: true,
+        isEnterprise: true,
         themeConfig: true,
         setting: { select: { invoiceConfig: true, enableCombos: true } }
       }
@@ -149,6 +152,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     companyName = company?.name || '';
     companyLogo = (company?.setting?.invoiceConfig as any)?.logo || (company?.themeConfig as any)?.logo || null;
     isCombosEnabled = company?.setting?.enableCombos ?? false;
+    isEnterpriseCompany = Boolean(company?.isEnterprise || company?.planId === 'ENTERPRISE');
 
     let isTrial = false;
     let trialEndsAt: Date | null = null;
@@ -226,6 +230,13 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   // Filtrar el módulo de Kits si está deshabilitado en la configuración de la empresa
   if (!isCombosEnabled && session.user.role !== 'SUPERADMIN') {
     allowedModules = allowedModules.filter(m => m.href !== '/dashboard/kits' && m.href !== '/dashboard/combos');
+  }
+
+  // Filtrar Enterprise Multi-Sedes: Solo visible si la empresa tiene plan Enterprise y no es usuario restringido a sede secundaria
+  const isEnterpriseActive = session.user.role === 'SUPERADMIN' || isEnterpriseCompany;
+  const isSecondaryBranchUser = (session.user as any)?.branch && !(session.user as any)?.branch?.isMain;
+  if (!isEnterpriseActive || isSecondaryBranchUser) {
+    allowedModules = allowedModules.filter(m => m.href !== '/dashboard/enterprise');
   }
 
   // Asegurar que Documentación siempre esté disponible para todos los usuarios

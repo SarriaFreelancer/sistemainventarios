@@ -22,6 +22,8 @@ interface CreateProductDialogProps {
   categories: Category[];
   suppliers: Supplier[];
   groups: ProductGroup[];
+  branches?: { id: number; name: string; city?: string | null; isMain?: boolean }[];
+  isEnterprise?: boolean;
   disabled?: boolean;
   limitMessage?: string;
   registerInventoryCostAsExpense?: boolean;
@@ -32,12 +34,24 @@ const inputCls = "bg-background/50 border-border/80 focus:border-primary focus:r
 const selectCls = "flex h-11 w-full rounded-xl border border-border/80 bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all duration-300 disabled:opacity-50";
 const labelCls = "text-[10px] font-bold uppercase tracking-wider text-muted-foreground";
 
-export function CreateProductDialog({ categories, suppliers, groups, disabled = false, limitMessage = '', registerInventoryCostAsExpense = false, trackExpirationDates = false }: CreateProductDialogProps) {
+export function CreateProductDialog({
+  categories,
+  suppliers,
+  groups,
+  branches = [],
+  isEnterprise = false,
+  disabled = false,
+  limitMessage = '',
+  registerInventoryCostAsExpense = false,
+  trackExpirationDates = false
+}: CreateProductDialogProps) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [productType, setProductType] = useState('SALE');
   const [selectedGroup, setSelectedGroup] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
+  const [enableMultiBranch, setEnableMultiBranch] = useState(true);
+  const [branchStockMap, setBranchStockMap] = useState<Record<number, number>>({});
 
   const filteredCategories = selectedGroup
     ? categories.filter(c => c.productGroupId === selectedGroup)
@@ -45,6 +59,13 @@ export function CreateProductDialog({ categories, suppliers, groups, disabled = 
 
   const currentCategory = categories.find(c => String(c.id) === String(selectedCategoryId));
   const showExpirationFields = trackExpirationDates || (currentCategory?.isPerishable ?? false);
+
+  const handleBranchStockChange = (branchId: number, qty: number) => {
+    setBranchStockMap(prev => ({
+      ...prev,
+      [branchId]: Math.max(0, qty)
+    }));
+  };
 
   const handleAction = useCallback(async (formData: FormData) => {
     startTransition(async () => {
@@ -153,22 +174,71 @@ export function CreateProductDialog({ categories, suppliers, groups, disabled = 
                   ))}
                 </select>
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="new-qty" className={labelCls}>Cantidad Disponible</Label>
-                <Input id="new-qty" name="quantityAvailable" type="number" min="0" defaultValue="0" className={inputCls} />
-              </div>
+              {isEnterprise && branches.length > 1 ? (
+                <div className="sm:col-span-2 space-y-3 p-4 rounded-2xl border border-indigo-500/20 bg-indigo-500/5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                        <span className="text-base">🏢</span>
+                        Inventario por Sede (Enterprise)
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Digita las cantidades iniciales de este producto para cada sede de tu red.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-2.5 sm:grid-cols-2 pt-1">
+                    {branches.map((b) => (
+                      <div
+                        key={b.id}
+                        className="flex items-center justify-between p-2.5 rounded-xl border border-border/80 bg-background/60"
+                      >
+                        <div className="min-w-0 pr-2">
+                          <p className="text-xs font-bold text-foreground truncate flex items-center gap-1">
+                            <span>{b.isMain ? '⭐' : '📍'}</span>
+                            <span className="truncate">{b.name}</span>
+                          </p>
+                          {b.city && <p className="text-[10px] text-muted-foreground truncate">{b.city}</p>}
+                        </div>
+                        <div className="w-24 shrink-0">
+                          <Input
+                            type="number"
+                            min="0"
+                            value={branchStockMap[b.id] ?? (b.isMain ? 0 : 0)}
+                            onChange={(e) => handleBranchStockChange(b.id, Number(e.target.value))}
+                            className="h-8 text-xs text-right font-bold rounded-lg"
+                            placeholder="0 u."
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <input
+                    type="hidden"
+                    name="branchStockDistribution"
+                    value={JSON.stringify(branchStockMap)}
+                  />
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <Label htmlFor="new-qty" className={labelCls}>Cantidad Disponible</Label>
+                  <Input id="new-qty" name="quantityAvailable" type="number" min="0" defaultValue="0" className={inputCls} />
+                </div>
+              )}
+
               <div className="space-y-1.5">
                 <Label htmlFor="new-cost" className={labelCls}>Costo Unitario (COP)</Label>
                 <Input id="new-cost" name="unitCost" type="number" min="0" step="100" defaultValue="0" className={inputCls} />
               </div>
 
               {['SALE', 'FINISHED_GOOD', 'SERVICE'].includes(productType) ? (
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 sm:col-span-2">
                   <Label htmlFor="new-price" className={labelCls}>Precio de Venta (COP)</Label>
                   <Input id="new-price" name="salePrice" type="number" min="0" step="100" defaultValue="0" className={inputCls} required />
                 </div>
               ) : (
-                <div className="space-y-1.5 flex items-end pb-0.5">
+                <div className="space-y-1.5 sm:col-span-2 flex items-end pb-0.5">
                   <div className="bg-muted/30 border border-border rounded-xl p-2.5 text-xs text-muted-foreground w-full">
                     Uso interno (sin precio de venta).
                   </div>
@@ -193,7 +263,7 @@ export function CreateProductDialog({ categories, suppliers, groups, disabled = 
                   </div>
                 </>
               )}
-              
+
               {registerInventoryCostAsExpense && (
                 <div className="sm:col-span-2 flex items-center justify-between p-3 border border-border/80 bg-muted/10 rounded-2xl">
                   <div>
