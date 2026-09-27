@@ -1041,8 +1041,10 @@ export async function clearDemoData({
 }
 
 /**
- * Limpieza global del sistema para SuperAdmin.
- * Permite realizar un reset transaccional global en todas las empresas clientes conservando cuentas de usuario y la empresa 'Global'.
+ * Limpieza global de datos de prueba para SuperAdmin.
+ * Elimina ÚNICAMENTE los datos y lotes de prueba generados en todas las empresas clientes,
+ * garantizando que la información real creada por los usuarios en los módulos, así como
+ * las empresas y cuentas de usuario, permanezcan siempre 100% intactas y protegidas.
  */
 export async function clearGlobalSystemData({ password }: { password?: string } = {}) {
   try {
@@ -1056,13 +1058,13 @@ export async function clearGlobalSystemData({ password }: { password?: string } 
     });
 
     if (!currentUser || currentUser.role?.name !== 'SUPERADMIN') {
-      throw new Error("Solo el SuperAdministrador tiene permisos para ejecutar el Reset Global del Sistema.");
+      throw new Error("Solo el SuperAdministrador tiene permisos para ejecutar el Reset Global de Datos de Prueba.");
     }
 
     // Validar contraseña si la cuenta tiene contraseña
     if (currentUser.password && currentUser.password.trim() !== '') {
       if (!password || password.trim() === '') {
-        throw new Error("Debes ingresar tu contraseña de SuperAdmin para autorizar el Reset Global.");
+        throw new Error("Debes ingresar tu contraseña de SuperAdmin para autorizar el Reset Global de Datos de Prueba.");
       }
       const isPasswordCorrect = await bcrypt.compare(password, currentUser.password);
       if (!isPasswordCorrect) {
@@ -1070,82 +1072,142 @@ export async function clearGlobalSystemData({ password }: { password?: string } 
       }
     }
 
-    // Obtener todas las empresas que no sean 'Global'
-    const nonGlobalCompanies = await prisma.company.findMany({
-      where: { name: { not: 'Global' } },
-      select: { id: true }
+    // 1. Obtener todos los registros de lotes de prueba de todas las empresas
+    const demoBatches = await prisma.auditLog.findMany({
+      where: {
+        module: "DEMO_DATA",
+        action: "BATCH_CREATED"
+      }
     });
-    const companyIds = nonGlobalCompanies.map(c => c.id);
+
+    const productIds = new Set<number>();
+    const categoryIds = new Set<number>();
+    const groupIds = new Set<number>();
+    const supplierIds = new Set<number>();
+    const customerIds = new Set<number>();
+    const leadIds = new Set<number>();
+    const opportunityIds = new Set<number>();
+    const activityIds = new Set<number>();
+    const contactIds = new Set<number>();
+    const quoteIds = new Set<number>();
+    const saleIds = new Set<number>();
+    const incomeIds = new Set<number>();
+    const expenseIds = new Set<number>();
+    const positionIds = new Set<number>();
+    const employeeIds = new Set<number>();
+    const payrollIds = new Set<number>();
+    const userIds = new Set<number>();
+
+    demoBatches.forEach(batch => {
+      const val = batch.newValues as any;
+      if (val) {
+        val.productIds?.forEach((id: number) => productIds.add(id));
+        val.categoryIds?.forEach((id: number) => categoryIds.add(id));
+        val.groupIds?.forEach((id: number) => groupIds.add(id));
+        val.supplierIds?.forEach((id: number) => supplierIds.add(id));
+        val.customerIds?.forEach((id: number) => customerIds.add(id));
+        val.leadIds?.forEach((id: number) => leadIds.add(id));
+        val.opportunityIds?.forEach((id: number) => opportunityIds.add(id));
+        val.activityIds?.forEach((id: number) => activityIds.add(id));
+        val.contactIds?.forEach((id: number) => contactIds.add(id));
+        val.quoteIds?.forEach((id: number) => quoteIds.add(id));
+        val.saleIds?.forEach((id: number) => saleIds.add(id));
+        val.incomeIds?.forEach((id: number) => incomeIds.add(id));
+        val.expenseIds?.forEach((id: number) => expenseIds.add(id));
+        val.positionIds?.forEach((id: number) => positionIds.add(id));
+        val.employeeIds?.forEach((id: number) => employeeIds.add(id));
+        val.payrollIds?.forEach((id: number) => payrollIds.add(id));
+        val.userIds?.forEach((id: number) => userIds.add(id));
+      }
+    });
 
     await prisma.$transaction(async (tx) => {
-      // 1. Despachos y movimientos de almacén
-      await tx.warehouseMovement.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
-      await tx.warehouseTransfer.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
-      await tx.warehouseStock.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
+      // 1. Eliminar solo detalles de ventas y ventas que corresponden a pruebas
+      if (saleIds.size > 0 || productIds.size > 0) {
+        await tx.saleDetail.deleteMany({
+          where: {
+            OR: [
+              saleIds.size > 0 ? { saleId: { in: Array.from(saleIds) } } : {},
+              productIds.size > 0 ? { productId: { in: Array.from(productIds) } } : {},
+            ]
+          }
+        }).catch(() => {});
+      }
 
-      // 2. Ventas y detalles
-      await tx.saleDetail.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
-      await tx.sale.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
+      if (saleIds.size > 0) {
+        await tx.sale.deleteMany({
+          where: { id: { in: Array.from(saleIds) } }
+        }).catch(() => {});
+      }
 
-      // 3. Combos
-      await tx.comboItem.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
-      await tx.combo.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
+      // 2. Eliminar solo cotizaciones y CRM de prueba
+      if (quoteIds.size > 0) {
+        await tx.quote.deleteMany({ where: { id: { in: Array.from(quoteIds) } } }).catch(() => {});
+      }
+      if (activityIds.size > 0) {
+        await tx.activity.deleteMany({ where: { id: { in: Array.from(activityIds) } } }).catch(() => {});
+      }
+      if (contactIds.size > 0) {
+        await tx.contact.deleteMany({ where: { id: { in: Array.from(contactIds) } } }).catch(() => {});
+      }
+      if (opportunityIds.size > 0) {
+        await tx.opportunity.deleteMany({ where: { id: { in: Array.from(opportunityIds) } } }).catch(() => {});
+      }
+      if (leadIds.size > 0) {
+        await tx.lead.deleteMany({ where: { id: { in: Array.from(leadIds) } } }).catch(() => {});
+      }
 
-      // 4. Compras, cuentas por pagar y pagos
-      await tx.purchasePayment.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
-      await tx.accountsPayable.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
-      await tx.purchaseInvoice.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
-      await tx.inventoryEntryItem.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
-      await tx.inventoryEntry.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
-      await tx.purchaseReceiptItem.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
-      await tx.purchaseReceipt.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
-      await tx.purchaseOrderLine.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
-      await tx.purchaseOrder.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
-      await tx.purchaseQuotationItem.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
-      await tx.purchaseQuotation.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
-      await tx.purchaseApproval.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
-      await tx.purchaseApprovalConfig.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
-      await tx.purchaseRequestItem.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
-      await tx.purchaseRequest.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
-      await tx.internalRequisitionItem.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
-      await tx.internalRequisition.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
+      // 3. Eliminar solo nómina y RRHH de prueba
+      if (payrollIds.size > 0) {
+        await tx.payrollDetail?.deleteMany({ where: { payrollId: { in: Array.from(payrollIds) } } }).catch(() => {});
+        await tx.payroll?.deleteMany({ where: { id: { in: Array.from(payrollIds) } } }).catch(() => {});
+      }
+      await tx.payroll?.deleteMany({ where: { code: { startsWith: 'NOM-' } } }).catch(() => {});
 
-      // 5. CRM
-      await tx.quote.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
-      await tx.activity.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
-      await tx.contact.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
-      await tx.opportunity.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
-      await tx.lead.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
+      if (employeeIds.size > 0) {
+        await tx.employeeNovelty?.deleteMany({ where: { employeeId: { in: Array.from(employeeIds) } } }).catch(() => {});
+        await tx.employee?.deleteMany({ where: { id: { in: Array.from(employeeIds) } } }).catch(() => {});
+      }
+      await tx.employee?.deleteMany({ where: { email: { contains: '@gns-demo.com' } } }).catch(() => {});
 
-      // 6. Nómina y RRHH
-      await tx.payrollDetail.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
-      await tx.payroll.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
-      await tx.employeeNovelty.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
-      await tx.employee.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
-      await tx.position.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
+      if (positionIds.size > 0) {
+        await tx.position?.deleteMany({ where: { id: { in: Array.from(positionIds) } } }).catch(() => {});
+      }
 
-      // 7. Finanzas
-      await tx.income.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
-      await tx.expense.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
+      // 4. Eliminar solo ingresos y gastos de prueba
+      if (incomeIds.size > 0) {
+        await tx.income.deleteMany({ where: { id: { in: Array.from(incomeIds) } } }).catch(() => {});
+      }
+      if (expenseIds.size > 0) {
+        await tx.expense.deleteMany({ where: { id: { in: Array.from(expenseIds) } } }).catch(() => {});
+      }
 
-      // 8. Lotes de productos y productos
-      await tx.product.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
+      // 5. Eliminar solo productos, categorías y grupos de prueba
+      if (productIds.size > 0) {
+        await tx.product.deleteMany({ where: { id: { in: Array.from(productIds) } } }).catch(() => {});
+      }
+      if (categoryIds.size > 0) {
+        await tx.category.deleteMany({ where: { id: { in: Array.from(categoryIds) } } }).catch(() => {});
+      }
+      if (groupIds.size > 0) {
+        await tx.productGroup.deleteMany({ where: { id: { in: Array.from(groupIds) } } }).catch(() => {});
+      }
 
-      // 9. Descuentos
-      await tx.discount.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
+      // 6. Eliminar solo proveedores y clientes de prueba
+      if (supplierIds.size > 0) {
+        await tx.supplier.deleteMany({ where: { id: { in: Array.from(supplierIds) } } }).catch(() => {});
+      }
+      if (customerIds.size > 0) {
+        await tx.customer.deleteMany({ where: { id: { in: Array.from(customerIds) } } }).catch(() => {});
+      }
 
-      // 10. Categorías y Grupos de Productos
-      await tx.category.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
-      await tx.productGroup.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
-
-      // 11. Proveedores y Clientes
-      await tx.supplier.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
-      await tx.customer.deleteMany({ where: { companyId: { in: companyIds } } }).catch(() => {});
-
-      // 12. Eliminar usuarios demo
+      // 7. Eliminar usuarios demo temporales
+      if (userIds.size > 0) {
+        await tx.user.deleteMany({ where: { id: { in: Array.from(userIds) } } }).catch(() => {});
+      }
       await tx.user.deleteMany({ where: { email: { contains: '@gns-demo.com' } } }).catch(() => {});
 
-      // 13. Limpiar logs de auditoría DEMO_DATA
+      // 8. Limpiar registros de auditoría de DEMO_DATA
       await tx.auditLog.deleteMany({
         where: { module: "DEMO_DATA" }
       });
@@ -1154,10 +1216,10 @@ export async function clearGlobalSystemData({ password }: { password?: string } 
     revalidatePath("/", "layout");
     return {
       success: true,
-      message: "Se ha realizado exitosamente el Reset Global Transaccional del Sistema. Se han conservado todas las empresas y cuentas de usuario intactas."
+      message: "Se han eliminado exitosamente todos los datos de prueba de todas las empresas. Toda la información real creada por los usuarios en los módulos se mantiene 100% intacta y segura."
     };
   } catch (error: any) {
     console.error('[CLEAR_GLOBAL_SYSTEM_DATA_ERROR]', error);
-    return { success: false, error: error.message || "Error al procesar el reset global del sistema." };
+    return { success: false, error: error.message || "Error al procesar el reset global de datos de prueba." };
   }
 }

@@ -319,13 +319,13 @@ export function OnboardingManager({
               </button>
             </div>
 
-            {/* Opción 2: Reset Global Transaccional */}
+            {/* Opción 2: Reset Global de Datos de Prueba */}
             <div className="p-5 rounded-xl border border-destructive/20 bg-destructive/5 space-y-3">
               <p className="text-xs font-bold uppercase tracking-wider text-destructive flex items-center gap-2">
-                <RotateCcw size={15} /> Reset Global Transaccional
+                <RotateCcw size={15} /> Reset Global de Datos de Prueba
               </p>
-              <p className="text-xs text-muted-foreground">
-                Vacía los datos transaccionales, productos y cotizaciones de <b>todas las empresas clientes</b> en un solo paso. Conserva todas las empresas y cuentas de usuario.
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Elimina únicamente los datos de prueba y lotes demo generados en <b>todas las empresas clientes</b> en un solo paso. La información real creada por los usuarios en los módulos, sus catálogos, ventas, empresas y cuentas de usuario se conservan 100% intactas y protegidas.
               </p>
               <button
                 type="button"
@@ -336,10 +336,10 @@ export function OnboardingManager({
                   setGlobalModalOpen(true);
                 }}
                 disabled={globalCleaning}
-                className="w-full py-2.5 px-4 bg-destructive text-destructive-foreground font-semibold rounded-xl text-xs hover:opacity-90 transition flex items-center justify-center gap-2 shadow-sm shadow-destructive/20 cursor-pointer"
+                className="w-full py-2.5 px-4 bg-destructive text-white font-bold rounded-xl text-xs hover:bg-destructive/90 transition flex items-center justify-center gap-2 shadow-sm shadow-destructive/20 cursor-pointer"
               >
                 <AlertTriangle size={14} />
-                Reset Global del Sistema
+                Reset Global de Datos de Prueba
               </button>
             </div>
           </div>
@@ -499,7 +499,7 @@ export function OnboardingManager({
                   className={`px-5 py-2.5 font-bold rounded-xl text-xs transition flex items-center gap-2 shadow-md cursor-pointer ${
                     cleanMode === 'ONLY_DEMO'
                       ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20'
-                      : 'bg-destructive hover:bg-destructive/90 text-destructive-foreground shadow-destructive/20'
+                      : 'bg-destructive hover:bg-destructive/90 text-white shadow-destructive/20'
                   }`}
                 >
                   {cleaning ? (
@@ -536,10 +536,10 @@ export function OnboardingManager({
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-foreground">
-                    Reset Global Transaccional del Sistema
+                    Reset Global de Datos de Prueba (SuperAdmin)
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Acción de SuperAdministrador: vaciado de empresas clientes.
+                    Acción de SuperAdministrador: vaciado exclusivo de lotes y datos de prueba.
                   </p>
                 </div>
               </div>
@@ -555,12 +555,12 @@ export function OnboardingManager({
             <form onSubmit={handleConfirmGlobalReset} className="mt-5 space-y-5">
               <div className="p-4 rounded-xl border border-destructive/30 bg-destructive/5 space-y-2">
                 <div className="flex items-center gap-2 text-destructive font-bold text-xs uppercase tracking-wider">
-                  <ShieldAlert size={16} /> Advertencia Crítica de SuperAdmin
+                  <ShieldAlert size={16} /> Limpieza Segura de Datos de Prueba
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Esta acción eliminará todos los registros transaccionales (productos, ventas, cotizaciones, compras, nóminas, CRM y finanzas) de <b>todas las empresas clientes</b>.
+                  Esta acción eliminará <b>exclusivamente los datos y registros de prueba</b> generados en todas las empresas clientes.
                   <br /><br />
-                  <b>Garantía de Aislamiento:</b> Todas las cuentas de usuario, empresas creadas y la empresa <b>Global (SuperAdmin)</b> se mantendrán intactas y seguras.
+                  <b>Protección Total de Datos Reales:</b> Toda la información real introducida manualmente por los usuarios en los módulos (productos reales, compras, ventas, nóminas, cotizaciones, finanzas), las cuentas de usuario y todas las empresas se mantendrán <b>100% intactas y protegidas</b>.
                 </p>
               </div>
 
@@ -616,17 +616,17 @@ export function OnboardingManager({
                 <button
                   type="submit"
                   disabled={globalCleaning}
-                  className="px-5 py-2.5 font-bold rounded-xl text-xs transition flex items-center gap-2 shadow-md bg-destructive hover:bg-destructive/90 text-destructive-foreground shadow-destructive/20 cursor-pointer"
+                  className="px-5 py-2.5 font-bold rounded-xl text-xs transition flex items-center gap-2 shadow-md bg-destructive hover:bg-destructive/90 text-white shadow-destructive/20 cursor-pointer"
                 >
                   {globalCleaning ? (
                     <>
                       <Loader2 size={15} className="animate-spin" />
-                      <span>Ejecutando Reset Global...</span>
+                      <span>Limpiando datos de prueba...</span>
                     </>
                   ) : (
                     <>
                       <Trash2 size={15} />
-                      <span>Ejecutar Reset Global del Sistema</span>
+                      <span>Ejecutar Reset de Datos de Prueba</span>
                     </>
                   )}
                 </button>

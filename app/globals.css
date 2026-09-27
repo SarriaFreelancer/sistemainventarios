@@ -22,7 +22,8 @@
     --muted-foreground:   oklch(0.50 0.02 286);
     --accent:             oklch(0.97 0.003 286);
     --accent-foreground:  oklch(0.21 0.06 296);
-    --destructive:        oklch(0.60 0.18 25);
+    --destructive:            #ef4444;
+    --destructive-foreground: #ffffff;
     --border:             oklch(0.92 0.003 286);
     --input:              oklch(0.92 0.003 286);
     --ring:               #3b82f6;
@@ -47,7 +48,8 @@
     --muted-foreground:   oklch(0.62 0.02 286);
     --accent:             oklch(0.27 0.03 296);
     --accent-foreground:  oklch(0.985 0.002 286);
-    --destructive:        oklch(0.55 0.18 25);
+    --destructive:            #dc2626;
+    --destructive-foreground: #ffffff;
     --border:             oklch(0.27 0.025 286);
     --input:              oklch(0.22 0.025 286);
     --ring:               #3b82f6;
@@ -76,6 +78,23 @@ body {
     min-height: 100vh;
     font-family: 'Inter', sans-serif;
     -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Botones Destructivos y de Eliminación: Alta Legibilidad ─── */
+button.bg-destructive:not([class*="/"]),
+a.bg-destructive:not([class*="/"]),
+.bg-destructive:not([class*="text-"]):not([class*="/"]),
+.bg-red-500:not([class*="text-"]):not([class*="/"]),
+.bg-red-600:not([class*="text-"]):not([class*="/"]),
+.bg-red-700:not([class*="text-"]):not([class*="/"]),
+.bg-rose-500:not([class*="text-"]):not([class*="/"]),
+.bg-rose-600:not([class*="text-"]):not([class*="/"]) {
+    color: #ffffff !important;
+}
+
+button.bg-destructive:not([class*="/"]) *,
+a.bg-destructive:not([class*="/"]) * {
+    color: #ffffff !important;
 }
 
 /* ─── Barras de Desplazamiento Personalizadas (Custom Scrollbars) ─── */

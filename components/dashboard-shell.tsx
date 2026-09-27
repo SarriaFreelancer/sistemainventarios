@@ -387,6 +387,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
           <header className={cn("flex items-center justify-between border-b border-border px-6 py-4 transition-colors duration-500 min-h-[73px] shrink-0 relative z-20", hasBgImage ? "bg-card/60 backdrop-blur-md" : "bg-card")}>
             <div className="flex items-center gap-3">
               <button
+                id="tour-mobile-menu-btn"
                 aria-label="Menú principal"
                 className="rounded-xl border border-border bg-card p-2.5 text-foreground hover:bg-muted transition lg:hidden"
                 onClick={() => setIsMenuOpen(true)}
