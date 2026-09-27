@@ -182,11 +182,19 @@ export async function createSale(data: {
 
       const saleNumber = `VEN-${dateStr}-${String(counter.lastSeq).padStart(4, '0')}`;
 
+      // Obtener la sede del vendedor para registrar la venta en su sede
+      let userBranchId: number | null = null;
+      if (validUserId) {
+        const sellerUser = await tx.user.findUnique({ where: { id: validUserId }, select: { branchId: true } });
+        userBranchId = sellerUser?.branchId ?? null;
+      }
+
       // 2. Crear Venta
       const createdSale = await tx.sale.create({
         data: {
           saleNumber,
           userId: validUserId,
+          branchId: userBranchId,
           client: client || null,
           customerId: customerId || null,
           discount,

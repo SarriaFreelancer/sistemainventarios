@@ -3,11 +3,12 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import crypto from 'crypto';
+import { validatePassword } from '@/lib/password';
 
 const registerSchema = z.object({
-  name: z.string().min(2),
-  email: z.string().email(),
-  password: z.string().min(6),
+  name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
+  email: z.string().email('Correo electrónico no válido'),
+  password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
   companyName: z.string().optional(),
   planId: z.string().optional(),
   amount: z.number().optional(), // Amount in COP (e.g. 100000)
@@ -22,6 +23,22 @@ export async function POST(request: Request) {
     }
 
     const { name, email, password, companyName, planId, amount } = parsed.data;
+
+    // Validación estricta de política de seguridad para contraseñas
+    const pwdErrors = validatePassword(password, {
+      passwordMinLength: 8,
+      passwordRequireUppercase: true,
+      passwordRequireLowercase: true,
+      passwordRequireNumbers: true,
+      passwordRequireSymbols: true,
+    });
+
+    if (pwdErrors.length > 0) {
+      return NextResponse.json({
+        message: `Contraseña insegura: ${pwdErrors.join(' ')}`
+      }, { status: 400 });
+    }
+
     const normalizedEmail = email.toLowerCase().trim();
 
     // Verificar si el correo ya existe

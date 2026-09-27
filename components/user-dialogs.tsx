@@ -11,6 +11,7 @@ import { createUser, updateUser, deleteUser, unlockUser } from "@/app/actions/us
 
 interface Role { id: number; name: string; }
 interface Company { id: number; name: string; }
+interface BranchItem { id: number; name: string; code?: string | null; isMain?: boolean; }
 interface ModuleItem { id: number; name: string; icon?: string | null; description?: string | null; }
 interface User {
   id: number;
@@ -20,6 +21,8 @@ interface User {
   password?: string;
   role?: Role | null;
   company?: Company | null;
+  branch?: BranchItem | null;
+  branchId?: number | null;
   isLocked?: boolean;
   allowedModuleIds?: number[] | null;
 }
@@ -60,12 +63,14 @@ export function CreateUserDialog({
   roles,
   companies,
   modules = [],
+  branches = [],
   disabled = false,
   limitMessage = ''
 }: {
   roles: Role[];
   companies: Company[];
   modules?: ModuleItem[];
+  branches?: BranchItem[];
   disabled?: boolean;
   limitMessage?: string;
 }) {
@@ -164,6 +169,20 @@ export function CreateUserDialog({
                 </select>
               </div>
 
+              {branches.length > 0 && (
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="user-branch" className={labelCls}>Sede Asignada (Enterprise)</Label>
+                  <select id="user-branch" name="branchId" defaultValue="" className={selectCls}>
+                    <option value="">Todas las Sedes / Acceso Global</option>
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name} {b.isMain ? '(Sede Principal)' : ''} {b.code ? `[${b.code}]` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               {modules.length > 0 && (
                 <div className="space-y-2.5 sm:col-span-2 pt-3 border-t border-border/50">
                   <div className="flex items-center justify-between">
@@ -232,12 +251,14 @@ export function EditUserDialog({
   user,
   roles,
   companies,
-  modules = []
+  modules = [],
+  branches = []
 }: {
   user: User;
   roles: Role[];
   companies: Company[];
   modules?: ModuleItem[];
+  branches?: BranchItem[];
 }) {
   const [open, setOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -338,6 +359,25 @@ export function EditUserDialog({
                   ))}
                 </select>
               </div>
+
+              {branches.length > 0 && (
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor={`edit-user-branch-${user.id}`} className={labelCls}>Sede Asignada (Enterprise)</Label>
+                  <select
+                    id={`edit-user-branch-${user.id}`}
+                    name="branchId"
+                    defaultValue={user.branchId ?? user.branch?.id ?? ''}
+                    className={selectCls}
+                  >
+                    <option value="">Todas las Sedes / Acceso Global</option>
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name} {b.isMain ? '(Sede Principal)' : ''} {b.code ? `[${b.code}]` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {modules.length > 0 && (
                 <div className="space-y-2.5 sm:col-span-2 pt-3 border-t border-border/50">
@@ -464,6 +504,7 @@ export function UsersClient({
   roles,
   companies,
   modules = [],
+  branches = [],
   maxUsers = 9999,
   currentUsers = 0,
   planName = 'Plan Premium'
@@ -472,6 +513,7 @@ export function UsersClient({
   roles: Role[];
   companies: Company[];
   modules?: ModuleItem[];
+  branches?: BranchItem[];
   maxUsers?: number;
   currentUsers?: number;
   planName?: string;
@@ -479,6 +521,7 @@ export function UsersClient({
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [companyFilter, setCompanyFilter] = useState("");
+  const [branchFilter, setBranchFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
@@ -494,17 +537,21 @@ export function UsersClient({
         u.name.toLowerCase().includes(q) ||
         u.email.toLowerCase().includes(q) ||
         (u.role?.name ?? '').toLowerCase().includes(q) ||
-        (u.company?.name ?? '').toLowerCase().includes(q)
+        (u.company?.name ?? '').toLowerCase().includes(q) ||
+        (u.branch?.name ?? '').toLowerCase().includes(q)
       );
 
       const matchesRole = !roleFilter || u.role?.name === roleFilter;
       const matchesCompany = !companyFilter || (
         companyFilter === 'GLOBAL' ? !u.company : u.company?.name === companyFilter
       );
+      const matchesBranch = !branchFilter || (
+        branchFilter === 'GLOBAL' ? !u.branch : String(u.branchId || u.branch?.id) === branchFilter
+      );
 
-      return matchesSearch && matchesRole && matchesCompany;
+      return matchesSearch && matchesRole && matchesCompany && matchesBranch;
     });
-  }, [users, search, roleFilter, companyFilter]);
+  }, [users, search, roleFilter, companyFilter, branchFilter]);
 
   const totalPages = Math.ceil(filteredUsers.length / pageSize) || 1;
   const paginatedUsers = filteredUsers.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -535,7 +582,7 @@ export function UsersClient({
           </div>
           <div>
             <h1 className="text-xl font-extrabold text-foreground tracking-tight">Gestión de usuarios</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">Administra usuarios, roles y permisos en todas las empresas.</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Administra usuarios, roles, sedes y permisos en el sistema.</p>
           </div>
         </div>
 
@@ -544,6 +591,7 @@ export function UsersClient({
             roles={roles}
             companies={companies}
             modules={modules}
+            branches={branches}
             disabled={currentUsers >= maxUsers}
             limitMessage={`Has alcanzado el límite de ${maxUsers} usuarios de tu ${planName}.`}
           />
@@ -573,7 +621,7 @@ export function UsersClient({
           <div className="w-full h-8 mt-2">
             <svg className="w-full h-full text-emerald-500/30" viewBox="0 0 100 25" preserveAspectRatio="none">
               <path d="M0 20 Q 25 5, 50 15 T 100 10 L 100 25 L 0 25 Z" fill="currentColor" />
-              <path d="M0 20 Q 25 5, 50 15 T 100 10" fill="none" stroke="currentColor" strokeWidth="2" />
+              <path d="M0 20 Q 25 5, 50 10" fill="none" stroke="currentColor" strokeWidth="2" />
             </svg>
           </div>
         </div>
@@ -646,14 +694,14 @@ export function UsersClient({
           <Search className="w-4 h-4 text-muted-foreground absolute left-4 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Buscar por nombre, correo, rol o empresa..."
+            placeholder="Buscar por nombre, correo, rol, sede o empresa..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
             className="w-full pl-11 pr-4 py-3 bg-card border border-border/60 rounded-2xl text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm transition"
           />
         </div>
 
-        <div className="flex items-center gap-2 w-full md:w-auto">
+        <div className="flex items-center gap-2 w-full md:w-auto flex-wrap">
           {/* Select de Roles */}
           <select
             value={roleFilter}
@@ -666,18 +714,37 @@ export function UsersClient({
             ))}
           </select>
 
+          {/* Select de Sedes (si existen) */}
+          {branches.length > 0 && (
+            <select
+              value={branchFilter}
+              onChange={(e) => { setBranchFilter(e.target.value); setCurrentPage(1); }}
+              className="px-4 py-3 bg-card border border-border/60 rounded-2xl text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm cursor-pointer"
+            >
+              <option value="">Todas las sedes</option>
+              <option value="GLOBAL">Sin sede asignada</option>
+              {branches.map(b => (
+                <option key={b.id} value={String(b.id)}>
+                  📍 {b.name} {b.isMain ? '(Principal)' : ''}
+                </option>
+              ))}
+            </select>
+          )}
+
           {/* Select de Empresas */}
-          <select
-            value={companyFilter}
-            onChange={(e) => { setCompanyFilter(e.target.value); setCurrentPage(1); }}
-            className="px-4 py-3 bg-card border border-border/60 rounded-2xl text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm cursor-pointer"
-          >
-            <option value="">Todas las empresas</option>
-            <option value="GLOBAL">Global (Sin empresa)</option>
-            {companies.map(c => (
-              <option key={c.id} value={c.name}>{c.name}</option>
-            ))}
-          </select>
+          {companies.length > 1 && (
+            <select
+              value={companyFilter}
+              onChange={(e) => { setCompanyFilter(e.target.value); setCurrentPage(1); }}
+              className="px-4 py-3 bg-card border border-border/60 rounded-2xl text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm cursor-pointer"
+            >
+              <option value="">Todas las empresas</option>
+              <option value="GLOBAL">Global (Sin empresa)</option>
+              {companies.map(c => (
+                <option key={c.id} value={c.name}>{c.name}</option>
+              ))}
+            </select>
+          )}
 
           {/* Botón Filtros */}
           <button
@@ -686,7 +753,6 @@ export function UsersClient({
           >
             <SlidersHorizontal className="w-4 h-4 text-muted-foreground" />
             Filtros
-            <span className="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-black flex items-center justify-center">1</span>
           </button>
         </div>
       </div>
@@ -733,7 +799,7 @@ export function UsersClient({
                     <span className="flex items-center gap-1">ROL <ChevronsUpDown className="w-3 h-3 opacity-50" /></span>
                   </th>
                   <th className="py-2.5 px-4">
-                    <span className="flex items-center gap-1">EMPRESA <ChevronsUpDown className="w-3 h-3 opacity-50" /></span>
+                    <span className="flex items-center gap-1">EMPRESA / SEDE <ChevronsUpDown className="w-3 h-3 opacity-50" /></span>
                   </th>
                   <th className="py-2.5 px-4">CONTRASEÑA</th>
                   <th className="py-2.5 px-4 text-center">ESTADO</th>
@@ -779,9 +845,18 @@ export function UsersClient({
                         </span>
                       </td>
 
-                      {/* Empresa */}
+                      {/* Empresa y Sede */}
                       <td className="py-3 px-4 text-xs font-medium text-foreground/80">
-                        {user.company?.name ?? 'Global'}
+                        <div className="flex flex-col gap-1">
+                          <span>{user.company?.name ?? 'Global'}</span>
+                          {user.branch ? (
+                            <span className="inline-flex items-center gap-1 text-[9.5px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 px-2 py-0.5 rounded-md w-fit border border-indigo-200 dark:border-indigo-800">
+                              📍 {user.branch.name} {user.branch.isMain ? '(Principal)' : ''}
+                            </span>
+                          ) : branches.length > 0 ? (
+                            <span className="text-[9px] text-muted-foreground italic">Todas las sedes</span>
+                          ) : null}
+                        </div>
                       </td>
 
                       {/* Contraseña */}
@@ -812,7 +887,7 @@ export function UsersClient({
                       {/* Acciones */}
                       <td className="py-3 px-4 text-center rounded-r-2xl">
                         <div className="flex items-center justify-center gap-1">
-                          <EditUserDialog user={user} roles={roles} companies={companies} modules={modules} />
+                          <EditUserDialog user={user} roles={roles} companies={companies} modules={modules} branches={branches} />
                           <DeleteUserButton id={user.id} name={user.name} />
                           {user.isLocked && <UnlockUserButton id={user.id} name={user.name} />}
                         </div>

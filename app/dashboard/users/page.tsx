@@ -18,10 +18,10 @@ export default async function UsersPage() {
   const isAdmin = session.user.role === 'ADMIN';
   const companyId = await getSessionCompanyId();
 
-  const [users, roles, companies, allModules] = await Promise.all([
+  const [users, roles, companies, allModules, branches] = await Promise.all([
     prisma.user.findMany({
       where: isAdmin && companyId ? { companyId } : {},
-      include: { role: true, company: true },
+      include: { role: true, company: true, branch: true },
       orderBy: { name: 'asc' },
     }),
     prisma.role.findMany({
@@ -35,6 +35,10 @@ export default async function UsersPage() {
     prisma.module.findMany({
       where: { isActive: true, href: { not: '/dashboard/companies' } },
       orderBy: { name: 'asc' }
+    }),
+    prisma.branch.findMany({
+      where: isAdmin && companyId ? { companyId } : {},
+      orderBy: [{ isMain: 'desc' }, { name: 'asc' }]
     }),
   ]);
 
@@ -62,6 +66,8 @@ export default async function UsersPage() {
       password: prefs.plainPassword ? String(prefs.plainPassword) : undefined,
       role: user.role ? { id: user.role.id, name: user.role.name } : null,
       company: user.company ? { id: user.company.id, name: user.company.name } : null,
+      branch: user.branch ? { id: user.branch.id, name: user.branch.name, code: user.branch.code, isMain: user.branch.isMain } : null,
+      branchId: user.branchId ?? null,
       isLocked: user.isLocked,
       allowedModuleIds: Array.isArray(prefs.allowedModuleIds) ? (prefs.allowedModuleIds as number[]) : null,
     };
@@ -70,6 +76,7 @@ export default async function UsersPage() {
   const serializedRoles = filteredRoles.map((role) => ({ id: role.id, name: role.name }));
   const serializedCompanies = companies.map((company) => ({ id: company.id, name: company.name }));
   const serializedModules = availableModules.map((m) => ({ id: m.id, name: m.name, icon: m.icon, description: m.description }));
+  const serializedBranches = branches.map((b) => ({ id: b.id, name: b.name, code: b.code, isMain: b.isMain }));
 
   let planLimits = { maxUsers: 9999, planName: 'Plan Premium' };
   let currentUsersCount = 0;
@@ -94,6 +101,7 @@ export default async function UsersPage() {
         roles={serializedRoles}
         companies={serializedCompanies}
         modules={serializedModules}
+        branches={serializedBranches}
         maxUsers={planLimits.maxUsers}
         currentUsers={currentUsersCount}
         planName={planLimits.planName}
