@@ -15,6 +15,7 @@ const userCreateSchema = z.object({
   password: z.string().min(1, 'La contraseña es obligatoria'),
   roleId: z.coerce.number().min(1, 'Selecciona un rol'),
   companyId: z.coerce.number().optional(),
+  branchId: z.coerce.number().optional().nullable(),
 });
 
 const userUpdateSchema = z.object({
@@ -23,6 +24,7 @@ const userUpdateSchema = z.object({
   password: z.string().optional(),
   roleId: z.coerce.number().min(1, 'Selecciona un rol'),
   companyId: z.coerce.number().optional(),
+  branchId: z.coerce.number().optional().nullable(),
 });
 
 export async function createUser(formData: FormData) {
@@ -39,12 +41,16 @@ export async function createUser(formData: FormData) {
     targetCompanyId = currentCompanyId;
   }
 
+  const rawBranchId = formData.get('branchId');
+  const branchId = rawBranchId && rawBranchId !== '' && rawBranchId !== '0' ? Number(rawBranchId) : null;
+
   const parsed = userCreateSchema.safeParse({
     name: formData.get('name'),
     email: formData.get('email'),
     password: formData.get('password'),
     roleId: formData.get('roleId'),
     companyId: targetCompanyId,
+    branchId: branchId,
   });
 
   if (!parsed.success) {
@@ -114,6 +120,7 @@ export async function createUser(formData: FormData) {
       password: passwordHash,
       roleId: parsed.data.roleId,
       companyId: parsed.data.companyId || undefined,
+      branchId: parsed.data.branchId || null,
       preferences: {
         plainPassword: parsed.data.password,
         ...(allowedModuleIds !== undefined ? { allowedModuleIds } : {})
@@ -151,12 +158,16 @@ export async function updateUser(formData: FormData) {
     targetCompanyId = currentCompanyId;
   }
 
+  const rawBranchId = formData.get('branchId');
+  const branchId = rawBranchId && rawBranchId !== '' && rawBranchId !== '0' ? Number(rawBranchId) : null;
+
   const parsed = userUpdateSchema.safeParse({
     name: formData.get('name'),
     email: formData.get('email'),
     password: password || undefined,
     roleId: formData.get('roleId'),
     companyId: targetCompanyId,
+    branchId: branchId,
   });
 
   if (!parsed.success || !id || isNaN(id)) {
@@ -207,6 +218,7 @@ export async function updateUser(formData: FormData) {
     email: parsed.data.email,
     roleId: parsed.data.roleId,
     companyId: targetCompanyId || undefined,
+    branchId: branchId,
     preferences: newPreferences,
   };
 

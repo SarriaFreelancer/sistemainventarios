@@ -24,6 +24,9 @@ import {
   ShieldCheck,
   Cloud,
   CheckCircle2,
+  XCircle,
+  Check,
+  X,
   Sun,
   Moon
 } from 'lucide-react';
@@ -36,8 +39,14 @@ const registerSchema = z.object({
   name: z.string().min(2, 'El nombre completo es obligatorio (mínimo 2 letras)'),
   companyName: z.string().min(2, 'El nombre de la empresa es obligatorio (mínimo 2 letras)'),
   email: z.string().email('Ingresa un correo electrónico corporativo válido'),
-  password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
-  confirmPassword: z.string().min(8, 'Confirma tu contraseña'),
+  password: z
+    .string()
+    .min(8, 'La contraseña debe tener al menos 8 caracteres')
+    .regex(/[A-Z]/, 'Debe incluir al menos una letra mayúscula')
+    .regex(/[a-z]/, 'Debe incluir al menos una letra minúscula')
+    .regex(/[0-9]/, 'Debe incluir al menos un número')
+    .regex(/[!@#$%^&*(),.?":{}|<>\-_+=\[\]\\;'/~`]/, 'Debe incluir al menos un símbolo especial'),
+  confirmPassword: z.string().min(1, 'Confirma tu contraseña'),
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Las contraseñas no coinciden',
   path: ['confirmPassword']
@@ -54,24 +63,30 @@ export default function RegisterPage() {
     setMounted(true);
   }, []);
   const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<z.infer<typeof registerSchema>>({
-    resolver: zodResolver(registerSchema)
+    resolver: zodResolver(registerSchema),
+    mode: 'onChange'
   });
 
   const passwordValue = watch('password', '');
+  const confirmPasswordValue = watch('confirmPassword', '');
 
-  // Cálculo de fuerza de contraseña
-  const getPasswordStrength = (pass: string) => {
-    let score = 0;
-    if (pass.length >= 8) score++;
-    if (/[A-Z]/.test(pass)) score++;
-    if (/[0-9]/.test(pass)) score++;
-    if (/[^A-Za-z0-9]/.test(pass)) score++;
-    return score;
-  };
+  // Validaciones individuales de política de contraseñas
+  const hasMinLength = passwordValue.length >= 8;
+  const hasUppercase = /[A-Z]/.test(passwordValue);
+  const hasLowercase = /[a-z]/.test(passwordValue);
+  const hasNumber = /[0-9]/.test(passwordValue);
+  const hasSymbol = /[!@#$%^&*(),.?":{}|<>\-_+=\[\]\\;'/~`]/.test(passwordValue);
+  const hasMatch = confirmPasswordValue.length > 0 && passwordValue === confirmPasswordValue;
 
-  const strength = getPasswordStrength(passwordValue);
+  const passedChecksCount = [hasMinLength, hasUppercase, hasLowercase, hasNumber, hasSymbol].filter(Boolean).length;
+  const isPasswordValid = hasMinLength && hasUppercase && hasLowercase && hasNumber && hasSymbol && hasMatch;
 
   const onSubmit = async (values: z.infer<typeof registerSchema>) => {
+    if (!isPasswordValid) {
+      errorAlert('Contraseña Insegura', 'Debes cumplir con todos los requisitos de seguridad y confirmar tu contraseña antes de continuar.');
+      return;
+    }
+
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
@@ -355,24 +370,16 @@ export default function RegisterPage() {
                 </button>
               </div>
 
-              {/* Barra Indicadora de Fuerza de Contraseña */}
+              {/* Barra Indicadora de Fuerza */}
               <div className="pt-0.5 space-y-0.5">
-                <div className="grid grid-cols-4 gap-1 h-1">
-                  <div className={`rounded-full transition-all duration-300 ${strength >= 1 ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-800'}`} />
-                  <div className={`rounded-full transition-all duration-300 ${strength >= 2 ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-800'}`} />
-                  <div className={`rounded-full transition-all duration-300 ${strength >= 3 ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-800'}`} />
-                  <div className={`rounded-full transition-all duration-300 ${strength >= 4 ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-800'}`} />
+                <div className="grid grid-cols-5 gap-1 h-1">
+                  <div className={`rounded-full transition-all duration-300 ${passedChecksCount >= 1 ? 'bg-amber-500' : 'bg-slate-200 dark:bg-slate-800'}`} />
+                  <div className={`rounded-full transition-all duration-300 ${passedChecksCount >= 2 ? 'bg-amber-500' : 'bg-slate-200 dark:bg-slate-800'}`} />
+                  <div className={`rounded-full transition-all duration-300 ${passedChecksCount >= 3 ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-800'}`} />
+                  <div className={`rounded-full transition-all duration-300 ${passedChecksCount >= 4 ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-800'}`} />
+                  <div className={`rounded-full transition-all duration-300 ${passedChecksCount === 5 ? 'bg-emerald-500 shadow-sm shadow-emerald-500/50' : 'bg-slate-200 dark:bg-slate-800'}`} />
                 </div>
-                <p className="text-[9px] text-slate-400 font-medium leading-tight">
-                  Usa al menos 8 caracteres con mayúsculas, números y símbolos.
-                </p>
               </div>
-
-              {errors.password && (
-                <p className="text-[9.5px] text-rose-500 font-semibold mt-0.5">
-                  {errors.password.message}
-                </p>
-              )}
             </div>
 
             {/* Campo CONFIRMAR CONTRASEÑA */}
@@ -388,7 +395,13 @@ export default function RegisterPage() {
                   autoComplete="new-password"
                   placeholder="Confirma tu contraseña"
                   {...register('confirmPassword')}
-                  className="pl-9 pr-9 h-9 border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 text-slate-900 dark:text-white text-xs rounded-xl focus:border-blue-600 focus:bg-white dark:focus:bg-slate-900 transition"
+                  className={`pl-9 pr-9 h-9 border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 text-slate-900 dark:text-white text-xs rounded-xl focus:border-blue-600 focus:bg-white dark:focus:bg-slate-900 transition ${
+                    confirmPasswordValue.length > 0
+                      ? hasMatch
+                        ? 'border-emerald-500 dark:border-emerald-500/80 focus:border-emerald-500'
+                        : 'border-rose-500 dark:border-rose-500/80 focus:border-rose-500'
+                      : ''
+                  }`}
                 />
                 <button
                   type="button"
@@ -398,18 +411,66 @@ export default function RegisterPage() {
                   {showConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
-              {errors.confirmPassword && (
-                <p className="text-[9.5px] text-rose-500 font-semibold mt-0.5">
-                  {errors.confirmPassword.message}
-                </p>
-              )}
+            </div>
+
+            {/* Lista Visual de Requisitos de Seguridad */}
+            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800/80 space-y-1.5 text-[10px]">
+              <div className="flex items-center justify-between font-bold text-slate-600 dark:text-slate-300">
+                <span className="flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-blue-500" />
+                  Requisitos de seguridad requeridos:
+                </span>
+                <span className={`font-black text-[9px] px-1.5 py-0.2 rounded-md ${
+                  isPasswordValid
+                    ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                    : 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
+                }`}>
+                  {isPasswordValid ? 'Cumple todos los requisitos' : `${passedChecksCount + (hasMatch ? 1 : 0)}/6`}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-x-2 gap-y-1 pt-0.5">
+                <div className={`flex items-center gap-1.5 transition-colors ${hasMinLength ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-400 dark:text-slate-500'}`}>
+                  {hasMinLength ? <Check className="w-3 h-3 shrink-0 text-emerald-500 stroke-[3]" /> : <div className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-700 ml-0.5 shrink-0" />}
+                  <span>Mínimo 8 caracteres</span>
+                </div>
+
+                <div className={`flex items-center gap-1.5 transition-colors ${hasUppercase ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-400 dark:text-slate-500'}`}>
+                  {hasUppercase ? <Check className="w-3 h-3 shrink-0 text-emerald-500 stroke-[3]" /> : <div className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-700 ml-0.5 shrink-0" />}
+                  <span>Una mayúscula (A-Z)</span>
+                </div>
+
+                <div className={`flex items-center gap-1.5 transition-colors ${hasLowercase ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-400 dark:text-slate-500'}`}>
+                  {hasLowercase ? <Check className="w-3 h-3 shrink-0 text-emerald-500 stroke-[3]" /> : <div className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-700 ml-0.5 shrink-0" />}
+                  <span>Una minúscula (a-z)</span>
+                </div>
+
+                <div className={`flex items-center gap-1.5 transition-colors ${hasNumber ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-400 dark:text-slate-500'}`}>
+                  {hasNumber ? <Check className="w-3 h-3 shrink-0 text-emerald-500 stroke-[3]" /> : <div className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-700 ml-0.5 shrink-0" />}
+                  <span>Un número (0-9)</span>
+                </div>
+
+                <div className={`flex items-center gap-1.5 transition-colors ${hasSymbol ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-400 dark:text-slate-500'}`}>
+                  {hasSymbol ? <Check className="w-3 h-3 shrink-0 text-emerald-500 stroke-[3]" /> : <div className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-700 ml-0.5 shrink-0" />}
+                  <span>Un símbolo (!@#$...)</span>
+                </div>
+
+                <div className={`flex items-center gap-1.5 transition-colors ${hasMatch ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-400 dark:text-slate-500'}`}>
+                  {hasMatch ? <Check className="w-3 h-3 shrink-0 text-emerald-500 stroke-[3]" /> : <div className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-700 ml-0.5 shrink-0" />}
+                  <span>Contraseñas coinciden</span>
+                </div>
+              </div>
             </div>
 
             {/* Botón Submit: Crear mi Cuenta */}
             <Button
               type="submit"
-              disabled={isSubmitting}
-              className="w-full mt-2.5 h-10 text-xs font-extrabold rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md shadow-blue-600/25 active:scale-[0.99] transition-all cursor-pointer flex items-center justify-center gap-2"
+              disabled={isSubmitting || !isPasswordValid}
+              className={`w-full mt-2 h-10 text-xs font-extrabold rounded-xl text-white shadow-md transition-all flex items-center justify-center gap-2 ${
+                !isPasswordValid || isSubmitting
+                  ? 'bg-slate-400 dark:bg-slate-700 opacity-60 cursor-not-allowed shadow-none'
+                  : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-700 hover:to-indigo-700 shadow-blue-600/25 active:scale-[0.99] cursor-pointer'
+              }`}
             >
               <Rocket className="w-3.5 h-3.5" />
               <span>{isSubmitting ? 'Activando...' : 'Comenzar Prueba de 15 Días Gratis'}</span>
