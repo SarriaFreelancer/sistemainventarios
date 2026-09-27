@@ -71,7 +71,7 @@ export async function middleware(request: NextRequest) {
   };
 
   // Public routes that do not require authentication
-  const publicPaths = ['/auth', '/api/auth', '/pagos', '/api/payments', '/_next', '/static', '/uploads'];
+  const publicPaths = ['/auth', '/api/auth', '/enterprise', '/pagos', '/api/payments', '/_next', '/static', '/uploads'];
   if (
     request.nextUrl.pathname === '/' ||
     publicPaths.some((p) => request.nextUrl.pathname.startsWith(p))

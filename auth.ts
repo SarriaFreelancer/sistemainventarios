@@ -141,7 +141,7 @@ export const authOptions: AuthOptions = {
           id: String(user.id),
           name: user.name,
           email: user.email,
-          image: user.image ?? null,
+          image: null,
           role: user.role?.name,
           companyId: user.companyId ? String(user.companyId) : null,
           companyStatus: isSuperAdmin ? 'ACTIVE' : (user.company?.status || null),
@@ -360,6 +360,10 @@ export const authOptions: AuthOptions = {
           console.error("Error auto-healing session:", e?.message || e);
         }
       }
+
+      // Evitar que imágenes base64 engorden la cookie del JWT y causen HTTP 431
+      delete token.image;
+      delete token.picture;
 
       return token;
     },
