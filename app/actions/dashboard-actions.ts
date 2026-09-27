@@ -18,7 +18,23 @@ export async function getFilteredDashboardData(input: DashboardFilterInput) {
     }
 
     const companyId = await getSessionCompanyId();
-    const companyFilter = companyId ? { companyId } : {};
+    const companyFilter: any = companyId ? { companyId } : {};
+
+    const dbUser = await prisma.user.findUnique({
+      where: { id: Number(session.user.id) },
+      select: { branchId: true, branch: { select: { id: true, isMain: true } } }
+    });
+
+    const isBranchUser = session.user.role !== 'SUPERADMIN' && dbUser?.branchId && !dbUser?.branch?.isMain;
+
+    const productFilter: any = { ...companyFilter };
+    if (isBranchUser) {
+      productFilter.OR = [
+        { branchId: dbUser.branchId },
+        { branchId: null },
+        { branch: { isMain: true } }
+      ];
+    }
 
     // 1. Calcular límites del rango de fechas
     let startDate: Date | null = null;
@@ -61,12 +77,19 @@ export async function getFilteredDashboardData(input: DashboardFilterInput) {
       }
     }
 
-    // Filtro de ventas por fecha
+    // Filtro de ventas por fecha y sede
     const saleDateFilter: any = { ...companyFilter };
     if (startDate || endDate) {
       saleDateFilter.createdAt = {};
       if (startDate) saleDateFilter.createdAt.gte = startDate;
       if (endDate) saleDateFilter.createdAt.lte = endDate;
+    }
+
+    if (isBranchUser) {
+      saleDateFilter.OR = [
+        { branchId: dbUser.branchId },
+        { details: { some: { product: { branchId: dbUser.branchId } } } }
+      ];
     }
 
     // 2. Consultas a la base de datos
@@ -90,7 +113,7 @@ export async function getFilteredDashboardData(input: DashboardFilterInput) {
       allExpenses,
       allIncomes
     ] = await Promise.all([
-      prisma.product.count({ where: companyFilter }),
+      prisma.product.count({ where: productFilter }),
       prisma.category.count({ where: companyFilter }),
       prisma.supplier.count({ where: companyFilter }),
       prisma.sale.count({ where: saleDateFilter }),
@@ -134,16 +157,16 @@ export async function getFilteredDashboardData(input: DashboardFilterInput) {
         orderBy: { createdAt: 'asc' }
       }),
       prisma.product.findMany({
-        where: companyFilter,
+        where: productFilter,
         select: { unitCost: true, salePrice: true, quantityAvailable: true }
       }),
       prisma.product.findMany({
-        where: { ...companyFilter, quantityAvailable: { lte: 0 } },
+        where: { ...productFilter, quantityAvailable: { lte: 0 } },
         select: { id: true, name: true, code: true, quantityAvailable: true },
         take: 5
       }),
       prisma.product.findMany({
-        where: { ...companyFilter, quantityAvailable: { gt: 0, lte: 10 } },
+        where: { ...productFilter, quantityAvailable: { gt: 0, lte: 10 } },
         select: { id: true, name: true, code: true, quantityAvailable: true },
         take: 5
       }),

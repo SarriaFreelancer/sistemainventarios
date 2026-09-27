@@ -35,6 +35,7 @@ interface Product {
   category: Category | null;
   supplier: { id: string; companyName: string } | null;
   productGroup: ProductGroup | null;
+  branch?: { id: number; name: string; isMain?: boolean; city?: string | null } | null;
   batches?: ProductBatchInfo[];
 }
 
@@ -680,6 +681,11 @@ export function ProductsClient(props: {
                         <p className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors">
                           {product.name}
                         </p>
+                        {product.branch && (
+                          <span className="inline-flex items-center gap-1 text-[9.5px] font-bold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 mt-1 max-w-fit">
+                            📍 {product.branch.name} {product.branch.isMain ? '(Principal)' : ''}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3.5 hidden lg:table-cell">
                         <p className="text-xs text-muted-foreground">{product.category?.name ?? '—'}</p>

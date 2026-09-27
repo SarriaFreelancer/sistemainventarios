@@ -15,17 +15,40 @@ export default async function SalesPage() {
   if (!session?.user?.id) redirect('/auth/login');
 
   const companyId = await getSessionCompanyId();
-  const whereTenant = companyId ? { companyId } : {};
+  const whereTenant: any = companyId ? { companyId } : {};
+
+  const dbUser = await prisma.user.findUnique({
+    where: { id: Number(session.user.id) },
+    select: { branchId: true, branch: { select: { id: true, name: true, isMain: true } } }
+  });
+
+  const isBranchUser = session.user.role !== 'SUPERADMIN' && dbUser?.branchId && !dbUser?.branch?.isMain;
+
+  const productWhere: any = { ...whereTenant };
+  const saleWhere: any = { ...whereTenant };
+
+  if (isBranchUser) {
+    productWhere.OR = [
+      { branchId: dbUser.branchId },
+      { branchId: null },
+      { branch: { isMain: true } },
+    ];
+    saleWhere.OR = [
+      { branchId: dbUser.branchId },
+      { details: { some: { product: { branchId: dbUser.branchId } } } }
+    ];
+  }
 
   const [sales, products, customers, combosRes, settings, company] = await Promise.all([
     prisma.sale.findMany({
-      where: whereTenant,
+      where: saleWhere,
       include: {
         company: { select: { name: true } },
         user: { select: { name: true, image: true } },
+        branch: { select: { id: true, name: true, isMain: true } },
         details: {
           include: {
-            product: { select: { name: true, code: true } },
+            product: { select: { name: true, code: true, branchId: true } },
             combo: { select: { name: true, code: true } },
           }
         }
@@ -34,7 +57,7 @@ export default async function SalesPage() {
       take: 200,
     }),
     prisma.product.findMany({
-      where: whereTenant,
+      where: productWhere,
       orderBy: { name: 'asc' },
     }),
     prisma.customer.findMany({

@@ -640,25 +640,31 @@ export async function getEnterpriseMasterDashboardData(filters?: {
     // 3. Filtrar ventas dentro del rango de fechas
     const saleWhere: any = {
       companyId: targetCompanyId,
-      status: "COMPLETED",
+      status: { not: "VOIDED" },
       createdAt: { gte: start, lte: end },
     };
 
     if (filters?.branchId && filters.branchId !== "ALL") {
-      saleWhere.branchId = Number(filters.branchId);
+      const targetBId = Number(filters.branchId);
+      saleWhere.OR = [
+        { branchId: targetBId },
+        { details: { some: { product: { branchId: targetBId } } } }
+      ];
     }
 
     const sales = await prisma.sale.findMany({
       where: saleWhere,
       include: {
-        branch: { select: { id: true, name: true, city: true } },
+        branch: { select: { id: true, name: true, city: true, isMain: true } },
         details: {
           include: {
-            product: { select: { id: true, name: true, code: true } },
+            product: { select: { id: true, name: true, code: true, branchId: true } },
           },
         },
       },
     });
+
+    const mainBranch = allBranches.find((b) => b.isMain) || allBranches[0];
 
     // 4. Calcular KPIs Consolidados
     let totalRevenue = 0;
@@ -668,7 +674,7 @@ export async function getEnterpriseMasterDashboardData(filters?: {
     const branchStatsMap: Record<
       string,
       {
-        branchId: number | null;
+        branchId: number;
         branchName: string;
         city: string;
         revenue: number;
@@ -679,7 +685,7 @@ export async function getEnterpriseMasterDashboardData(filters?: {
 
     // Inicializar mapa con todas las sedes registradas
     allBranches.forEach((b) => {
-      branchStatsMap[b.id] = {
+      branchStatsMap[String(b.id)] = {
         branchId: b.id,
         branchName: b.name,
         city: b.city || "N/A",
@@ -689,27 +695,29 @@ export async function getEnterpriseMasterDashboardData(filters?: {
       };
     });
 
-    // Agregar entrada para ventas sin sede explícita (Sede Principal histórica)
-    const unassignedKey = "unassigned";
-    branchStatsMap[unassignedKey] = {
-      branchId: null,
-      branchName: "Sede Principal (Base)",
-      city: "Principal",
-      revenue: 0,
-      salesCount: 0,
-      topProducts: {},
-    };
-
-    // Procesar cada venta
+    // Procesar cada venta con atribución precisa de sede
     sales.forEach((sale) => {
       totalRevenue += sale.total;
-      const key = sale.branchId ? String(sale.branchId) : unassignedKey;
+
+      // Determinar la sede efectiva de la venta (sede de la venta, o sede del producto vendido, o sede principal)
+      let effectiveBranchId: number | null = sale.branchId;
+      if (!effectiveBranchId) {
+        const prodWithBranch = sale.details.find((d) => d.product?.branchId);
+        if (prodWithBranch?.product?.branchId) {
+          effectiveBranchId = prodWithBranch.product.branchId;
+        } else if (mainBranch) {
+          effectiveBranchId = mainBranch.id;
+        }
+      }
+
+      const key = effectiveBranchId ? String(effectiveBranchId) : (mainBranch ? String(mainBranch.id) : "main");
 
       if (!branchStatsMap[key]) {
+        const foundBranch = effectiveBranchId ? allBranches.find((b) => b.id === effectiveBranchId) : null;
         branchStatsMap[key] = {
-          branchId: sale.branchId,
-          branchName: sale.branch?.name || "Sede No Asignada",
-          city: sale.branch?.city || "N/A",
+          branchId: effectiveBranchId || 0,
+          branchName: foundBranch?.name || sale.branch?.name || "Sede Principal",
+          city: foundBranch?.city || sale.branch?.city || "Principal",
           revenue: 0,
           salesCount: 0,
           topProducts: {},
@@ -731,14 +739,13 @@ export async function getEnterpriseMasterDashboardData(filters?: {
             };
           }
           branchStatsMap[key].topProducts[pKey].qty += item.quantity;
-          branchStatsMap[key].topProducts[pKey].revenue += item.subtotal || item.total;
+          branchStatsMap[key].topProducts[pKey].revenue += (item.total || (item.quantity * item.unitPrice));
         }
       });
     });
 
     // 5. Ranking de Sedes (Ordenado de mayor a menor recaudación)
     const branchRanking = Object.values(branchStatsMap)
-      .filter((b) => b.revenue > 0 || (b.branchId !== null && allBranches.some((ab) => ab.id === b.branchId)))
       .map((b) => {
         const topProductList = Object.values(b.topProducts).sort((a, b) => b.qty - a.qty);
         const bestProduct = topProductList[0] || { name: "Sin ventas", qty: 0, revenue: 0 };
@@ -761,13 +768,6 @@ export async function getEnterpriseMasterDashboardData(filters?: {
     const topSellingBranch = branchRanking[0] || null;
 
     // 6. Inventario Consolidado por Sede
-    const productsByBranch = await prisma.product.groupBy({
-      by: ["branchId"],
-      where: { companyId: targetCompanyId },
-      _count: { id: true },
-      _sum: { quantityAvailable: true },
-    });
-
     const allProducts = await prisma.product.findMany({
       where: { companyId: targetCompanyId },
       select: {
@@ -781,38 +781,50 @@ export async function getEnterpriseMasterDashboardData(filters?: {
 
     let totalInventoryValue = 0;
     let totalStockCount = 0;
-    const branchInventoryBreakdown: Record<string, { branchName: string; count: number; stock: number; valuation: number }> = {};
+    const totalNetworkProducts = allProducts.length;
 
-    allBranches.forEach((b) => {
-      branchInventoryBreakdown[b.id] = {
+    const branchInventoryBreakdown = allBranches.map((b) => {
+      const branchProducts = allProducts.filter(
+        (p) => p.branchId === b.id || (b.isMain && p.branchId === null)
+      );
+      const count = branchProducts.length;
+      const stock = branchProducts.reduce((acc, p) => acc + (p.quantityAvailable || 0), 0);
+      const valuation = branchProducts.reduce(
+        (acc, p) => acc + (p.quantityAvailable || 0) * (p.unitCost || 0),
+        0
+      );
+
+      totalInventoryValue += valuation;
+      totalStockCount += stock;
+
+      return {
+        branchId: b.id,
         branchName: b.name,
-        count: 0,
-        stock: 0,
-        valuation: 0,
+        isMain: b.isMain,
+        city: b.city || "Principal",
+        count,
+        stock,
+        valuation,
       };
     });
 
-    allProducts.forEach((p) => {
-      const stock = p.quantityAvailable || 0;
-      const value = stock * (p.unitCost || 0);
-      totalInventoryValue += value;
-      totalStockCount += stock;
-
-      const key = p.branchId ? String(p.branchId) : (allBranches[0] ? String(allBranches[0].id) : "main");
-      if (branchInventoryBreakdown[key]) {
-        branchInventoryBreakdown[key].count += 1;
-        branchInventoryBreakdown[key].stock += stock;
-        branchInventoryBreakdown[key].valuation += value;
-      }
-    });
-
     // 7. Agrupación de Ventas en el tiempo (para gráfico comparativo de sedes)
-    // Generar timeline de días o meses según el período
     const salesTimelineMap: Record<string, Record<string, number>> = {};
 
     sales.forEach((sale) => {
       const dateKey = sale.createdAt.toISOString().slice(0, 10); // YYYY-MM-DD
-      const branchName = sale.branch?.name || "Sede Principal";
+
+      let effectiveBranchId: number | null = sale.branchId;
+      if (!effectiveBranchId) {
+        const prodWithBranch = sale.details.find((d) => d.product?.branchId);
+        if (prodWithBranch?.product?.branchId) {
+          effectiveBranchId = prodWithBranch.product.branchId;
+        } else if (mainBranch) {
+          effectiveBranchId = mainBranch.id;
+        }
+      }
+      const foundBranch = effectiveBranchId ? allBranches.find((b) => b.id === effectiveBranchId) : null;
+      const branchName = foundBranch?.name || sale.branch?.name || "Sede Principal";
 
       if (!salesTimelineMap[dateKey]) {
         salesTimelineMap[dateKey] = { date: dateKey as any };
@@ -832,12 +844,13 @@ export async function getEnterpriseMasterDashboardData(filters?: {
           totalSalesCount,
           topSellingBranch: topSellingBranch ? topSellingBranch.branchName : "N/A",
           topSellingBranchRevenue: topSellingBranch ? topSellingBranch.revenue : 0,
+          totalNetworkProducts,
           totalStockCount,
           totalInventoryValue,
           activeBranchesCount: allBranches.length,
         },
         branchRanking,
-        branchInventoryBreakdown: Object.values(branchInventoryBreakdown),
+        branchInventoryBreakdown,
         timelineData,
         branches: allBranches,
       },

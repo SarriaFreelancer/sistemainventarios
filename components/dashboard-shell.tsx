@@ -39,6 +39,7 @@ import {
   Layers,
   PackageOpen,
   Network,
+  MapPin,
 } from 'lucide-react';
 
 const LucideIcons = {
@@ -75,6 +76,7 @@ const LucideIcons = {
   Layers,
   PackageOpen,
   Network,
+  MapPin,
 };
 import { cn } from '@/lib/utils';
 import { NotificationBell } from '@/components/notification-bell';
@@ -88,7 +90,7 @@ interface ModuleConfig {
   description: string | null;
 }
 
-export function DashboardShell({ children, session, modules, themeConfig, companyName, companyLogo, trialInfo }: {
+export function DashboardShell({ children, session, modules, themeConfig, companyName, companyLogo, trialInfo, currentBranch }: {
   children: React.ReactNode;
   session: { user?: { id?: string | number; name?: string | null; email?: string | null; role?: string; companyId?: string | null; image?: string | null } | null };
   modules?: ModuleConfig[];
@@ -105,6 +107,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
   companyName?: string;
   companyLogo?: string | null;
   trialInfo?: { isTrial: boolean; trialEndsAt: string | null; isExpired: boolean; daysLeft: number } | null;
+  currentBranch?: { id: number; name: string; code?: string | null; city?: string | null; isMain?: boolean } | null;
 }) {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -428,6 +431,24 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                       <span className="hidden sm:inline">EMPRESA:</span>
                       <span className="font-black truncate max-w-[100px] xs:max-w-[150px] sm:max-w-[220px]">{companyName ? companyName.toUpperCase() : 'GLOBAL'}</span>
                     </p>
+
+                    {/* Identificador de Sede */}
+                    {currentBranch && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] sm:text-[9.5px] font-extrabold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 shadow-sm whitespace-nowrap">
+                        <LucideIcons.MapPin size={10} className="shrink-0 text-blue-500" />
+                        <span className="font-semibold text-slate-500 dark:text-slate-400">Sede:</span>
+                        <span className="font-black truncate max-w-[120px]">{currentBranch.name}</span>
+                        {currentBranch.isMain ? (
+                          <span className="text-[8.5px] bg-amber-200/60 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 px-1 py-0.2 rounded font-black uppercase">
+                            Principal
+                          </span>
+                        ) : currentBranch.city ? (
+                          <span className="text-[8.5px] opacity-75 hidden md:inline font-normal">
+                            ({currentBranch.city})
+                          </span>
+                        ) : null}
+                      </span>
+                    )}
 
                     {/* Badge de Período de Prueba */}
                     {trialInfo?.isTrial && (

@@ -189,6 +189,20 @@ export async function createSale(data: {
         userBranchId = sellerUser?.branchId ?? null;
       }
 
+      // Si el vendedor no tiene sede asignada explícita, verificar si el producto vendido pertenece a una sede
+      if (!userBranchId && finalItems.length > 0) {
+        const prodItem = finalItems.find(i => i.productId);
+        if (prodItem?.productId) {
+          const productRecord = await tx.product.findUnique({
+            where: { id: Number(prodItem.productId) },
+            select: { branchId: true }
+          });
+          if (productRecord?.branchId) {
+            userBranchId = productRecord.branchId;
+          }
+        }
+      }
+
       // 2. Crear Venta
       const createdSale = await tx.sale.create({
         data: {
