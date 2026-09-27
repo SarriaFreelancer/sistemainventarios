@@ -274,9 +274,14 @@ model User {
   apiRequestsRequested ApiIntegrationRequest[]   @relation("RequestedApiRequests")
   apiRequestsReviewed  ApiIntegrationRequest[]   @relation("ReviewedApiRequests")
   passwordResetRequests PasswordResetRequest[]
+  branchId             Int?
+  branch               Branch?                   @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  requestedBranchRequests BranchRequest[]        @relation("RequestedBranchRequests")
+  reviewedBranchRequests  BranchRequest[]        @relation("ReviewedBranchRequests")
 
   @@index([email])
   @@index([companyId])
+  @@index([branchId])
 }
 
 model Role {
@@ -325,16 +330,18 @@ model Company {
   maxProducts      Int?
   maxSalesPerMonth Int?
 
-  isTrial        Boolean   @default(false)
-  trialStartedAt DateTime?
-  trialEndsAt    DateTime?
+  isEnterprise             Boolean                   @default(false)
+  maxBranches              Int?                      @default(1)
+  isTrial                  Boolean                   @default(false)
+  trialStartedAt           DateTime?
+  trialEndsAt              DateTime?
 
-  serverId     String?
-  server       Server?  @relation("ServerCompanies", fields: [serverId], references: [id])
-  ownedServers Server[] @relation("CompanyServers")
+  serverId                 String?
+  server                   Server?                   @relation("ServerCompanies", fields: [serverId], references: [id])
+  ownedServers             Server[]                  @relation("CompanyServers")
 
-  databaseName String?
-  databaseType DatabaseType? // SHARED | DEDICATED
+  databaseName             String?
+  databaseType             DatabaseType?             // SHARED | DEDICATED
 
   currentVersion           String?
   address                  String?
@@ -347,6 +354,8 @@ model Company {
   createdAt                DateTime                  @default(now())
   updatedAt                DateTime                  @updatedAt
   users                    User[]
+  branches                 Branch[]
+  branchRequests           BranchRequest[]
   apiKeys                  ApiKey[]
   apiRequests              ApiIntegrationRequest[]
   modules                  CompanyModule[]
@@ -480,6 +489,10 @@ model Product {
   productGroupId           Int?
   companyId                Int?
   company                  Company?                  @relation(fields: [companyId], references: [id])
+  branchId                 Int?
+  branch                   Branch?                   @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  isInheritedFromMain      Boolean                   @default(false)
+  mainProductId            Int?
   productGroup             ProductGroup?             @relation(fields: [productGroupId], references: [id])
   createdAt                DateTime                  @default(now())
   updatedAt                DateTime                  @updatedAt
@@ -504,6 +517,7 @@ model Product {
   @@index([supplierId])
   @@index([productGroupId])
   @@index([companyId])
+  @@index([branchId])
 }
 
 model Sale {
@@ -519,6 +533,8 @@ model Sale {
   voidedByUserId      Int?
   companyId           Int?
   company             Company?            @relation(fields: [companyId], references: [id])
+  branchId            Int?
+  branch              Branch?             @relation(fields: [branchId], references: [id], onDelete: SetNull)
   voidedByUser        User?               @relation("VoidedSales", fields: [voidedByUserId], references: [id])
   voidedAt            DateTime?
   voidedReason        String?
@@ -539,6 +555,7 @@ model Sale {
   @@index([voidedByUserId])
   @@index([companyId])
   @@index([customerId])
+  @@index([branchId])
 }
 
 model SaleDetail {
@@ -1185,6 +1202,8 @@ model Warehouse {
   status      String   @default("ACTIVE")
   companyId   Int?
   company     Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branchId    Int?
+  branch      Branch?  @relation(fields: [branchId], references: [id], onDelete: SetNull)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -1196,6 +1215,7 @@ model Warehouse {
 
   @@unique([name, companyId])
   @@index([companyId])
+  @@index([branchId])
 }
 
 model WarehouseLocation {
@@ -1631,4 +1651,56 @@ model ComboItem {
   @@index([comboId])
   @@index([productId])
   @@index([companyId])
+}
+
+// ==========================================
+// MÓDULO ENTERPRISE: MULTI-SEDES (BRANCHES)
+// ==========================================
+
+model Branch {
+  id        Int       @id @default(autoincrement())
+  name      String
+  code      String?
+  address   String?
+  phone     String?
+  city      String?
+  isMain    Boolean   @default(false)
+  active    Boolean   @default(true)
+  companyId Int?
+  company   Company?  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  products   Product[]
+  sales      Sale[]
+  warehouses Warehouse[]
+  users      User[]
+
+  @@unique([name, companyId])
+  @@index([companyId])
+}
+
+model BranchRequest {
+  id              Int       @id @default(autoincrement())
+  companyId       Int
+  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  requestedById   Int
+  requestedBy     User      @relation("RequestedBranchRequests", fields: [requestedById], references: [id], onDelete: Cascade)
+  branchName      String
+  city            String?
+  address         String?
+  phone           String?
+  justification   String    @db.Text
+  status          String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  reviewedById    Int?
+  reviewedBy      User?     @relation("ReviewedBranchRequests", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt      DateTime?
+  rejectionReason String?   @db.Text
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([companyId])
+  @@index([status])
+  @@index([requestedById])
+  @@index([reviewedById])
 }

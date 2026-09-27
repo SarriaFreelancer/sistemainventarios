@@ -38,6 +38,7 @@ import {
   CreditCard,
   Layers,
   PackageOpen,
+  Network,
 } from 'lucide-react';
 
 const LucideIcons = {
@@ -73,6 +74,7 @@ const LucideIcons = {
   CreditCard,
   Layers,
   PackageOpen,
+  Network,
 };
 import { cn } from '@/lib/utils';
 import { NotificationBell } from '@/components/notification-bell';

@@ -239,6 +239,8 @@ model Product {
   companyId          String?
   branchId           Int?
   branch             Branch?             @relation(fields: [branchId], references: [id], map: "fk_prod_branch")
+  isInheritedFromMain Boolean            @default(false)
+  mainProductId      Int?
   productGroup       ProductGroup?       @relation(fields: [productGroupId], references: [id], map: "fk_prod_pgroup")
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
@@ -408,6 +410,8 @@ model Branch {
   code      String?
   address   String?
   phone     String?
+  city      String?
+  isMain    Boolean   @default(false)
   companyId String?
   active    Boolean   @default(true)
   createdAt DateTime  @default(now())

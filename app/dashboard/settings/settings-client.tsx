@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { Building, Boxes, ShieldAlert, SlidersHorizontal, Receipt, Upload, Sparkles, Server, ArrowRightLeft, Database, KeyRound, DownloadCloud, Bell, Mail, Loader2, Save, Image as ImageIcon, Trash2, Clock, LayoutTemplate, Monitor, Shield, Palette, Code2, ChevronDown, ChevronUp, Check, Menu, ListFilter, Layers } from "lucide-react";
+import { Building, Boxes, ShieldAlert, SlidersHorizontal, Receipt, Upload, Sparkles, Server, ArrowRightLeft, Database, KeyRound, DownloadCloud, Bell, Mail, Loader2, Save, Image as ImageIcon, Trash2, Clock, LayoutTemplate, Monitor, Shield, Palette, Code2, ChevronDown, ChevronUp, Check, Menu, ListFilter, Layers, Network } from "lucide-react";
 import { updateCompanySettings, uploadCompanyLogo, uploadCompanyBackgroundImage } from "@/app/actions/settings-actions";
 import { generateDemoData, clearDemoData } from "@/app/actions/demo-actions";
 import { successAlert, errorAlert } from "@/lib/sweetalert";
@@ -16,6 +16,7 @@ import ActiveSessionsManager from "@/components/sessions/active-sessions-manager
 import { AnnouncementsManager } from "./announcements-manager";
 import { ApiIntegrationsManager } from "./api-integrations-manager";
 import { AiSettingsManager } from "./ai-settings-manager";
+import { BranchesManager } from "./branches-manager";
 
 interface CompanySetting {
   id: number;
@@ -74,10 +75,10 @@ interface SettingsClientProps {
 export function SettingsClient({ initialSettings, role, initialServers = [], initialApiKeys = [], initialAiConfig, dedicatedCompanies = [], canManageServers = false, userId, planSettings, allModules }: SettingsClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const validTabs = ["company", "inventory", "security", "integrations", "ai", "invoice", "imports", "servers", "databases", "migrations", "licenses", "onboarding", "sessions", "announcements", "apiKeys"];
+  const validTabs = ["company", "inventory", "security", "branches", "integrations", "ai", "invoice", "imports", "servers", "databases", "migrations", "licenses", "onboarding", "sessions", "announcements", "apiKeys"];
   const urlTab = searchParams?.get("tab");
   const initialTab = urlTab && validTabs.includes(urlTab) ? (urlTab as any) : "company";
-  const [activeTab, setActiveTab] = useState<"company" | "inventory" | "security" | "integrations" | "ai" | "invoice" | "imports" | "servers" | "databases" | "migrations" | "licenses" | "onboarding" | "sessions" | "announcements" | "apiKeys">(initialTab);
+  const [activeTab, setActiveTab] = useState<"company" | "inventory" | "security" | "branches" | "integrations" | "ai" | "invoice" | "imports" | "servers" | "databases" | "migrations" | "licenses" | "onboarding" | "sessions" | "announcements" | "apiKeys">(initialTab);
 
   React.useEffect(() => {
     const tabParam = searchParams?.get("tab");
@@ -477,6 +478,15 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
           Inventario & Ventas
         </button>
         <button
+          onClick={() => setActiveTab("branches")}
+          className={`flex w-full items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold transition ${
+            activeTab === "branches" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
+          }`}
+        >
+          <Network size={16} />
+          Sedes (Enterprise)
+        </button>
+        <button
           onClick={() => setActiveTab("security")}
           className={`flex w-full items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold transition ${
             activeTab === "security" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
@@ -629,6 +639,12 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
             Modifica los parámetros comerciales, control de stock y seguridad de tu empresa.
           </p>
         </div>
+
+        {activeTab === "branches" && (
+          <div className="space-y-6">
+            <BranchesManager isSuperAdmin={isSuperAdmin} role={role} />
+          </div>
+        )}
 
         {activeTab === "sessions" && (
           <div className="space-y-6">
