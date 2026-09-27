@@ -76,6 +76,21 @@ export function PrivacyPolicyModal({ open, onOpenChange }: PrivacyPolicyModalPro
             </ul>
           </div>
 
+          {/* Módulos de Inteligencia Artificial (IA) */}
+          <div className="space-y-2">
+            <h4 className="font-bold text-foreground flex items-center gap-2 text-base">
+              <Sparkles className="h-4 w-4 text-purple-500" /> 5. Uso, Integración y Tratamiento de Inteligencia Artificial (IA)
+            </h4>
+            <p className="text-xs text-muted-foreground">
+              La plataforma incorpora funcionalidades avanzadas de asistencia mediante <strong>Inteligencia Artificial (IA)</strong> (como <em>GNS AI Advisor</em> y soporte de conexión BYOK) diseñadas para la optimización de inventarios, auditorías de stock, cálculo de márgenes y asesoría estratégica comercial. Con respecto a estas tecnologías, se establecen las siguientes garantías:
+            </p>
+            <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-1">
+              <li><strong>Privacidad y No Reentrenamiento:</strong> La información transmitida durante las consultas se procesa de forma transitoria y segura. Sus datos de inventario y transacciones <strong>nunca se venden ni se utilizan para entrenar modelos públicos de inteligencia artificial</strong> de terceros.</li>
+              <li><strong>Carácter Consultivo y Asistencial:</strong> Los diagnósticos, proyecciones y recomendaciones generadas por los modelos de IA son de naturaleza exclusivamente informativa y de soporte empresarial, recayendo en el usuario y su empresa la responsabilidad final de las decisiones operativas.</li>
+              <li><strong>Desarrollo y Estándares de Calidad:</strong> La arquitectura del software ha sido construida bajo estrictas prácticas de ingeniería de software moderna e integración tecnológica asistida para asegurar máxima estabilidad, rapidez y precisión.</li>
+            </ul>
+          </div>
+
           {/* Medidas de Ciberseguridad */}
           <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20 space-y-2">
             <h4 className="font-bold text-primary text-sm">
@@ -90,9 +105,9 @@ export function PrivacyPolicyModal({ open, onOpenChange }: PrivacyPolicyModalPro
         <div className="pt-4 border-t border-border/60 shrink-0 flex justify-end">
           <button
             onClick={() => onOpenChange(false)}
-            className="px-6 py-2.5 bg-primary text-primary-foreground font-bold text-xs rounded-xl shadow-lg hover:opacity-95 transition-all"
+            className="px-6 py-2.5 bg-primary text-primary-foreground font-bold text-xs rounded-xl shadow-lg hover:opacity-95 transition-all cursor-pointer"
           >
-            Entendido y Entendido
+            Entendido y Aceptar
           </button>
         </div>
       </DialogContent>
