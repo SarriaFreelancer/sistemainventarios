@@ -170,9 +170,9 @@ export async function createWarehouseTransfer(data: {
       }
     });
 
-    // Descontar stock físico en Origen y sumar a En Tránsito en Destino
+    // Descontar stock físico en Origen, actualizar producto en origen y sumar a En Tránsito en Destino
     for (const item of data.items) {
-      // Origen
+      // Origen: Bodega
       await prisma.warehouseStock.upsert({
         where: {
           productId_warehouseId_locationId: {
@@ -202,6 +202,19 @@ export async function createWarehouseTransfer(data: {
           });
         }
       });
+
+      // Origen: Reducir cantidad disponible en el catálogo de la sede origen
+      const originProd = await prisma.product.findUnique({ where: { id: Number(item.productId) } });
+      if (originProd) {
+        const newQty = Math.max(0, originProd.quantityAvailable - Number(item.quantity));
+        await prisma.product.update({
+          where: { id: originProd.id },
+          data: {
+            quantityAvailable: newQty,
+            status: newQty <= 0 ? 'OUT_OF_STOCK' : 'AVAILABLE'
+          }
+        });
+      }
 
       // Destino: Marcar en tránsito
       const destStock = await prisma.warehouseStock.findFirst({
@@ -238,6 +251,7 @@ export async function createWarehouseTransfer(data: {
     });
 
     revalidatePath("/dashboard/warehouses");
+    revalidatePath("/dashboard/products");
     return { success: true, transfer };
   } catch (error: any) {
     console.error("[CREATE_TRANSFER]", error);
@@ -259,18 +273,108 @@ export async function confirmWarehouseTransferReceipt(transferId: number) {
       return { success: false, error: "El traslado no existe o ya fue recepcionado" };
     }
 
-    // Mover de 'inTransit' a 'physical' en la bodega destino
-    for (const item of transfer.items) {
-      const destStock = await prisma.warehouseStock.findFirst({
-        where: { productId: item.productId, warehouseId: transfer.destinationWarehouseId }
-      });
+    const originBranchId = transfer.originWarehouse.branchId;
+    const destBranchId = transfer.destinationWarehouse.branchId;
 
-      if (destStock) {
-        await prisma.warehouseStock.update({
-          where: { id: destStock.id },
+    // Mover de 'inTransit' a 'physical' y actualizar el producto en la sede destino
+    for (const item of transfer.items) {
+      const originProd = await prisma.product.findUnique({ where: { id: item.productId } });
+      if (!originProd) continue;
+
+      if (destBranchId && destBranchId !== originBranchId) {
+        // Traslado inter-sedes: Vincular con el producto de la sede destino o crearlo si no existe
+        const rootId = originProd.mainProductId || originProd.id;
+        let destProd = await prisma.product.findFirst({
+          where: {
+            companyId: transfer.companyId,
+            branchId: destBranchId,
+            OR: [
+              { mainProductId: rootId },
+              { id: rootId }
+            ]
+          }
+        });
+
+        if (destProd) {
+          const newQty = destProd.quantityAvailable + item.quantity;
+          await prisma.product.update({
+            where: { id: destProd.id },
+            data: {
+              quantityAvailable: newQty,
+              status: 'AVAILABLE'
+            }
+          });
+
+          const destStock = await prisma.warehouseStock.findFirst({
+            where: { productId: destProd.id, warehouseId: transfer.destinationWarehouseId }
+          });
+          if (destStock) {
+            await prisma.warehouseStock.update({
+              where: { id: destStock.id },
+              data: {
+                inTransit: { decrement: item.quantity },
+                physical: { increment: item.quantity }
+              }
+            });
+          } else {
+            await prisma.warehouseStock.create({
+              data: {
+                productId: destProd.id,
+                warehouseId: transfer.destinationWarehouseId,
+                physical: item.quantity,
+                companyId: transfer.companyId
+              }
+            });
+          }
+        } else {
+          // Si no existe aún en la sede destino, clonarlo automáticamente
+          const newCloned = await prisma.product.create({
+            data: {
+              name: originProd.name,
+              code: `${originProd.code}-S${destBranchId}`,
+              categoryId: originProd.categoryId,
+              supplierId: originProd.supplierId,
+              productGroupId: originProd.productGroupId,
+              unitCost: originProd.unitCost,
+              salePrice: originProd.salePrice,
+              quantityAvailable: item.quantity,
+              status: 'AVAILABLE',
+              type: originProd.type,
+              companyId: transfer.companyId,
+              branchId: destBranchId,
+              isInheritedFromMain: true,
+              mainProductId: rootId
+            }
+          });
+          await prisma.warehouseStock.create({
+            data: {
+              productId: newCloned.id,
+              warehouseId: transfer.destinationWarehouseId,
+              physical: item.quantity,
+              companyId: transfer.companyId
+            }
+          });
+        }
+      } else {
+        // Traslado dentro de la misma sede o bodega general
+        const destStock = await prisma.warehouseStock.findFirst({
+          where: { productId: item.productId, warehouseId: transfer.destinationWarehouseId }
+        });
+
+        if (destStock) {
+          await prisma.warehouseStock.update({
+            where: { id: destStock.id },
+            data: {
+              inTransit: { decrement: item.quantity },
+              physical: { increment: item.quantity }
+            }
+          });
+        }
+        await prisma.product.update({
+          where: { id: item.productId },
           data: {
-            inTransit: { decrement: item.quantity },
-            physical: { increment: item.quantity }
+            quantityAvailable: { increment: item.quantity },
+            status: 'AVAILABLE'
           }
         });
       }
@@ -294,6 +398,8 @@ export async function confirmWarehouseTransferReceipt(transferId: number) {
     });
 
     revalidatePath("/dashboard/warehouses");
+    revalidatePath("/dashboard/products");
+    revalidatePath("/dashboard/enterprise");
     return { success: true, message: "Traslado recepcionado con éxito" };
   } catch (error: any) {
     console.error("[CONFIRM_TRANSFER_RECEIPT]", error);

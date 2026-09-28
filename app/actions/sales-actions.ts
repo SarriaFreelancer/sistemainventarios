@@ -27,6 +27,51 @@ const saleSchema = z.object({
   })).min(1, 'Debes agregar al menos un producto o combo'),
 });
 
+async function syncWarehouseStock(
+  tx: any,
+  productId: number,
+  companyId: number,
+  branchId: number | null,
+  deltaQty: number
+) {
+  try {
+    const warehouse = branchId
+      ? await tx.warehouse.findFirst({
+          where: { branchId, companyId, status: 'ACTIVE' },
+          orderBy: { isDefault: 'desc' }
+        })
+      : await tx.warehouse.findFirst({
+          where: { companyId, isDefault: true, status: 'ACTIVE' }
+        }) || await tx.warehouse.findFirst({
+          where: { companyId, status: 'ACTIVE' }
+        });
+
+    if (warehouse) {
+      const stockRecord = await tx.warehouseStock.findFirst({
+        where: { productId, warehouseId: warehouse.id }
+      });
+      if (stockRecord) {
+        const updatedPhysical = Math.max(0, stockRecord.physical + deltaQty);
+        await tx.warehouseStock.update({
+          where: { id: stockRecord.id },
+          data: { physical: updatedPhysical }
+        });
+      } else if (deltaQty > 0) {
+        await tx.warehouseStock.create({
+          data: {
+            productId,
+            warehouseId: warehouse.id,
+            physical: deltaQty,
+            companyId
+          }
+        });
+      }
+    }
+  } catch (err) {
+    console.warn('[SYNC_WAREHOUSE_STOCK_WARN]', err);
+  }
+}
+
 export async function createSale(data: {
   userId: any;
   client?: string | null;
@@ -253,6 +298,8 @@ export async function createSale(data: {
                   } else if (newQty <= 10) {
                     lowStockProducts.push({ name: product.name, type: 'BAJO', newQty });
                   }
+
+                  await syncWarehouseStock(tx, product.id, companyId, userBranchId, -neededQty);
                 }
               }
             }
@@ -274,6 +321,8 @@ export async function createSale(data: {
               } else if (newQty <= 10) {
                 lowStockProducts.push({ name: product.name, type: 'BAJO', newQty });
               }
+
+              await syncWarehouseStock(tx, product.id, companyId, userBranchId, -item.quantity);
             }
           }
         }
@@ -480,6 +529,8 @@ export async function completePendingSale(saleIdInput: any, updateData?: {
               } else if (newQty <= 10) {
                 lowStockProducts.push({ name: cItem.product.name, type: 'BAJO', newQty });
               }
+
+              await syncWarehouseStock(tx, cItem.productId, companyId, sale.branchId, -reqQty);
             }
           }
         } else if (item.productId) {
@@ -503,6 +554,8 @@ export async function completePendingSale(saleIdInput: any, updateData?: {
             } else if (newQty <= 10) {
               lowStockProducts.push({ name: product.name, type: 'BAJO', newQty });
             }
+
+            await syncWarehouseStock(tx, Number(item.productId), companyId, sale.branchId, -item.quantity);
           }
         }
       }
@@ -615,7 +668,7 @@ export async function voidSale(data: {
       // Si estaba completada, devolver existencias
       if (sale.status === 'COMPLETED') {
         for (const detail of sale.details) {
-          if (detail.isCombo && detail.comboId) {
+              if (detail.isCombo && detail.comboId) {
             const combo = await tx.combo.findUnique({
               where: { id: detail.comboId },
               include: { items: true }
@@ -633,6 +686,7 @@ export async function voidSale(data: {
                       status: 'AVAILABLE',
                     }
                   });
+                  await syncWarehouseStock(tx, prod.id, sale.companyId ?? sessionCompanyId ?? 0, sale.branchId, returnQty);
                 }
               }
             }
@@ -647,6 +701,7 @@ export async function voidSale(data: {
                 status: 'AVAILABLE',
               }
             });
+            await syncWarehouseStock(tx, detail.productId, sale.companyId ?? sessionCompanyId ?? 0, sale.branchId, detail.quantity);
           }
         }
       }
@@ -719,6 +774,7 @@ export async function deleteSale(idInput: any) {
                       status: 'AVAILABLE',
                     }
                   });
+                  await syncWarehouseStock(tx, prod.id, sale.companyId ?? sessionCompanyId ?? 0, sale.branchId, returnQty);
                 }
               }
             }
@@ -735,6 +791,7 @@ export async function deleteSale(idInput: any) {
                   status: 'AVAILABLE',
                 }
               });
+              await syncWarehouseStock(tx, detail.productId, sale.companyId ?? sessionCompanyId ?? 0, sale.branchId, detail.quantity);
             }
           }
         }
