@@ -6,6 +6,8 @@ import { prisma } from '@/lib/prisma';
 import { getGroqClient, GROQ_DEFAULT_MODEL, GROQ_FALLBACK_MODELS, GNS_AI_SYSTEM_PROMPT } from '@/lib/groq';
 
 export interface BusinessMetrics {
+  branchName?: string;
+  isBranchRestricted?: boolean;
   totalProducts: number;
   totalUnits: number;
   totalCostValue: number;
@@ -37,7 +39,30 @@ export async function getTenantBusinessMetrics(): Promise<{ success: boolean; me
     }
 
     const companyId = await getSessionCompanyId();
-    const whereTenant = companyId ? { companyId } : {};
+    const whereTenant: any = companyId ? { companyId } : {};
+
+    const dbUser = await prisma.user.findUnique({
+      where: { id: Number(session.user.id) },
+      select: { branchId: true, branch: { select: { id: true, name: true, isMain: true } } }
+    });
+
+    const isBranchUser = session.user.role !== 'SUPERADMIN' && dbUser?.branchId && !dbUser?.branch?.isMain;
+    let branchLabel = 'Sede Principal / Consolidado';
+
+    if (isBranchUser && dbUser?.branchId) {
+      whereTenant.branchId = dbUser.branchId;
+      branchLabel = dbUser.branch?.name || `Sede #${dbUser.branchId}`;
+    } else if (companyId) {
+      const mainBranch = await prisma.branch.findFirst({ where: { companyId, isMain: true } });
+      if (mainBranch) {
+        whereTenant.OR = [
+          { branchId: mainBranch.id },
+          { branchId: null },
+          { branch: { isMain: true } }
+        ];
+        branchLabel = `${mainBranch.name} (Sede Principal)`;
+      }
+    }
 
     // 1. Obtener productos y existencias
     const products = await prisma.product.findMany({
@@ -171,6 +196,8 @@ export async function getTenantBusinessMetrics(): Promise<{ success: boolean; me
       .slice(0, 5);
 
     const metrics: BusinessMetrics = {
+      branchName: branchLabel,
+      isBranchRestricted: Boolean(isBranchUser),
       totalProducts: products.length,
       totalUnits,
       totalCostValue,
@@ -206,6 +233,7 @@ function buildBusinessContextPrompt(m: BusinessMetrics): string {
 
   return `
 [DATOS REALES DEL NEGOCIO (GNS SarriaTech - Tiempo Real)]:
+- Sede Activa / Ámbito de Consulta: ${m.branchName || 'Sede Principal / Consolidado'}
 - Total Productos en Catálogo: ${m.totalProducts}
 - Unidades Físicas Totales en Stock: ${m.totalUnits}
 - Valor del Inventario a Costo: ${fmtMoney(m.totalCostValue)}

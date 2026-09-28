@@ -28,12 +28,20 @@ export async function getFilteredDashboardData(input: DashboardFilterInput) {
     const isBranchUser = session.user.role !== 'SUPERADMIN' && dbUser?.branchId && !dbUser?.branch?.isMain;
 
     const productFilter: any = { ...companyFilter };
+    let mainBranch: any = null;
     if (isBranchUser) {
-      productFilter.OR = [
-        { branchId: dbUser.branchId },
-        { branchId: null },
-        { branch: { isMain: true } }
-      ];
+      productFilter.branchId = dbUser.branchId;
+    } else if (companyId) {
+      mainBranch = await prisma.branch.findFirst({
+        where: { companyId, isMain: true }
+      });
+      if (mainBranch) {
+        productFilter.OR = [
+          { branchId: mainBranch.id },
+          { branchId: null },
+          { branch: { isMain: true } }
+        ];
+      }
     }
 
     // 1. Calcular límites del rango de fechas
@@ -89,6 +97,12 @@ export async function getFilteredDashboardData(input: DashboardFilterInput) {
       saleDateFilter.OR = [
         { branchId: dbUser.branchId },
         { details: { some: { product: { branchId: dbUser.branchId } } } }
+      ];
+    } else if (mainBranch) {
+      saleDateFilter.OR = [
+        { branchId: mainBranch.id },
+        { branchId: null },
+        { branch: { isMain: true } }
       ];
     }
 
