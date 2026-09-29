@@ -3,13 +3,26 @@ import { PrismaClient as TenantClient } from '@prisma-tenant/client';
 import crypto from 'crypto';
 
 // The global platform client with fallback to DATABASE_URL
-export const platformDb = new PlatformClient({
-  datasources: {
-    db: {
-      url: process.env.PLATFORM_DATABASE_URL || process.env.DATABASE_URL,
-    },
-  },
-});
+const platformUrl = process.env.PLATFORM_DATABASE_URL || process.env.DATABASE_URL;
+
+const globalForPlatform = globalThis as unknown as { platformDb: PlatformClient | undefined };
+export const platformDb =
+  globalForPlatform.platformDb ??
+  new PlatformClient(
+    platformUrl && platformUrl.trim() !== ''
+      ? {
+          datasources: {
+            db: {
+              url: platformUrl,
+            },
+          },
+        }
+      : undefined
+  );
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForPlatform.platformDb = platformDb;
+}
 
 // Cache for tenant clients to avoid connection exhaustion
 const tenantClients = new Map<string, TenantClient>();

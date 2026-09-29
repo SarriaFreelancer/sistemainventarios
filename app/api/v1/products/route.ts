@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { validateApiKeyRequest } from "@/lib/api-key-auth";
 import { getDatabaseClient } from "@/lib/db-manager";
 
+export const dynamic = "force-dynamic";
+
 // GET: Consultar Productos
 export async function GET(request: NextRequest) {
   const { errorResponse, context } = await validateApiKeyRequest(request, "products", "read");
@@ -159,7 +161,7 @@ export async function PUT(request: NextRequest) {
     const updateData: any = {};
     if (code !== undefined) updateData.code = code;
     if (name !== undefined) updateData.name = name;
-    
+
     if (categoryId !== undefined) {
       const validCategory = await db.category.findFirst({
         where: { id: Number(categoryId), companyId: context!.companyId }

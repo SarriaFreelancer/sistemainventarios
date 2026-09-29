@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { validateApiKeyRequest } from "@/lib/api-key-auth";
 import { getDatabaseClient } from "@/lib/db-manager";
 
+export const dynamic = "force-dynamic";
+
 // GET: Consultar Categorías
 export async function GET(request: NextRequest) {
   const { errorResponse, context } = await validateApiKeyRequest(request, "categories", "read");
