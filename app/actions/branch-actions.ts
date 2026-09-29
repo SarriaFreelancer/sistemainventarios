@@ -765,7 +765,9 @@ export async function getEnterpriseMasterDashboardData(filters?: {
       })
       .sort((a, b) => b.revenue - a.revenue);
 
-    const topSellingBranch = branchRanking[0] || null;
+    const leaderBranch = branchRanking.find((b) => b.revenue > 0) || null;
+    const topSellingBranch = leaderBranch ? leaderBranch.branchName : "Sin ventas en el período";
+    const topSellingBranchRevenue = leaderBranch ? leaderBranch.revenue : 0;
 
     // 6. Inventario Consolidado por Sede
     const allProducts = await prisma.product.findMany({
@@ -809,7 +811,7 @@ export async function getEnterpriseMasterDashboardData(filters?: {
     });
 
     // 7. Agrupación de Ventas en el tiempo (para gráfico comparativo de sedes)
-    const salesTimelineMap: Record<string, Record<string, number>> = {};
+    const salesTimelineMap: Record<string, Record<string, any>> = {};
 
     sales.forEach((sale) => {
       const dateKey = sale.createdAt.toISOString().slice(0, 10); // YYYY-MM-DD
@@ -824,10 +826,14 @@ export async function getEnterpriseMasterDashboardData(filters?: {
         }
       }
       const foundBranch = effectiveBranchId ? allBranches.find((b) => b.id === effectiveBranchId) : null;
-      const branchName = foundBranch?.name || sale.branch?.name || "Sede Principal";
+      const branchName = foundBranch?.name || sale.branch?.name || (mainBranch ? mainBranch.name : "Sede Principal");
 
       if (!salesTimelineMap[dateKey]) {
-        salesTimelineMap[dateKey] = { date: dateKey as any };
+        const initEntry: Record<string, any> = { date: dateKey };
+        allBranches.forEach((b) => {
+          initEntry[b.name] = 0;
+        });
+        salesTimelineMap[dateKey] = initEntry;
       }
       salesTimelineMap[dateKey][branchName] = (salesTimelineMap[dateKey][branchName] || 0) + sale.total;
     });
@@ -842,8 +848,8 @@ export async function getEnterpriseMasterDashboardData(filters?: {
         kpis: {
           totalRevenue,
           totalSalesCount,
-          topSellingBranch: topSellingBranch ? topSellingBranch.branchName : "N/A",
-          topSellingBranchRevenue: topSellingBranch ? topSellingBranch.revenue : 0,
+          topSellingBranch,
+          topSellingBranchRevenue,
           totalNetworkProducts,
           totalStockCount,
           totalInventoryValue,

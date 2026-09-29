@@ -95,6 +95,43 @@ export async function generateDemoData() {
 
     const suffix = Date.now().toString().slice(-4);
 
+    // 0. OBTENER O CREAR SEDE PRINCIPAL Y BODEGA PARA ATRIBUCIÓN
+    let mainBranch = await prisma.branch.findFirst({
+      where: { companyId, isMain: true }
+    });
+    if (!mainBranch) {
+      mainBranch = await prisma.branch.findFirst({
+        where: { companyId }
+      });
+    }
+    if (!mainBranch) {
+      mainBranch = await prisma.branch.create({
+        data: {
+          name: "Sede Principal",
+          code: "SEDE-MAIN",
+          isMain: true,
+          active: true,
+          companyId,
+        }
+      });
+    }
+
+    let defaultWarehouse = await prisma.warehouse.findFirst({
+      where: { companyId, branchId: mainBranch.id }
+    });
+    if (!defaultWarehouse) {
+      defaultWarehouse = await prisma.warehouse.create({
+        data: {
+          name: "Bodega Principal",
+          code: `BOD-${mainBranch.code || 'MAIN'}`,
+          type: "GENERAL",
+          isDefault: true,
+          companyId,
+          branchId: mainBranch.id,
+        }
+      });
+    }
+
     // Arrays de seguimiento para el identificador interno del lote
     const createdGroupIds: number[] = [];
     const createdCategoryIds: number[] = [];
@@ -489,10 +526,22 @@ export async function generateDemoData() {
           type: raw.type,
           productGroupId: getGroupIdByCode(raw.groupCode),
           companyId,
+          branchId: mainBranch.id,
         },
       });
       createdProducts.push(p);
       createdProductIds.push(p.id);
+
+      if (defaultWarehouse && raw.qty > 0) {
+        await prisma.warehouseStock.create({
+          data: {
+            productId: p.id,
+            warehouseId: defaultWarehouse.id,
+            physical: raw.qty,
+            companyId,
+          }
+        });
+      }
     }
 
     // 7. HISTORIAL DE VENTAS TRANSACCIONALES (8 a 10 Ventas)
@@ -522,6 +571,7 @@ export async function generateDemoData() {
           paymentMethod: i % 2 === 0 ? "EFECTIVO" : "TRANSFERENCIA",
           status: "COMPLETED",
           companyId,
+          branchId: mainBranch.id,
           createdAt: saleDate,
           details: {
             create: [

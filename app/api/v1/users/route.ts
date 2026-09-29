@@ -3,6 +3,8 @@ import { validateApiKeyRequest } from "@/lib/api-key-auth";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
+export const dynamic = "force-dynamic";
+
 // GET: Consultar Usuarios
 export async function GET(request: NextRequest) {
   const { errorResponse, context } = await validateApiKeyRequest(request, "users", "read");
