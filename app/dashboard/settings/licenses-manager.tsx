@@ -58,6 +58,42 @@ export function LicensesManager({ companies, planSettings = {}, allModules = [] 
     modules: getModulesArray("plan_premium_modules")
   });
 
+  const [enterprise2, setEnterprise2] = useState({
+    maxUsers: planSettings["plan_enterprise_2_sedes_max_users"] || "999",
+    maxProducts: planSettings["plan_enterprise_2_sedes_max_products"] || "999999",
+    maxBranches: planSettings["plan_enterprise_2_sedes_max_branches"] || "2",
+    maxSales: planSettings["plan_enterprise_2_sedes_max_sales_per_month"] || "999999",
+    price: planSettings["plan_enterprise_2_sedes_price"] || "299000",
+    modules: getModulesArray("plan_enterprise_2_sedes_modules")
+  });
+
+  const [enterprise5, setEnterprise5] = useState({
+    maxUsers: planSettings["plan_enterprise_5_sedes_max_users"] || "9999",
+    maxProducts: planSettings["plan_enterprise_5_sedes_max_products"] || "999999",
+    maxBranches: planSettings["plan_enterprise_5_sedes_max_branches"] || "5",
+    maxSales: planSettings["plan_enterprise_5_sedes_max_sales_per_month"] || "999999",
+    price: planSettings["plan_enterprise_5_sedes_price"] || "499000",
+    modules: getModulesArray("plan_enterprise_5_sedes_modules")
+  });
+
+  const [enterprise10, setEnterprise10] = useState({
+    maxUsers: planSettings["plan_enterprise_10_sedes_max_users"] || "9999",
+    maxProducts: planSettings["plan_enterprise_10_sedes_max_products"] || "999999",
+    maxBranches: planSettings["plan_enterprise_10_sedes_max_branches"] || "10",
+    maxSales: planSettings["plan_enterprise_10_sedes_max_sales_per_month"] || "999999",
+    price: planSettings["plan_enterprise_10_sedes_price"] || "799000",
+    modules: getModulesArray("plan_enterprise_10_sedes_modules")
+  });
+
+  const [enterpriseUnlimited, setEnterpriseUnlimited] = useState({
+    maxUsers: planSettings["plan_enterprise_unlimited_max_users"] || "9999",
+    maxProducts: planSettings["plan_enterprise_unlimited_max_products"] || "999999",
+    maxBranches: planSettings["plan_enterprise_unlimited_max_branches"] || "999",
+    maxSales: planSettings["plan_enterprise_unlimited_max_sales_per_month"] || "999999",
+    price: planSettings["plan_enterprise_unlimited_price"] || "1199000",
+    modules: getModulesArray("plan_enterprise_unlimited_modules")
+  });
+
   const handleToggleAccess = async (companyId: number, currentActive: boolean, companyName: string) => {
     const actionText = currentActive ? "SUSPENDER" : "REACTIVAR";
     const confirmed = await confirmAction(
@@ -99,13 +135,38 @@ export function LicensesManager({ companies, planSettings = {}, allModules = [] 
       "plan_premium_max_sales_per_month": premium.maxSales.toString(),
       "plan_premium_price": premium.price.toString(),
       "plan_premium_modules": JSON.stringify(premium.modules),
+      // Enterprise Plans
+      "plan_enterprise_2_sedes_max_users": enterprise2.maxUsers.toString(),
+      "plan_enterprise_2_sedes_max_products": enterprise2.maxProducts.toString(),
+      "plan_enterprise_2_sedes_max_branches": enterprise2.maxBranches.toString(),
+      "plan_enterprise_2_sedes_max_sales_per_month": enterprise2.maxSales.toString(),
+      "plan_enterprise_2_sedes_price": enterprise2.price.toString(),
+      "plan_enterprise_2_sedes_modules": JSON.stringify(enterprise2.modules),
+      "plan_enterprise_5_sedes_max_users": enterprise5.maxUsers.toString(),
+      "plan_enterprise_5_sedes_max_products": enterprise5.maxProducts.toString(),
+      "plan_enterprise_5_sedes_max_branches": enterprise5.maxBranches.toString(),
+      "plan_enterprise_5_sedes_max_sales_per_month": enterprise5.maxSales.toString(),
+      "plan_enterprise_5_sedes_price": enterprise5.price.toString(),
+      "plan_enterprise_5_sedes_modules": JSON.stringify(enterprise5.modules),
+      "plan_enterprise_10_sedes_max_users": enterprise10.maxUsers.toString(),
+      "plan_enterprise_10_sedes_max_products": enterprise10.maxProducts.toString(),
+      "plan_enterprise_10_sedes_max_branches": enterprise10.maxBranches.toString(),
+      "plan_enterprise_10_sedes_max_sales_per_month": enterprise10.maxSales.toString(),
+      "plan_enterprise_10_sedes_price": enterprise10.price.toString(),
+      "plan_enterprise_10_sedes_modules": JSON.stringify(enterprise10.modules),
+      "plan_enterprise_unlimited_max_users": enterpriseUnlimited.maxUsers.toString(),
+      "plan_enterprise_unlimited_max_products": enterpriseUnlimited.maxProducts.toString(),
+      "plan_enterprise_unlimited_max_branches": enterpriseUnlimited.maxBranches.toString(),
+      "plan_enterprise_unlimited_max_sales_per_month": enterpriseUnlimited.maxSales.toString(),
+      "plan_enterprise_unlimited_price": enterpriseUnlimited.price.toString(),
+      "plan_enterprise_unlimited_modules": JSON.stringify(enterpriseUnlimited.modules),
     };
 
     const result = await savePlanSettings(dataToSave);
     setSavingPlans(false);
 
     if (result.success) {
-      successAlert("Planes Actualizados", "La configuración de los planes se guardó globalmente.");
+      successAlert("Planes Actualizados", "La configuración de los planes unitarios y Enterprise se guardó globalmente.");
     } else {
       errorAlert("Error", result.error || "No se pudo guardar la configuración.");
     }
@@ -120,42 +181,58 @@ export function LicensesManager({ companies, planSettings = {}, allModules = [] 
     });
   };
 
-  const renderPlanConfig = (title: string, state: any, setState: any) => (
-    <div className="border border-border rounded-xl p-4 bg-muted/5 space-y-4">
-      <h4 className="font-bold text-md border-b border-border pb-2">{title}</h4>
+  const renderPlanConfig = (title: string, state: any, setState: any, isEnterprise = false) => (
+    <div className={`border rounded-xl p-4 space-y-4 ${isEnterprise ? 'border-indigo-500/40 bg-indigo-950/10 dark:bg-indigo-950/20' : 'border-border bg-muted/5'}`}>
+      <div className="flex items-center justify-between border-b border-border pb-2">
+        <h4 className="font-bold text-md text-foreground flex items-center gap-2">
+          {isEnterprise && <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 font-extrabold border border-indigo-500/30">Enterprise</span>}
+          {title}
+        </h4>
+      </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="text-xs font-bold text-muted-foreground uppercase">Máx. Usuarios</label>
-          <input 
-            type="number" 
-            value={state.maxUsers} 
+          <input
+            type="number"
+            value={state.maxUsers}
             onChange={(e) => setState({...state, maxUsers: e.target.value})}
             className="w-full mt-1 bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
           />
         </div>
         <div>
           <label className="text-xs font-bold text-muted-foreground uppercase">Máx. Productos</label>
-          <input 
-            type="number" 
-            value={state.maxProducts} 
+          <input
+            type="number"
+            value={state.maxProducts}
             onChange={(e) => setState({...state, maxProducts: e.target.value})}
             className="w-full mt-1 bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
           />
         </div>
+        {isEnterprise && (
+          <div className="col-span-2">
+            <label className="text-xs font-bold text-indigo-400 uppercase">Límite de Sedes Permitidas</label>
+            <input
+              type="number"
+              value={state.maxBranches}
+              onChange={(e) => setState({...state, maxBranches: e.target.value})}
+              className="w-full mt-1 bg-background border border-indigo-500/40 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+          </div>
+        )}
         <div className="col-span-2">
           <label className="text-xs font-bold text-muted-foreground uppercase">Precio (COP)</label>
-          <input 
-            type="number" 
-            value={state.price} 
+          <input
+            type="number"
+            value={state.price}
             onChange={(e) => setState({...state, price: e.target.value})}
             className="w-full mt-1 bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
           />
         </div>
         <div className="col-span-2">
           <label className="text-xs font-bold text-muted-foreground uppercase">Máx. Ventas/Mes (999999 = Sin límite)</label>
-          <input 
-            type="number" 
-            value={state.maxSales} 
+          <input
+            type="number"
+            value={state.maxSales}
             onChange={(e) => setState({...state, maxSales: e.target.value})}
             className="w-full mt-1 bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
           />
@@ -163,11 +240,11 @@ export function LicensesManager({ companies, planSettings = {}, allModules = [] 
       </div>
       <div>
         <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">Módulos Permitidos</label>
-        <div className="flex flex-col gap-1.5 max-h-[200px] overflow-y-auto pr-2">
+        <div className="flex flex-col gap-1.5 max-h-[180px] overflow-y-auto pr-2">
           {allModules.map(m => (
             <label key={m.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/30 p-1 rounded transition">
-              <input 
-                type="checkbox" 
+              <input
+                type="checkbox"
                 checked={state.modules.includes(m.id)}
                 onChange={() => handleModuleToggle(state, setState, m.id)}
                 className="w-3.5 h-3.5 rounded border-border text-primary focus:ring-primary"
@@ -180,37 +257,56 @@ export function LicensesManager({ companies, planSettings = {}, allModules = [] 
     </div>
   );
 
-  const filteredCompanies = companies.filter(c => 
+  const filteredCompanies = companies.filter(c =>
     c.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
     <div className="space-y-8">
-      
+
       {/* ── SECCIÓN: CONFIGURACIÓN GLOBAL DE PLANES ── */}
-      <div className="space-y-4">
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-bold flex items-center gap-2">
               <Settings2 size={18} className="text-primary" />
-              Configuración de Planes Globales
+              Configuración de Planes Globales y Licencias
             </h3>
-            <p className="text-sm text-muted-foreground">Define los límites y módulos predeterminados que heredará cada nueva empresa al comprar un plan.</p>
+            <p className="text-sm text-muted-foreground">Define los límites, cuota de sedes y módulos predeterminados para planes Unitarios y Enterprise Multi-Sedes.</p>
           </div>
-          <button 
+          <button
             onClick={handleSavePlans}
             disabled={savingPlans}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-xl text-sm font-bold transition flex items-center gap-2 disabled:opacity-70"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-xl text-sm font-bold transition flex items-center gap-2 disabled:opacity-70 shadow-sm"
           >
             {savingPlans ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-            Guardar Planes
+            Guardar Todos los Planes
           </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {renderPlanConfig("Plan Básico", basico, setBasico)}
-          {renderPlanConfig("Plan Intermedio", intermedio, setIntermedio)}
-          {renderPlanConfig("Plan Premium", premium, setPremium)}
+        {/* Planes Unitarios */}
+        <div className="space-y-3">
+          <h4 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">1. Planes Unitarios (1 Sede)</h4>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {renderPlanConfig("Plan Básico", basico, setBasico)}
+            {renderPlanConfig("Plan Intermedio", intermedio, setIntermedio)}
+            {renderPlanConfig("Plan Premium", premium, setPremium)}
+          </div>
+        </div>
+
+        {/* Planes Enterprise por Sedes */}
+        <div className="space-y-3 pt-4 border-t border-border/60">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse" />
+            <h4 className="text-sm font-bold text-indigo-400 uppercase tracking-wider">2. Licencias Plan Enterprise (Por Número de Sedes)</h4>
+          </div>
+          <p className="text-xs text-muted-foreground">Opciones de licenciamiento multi-sucursal con acceso al módulo de consolidación centralizada, réplica de catálogo y traslados WMS.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {renderPlanConfig("Enterprise 2 Sedes", enterprise2, setEnterprise2, true)}
+            {renderPlanConfig("Enterprise 5 Sedes", enterprise5, setEnterprise5, true)}
+            {renderPlanConfig("Enterprise 10 Sedes", enterprise10, setEnterprise10, true)}
+            {renderPlanConfig("Enterprise Ilimitado", enterpriseUnlimited, setEnterpriseUnlimited, true)}
+          </div>
         </div>
       </div>
 
@@ -225,7 +321,7 @@ export function LicensesManager({ companies, planSettings = {}, allModules = [] 
           </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-            <input 
+            <input
               type="text"
               placeholder="Buscar empresa..."
               value={searchTerm}
@@ -275,13 +371,13 @@ export function LicensesManager({ companies, planSettings = {}, allModules = [] 
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button 
+                      <button
                         onClick={() => handleToggleAccess(company.id, company.active, company.name)}
                         disabled={togglingId === company.id}
                         title={company.active ? "Suspender Acceso" : "Reactivar Acceso"}
                         className={`p-2 transition rounded-lg ${
-                          company.active 
-                            ? "text-red-500 hover:bg-red-50" 
+                          company.active
+                            ? "text-red-500 hover:bg-red-50"
                             : "text-green-500 hover:bg-green-50"
                         } disabled:opacity-50`}
                       >
@@ -301,7 +397,7 @@ export function LicensesManager({ companies, planSettings = {}, allModules = [] 
           </table>
         </div>
       </div>
-      
+
       <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 flex items-start gap-3 mt-4">
         <Info className="text-blue-500 mt-0.5 shrink-0" size={18} />
         <div className="text-sm text-blue-800">

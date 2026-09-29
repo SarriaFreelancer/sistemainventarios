@@ -224,6 +224,31 @@ export async function updateCompany(formData: FormData) {
       }
     }
 
+    let isEnterpriseUpdate: boolean | undefined = undefined;
+    let maxBranchesUpdate: number | undefined = undefined;
+
+    if (parsed.data.planId) {
+      const planKey = parsed.data.planId.toLowerCase();
+      const isEnt = planKey.includes('enterprise');
+      if (!isEnt) {
+        const branchCount = await prisma.branch.count({ where: { companyId: id } });
+        if (branchCount > 1) {
+          return {
+            success: false,
+            error: `No es posible cambiar a un plan unitario porque la empresa tiene ${branchCount} sedes activas. Debes consolidar o eliminar las sedes secundarias en el módulo Enterprise antes de cambiar a un plan unitario.`
+          };
+        }
+        isEnterpriseUpdate = false;
+        maxBranchesUpdate = 1;
+      } else {
+        isEnterpriseUpdate = true;
+        if (planKey.includes('2')) maxBranchesUpdate = 2;
+        else if (planKey.includes('5')) maxBranchesUpdate = 5;
+        else if (planKey.includes('10')) maxBranchesUpdate = 10;
+        else maxBranchesUpdate = 999;
+      }
+    }
+
     await prisma.company.update({
       where: { id },
       data: {
@@ -233,6 +258,8 @@ export async function updateCompany(formData: FormData) {
         country: parsed.data.country,
         status: parsed.data.status,
         planId: parsed.data.planId,
+        ...(isEnterpriseUpdate !== undefined ? { isEnterprise: isEnterpriseUpdate } : {}),
+        ...(maxBranchesUpdate !== undefined ? { maxBranches: maxBranchesUpdate } : {}),
         maxUsers: session.user.role === 'SUPERADMIN' ? parsed.data.maxUsers : undefined,
         maxProducts: session.user.role === 'SUPERADMIN' ? parsed.data.maxProducts : undefined,
         themeConfig: {
