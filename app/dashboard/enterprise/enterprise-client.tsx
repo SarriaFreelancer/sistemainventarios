@@ -438,6 +438,7 @@ export function EnterpriseClient({
                     tick={{ fontSize: 11 }}
                   />
                   <Tooltip
+                    cursor={{ fill: "transparent" }}
                     formatter={(val: any) => [formatCurrency(val), "Ventas"]}
                     labelFormatter={(label) => `Sede: ${label}`}
                   />
@@ -478,6 +479,7 @@ export function EnterpriseClient({
                   <XAxis dataKey="branchName" tick={{ fontSize: 11 }} interval={0} angle={-15} textAnchor="end" />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip
+                    cursor={{ fill: "transparent" }}
                     formatter={(val: any, name: any) => [
                       `${val} referencias`,
                       "Productos Registrados"

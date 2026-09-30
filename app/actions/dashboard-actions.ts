@@ -8,6 +8,7 @@ export interface DashboardFilterInput {
   dateFrom?: string | null;
   dateTo?: string | null;
   preset?: 'all' | 'today' | 'yesterday' | 'last7' | 'last30' | 'thisMonth' | 'lastMonth' | 'custom';
+  branchId?: number | "ALL" | null;
 }
 
 export async function getFilteredDashboardData(input: DashboardFilterInput) {
@@ -27,19 +28,53 @@ export async function getFilteredDashboardData(input: DashboardFilterInput) {
 
     const isBranchUser = session.user.role !== 'SUPERADMIN' && dbUser?.branchId && !dbUser?.branch?.isMain;
 
-    const productFilter: any = { ...companyFilter };
-    let mainBranch: any = null;
+    const company = companyId ? await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { planId: true, isEnterprise: true, name: true }
+    }) : null;
+
+    const allBranches = companyId ? await prisma.branch.findMany({
+      where: { companyId },
+      orderBy: [{ isMain: 'desc' }, { name: 'asc' }],
+      select: { id: true, name: true, city: true, isMain: true }
+    }) : [];
+
+    const isEnterprise = company?.isEnterprise || company?.planId?.toUpperCase()?.includes('ENTERPRISE') || allBranches.length > 1;
+
+    let targetBranchId: number | "ALL" | null = null;
     if (isBranchUser) {
-      productFilter.branchId = dbUser.branchId;
-    } else if (companyId) {
-      mainBranch = await prisma.branch.findFirst({
-        where: { companyId, isMain: true }
-      });
-      if (mainBranch) {
+      targetBranchId = dbUser.branchId;
+    } else if (input.branchId !== undefined && input.branchId !== null) {
+      targetBranchId = input.branchId;
+    } else if (isEnterprise && allBranches.length > 1) {
+      targetBranchId = "ALL";
+    } else if (allBranches.length > 0) {
+      targetBranchId = allBranches.find(b => b.isMain)?.id || allBranches[0].id;
+    }
+
+    const productFilter: any = { ...companyFilter };
+    const saleDateFilter: any = { ...companyFilter };
+
+    if (targetBranchId === 'ALL') {
+      // Vista Global de la Red: consolida todas las sedes de la empresa
+    } else if (targetBranchId) {
+      const selectedBranch = allBranches.find(b => b.id === Number(targetBranchId));
+      if (selectedBranch?.isMain) {
         productFilter.OR = [
-          { branchId: mainBranch.id },
+          { branchId: selectedBranch.id },
           { branchId: null },
           { branch: { isMain: true } }
+        ];
+        saleDateFilter.OR = [
+          { branchId: selectedBranch.id },
+          { branchId: null },
+          { branch: { isMain: true } }
+        ];
+      } else {
+        productFilter.branchId = Number(targetBranchId);
+        saleDateFilter.OR = [
+          { branchId: Number(targetBranchId) },
+          { details: { some: { product: { branchId: Number(targetBranchId) } } } }
         ];
       }
     }
@@ -85,25 +120,11 @@ export async function getFilteredDashboardData(input: DashboardFilterInput) {
       }
     }
 
-    // Filtro de ventas por fecha y sede
-    const saleDateFilter: any = { ...companyFilter };
+    // Filtro de ventas por fecha
     if (startDate || endDate) {
       saleDateFilter.createdAt = {};
       if (startDate) saleDateFilter.createdAt.gte = startDate;
       if (endDate) saleDateFilter.createdAt.lte = endDate;
-    }
-
-    if (isBranchUser) {
-      saleDateFilter.OR = [
-        { branchId: dbUser.branchId },
-        { details: { some: { product: { branchId: dbUser.branchId } } } }
-      ];
-    } else if (mainBranch) {
-      saleDateFilter.OR = [
-        { branchId: mainBranch.id },
-        { branchId: null },
-        { branch: { isMain: true } }
-      ];
     }
 
     // 2. Consultas a la base de datos
@@ -188,7 +209,12 @@ export async function getFilteredDashboardData(input: DashboardFilterInput) {
         where: companyFilter,
         include: { _count: { select: { products: true } } }
       }),
-      prisma.customer.count({ where: saleDateFilter }),
+      prisma.customer.count({
+        where: {
+          ...companyFilter,
+          ...(startDate || endDate ? { createdAt: { gte: startDate || undefined, lte: endDate || undefined } } : {})
+        }
+      }),
       prisma.customer.count({ where: companyFilter }),
       prisma.expense.aggregate({
         where: { ...companyFilter, ...(startDate || endDate ? { date: { gte: startDate || undefined, lte: endDate || undefined } } : {}) },
@@ -417,7 +443,12 @@ export async function getFilteredDashboardData(input: DashboardFilterInput) {
         newCustomersCount,
         totalCustomersCount,
         totalExpenses,
-        totalIncomes
+        totalIncomes,
+        // Multi-sede metadata
+        branches: allBranches,
+        activeBranchId: targetBranchId,
+        isEnterprise: Boolean(isEnterprise),
+        isBranchUser: Boolean(isBranchUser)
       }
     };
   } catch (error: any) {
