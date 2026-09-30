@@ -18,7 +18,9 @@ import {
   Globe,
   TrendingUp,
   Layers,
-  ShieldCheck
+  ShieldCheck,
+  MapPin,
+  Store
 } from "lucide-react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -76,6 +78,11 @@ export function DashboardClient({
   const [dateTo, setDateTo] = useState<string>('');
   const [showCustomRange, setShowCustomRange] = useState<boolean>(false);
 
+  const branches = data?.branches || [];
+  const [selectedBranch, setSelectedBranch] = useState<number | "ALL">(() => {
+    return initialData?.activeBranchId ?? (initialData?.branches?.length > 1 ? "ALL" : (initialData?.branches?.[0]?.id ?? "ALL"));
+  });
+
   const handleModeSwitch = (mode: 'tenant' | 'global') => {
     setViewMode(mode);
     if (mode === 'global' && !globalData) {
@@ -94,7 +101,12 @@ export function DashboardClient({
     }
   };
 
-  const handleApplyFilter = (selectedPreset: DashboardFilterInput['preset'], customFrom?: string, customTo?: string) => {
+  const handleApplyFilter = (
+    selectedPreset: DashboardFilterInput['preset'],
+    customFrom?: string,
+    customTo?: string,
+    branchIdToUse?: number | "ALL"
+  ) => {
     setPreset(selectedPreset);
     if (selectedPreset === 'custom') {
       setShowCustomRange(true);
@@ -103,8 +115,10 @@ export function DashboardClient({
       setShowCustomRange(false);
     }
 
+    const effectiveBranch = branchIdToUse !== undefined ? branchIdToUse : selectedBranch;
+
     startTransition(async () => {
-      if (viewMode === 'global') {
+      if (viewMode === 'global' && userRole === 'SUPERADMIN') {
         const res = await getGlobalDashboardData({
           preset: selectedPreset,
           dateFrom: customFrom || dateFrom,
@@ -120,16 +134,25 @@ export function DashboardClient({
         const res = await getFilteredDashboardData({
           preset: selectedPreset,
           dateFrom: customFrom || dateFrom,
-          dateTo: customTo || dateTo
+          dateTo: customTo || dateTo,
+          branchId: effectiveBranch
         });
 
         if (res.success && res.data) {
           setData(res.data);
+          if (res.data.activeBranchId !== undefined) {
+            setSelectedBranch(res.data.activeBranchId ?? "ALL");
+          }
         } else {
           errorAlert("Error", res.error || "No se pudieron obtener las métricas filtradas");
         }
       }
     });
+  };
+
+  const handleBranchChange = (newBranchId: number | "ALL") => {
+    setSelectedBranch(newBranchId);
+    handleApplyFilter(preset, dateFrom, dateTo, newBranchId);
   };
 
   const handleCustomSubmit = (e: React.FormEvent) => {
@@ -154,13 +177,15 @@ export function DashboardClient({
     }
   };
 
+  const selectedBranchObj = branches.find((b: any) => b.id === Number(selectedBranch));
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {!tourCompleted && (
         <WelcomeTour modules={allowedModules.map((m) => m.name)} userId={userId} />
       )}
 
-      {/* ── Header Premium con Selector de Modo y Filtros de Fecha ── */}
+      {/* ── Header Premium con Selector de Modo, Sedes y Filtros de Fecha ── */}
       <div className="p-6 sm:p-8 rounded-[32px] bg-card border border-border shadow-md shadow-primary/5 relative overflow-hidden transition-colors duration-500 space-y-6">
         <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-[100px]" />
 
@@ -176,13 +201,35 @@ export function DashboardClient({
                   SUPERADMINISTRADOR
                 </div>
               )}
+              {data.isEnterprise && (
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-[11px] font-extrabold text-blue-600 dark:text-blue-400">
+                  <Building2 size={12} />
+                  ENTERPRISE MULTI-SEDES
+                </div>
+              )}
+              {data.isBranchUser && selectedBranchObj && (
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-[11px] font-extrabold text-amber-600 dark:text-amber-400">
+                  <MapPin size={12} />
+                  Sede Asignada: {selectedBranchObj.name}
+                </div>
+              )}
             </div>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
-              {viewMode === 'global' ? "Panel de Control Global SaaS" : "Bienvenido al Sistema de Gestión"}
+              {viewMode === 'global'
+                ? "Panel de Control Global SaaS"
+                : selectedBranch === "ALL" && branches.length > 1
+                ? "Panel de Control (Vista Global Consolidada)"
+                : selectedBranchObj
+                ? `Panel de Control — ${selectedBranchObj.name}`
+                : "Bienvenido al Sistema de Gestión"}
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground">
               {viewMode === 'global'
-                ? "Métricas consolidadas de todas las empresas registradas en la plataforma."
+                ? "Métricas consolidadas de todas las empresas SaaS registradas en la plataforma."
+                : selectedBranch === "ALL" && branches.length > 1
+                ? "Supervisa el rendimiento consolidado de toda la red de sedes de la empresa."
+                : selectedBranchObj
+                ? `Visualizando exclusivamente las métricas, existencias y ventas de la sede ${selectedBranchObj.name}${selectedBranchObj.city ? ` (${selectedBranchObj.city})` : ''}.`
                 : "Supervisa las ventas, existencias e inventario filtrando por cualquier fecha o período."}
             </p>
           </div>
@@ -218,6 +265,34 @@ export function DashboardClient({
                     SaaS
                   </span>
                 </button>
+              </div>
+            )}
+
+            {/* Selector de Sede para Empresas con Multi-Sedes */}
+            {viewMode === 'tenant' && branches.length > 1 && !data.isBranchUser && (
+              <div className="flex items-center gap-2 bg-muted/80 border border-border px-3.5 py-2 rounded-2xl shrink-0">
+                <Store className="h-4 w-4 text-primary shrink-0" />
+                <div className="flex flex-col text-left">
+                  <span className="text-[9px] font-extrabold text-muted-foreground uppercase">Sede Activa</span>
+                  <select
+                    value={selectedBranch}
+                    onChange={(e) => {
+                      const val = e.target.value === "ALL" ? "ALL" : Number(e.target.value);
+                      handleBranchChange(val);
+                    }}
+                    disabled={isPending}
+                    className="bg-transparent text-xs font-black text-foreground focus:outline-none cursor-pointer pr-2"
+                  >
+                    <option value="ALL" className="bg-popover text-foreground">
+                      🌐 Vista Global (Todas las Sedes)
+                    </option>
+                    {branches.map((b: any) => (
+                      <option key={b.id} value={b.id} className="bg-popover text-foreground">
+                        📍 {b.name} {b.city ? `(${b.city})` : ""} {b.isMain ? "⭐ Principal" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             )}
 
