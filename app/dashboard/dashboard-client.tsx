@@ -189,8 +189,8 @@ export function DashboardClient({
       <div className="p-6 sm:p-8 rounded-[32px] bg-card border border-border shadow-md shadow-primary/5 relative overflow-hidden transition-colors duration-500 space-y-6">
         <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-[100px]" />
 
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-          <div className="space-y-1.5">
+        <div className="relative z-10 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-6">
+          <div className="space-y-1.5 flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3.5 py-1 text-xs font-bold text-primary uppercase tracking-wider">
                 GNS Gestión de Negocios
@@ -234,7 +234,7 @@ export function DashboardClient({
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 shrink-0">
             {/* Switcher de Vista Exclusivo Superadmin (SaaS Global Multi-Empresa) */}
             {userRole === 'SUPERADMIN' && (
               <div className="flex items-center p-1 bg-muted/80 rounded-2xl border border-border shadow-inner shrink-0">

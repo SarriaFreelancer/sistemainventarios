@@ -962,3 +962,40 @@ export async function deleteBranch(branchId: number) {
   }
 }
 
+// 6. Establecer Sede Activa en la Sesión (para navegación global de Superadmin y Admins)
+export async function setActiveBranchSession(branchId: number | null) {
+  try {
+    const { cookies } = await import("next/headers");
+    const cookieStore = await cookies();
+    if (!branchId || branchId <= 0) {
+      cookieStore.delete("gns_active_branch_id");
+    } else {
+      cookieStore.set("gns_active_branch_id", String(branchId), {
+        path: "/",
+        maxAge: 60 * 60 * 24 * 30, // 30 días
+        sameSite: "lax",
+        httpOnly: false, // accesibilidad cliente/servidor
+      });
+    }
+    revalidatePath("/", "layout");
+    return { success: true };
+  } catch (error: any) {
+    console.error("[SET_ACTIVE_BRANCH_SESSION]", error);
+    return { success: false, error: error.message || "Error al cambiar de sede activa" };
+  }
+}
+
+export async function getActiveBranchSession(): Promise<number | null> {
+  try {
+    const { cookies } = await import("next/headers");
+    const cookieStore = await cookies();
+    const val = cookieStore.get("gns_active_branch_id")?.value;
+    if (val) {
+      const num = parseInt(val, 10);
+      return isNaN(num) ? null : num;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}

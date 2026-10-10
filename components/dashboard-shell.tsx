@@ -90,7 +90,7 @@ interface ModuleConfig {
   description: string | null;
 }
 
-export function DashboardShell({ children, session, modules, themeConfig, companyName, companyLogo, trialInfo, currentBranch, isEnterprise }: {
+export function DashboardShell({ children, session, modules, themeConfig, companyName, companyLogo, trialInfo, currentBranch, availableBranches = [], isEnterprise }: {
   children: React.ReactNode;
   session: { user?: { id?: string | number; name?: string | null; email?: string | null; role?: string; companyId?: string | null; image?: string | null } | null };
   modules?: ModuleConfig[];
@@ -108,6 +108,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
   companyLogo?: string | null;
   trialInfo?: { isTrial: boolean; trialEndsAt: string | null; isExpired: boolean; daysLeft: number } | null;
   currentBranch?: { id: number; name: string; code?: string | null; city?: string | null; isMain?: boolean } | null;
+  availableBranches?: { id: number; name: string; code?: string | null; city?: string | null; isMain?: boolean }[];
   isEnterprise?: boolean;
 }) {
   const pathname = usePathname();
@@ -433,22 +434,46 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                       <span className="font-black truncate max-w-[100px] xs:max-w-[150px] sm:max-w-[220px]">{companyName ? companyName.toUpperCase() : 'GLOBAL'}</span>
                     </p>
 
-                    {/* Identificador de Sede (Exclusivo para empresas en Plan Enterprise con Multi-Sedes) */}
+                    {/* Identificador y Switcher de Sede (Exclusivo para empresas en Plan Enterprise con Multi-Sedes) */}
                     {isEnterprise && currentBranch && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] sm:text-[9.5px] font-extrabold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 shadow-sm whitespace-nowrap">
-                        <LucideIcons.MapPin size={10} className="shrink-0 text-blue-500" />
-                        <span className="font-semibold text-slate-500 dark:text-slate-400">Sede:</span>
-                        <span className="font-black truncate max-w-[120px]">{currentBranch.name}</span>
-                        {currentBranch.isMain ? (
-                          <span className="text-[8.5px] bg-amber-200/60 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 px-1 py-0.2 rounded font-black uppercase">
-                            Principal
-                          </span>
-                        ) : currentBranch.city ? (
-                          <span className="text-[8.5px] opacity-75 hidden md:inline font-normal">
-                            ({currentBranch.city})
-                          </span>
-                        ) : null}
-                      </span>
+                      (session?.user?.role === 'SUPERADMIN' || session?.user?.role === 'ADMIN') && availableBranches.length > 1 ? (
+                        <div className="relative inline-flex items-center">
+                          <select
+                            value={currentBranch.id}
+                            onChange={async (e) => {
+                              const newBranchId = Number(e.target.value);
+                              const { setActiveBranchSession } = await import('@/app/actions/branch-actions');
+                              await setActiveBranchSession(newBranchId);
+                              window.location.reload();
+                            }}
+                            className="appearance-none inline-flex items-center gap-1.5 pl-6 pr-6 py-1 rounded-full text-[9.5px] sm:text-[10.5px] font-black bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700 shadow-sm hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition cursor-pointer"
+                            title="Cambiar de Sede Activa en el Sistema"
+                          >
+                            {availableBranches.map((b) => (
+                              <option key={b.id} value={b.id} className="bg-popover text-foreground font-bold py-1">
+                                {b.name} {b.isMain ? '(Principal ⭐)' : b.city ? `(${b.city})` : ''}
+                              </option>
+                            ))}
+                          </select>
+                          <LucideIcons.MapPin size={11} className="absolute left-2 text-blue-500 pointer-events-none" />
+                          <LucideIcons.ChevronDown size={11} className="absolute right-2 text-blue-500 pointer-events-none" />
+                        </div>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] sm:text-[9.5px] font-extrabold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 shadow-sm whitespace-nowrap">
+                          <LucideIcons.MapPin size={10} className="shrink-0 text-blue-500" />
+                          <span className="font-semibold text-slate-500 dark:text-slate-400">Sede:</span>
+                          <span className="font-black truncate max-w-[120px]">{currentBranch.name}</span>
+                          {currentBranch.isMain ? (
+                            <span className="text-[8.5px] bg-amber-200/60 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 px-1 py-0.2 rounded font-black uppercase">
+                              Principal
+                            </span>
+                          ) : currentBranch.city ? (
+                            <span className="text-[8.5px] opacity-75 hidden md:inline font-normal">
+                              ({currentBranch.city})
+                            </span>
+                          ) : null}
+                        </span>
+                      )
                     )}
 
                     {/* Badge de Período de Prueba */}
