@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { Search, Building, CheckCircle2, XCircle, Loader2, Ban, Power, Info, Settings2, Save } from "lucide-react";
-import { toggleCompanyAccess, savePlanSettings } from "@/app/actions/license-actions";
+import { Search, Building, CheckCircle2, XCircle, Loader2, Ban, Power, Info, Settings2, Save, ShieldCheck } from "lucide-react";
+import { toggleCompanyAccess, savePlanSettings, updateCompanyPlan } from "@/app/actions/license-actions";
 import { confirmAction, successAlert, errorAlert } from "@/lib/sweetalert";
 import { useRouter } from "next/navigation";
 
@@ -11,6 +11,7 @@ interface Company {
   name: string;
   planId: string | null;
   active: boolean;
+  isEnterprise?: boolean;
 }
 
 interface LicensesManagerProps {
@@ -23,7 +24,35 @@ export function LicensesManager({ companies, planSettings = {}, allModules = [] 
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [togglingId, setTogglingId] = useState<number | null>(null);
+  const [changingPlanId, setChangingPlanId] = useState<number | null>(null);
   const [savingPlans, setSavingPlans] = useState(false);
+
+  const handleChangeCompanyPlan = async (companyId: number, companyName: string, newPlan: string) => {
+    const isEnterprisePlan = newPlan.includes("enterprise");
+    const isDowngrade = !isEnterprisePlan;
+
+    const confirmed = await confirmAction(
+      `¿CAMBIAR PLAN DE ${companyName.toUpperCase()}?`,
+      isDowngrade
+        ? `¿Confirmas cambiar al plan ${newPlan.toUpperCase()} (Plan Unitario)? Si la empresa tenía sedes adicionales habilitadas, pasará a operar en modo de sede única estándar.`
+        : `¿Confirmas asignar el plan ${newPlan.toUpperCase()} a ${companyName}?`,
+      "Sí, cambiar plan",
+      "Cancelar"
+    );
+
+    if (!confirmed) return;
+
+    setChangingPlanId(companyId);
+    const res = await updateCompanyPlan(companyId, newPlan);
+    setChangingPlanId(null);
+
+    if (res.success) {
+      await successAlert("Plan Actualizado", res.message || "Plan actualizado correctamente.");
+      window.location.reload();
+    } else {
+      errorAlert("Error", res.error || "No se pudo actualizar el plan.");
+    }
+  };
 
   // States for Plan Settings
   const getModulesArray = (key: string) => {
@@ -356,13 +385,27 @@ export function LicensesManager({ companies, planSettings = {}, allModules = [] 
                       {company.name}
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                        company.planId === 'premium' ? 'bg-indigo-100 text-indigo-700' :
-                        company.planId === 'intermedio' ? 'bg-blue-100 text-blue-700' :
-                        'bg-slate-100 text-slate-700'
-                      }`}>
-                        {company.planId ? company.planId.toUpperCase() : 'BÁSICO'}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={company.planId?.toLowerCase() || 'basico'}
+                          disabled={changingPlanId === company.id}
+                          onChange={(e) => handleChangeCompanyPlan(company.id, company.name, e.target.value)}
+                          className="text-xs font-bold px-2.5 py-1.5 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
+                        >
+                          <optgroup label="Planes Unitarios (1 Sede)">
+                            <option value="basico">BÁSICO</option>
+                            <option value="intermedio">INTERMEDIO</option>
+                            <option value="premium">PREMIUM</option>
+                          </optgroup>
+                          <optgroup label="Planes Enterprise Multi-Sedes">
+                            <option value="enterprise_2_sedes">ENTERPRISE 2 SEDES</option>
+                            <option value="enterprise_5_sedes">ENTERPRISE 5 SEDES</option>
+                            <option value="enterprise_10_sedes">ENTERPRISE 10 SEDES</option>
+                            <option value="enterprise_unlimited">ENTERPRISE ILIMITADO</option>
+                          </optgroup>
+                        </select>
+                        {changingPlanId === company.id && <Loader2 size={14} className="animate-spin text-primary" />}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <span className={`flex items-center gap-1.5 ${company.active ? 'text-green-600' : 'text-red-600'}`}>

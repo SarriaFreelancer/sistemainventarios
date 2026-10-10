@@ -866,3 +866,99 @@ export async function getEnterpriseMasterDashboardData(filters?: {
     return { success: false, error: error.message || "Error al obtener analítica Enterprise" };
   }
 }
+
+// 9. Eliminar Sede (SuperAdmin o Administrador de Empresa)
+export async function deleteBranch(branchId: number) {
+  try {
+    const { userId, companyId, isSuperAdmin } = await getCompanyAndUser();
+
+    const branch = await prisma.branch.findUnique({
+      where: { id: branchId },
+      include: {
+        _count: {
+          select: { products: true, sales: true, warehouses: true, users: true },
+        },
+      },
+    });
+
+    if (!branch) {
+      return { success: false, error: "Sede no encontrada" };
+    }
+
+    if (!isSuperAdmin && companyId && branch.companyId !== companyId) {
+      return { success: false, error: "No tienes permiso para eliminar esta sede" };
+    }
+
+    if (branch.isMain) {
+      return {
+        success: false,
+        error: "No es posible eliminar la Sede Principal. Si deseas cambiar de sede principal, reasigna primero otra sede como principal.",
+      };
+    }
+
+    const targetCompanyId = branch.companyId;
+
+    // Obtener la sede principal para reasignar registros
+    const mainBranch = targetCompanyId
+      ? await prisma.branch.findFirst({
+          where: { companyId: targetCompanyId, isMain: true },
+        })
+      : null;
+
+    const mainBranchId = mainBranch?.id || null;
+
+    // 1. Reasignar usuarios asignados a esta sede hacia la sede principal
+    await prisma.user.updateMany({
+      where: { branchId },
+      data: { branchId: mainBranchId },
+    });
+
+    // 2. Reasignar ventas registradas en esta sede para preservar el histórico contable
+    await prisma.sale.updateMany({
+      where: { branchId },
+      data: { branchId: mainBranchId },
+    });
+
+    // 3. Eliminar productos secundarios clonados exclusivamente para esta sede
+    await prisma.product.deleteMany({
+      where: { branchId, mainProductId: { not: null } },
+    });
+
+    // 4. Reasignar cualquier producto restante hacia la sede principal
+    await prisma.product.updateMany({
+      where: { branchId },
+      data: { branchId: mainBranchId },
+    });
+
+    // 5. Reasignar o vincular bodegas hacia la sede principal
+    await prisma.warehouse.updateMany({
+      where: { branchId },
+      data: { branchId: mainBranchId },
+    });
+
+    // 6. Eliminar la sede
+    await prisma.branch.delete({
+      where: { id: branchId },
+    });
+
+    await logActivity({
+      userId,
+      module: "ENTERPRISE",
+      action: "DELETE_BRANCH",
+      entity: "Branch",
+      entityId: branchId,
+      description: `Eliminación de sede: ${branch.name} (${branch.code || branch.id})`,
+    });
+
+    revalidatePath("/dashboard/enterprise");
+    revalidatePath("/dashboard/settings");
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/products");
+
+    return { success: true, message: `Sede "${branch.name}" eliminada exitosamente.` };
+  } catch (error: any) {
+    console.error("[DELETE_BRANCH]", error);
+    return { success: false, error: error.message || "Error al eliminar la sede" };
+  }
+}
+

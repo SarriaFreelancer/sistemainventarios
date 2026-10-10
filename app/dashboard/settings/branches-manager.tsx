@@ -16,16 +16,19 @@ import {
   RefreshCw,
   Edit2,
   Sparkles,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
   getBranches,
   createBranch,
   updateBranch,
+  deleteBranch,
   requestBranch,
   getBranchRequests,
   reviewBranchRequest,
 } from "@/app/actions/branch-actions";
+import { confirmAction, successAlert, errorAlert } from "@/lib/sweetalert";
 
 interface BranchesManagerProps {
   isSuperAdmin: boolean;
@@ -147,6 +150,28 @@ export function BranchesManager({ isSuperAdmin, role }: BranchesManagerProps) {
         loadData();
       } else {
         toast.error(res.error || "Error al actualizar");
+      }
+    });
+  };
+
+  // Handle Delete Sede
+  const handleDeleteBranch = async (branchId: number, branchName: string) => {
+    const confirmed = await confirmAction(
+      `¿ELIMINAR SEDE "${branchName.toUpperCase()}"?`,
+      "Esta acción eliminará la sede. Los usuarios, ventas y bodegas asociadas se reasignarán a la Sede Principal para conservar el historial contable.",
+      "Sí, eliminar sede",
+      "Cancelar"
+    );
+
+    if (!confirmed) return;
+
+    startTransition(async () => {
+      const res = await deleteBranch(branchId);
+      if (res.success) {
+        await successAlert("Sede Eliminada", res.message || "Sede eliminada con éxito.");
+        loadData();
+      } else {
+        errorAlert("Error", res.error || "No se pudo eliminar la sede");
       }
     });
   };
@@ -279,12 +304,25 @@ export function BranchesManager({ isSuperAdmin, role }: BranchesManagerProps) {
                     </span>
                   </td>
                   <td className="py-3.5 px-4 text-right">
-                    <button
-                      onClick={() => setEditingBranch(b)}
-                      className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        onClick={() => setEditingBranch(b)}
+                        title="Editar Sede"
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      {!b.isMain && (
+                        <button
+                          onClick={() => handleDeleteBranch(b.id, b.name)}
+                          disabled={isPending}
+                          title="Eliminar Sede"
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
