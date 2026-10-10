@@ -186,35 +186,37 @@ export function DashboardClient({
       )}
 
       {/* ── Header Premium con Selector de Modo, Sedes y Filtros de Fecha ── */}
-      <div className="p-6 sm:p-8 rounded-[32px] bg-card border border-border shadow-md shadow-primary/5 relative overflow-hidden transition-colors duration-500 space-y-6">
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-[100px]" />
+      <div className="p-4 sm:p-6 lg:p-8 rounded-[28px] sm:rounded-[32px] bg-card border border-border shadow-md shadow-primary/5 relative overflow-hidden transition-colors duration-500 space-y-5 sm:space-y-6">
+        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-[100px] pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-6">
-          <div className="space-y-1.5 flex-1 min-w-0">
+        {/* ── Fila Superior: Título, Badges y Selectores de Vista/Sedes ── */}
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 sm:gap-6">
+          <div className="space-y-2 flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3.5 py-1 text-xs font-bold text-primary uppercase tracking-wider">
+              <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-[11px] sm:text-xs font-bold text-primary uppercase tracking-wider">
                 GNS Gestión de Negocios
               </div>
               {userRole === 'SUPERADMIN' && (
-                <div className="inline-flex items-center gap-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-3 py-1 text-[11px] font-extrabold text-indigo-500">
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2.5 py-1 text-[10.5px] sm:text-[11px] font-extrabold text-indigo-500">
                   <ShieldCheck size={12} />
                   SUPERADMINISTRADOR
                 </div>
               )}
               {data.isEnterprise && (
-                <div className="inline-flex items-center gap-1.5 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-[11px] font-extrabold text-blue-600 dark:text-blue-400">
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-1 text-[10.5px] sm:text-[11px] font-extrabold text-blue-600 dark:text-blue-400">
                   <Building2 size={12} />
                   ENTERPRISE MULTI-SEDES
                 </div>
               )}
               {data.isBranchUser && selectedBranchObj && (
-                <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-[11px] font-extrabold text-amber-600 dark:text-amber-400">
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-[10.5px] sm:text-[11px] font-extrabold text-amber-600 dark:text-amber-400">
                   <MapPin size={12} />
                   Sede Asignada: {selectedBranchObj.name}
                 </div>
               )}
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
+
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-foreground">
               {viewMode === 'global'
                 ? "Panel de Control Global SaaS"
                 : selectedBranch === "ALL" && branches.length > 1
@@ -223,7 +225,8 @@ export function DashboardClient({
                 ? `Panel de Control — ${selectedBranchObj.name}`
                 : "Bienvenido al Sistema de Gestión"}
             </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">
+
+            <p className="text-xs sm:text-sm text-muted-foreground max-w-3xl">
               {viewMode === 'global'
                 ? "Métricas consolidadas de todas las empresas SaaS registradas en la plataforma."
                 : selectedBranch === "ALL" && branches.length > 1
@@ -234,93 +237,146 @@ export function DashboardClient({
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 shrink-0">
-            {/* Switcher de Vista Exclusivo Superadmin (SaaS Global Multi-Empresa) */}
-            {userRole === 'SUPERADMIN' && (
-              <div className="flex items-center p-1 bg-muted/80 rounded-2xl border border-border shadow-inner shrink-0">
-                <button
-                  onClick={() => handleModeSwitch('tenant')}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all duration-200 flex items-center gap-1.5 ${
-                    viewMode === 'tenant'
-                      ? "bg-card text-foreground shadow-sm border border-border/80"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                  title="Vista de la Empresa Actual"
-                >
-                  <Building2 size={13} className={viewMode === 'tenant' ? "text-primary" : ""} />
-                  <span>Vista Empresa</span>
-                </button>
-                <button
-                  onClick={() => handleModeSwitch('global')}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all duration-200 flex items-center gap-1.5 ${
-                    viewMode === 'global'
-                      ? "bg-primary text-primary-foreground shadow-md"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                  title="Vista Global Multi-Empresa SaaS"
-                >
-                  <Globe size={13} className={viewMode === 'global' ? "text-primary-foreground animate-pulse" : "text-primary"} />
-                  <span>Vista Global</span>
-                  <span className={`text-[9px] font-black px-1.5 py-0.2 rounded-full ${viewMode === 'global' ? "bg-white/20 text-white" : "bg-primary/10 text-primary"}`}>
-                    SaaS
-                  </span>
-                </button>
-              </div>
-            )}
-
-            {/* Switcher de Sede / Vista Global Consolidada para Empresas con Multi-Sedes Enterprise */}
-            {viewMode === 'tenant' && branches.length > 1 && !data.isBranchUser && (
-              <div className="flex items-center p-1 bg-muted/80 rounded-2xl border border-border shadow-inner shrink-0">
-                <button
-                  onClick={() => handleBranchChange("ALL")}
-                  disabled={isPending}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all duration-200 flex items-center gap-1.5 ${
-                    selectedBranch === 'ALL'
-                      ? "bg-primary text-primary-foreground shadow-md scale-[1.02]"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                  title="Vista Global Consolidada de todas las Sedes de la Empresa"
-                >
-                  <Globe size={13} className={selectedBranch === 'ALL' ? "text-primary-foreground animate-pulse" : "text-primary"} />
-                  <span>Vista Global Sedes</span>
-                  <span className={`text-[9px] font-black px-1.5 py-0.2 rounded-full ${selectedBranch === 'ALL' ? "bg-white/20 text-white" : "bg-primary/10 text-primary"}`}>
-                    {branches.length} Sedes
-                  </span>
-                </button>
-
-                <div className="relative flex items-center">
-                  <select
-                    value={selectedBranch === 'ALL' ? '' : selectedBranch}
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        handleBranchChange(Number(e.target.value));
-                      }
-                    }}
-                    disabled={isPending}
-                    className={`px-3 py-2 rounded-xl text-xs font-black transition-all duration-200 flex items-center gap-1.5 cursor-pointer bg-transparent focus:outline-none ${
-                      selectedBranch !== 'ALL'
+          {/* Switchers de Navegación / Modo */}
+          {(userRole === 'SUPERADMIN' || (viewMode === 'tenant' && branches.length > 1 && !data.isBranchUser)) && (
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full lg:w-auto shrink-0 pt-1">
+              {/* Switcher Superadmin (Empresa vs Global SaaS) */}
+              {userRole === 'SUPERADMIN' && (
+                <div className="flex items-center p-1 bg-muted/80 rounded-2xl border border-border shadow-inner">
+                  <button
+                    onClick={() => handleModeSwitch('tenant')}
+                    className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-black transition-all duration-200 flex items-center gap-1.5 ${
+                      viewMode === 'tenant'
                         ? "bg-card text-foreground shadow-sm border border-border/80"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
+                    title="Vista de la Empresa Actual"
                   >
-                    <option value="" disabled className="bg-popover text-muted-foreground">
-                      📍 Filtrar por Sede...
-                    </option>
-                    {branches.map((b: any) => (
-                      <option key={b.id} value={b.id} className="bg-popover text-foreground">
-                        📍 {b.name} {b.city ? `(${b.city})` : ''} {b.isMain ? '⭐ Principal' : ''}
-                      </option>
-                    ))}
-                  </select>
+                    <Building2 size={13} className={viewMode === 'tenant' ? "text-primary" : ""} />
+                    <span>Vista Empresa</span>
+                  </button>
+                  <button
+                    onClick={() => handleModeSwitch('global')}
+                    className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-black transition-all duration-200 flex items-center gap-1.5 ${
+                      viewMode === 'global'
+                        ? "bg-primary text-primary-foreground shadow-md"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    title="Vista Global Multi-Empresa SaaS"
+                  >
+                    <Globe size={13} className={viewMode === 'global' ? "text-primary-foreground animate-pulse" : "text-primary"} />
+                    <span>Vista Global</span>
+                    <span className={`text-[9px] font-black px-1.5 py-0.2 rounded-full ${viewMode === 'global' ? "bg-white/20 text-white" : "bg-primary/10 text-primary"}`}>
+                      SaaS
+                    </span>
+                  </button>
                 </div>
-              </div>
-            )}
+              )}
 
-            <div className="flex items-center gap-3 bg-muted/60 border border-border px-4 py-3 rounded-2xl shrink-0">
-              <CalendarIcon className="h-5 w-5 text-primary shrink-0" />
-              <div className="text-left">
-                <p className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider">Período Seleccionado</p>
-                <p className="text-xs font-black text-foreground truncate max-w-[200px]">
+              {/* Switcher Multi-Sedes Enterprise */}
+              {viewMode === 'tenant' && branches.length > 1 && !data.isBranchUser && (
+                <div className="flex flex-wrap sm:flex-nowrap items-center p-1 bg-muted/80 rounded-2xl border border-border shadow-inner gap-1">
+                  <button
+                    onClick={() => handleBranchChange("ALL")}
+                    disabled={isPending}
+                    className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-black transition-all duration-200 flex items-center gap-1.5 ${
+                      selectedBranch === 'ALL'
+                        ? "bg-primary text-primary-foreground shadow-md scale-[1.02]"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    title="Vista Global Consolidada de todas las Sedes de la Empresa"
+                  >
+                    <Globe size={13} className={selectedBranch === 'ALL' ? "text-primary-foreground animate-pulse" : "text-primary"} />
+                    <span>Global Sedes</span>
+                    <span className={`text-[9px] font-black px-1.5 py-0.2 rounded-full ${selectedBranch === 'ALL' ? "bg-white/20 text-white" : "bg-primary/10 text-primary"}`}>
+                      {branches.length} Sedes
+                    </span>
+                  </button>
+
+                  <div className="relative flex items-center">
+                    <select
+                      value={selectedBranch === 'ALL' ? '' : selectedBranch}
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          handleBranchChange(Number(e.target.value));
+                        }
+                      }}
+                      disabled={isPending}
+                      className={`px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl text-xs font-black transition-all duration-200 flex items-center gap-1.5 cursor-pointer bg-transparent focus:outline-none max-w-[180px] sm:max-w-[220px] truncate ${
+                        selectedBranch !== 'ALL'
+                          ? "bg-card text-foreground shadow-sm border border-border/80"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <option value="" disabled className="bg-popover text-muted-foreground">
+                        📍 Filtrar Sede...
+                      </option>
+                      {branches.map((b: any) => (
+                        <option key={b.id} value={b.id} className="bg-popover text-foreground">
+                          📍 {b.name} {b.city ? `(${b.city})` : ''} {b.isMain ? '⭐ Principal' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* ── Fila Inferior: Barra de Filtros de Fecha + Período Activo y Botón Restablecer ── */}
+        <div className="relative z-10 pt-5 border-t border-border/60 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="space-y-2.5 flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-extrabold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                <Filter size={14} className="text-primary" />
+                Filtrar Gráficos e Información por Fecha:
+              </p>
+              {isPending && (
+                <span className="text-xs font-bold text-primary animate-pulse flex items-center gap-1">
+                  <RefreshCw size={12} className="animate-spin" /> Actualizando datos...
+                </span>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-1.5 sm:gap-2 items-center">
+              {[
+                { id: 'all', label: 'Todo el Histórico' },
+                { id: 'today', label: 'Hoy' },
+                { id: 'yesterday', label: 'Ayer' },
+                { id: 'last7', label: 'Últimos 7 Días' },
+                { id: 'last30', label: 'Últimos 30 Días' },
+                { id: 'thisMonth', label: 'Este Mes' },
+                { id: 'lastMonth', label: 'Mes Anterior' },
+                { id: 'custom', label: 'Rango / Calendario' },
+              ].map((item) => {
+                const isSelected = preset === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleApplyFilter(item.id as any)}
+                    disabled={isPending}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-1.5 border shadow-sm ${
+                      isSelected
+                        ? "bg-primary text-primary-foreground border-primary scale-[1.02] shadow-md"
+                        : "bg-muted/30 text-muted-foreground border-border hover:bg-muted hover:text-foreground"
+                    }`}
+                  >
+                    {isSelected && <Check size={12} />}
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Badge Período Seleccionado + Botón Restablecer */}
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 w-full lg:w-auto shrink-0 pt-2 lg:pt-0">
+            <div className="flex items-center gap-2.5 bg-muted/60 border border-border px-3.5 py-2 rounded-2xl flex-1 sm:flex-none">
+              <CalendarIcon className="h-4 w-4 text-primary shrink-0" />
+              <div className="text-left min-w-0">
+                <p className="text-[9.5px] font-extrabold text-muted-foreground uppercase tracking-wider">Período Activo</p>
+                <p className="text-xs font-black text-foreground truncate max-w-[160px] sm:max-w-[200px]">
                   {getActiveFilterLabel()}
                 </p>
               </div>
@@ -329,100 +385,54 @@ export function DashboardClient({
             <button
               onClick={() => handleApplyFilter('all')}
               disabled={isPending}
-              className="px-4 py-3 rounded-2xl bg-muted/60 hover:bg-muted border border-border text-foreground text-xs font-bold transition flex items-center justify-center gap-2 active:scale-95 shrink-0"
+              className="px-3.5 py-2.5 rounded-2xl bg-muted/60 hover:bg-muted border border-border text-foreground text-xs font-bold transition flex items-center justify-center gap-2 active:scale-95 shrink-0"
               title="Restablecer a Todo el Histórico"
             >
-              <RefreshCw className={`h-4 w-4 text-primary ${isPending ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-3.5 w-3.5 text-primary ${isPending ? 'animate-spin' : ''}`} />
               <span>Restablecer</span>
             </button>
           </div>
         </div>
 
-
-        {/* ── BARRA DE BOTONES RÁPIDOS Y CALENDARIO DE FILTRADO ── */}
-        <div className="relative z-10 pt-4 border-t border-border/60 flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-extrabold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-              <Filter size={14} className="text-primary" />
-              Filtrar Gráficos e Información por Fecha:
-            </p>
-            {isPending && (
-              <span className="text-xs font-bold text-primary animate-pulse flex items-center gap-1">
-                <RefreshCw size={12} className="animate-spin" /> Actualizando datos...
-              </span>
-            )}
-          </div>
-
-          <div className="flex flex-wrap gap-2 items-center">
-            {[
-              { id: 'all', label: 'Todo el Histórico' },
-              { id: 'today', label: 'Hoy' },
-              { id: 'yesterday', label: 'Ayer' },
-              { id: 'last7', label: 'Últimos 7 Días' },
-              { id: 'last30', label: 'Últimos 30 Días' },
-              { id: 'thisMonth', label: 'Este Mes' },
-              { id: 'lastMonth', label: 'Mes Anterior' },
-              { id: 'custom', label: 'Rango / Fecha Específica' },
-            ].map((item) => {
-              const isSelected = preset === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleApplyFilter(item.id as any)}
-                  disabled={isPending}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-1.5 border shadow-sm ${
-                    isSelected
-                      ? "bg-primary text-primary-foreground border-primary scale-[1.03] shadow-md"
-                      : "bg-muted/30 text-muted-foreground border-border hover:bg-muted hover:text-foreground"
-                  }`}
-                >
-                  {isSelected && <Check size={12} />}
-                  {item.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Formulario de Rango de Fechas Personalizado / Calendario */}
-          {(showCustomRange || preset === 'custom') && (
-            <form onSubmit={handleCustomSubmit} className="p-4 rounded-2xl bg-muted/40 border border-border/80 animate-in fade-in slide-in-from-top-2 duration-300">
-              <div className="flex flex-col sm:flex-row items-end gap-4">
-                <div className="space-y-1.5 flex-1 w-full">
-                  <label className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-1">
-                    <CalendarIcon size={12} className="text-primary" /> Fecha Inicial (Desde)
-                  </label>
-                  <input
-                    type="date"
-                    value={dateFrom}
-                    onChange={(e) => setDateFrom(e.target.value)}
-                    className="w-full bg-background border border-border rounded-xl px-3.5 py-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
-                  />
-                </div>
-
-                <div className="space-y-1.5 flex-1 w-full">
-                  <label className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-1">
-                    <CalendarIcon size={12} className="text-primary" /> Fecha Final (Hasta)
-                  </label>
-                  <input
-                    type="date"
-                    value={dateTo}
-                    onChange={(e) => setDateTo(e.target.value)}
-                    className="w-full bg-background border border-border rounded-xl px-3.5 py-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isPending}
-                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-primary text-primary-foreground font-extrabold text-xs transition-all hover:brightness-110 active:scale-95 shadow-md flex items-center justify-center gap-2"
-                >
-                  <Filter size={14} />
-                  Aplicar Rango
-                </button>
+        {/* Formulario de Rango de Fechas Personalizado / Calendario */}
+        {(showCustomRange || preset === 'custom') && (
+          <form onSubmit={handleCustomSubmit} className="relative z-10 p-4 rounded-2xl bg-muted/40 border border-border/80 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="flex flex-col sm:flex-row items-end gap-3 sm:gap-4">
+              <div className="space-y-1.5 flex-1 w-full">
+                <label className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-1">
+                  <CalendarIcon size={12} className="text-primary" /> Fecha Inicial (Desde)
+                </label>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="w-full bg-background border border-border rounded-xl px-3.5 py-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
               </div>
-            </form>
-          )}
-        </div>
+
+              <div className="space-y-1.5 flex-1 w-full">
+                <label className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-1">
+                  <CalendarIcon size={12} className="text-primary" /> Fecha Final (Hasta)
+                </label>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="w-full bg-background border border-border rounded-xl px-3.5 py-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isPending}
+                className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-primary text-primary-foreground font-extrabold text-xs transition-all hover:brightness-110 active:scale-95 shadow-md flex items-center justify-center gap-2 shrink-0"
+              >
+                <Filter size={14} />
+                Aplicar Rango
+              </button>
+            </div>
+          </form>
+        )}
       </div>
 
       {/* ── CONTENIDO PRINCIPAL: MODO GLOBAL vs MODO EMPRESA ── */}
