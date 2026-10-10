@@ -235,7 +235,7 @@ export function DashboardClient({
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            {/* Switcher de Vista Exclusivo Superadmin */}
+            {/* Switcher de Vista Exclusivo Superadmin (SaaS Global Multi-Empresa) */}
             {userRole === 'SUPERADMIN' && (
               <div className="flex items-center p-1 bg-muted/80 rounded-2xl border border-border shadow-inner shrink-0">
                 <button
@@ -268,27 +268,47 @@ export function DashboardClient({
               </div>
             )}
 
-            {/* Selector de Sede para Empresas con Multi-Sedes */}
+            {/* Switcher de Sede / Vista Global Consolidada para Empresas con Multi-Sedes Enterprise */}
             {viewMode === 'tenant' && branches.length > 1 && !data.isBranchUser && (
-              <div className="flex items-center gap-2 bg-muted/80 border border-border px-3.5 py-2 rounded-2xl shrink-0">
-                <Store className="h-4 w-4 text-primary shrink-0" />
-                <div className="flex flex-col text-left">
-                  <span className="text-[9px] font-extrabold text-muted-foreground uppercase">Sede Activa</span>
+              <div className="flex items-center p-1 bg-muted/80 rounded-2xl border border-border shadow-inner shrink-0">
+                <button
+                  onClick={() => handleBranchChange("ALL")}
+                  disabled={isPending}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all duration-200 flex items-center gap-1.5 ${
+                    selectedBranch === 'ALL'
+                      ? "bg-primary text-primary-foreground shadow-md scale-[1.02]"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  title="Vista Global Consolidada de todas las Sedes de la Empresa"
+                >
+                  <Globe size={13} className={selectedBranch === 'ALL' ? "text-primary-foreground animate-pulse" : "text-primary"} />
+                  <span>Vista Global Sedes</span>
+                  <span className={`text-[9px] font-black px-1.5 py-0.2 rounded-full ${selectedBranch === 'ALL' ? "bg-white/20 text-white" : "bg-primary/10 text-primary"}`}>
+                    {branches.length} Sedes
+                  </span>
+                </button>
+
+                <div className="relative flex items-center">
                   <select
-                    value={selectedBranch}
+                    value={selectedBranch === 'ALL' ? '' : selectedBranch}
                     onChange={(e) => {
-                      const val = e.target.value === "ALL" ? "ALL" : Number(e.target.value);
-                      handleBranchChange(val);
+                      if (e.target.value) {
+                        handleBranchChange(Number(e.target.value));
+                      }
                     }}
                     disabled={isPending}
-                    className="bg-transparent text-xs font-black text-foreground focus:outline-none cursor-pointer pr-2"
+                    className={`px-3 py-2 rounded-xl text-xs font-black transition-all duration-200 flex items-center gap-1.5 cursor-pointer bg-transparent focus:outline-none ${
+                      selectedBranch !== 'ALL'
+                        ? "bg-card text-foreground shadow-sm border border-border/80"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
                   >
-                    <option value="ALL" className="bg-popover text-foreground">
-                      🌐 Vista Global (Todas las Sedes)
+                    <option value="" disabled className="bg-popover text-muted-foreground">
+                      📍 Filtrar por Sede...
                     </option>
                     {branches.map((b: any) => (
                       <option key={b.id} value={b.id} className="bg-popover text-foreground">
-                        📍 {b.name} {b.city ? `(${b.city})` : ""} {b.isMain ? "⭐ Principal" : ""}
+                        📍 {b.name} {b.city ? `(${b.city})` : ''} {b.isMain ? '⭐ Principal' : ''}
                       </option>
                     ))}
                   </select>

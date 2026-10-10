@@ -152,7 +152,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     companyName = company?.name || '';
     companyLogo = (company?.setting?.invoiceConfig as any)?.logo || (company?.themeConfig as any)?.logo || null;
     isCombosEnabled = company?.setting?.enableCombos ?? false;
-    isEnterpriseCompany = Boolean(company?.isEnterprise || company?.planId === 'ENTERPRISE');
+    isEnterpriseCompany = Boolean(company?.isEnterprise || company?.planId?.toUpperCase()?.includes('ENTERPRISE'));
 
     let isTrial = false;
     let trialEndsAt: Date | null = null;
@@ -282,6 +282,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         companyLogo={companyLogo}
         trialInfo={trialInfo}
         currentBranch={currentBranch}
+        isEnterprise={isEnterpriseCompany}
       >
         {children}
       </DashboardShell>

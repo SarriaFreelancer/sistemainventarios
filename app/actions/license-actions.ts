@@ -113,3 +113,67 @@ export async function savePlanSettings(settings: Record<string, string>) {
     return { success: false, error: "Error al guardar las configuraciones de planes" };
   }
 }
+
+export async function updateCompanyPlan(companyId: number, newPlanId: string) {
+  const session = await getAuthSession();
+  if (!session || session.user.role !== 'SUPERADMIN') {
+    return { success: false, error: 'No autorizado. Se requieren permisos de SuperAdmin.' };
+  }
+
+  try {
+    const isEnterprise = newPlanId.toLowerCase().includes('enterprise');
+
+    const planLimits = await getPlanSettings();
+    const settings: Record<string, string> = (planLimits.success && planLimits.data) ? planLimits.data : {};
+
+    const prefix = `plan_${newPlanId.toLowerCase()}`;
+    const maxUsers = settings[`${prefix}_max_users`] ? parseInt(settings[`${prefix}_max_users`], 10) : (isEnterprise ? 999 : 5);
+    const maxProducts = settings[`${prefix}_max_products`] ? parseInt(settings[`${prefix}_max_products`], 10) : (isEnterprise ? 999999 : 1000);
+    const maxSales = settings[`${prefix}_max_sales_per_month`] ? parseInt(settings[`${prefix}_max_sales_per_month`], 10) : 999999;
+    const maxBranches = isEnterprise
+      ? (settings[`${prefix}_max_branches`] ? parseInt(settings[`${prefix}_max_branches`], 10) : 2)
+      : 1;
+
+    await prisma.company.update({
+      where: { id: companyId },
+      data: {
+        planId: newPlanId.toLowerCase(),
+        isEnterprise,
+        maxUsers,
+        maxProducts,
+        maxSalesPerMonth: maxSales,
+        maxBranches
+      }
+    });
+
+    // Sincronizar módulos asignados si el plan tiene módulos configurados
+    const modulesJson = settings[`${prefix}_modules`];
+    if (modulesJson) {
+      try {
+        const moduleIds: number[] = JSON.parse(modulesJson);
+        if (Array.isArray(moduleIds) && moduleIds.length > 0) {
+          await prisma.companyModule.deleteMany({
+            where: { companyId }
+          });
+          for (const moduleId of moduleIds) {
+            await prisma.companyModule.create({
+              data: { companyId, moduleId }
+            }).catch(() => {});
+          }
+        }
+      } catch (e) {
+        console.error("Error syncing modules for plan:", e);
+      }
+    }
+
+    revalidatePath('/dashboard/settings');
+    revalidatePath('/dashboard');
+    revalidatePath('/dashboard/enterprise');
+
+    return { success: true, message: `Plan de la empresa actualizado a ${newPlanId.toUpperCase()}` };
+  } catch (error: any) {
+    console.error("Error updating company plan:", error);
+    return { success: false, error: error.message || "Error al actualizar el plan de la empresa" };
+  }
+}
+

@@ -992,17 +992,24 @@ export function ProductsClient(props: {
             paginatedProducts.map(product => {
               const isOut = product.quantityAvailable <= 0;
               return (
-                <div key={product.id} className="p-5 space-y-3 hover:bg-primary/5 transition-colors">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/10">
-                        {product.code}
-                      </span>
-                      <h3 className="font-semibold text-foreground text-sm mt-1.5">{product.name}</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">{product.category?.name ?? 'Sin categoría'}</p>
+                <div key={product.id} className="p-4 sm:p-5 space-y-3 hover:bg-primary/5 transition-colors overflow-hidden">
+                  <div className="flex items-start justify-between gap-3 min-w-0">
+                    <div className="flex-1 min-w-0 pr-1 space-y-1">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/10 shrink-0">
+                          {product.code}
+                        </span>
+                        {product.branch && (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 shrink-0">
+                            📍 {product.branch.name}
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="font-semibold text-foreground text-sm leading-snug break-words">{product.name}</h3>
+                      <p className="text-xs text-muted-foreground truncate">{product.category?.name ?? 'Sin categoría'}</p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-base font-extrabold text-primary">
+                    <div className="shrink-0 text-right min-w-[90px] max-w-[45%]">
+                      <p className="text-sm sm:text-base font-black text-primary leading-tight break-all">
                         {product.salePrice.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
                       </p>
                       <p className={`text-xs mt-1 ${isOut ? 'text-red-500 font-bold' : 'text-muted-foreground'}`}>
@@ -1024,24 +1031,24 @@ export function ProductsClient(props: {
                       })()}
                     </div>
                   </div>
-                  <div className="flex items-center justify-between pt-1">
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
                     {isOut ? (
                       <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-red-500/10 text-red-500 border border-red-500/20">Agotado</span>
                     ) : (
                       <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">Disponible</span>
                     )}
-                    <div className="flex gap-2 justify-end">
+                    <div className="flex items-center gap-1.5 justify-end">
                       {['SALE', 'FINISHED_GOOD', 'SERVICE'].includes(product.type || 'SALE') ? (
                         <button
                           onClick={() => handleQuickSell(product)}
-                          className="h-8 px-3 text-xs font-bold text-white bg-gradient-to-tr from-primary to-[#C5A059] hover:opacity-90 rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+                          className="h-8 px-2.5 text-xs font-bold text-white bg-gradient-to-tr from-primary to-[#C5A059] hover:opacity-90 rounded-xl transition-all shadow-sm flex items-center gap-1"
                           disabled={product.quantityAvailable === 0 || isPending}
                         >
                           <ShoppingCart className="h-3.5 w-3.5" />
                           Vender
                         </button>
                       ) : (
-                        <span className="inline-flex items-center h-8 text-xs font-medium text-muted-foreground px-3 bg-muted/30 rounded-md">
+                        <span className="inline-flex items-center h-8 text-xs font-medium text-muted-foreground px-2.5 bg-muted/30 rounded-md">
                           Uso interno
                         </span>
                       )}
