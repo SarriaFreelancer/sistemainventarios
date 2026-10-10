@@ -5,6 +5,7 @@ import { ProductsClient } from '@/components/products-client';
 import { redirect } from 'next/navigation';
 import { getPlanLimits } from '@/lib/plans';
 import { getProductsCommittedStockMap } from '@/app/actions/kit-actions';
+import { cookies } from 'next/headers';
 
 export const metadata = {
   title: 'Productos · GNS',
@@ -44,11 +45,20 @@ export default async function ProductsPage() {
   const mainBranch = branches.find(b => b.isMain) || branches[0] || null;
   const isBranchUser = session.user.role !== 'SUPERADMIN' && dbUser?.branchId && !dbUser?.branch?.isMain;
 
+  const cookieStore = await cookies();
+  const activeBranchCookieId = cookieStore.get('gns_active_branch_id')?.value
+    ? Number(cookieStore.get('gns_active_branch_id')?.value)
+    : null;
+  const activeBranch = branches.find(b => b.id === activeBranchCookieId);
+
   // AISLAMIENTO ESTRICTO DE PRODUCTOS POR SEDE
   const productWhere: any = { ...whereTenant };
   if (isBranchUser) {
     // Si es usuario de sede secundaria: solo ve sus propios productos
     productWhere.branchId = dbUser.branchId;
+  } else if (activeBranch && !activeBranch.isMain) {
+    // Si el Superadmin o Admin seleccionó una sede secundaria activa:
+    productWhere.branchId = activeBranch.id;
   } else if (branches.length > 1 && mainBranch) {
     // Si está en la Sede Principal: solo ve productos de la sede principal (sin mezclar sedes secundarias)
     productWhere.OR = [

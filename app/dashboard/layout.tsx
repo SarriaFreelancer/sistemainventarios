@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { getAuthSession } from '../../auth';
 import { DashboardShell } from '@/components/dashboard-shell';
 import { prisma } from '@/lib/prisma';
@@ -256,14 +257,32 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     ...(settingsModule ? [settingsModule] : [])
   ];
 
-  // Identificador de Sede actual
-  let currentBranch: { id: number; name: string; code?: string | null; city?: string | null; isMain?: boolean } | null = (session.user as any)?.branch || null;
-  if (!currentBranch && targetCompanyId) {
-    const mainBranch = await prisma.branch.findFirst({
-      where: { companyId: targetCompanyId, isMain: true },
-      select: { id: true, name: true, code: true, city: true, isMain: true }
+  // Identificador de Sede actual y Sedes disponibles (Enterprise Multi-Sedes)
+  const cookieStore = await cookies();
+  const activeBranchCookie = cookieStore.get('gns_active_branch_id')?.value;
+  const activeBranchCookieId = activeBranchCookie ? Number(activeBranchCookie) : null;
+
+  let availableBranches: { id: number; name: string; code?: string | null; city?: string | null; isMain?: boolean }[] = [];
+  if (targetCompanyId) {
+    availableBranches = await prisma.branch.findMany({
+      where: { companyId: targetCompanyId },
+      select: { id: true, name: true, code: true, city: true, isMain: true },
+      orderBy: [{ isMain: 'desc' }, { name: 'asc' }]
     });
-    currentBranch = mainBranch || null;
+  }
+
+  let currentBranch: { id: number; name: string; code?: string | null; city?: string | null; isMain?: boolean } | null = null;
+  const isBranchRestrictedUser = session.user.role !== 'SUPERADMIN' && session.user.role !== 'ADMIN' && (session.user as any)?.branchId;
+
+  if (isBranchRestrictedUser) {
+    currentBranch = (session.user as any)?.branch || availableBranches.find(b => b.id === (session.user as any)?.branchId) || null;
+  } else {
+    // Si es Superadmin o Admin, verificar si tiene cookie de sede activa
+    if (activeBranchCookieId && availableBranches.some(b => b.id === activeBranchCookieId)) {
+      currentBranch = availableBranches.find(b => b.id === activeBranchCookieId) || null;
+    } else {
+      currentBranch = (session.user as any)?.branch || availableBranches.find(b => b.isMain) || availableBranches[0] || null;
+    }
   }
 
   return (
@@ -282,6 +301,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         companyLogo={companyLogo}
         trialInfo={trialInfo}
         currentBranch={currentBranch}
+        availableBranches={availableBranches}
         isEnterprise={isEnterpriseCompany}
       >
         {children}
