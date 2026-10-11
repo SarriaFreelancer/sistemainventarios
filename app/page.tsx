@@ -8,6 +8,11 @@ import {
 } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { InteractivePricing } from '@/app/components/public/InteractivePricing';
+import LandingHeroActions from '@/app/components/public/LandingHeroActions';
+import LandingIndustries from '@/app/components/public/LandingIndustries';
+import LandingTestimonials from '@/app/components/public/LandingTestimonials';
+import LandingFAQ from '@/app/components/public/LandingFAQ';
+import LandingFinalCTA from '@/app/components/public/LandingFinalCTA';
 
 import { getAuthSession } from '@/auth';
 import { getPlanSettings } from '@/app/actions/license-actions';
@@ -283,8 +288,10 @@ export default async function HomePage() {
           <nav className="hidden lg:flex items-center gap-6">
             <a href="#inicio" className="text-slate-900 dark:text-white font-semibold text-sm no-underline transition-colors hover:text-blue-600 dark:hover:text-blue-400">Inicio</a>
             <a href="#modulos" className="text-slate-500 dark:text-slate-400 font-semibold text-sm no-underline transition-colors hover:text-blue-600 dark:hover:text-blue-400">Funciones</a>
+            <a href="#sectores" className="text-slate-500 dark:text-slate-400 font-semibold text-sm no-underline transition-colors hover:text-blue-600 dark:hover:text-blue-400">Sectores</a>
             <a href="#planes" className="text-slate-500 dark:text-slate-400 font-semibold text-sm no-underline transition-colors hover:text-blue-600 dark:hover:text-blue-400">Precios</a>
-            <a href="#nosotros" className="text-slate-500 dark:text-slate-400 font-semibold text-sm no-underline transition-colors hover:text-blue-600 dark:hover:text-blue-400">Sobre Nosotros</a>
+            <a href="#testimonios" className="text-slate-500 dark:text-slate-400 font-semibold text-sm no-underline transition-colors hover:text-blue-600 dark:hover:text-blue-400">Testimonios</a>
+            <a href="#faq" className="text-slate-500 dark:text-slate-400 font-semibold text-sm no-underline transition-colors hover:text-blue-600 dark:hover:text-blue-400">Preguntas</a>
             <a href="#contacto" className="text-slate-500 dark:text-slate-400 font-semibold text-sm no-underline transition-colors hover:text-blue-600 dark:hover:text-blue-400">Contacto</a>
           </nav>
 
@@ -305,10 +312,14 @@ export default async function HomePage() {
         <div className="hero-grid max-w-[1280px] mx-auto px-4 md:px-6">
           {/* Hero Content */}
           <div className="flex flex-col gap-5 md:gap-6 text-center lg:text-left items-center lg:items-start">
-            <div className="animate-fade-in">
+            <div className="animate-fade-in flex flex-wrap items-center justify-center lg:justify-start gap-2">
               <span className="inline-flex items-center gap-1.5 md:gap-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-600 dark:text-amber-500 text-[10px] md:text-[11px] font-extrabold tracking-widest uppercase px-3 py-1 md:px-3.5 md:py-1.5 rounded-full">
                 <LucideIcons.Star size={12} className="fill-amber-600 dark:fill-amber-500 text-amber-600 dark:text-amber-500" />
                 SOFTWARE EMPRESARIAL INTELIGENTE
+              </span>
+              <span className="inline-flex items-center gap-1.5 md:gap-2 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-[10px] md:text-[11px] font-black tracking-wider uppercase px-3 py-1 md:px-3.5 md:py-1.5 rounded-full">
+                <LucideIcons.ShieldCheck size={13} className="text-blue-600 dark:text-blue-400" />
+                HABILITADO FACTURACIÓN ELECTRÓNICA & POS DIAN
               </span>
             </div>
 
@@ -321,37 +332,7 @@ export default async function HomePage() {
               El sistema todo en uno para administrar inventarios, ventas, compras, finanzas y mucho más. Seguro, eficiente y diseñado para hacer crecer tu negocio.
             </p>
 
-            <div className="animate-fade-in-3 flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center mt-4 sm:mt-2 w-full sm:w-auto">
-              {session?.user ? (
-                <Link href={session.user.companyStatus === 'SUSPENDED' ? "/#planes" : "/dashboard"} className="w-full sm:w-auto no-underline">
-                  <button className="btn-red w-full sm:w-auto justify-center px-5 py-3.5 sm:px-7 sm:py-3.5 text-[14px] sm:text-[15px]">
-                    <LucideIcons.Rocket size={18} className="shrink-0" />
-                    {session.user.companyStatus === 'SUSPENDED' ? 'Completar Pago' : 'Ir al Dashboard'}
-                  </button>
-                </Link>
-              ) : (
-                <Link href="/auth/register" className="w-full sm:w-auto no-underline">
-                  <button className="btn-red w-full sm:w-auto justify-center px-5 py-3 sm:px-7 sm:py-3.5 text-[14px] sm:text-[15px]">
-                    <LucideIcons.Rocket size={18} className="shrink-0" />
-                    <div className="text-left">
-                      <div className="leading-none font-bold">Comenzar Ahora</div>
-                      <div className="text-[10px] sm:text-[11px] font-medium opacity-80 mt-1">Prueba 30 días gratis</div>
-                    </div>
-                  </button>
-                </Link>
-              )}
-              <Link href={session?.user ? (session.user.companyStatus === 'SUSPENDED' ? "/#planes" : "/dashboard") : "/auth/register"} className="w-full sm:w-auto no-underline">
-                <button className="w-full sm:w-auto justify-center px-5 py-3 sm:px-6 sm:py-2.5 text-[14px] sm:text-[15px] font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl cursor-pointer flex items-center gap-3 transition-all hover:bg-slate-50 dark:hover:bg-slate-700/50">
-                  <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-900 flex items-center justify-center shrink-0">
-                    <Play size={14} className="fill-slate-900 dark:fill-white text-slate-900 dark:text-white" />
-                  </div>
-                  <div className="text-left">
-                    <div className="leading-none">Ver Demo</div>
-                    <div className="text-[10px] sm:text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-1">30 días de prueba gratis</div>
-                  </div>
-                </button>
-              </Link>
-            </div>
+            <LandingHeroActions sessionUser={session?.user} />
 
             <div className="animate-fade-in-3 flex flex-wrap justify-center lg:justify-start gap-3 sm:gap-4 items-center mt-6">
               {['Sin tarjeta de crédito', 'Cancelas cuando quieras', 'Soporte 24/7'].map((text, i) => (
@@ -530,6 +511,13 @@ export default async function HomePage() {
       </section>
 
       {/* ══════════════════════════════════════════
+          SOLUCIONES POR SECTOR / INDUSTRIAS
+      ══════════════════════════════════════════ */}
+      <div id="sectores">
+        <LandingIndustries />
+      </div>
+
+      {/* ══════════════════════════════════════════
           ARQUITECTURA MULTI-TENANT
       ══════════════════════════════════════════ */}
       <section id="nosotros" className="py-[100px] px-6 bg-white dark:bg-slate-900 overflow-hidden" style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 600px' }}>
@@ -695,9 +683,21 @@ export default async function HomePage() {
       </section>
 
       {/* ══════════════════════════════════════════
-          PLANES RESTAURADOS A SU ORDEN Y CONTENIDO ORIGINAL
+          TESTIMONIOS Y CASOS DE ÉXITO
+      ══════════════════════════════════════════ */}
+      <div id="testimonios">
+        <LandingTestimonials />
+      </div>
+
+      {/* ══════════════════════════════════════════
+          PLANES Y SUSCRIPCIONES
       ══════════════════════════════════════════ */}
       <InteractivePricing planSettings={planSettings} allModules={allModulesList} />
+
+      {/* ══════════════════════════════════════════
+          PREGUNTAS FRECUENTES (FAQ)
+      ══════════════════════════════════════════ */}
+      <LandingFAQ />
 
       {/* ══════════════════════════════════════════
           LOGOS DE EMPRESAS
@@ -831,6 +831,11 @@ export default async function HomePage() {
 
         </div>
       </section>
+
+      {/* ══════════════════════════════════════════
+          BANNER FINAL DE CIERRE Y CONVERSIÓN
+      ══════════════════════════════════════════ */}
+      <LandingFinalCTA />
       </main>
 
       <footer className="bg-white dark:bg-slate-950 pt-[60px] px-6 pb-10 border-t border-slate-100 dark:border-slate-800">
@@ -864,19 +869,18 @@ export default async function HomePage() {
             {/* PRODUCTO */}
             <div>
               <div className="text-[11px] font-extrabold text-slate-600 dark:text-slate-300 uppercase mb-5 tracking-[0.05em]">PRODUCTO</div>
-              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-blue-600 dark:hover:text-blue-500 transition-colors">Funciones</a>
-              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-blue-600 dark:hover:text-blue-500 transition-colors">Precios</a>
-              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-blue-600 dark:hover:text-blue-500 transition-colors">Seguridad</a>
-              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-blue-600 dark:hover:text-blue-500 transition-colors">Actualizaciones</a>
+              <a href="#modulos" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-blue-600 dark:hover:text-blue-500 transition-colors">Funciones</a>
+              <a href="#sectores" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-blue-600 dark:hover:text-blue-500 transition-colors">Sectores</a>
+              <a href="#planes" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-blue-600 dark:hover:text-blue-500 transition-colors">Precios</a>
+              <a href="#testimonios" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-blue-600 dark:hover:text-blue-500 transition-colors">Testimonios</a>
             </div>
 
             {/* EMPRESA */}
             <div>
               <div className="text-[11px] font-extrabold text-slate-600 dark:text-slate-300 uppercase mb-5 tracking-[0.05em]">EMPRESA</div>
-              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-blue-600 dark:hover:text-blue-500 transition-colors">Sobre Nosotros</a>
-              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-blue-600 dark:hover:text-blue-500 transition-colors">Blog</a>
-              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-blue-600 dark:hover:text-blue-500 transition-colors">Casos de Éxito</a>
-              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-blue-600 dark:hover:text-blue-500 transition-colors">Trabaja con nosotros</a>
+              <a href="#nosotros" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-blue-600 dark:hover:text-blue-500 transition-colors">Sobre Nosotros</a>
+              <a href="#faq" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-blue-600 dark:hover:text-blue-500 transition-colors">Preguntas Frecuentes</a>
+              <a href="#contacto" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-blue-600 dark:hover:text-blue-500 transition-colors">Contacto</a>
             </div>
 
             {/* RECURSOS */}
