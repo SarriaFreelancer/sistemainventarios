@@ -61,17 +61,17 @@ export default async function HomePage() {
     { value: '<1s', label: 'Tiempo de respuesta' },
   ];
 
-  /* Paleta Corporativa Moderna: Slate Navy Blue + Vibrant Red + White + Múltiples Colores Vivos */
+  /* Paleta Corporativa Moderna: Slate Navy Blue + Royal Blue + White + Múltiples Colores Vivos */
   const moduleColors = [
     { bg: '#eff6ff', icon: '#2563eb', border: '#bfdbfe' }, // Blue
-    { bg: '#fff1f2', icon: '#e11d48', border: '#fecdd3' }, // Red
+    { bg: '#e0f2fe', icon: '#0284c7', border: '#bae6fd' }, // Sky
     { bg: '#f0fdf4', icon: '#16a34a', border: '#bbf7d0' }, // Green
     { bg: '#f5f3ff', icon: '#7c3aed', border: '#ddd6fe' }, // Violet
     { bg: '#fff7ed', icon: '#ea580c', border: '#fed7aa' }, // Orange
     { bg: '#f0f9ff', icon: '#0ea5e9', border: '#bae6fd' }, // Sky
     { bg: '#fdf4ff', icon: '#c026d3', border: '#f5d0fe' }, // Fuchsia
     { bg: '#ecfdf5', icon: '#059669', border: '#a7f3d0' }, // Emerald
-    { bg: '#fef2f2', icon: '#dc2626', border: '#fecaca' }, // Crimson
+    { bg: '#eef2ff', icon: '#4f46e5', border: '#c7d2fe' }, // Indigo
     { bg: '#fffbeb', icon: '#d97706', border: '#fde68a' }, // Amber
     { bg: '#faf5ff', icon: '#9333ea', border: '#e9d5ff' }, // Purple
     { bg: '#f0fdfa', icon: '#0d9488', border: '#ccfbf1' }, // Teal
@@ -97,9 +97,9 @@ export default async function HomePage() {
           50% { transform: translateY(15px) rotate(-1deg); }
         }
         @keyframes pulse-glow {
-          0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
-          70% { box-shadow: 0 0 0 15px rgba(220, 38, 38, 0); }
-          100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+          0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }
+          70% { box-shadow: 0 0 0 15px rgba(37, 99, 235, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
         }
 
         .animate-fade-in { animation: fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; will-change: transform, opacity; }
@@ -160,7 +160,7 @@ export default async function HomePage() {
         .module-card:hover {
           transform: translateY(-8px) scale(1.02);
           box-shadow: 0 20px 50px -10px rgba(15, 23, 42, 0.1);
-          border-color: rgba(220, 38, 38, 0.3);
+          border-color: rgba(37, 99, 235, 0.3);
         }
 
         /* Mockup Responsive */
@@ -233,7 +233,7 @@ export default async function HomePage() {
 
         /* Botones primarios */
         .btn-red {
-          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+          background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
           color: white;
           font-weight: 700;
           padding: 14px 28px;
@@ -244,11 +244,11 @@ export default async function HomePage() {
           border: none;
           cursor: pointer;
           transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-          box-shadow: 0 8px 25px rgba(220, 38, 38, 0.35);
+          box-shadow: 0 8px 25px rgba(37, 99, 235, 0.35);
         }
         .btn-red:hover {
           transform: translateY(-3px);
-          box-shadow: 0 15px 35px rgba(220, 38, 38, 0.45);
+          box-shadow: 0 15px 35px rgba(37, 99, 235, 0.45);
         }
       `}</style>
 
@@ -271,7 +271,7 @@ export default async function HomePage() {
             </div>
             <div>
               <div className="font-black text-[15px] md:text-lg tracking-wider text-slate-900 dark:text-white leading-none md:leading-tight">
-                GNS <span className="text-red-500 hidden sm:inline">GESTIÓN DE NEGOCIOS</span>
+                GNS <span className="text-blue-600 dark:text-blue-400 hidden sm:inline">GESTIÓN DE NEGOCIOS</span>
               </div>
               <div className="text-[8px] md:text-[10px] font-black text-slate-900 dark:text-slate-300 tracking-[0.2em] uppercase mt-1 md:mt-0">
                 SARRIA
@@ -281,11 +281,11 @@ export default async function HomePage() {
 
           {/* Nav links */}
           <nav className="hidden lg:flex items-center gap-6">
-            <a href="#inicio" className="text-slate-900 dark:text-white font-semibold text-sm no-underline transition-colors hover:text-red-600 dark:hover:text-red-500">Inicio</a>
-            <a href="#modulos" className="text-slate-500 dark:text-slate-400 font-semibold text-sm no-underline transition-colors hover:text-red-600 dark:hover:text-red-500">Funciones</a>
-            <a href="#planes" className="text-slate-500 dark:text-slate-400 font-semibold text-sm no-underline transition-colors hover:text-red-600 dark:hover:text-red-500">Precios</a>
-            <a href="#nosotros" className="text-slate-500 dark:text-slate-400 font-semibold text-sm no-underline transition-colors hover:text-red-600 dark:hover:text-red-500">Sobre Nosotros</a>
-            <a href="#contacto" className="text-slate-500 dark:text-slate-400 font-semibold text-sm no-underline transition-colors hover:text-red-600 dark:hover:text-red-500">Contacto</a>
+            <a href="#inicio" className="text-slate-900 dark:text-white font-semibold text-sm no-underline transition-colors hover:text-blue-600 dark:hover:text-blue-400">Inicio</a>
+            <a href="#modulos" className="text-slate-500 dark:text-slate-400 font-semibold text-sm no-underline transition-colors hover:text-blue-600 dark:hover:text-blue-400">Funciones</a>
+            <a href="#planes" className="text-slate-500 dark:text-slate-400 font-semibold text-sm no-underline transition-colors hover:text-blue-600 dark:hover:text-blue-400">Precios</a>
+            <a href="#nosotros" className="text-slate-500 dark:text-slate-400 font-semibold text-sm no-underline transition-colors hover:text-blue-600 dark:hover:text-blue-400">Sobre Nosotros</a>
+            <a href="#contacto" className="text-slate-500 dark:text-slate-400 font-semibold text-sm no-underline transition-colors hover:text-blue-600 dark:hover:text-blue-400">Contacto</a>
           </nav>
 
           {/* CTA */}
@@ -294,12 +294,12 @@ export default async function HomePage() {
       </header>
 
       {/* ══════════════════════════════════════════
-          HERO — BLANCO CON ACENTOS ROJOS Y SLATE
+          HERO — BLANCO CON ACENTOS AZULES Y SLATE
       ══════════════════════════════════════════ */}
       <main>
       <section id="inicio" className="pt-[100px] md:pt-[140px] pb-[60px] md:pb-[100px] relative overflow-hidden bg-white dark:bg-slate-900">
         {/* Background Gradients */}
-        <div className="absolute -top-[10%] -right-[5%] w-[300px] md:w-[600px] h-[300px] md:h-[600px] rounded-full pointer-events-none bg-[radial-gradient(circle,rgba(220,38,38,0.04)_0%,rgba(255,255,255,0)_70%)] dark:bg-[radial-gradient(circle,rgba(220,38,38,0.1)_0%,rgba(15,23,42,0)_70%)]" />
+        <div className="absolute -top-[10%] -right-[5%] w-[300px] md:w-[600px] h-[300px] md:h-[600px] rounded-full pointer-events-none bg-[radial-gradient(circle,rgba(37,99,235,0.04)_0%,rgba(255,255,255,0)_70%)] dark:bg-[radial-gradient(circle,rgba(37,99,235,0.1)_0%,rgba(15,23,42,0)_70%)]" />
         <div className="absolute -bottom-[10%] -left-[5%] w-[250px] md:w-[500px] h-[250px] md:h-[500px] rounded-full pointer-events-none bg-[radial-gradient(circle,rgba(15,23,42,0.03)_0%,rgba(255,255,255,0)_70%)] dark:bg-[radial-gradient(circle,rgba(255,255,255,0.03)_0%,rgba(15,23,42,0)_70%)]" />
 
         <div className="hero-grid max-w-[1280px] mx-auto px-4 md:px-6">
@@ -314,7 +314,7 @@ export default async function HomePage() {
 
             <h1 className="animate-fade-in-1 text-[32px] sm:text-[40px] lg:text-[46px] xl:text-[52px] font-black leading-[1.15] md:leading-[1.1] m-0 text-slate-900 dark:text-white tracking-tight">
               Gestiona tu empresa<br className="hidden md:block"/> con Inteligencia y <br className="hidden md:block"/>
-              <span className="text-red-600 dark:text-red-500 uppercase block md:inline mt-2 md:mt-0">CONTROL TOTAL</span>
+              <span className="text-blue-600 dark:text-blue-500 uppercase block md:inline mt-2 md:mt-0">CONTROL TOTAL</span>
             </h1>
 
             <p className="animate-fade-in-2 text-[14px] sm:text-[15px] lg:text-[16px] text-slate-600 dark:text-slate-300 leading-relaxed m-0 max-w-[500px] font-medium mx-auto lg:mx-0">
@@ -370,7 +370,7 @@ export default async function HomePage() {
 
               {/* Sidebar Mockup */}
               <div className="mockup-sidebar border-r border-slate-100 dark:border-slate-800" style={{ width: 140, display: 'flex', flexDirection: 'column', gap: 16, paddingRight: 24 }}>
-                <div style={{ fontWeight: 900, fontSize: 20, color: '#dc2626', marginBottom: 8 }}>GNS</div>
+                <div style={{ fontWeight: 900, fontSize: 20, color: '#2563eb', marginBottom: 8 }}>GNS</div>
                 {[
                   { n: 'Dashboard', i: LucideIcons.LayoutDashboard, active: true },
                   { n: 'Productos', i: LucideIcons.Package },
@@ -383,7 +383,7 @@ export default async function HomePage() {
                   { n: 'Usuarios', i: LucideIcons.UserCog },
                   { n: 'Configuración', i: LucideIcons.Settings },
                 ].map((item, i) => (
-                  <div key={i} className={`flex items-center gap-2 text-[11px] font-semibold px-2 py-1.5 rounded-md ${item.active ? 'text-red-600 bg-red-50 dark:bg-red-950/50' : 'text-slate-500 dark:text-slate-400 bg-transparent'}`}>
+                  <div key={i} className={`flex items-center gap-2 text-[11px] font-semibold px-2 py-1.5 rounded-md ${item.active ? 'text-blue-600 bg-blue-50 dark:bg-blue-950/50' : 'text-slate-500 dark:text-slate-400 bg-transparent'}`}>
                     <item.i size={14} />
                     {item.n}
                   </div>
@@ -398,14 +398,14 @@ export default async function HomePage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                     <div style={{ position: 'relative' }}>
                       <LucideIcons.Bell size={16} className="text-slate-500 dark:text-slate-400" />
-                      <div className="absolute -top-[2px] -right-[2px] w-1.5 h-1.5 rounded-full bg-red-600 border border-white dark:border-slate-900" />
+                      <div className="absolute -top-[2px] -right-[2px] w-1.5 h-1.5 rounded-full bg-blue-600 border border-white dark:border-slate-900" />
                     </div>
                     <div style={{ position: 'relative' }}>
                       <LucideIcons.Inbox size={16} className="text-slate-500 dark:text-slate-400" />
-                      <div className="absolute -top-[2px] -right-[2px] w-1.5 h-1.5 rounded-full bg-red-600 border border-white dark:border-slate-900" />
+                      <div className="absolute -top-[2px] -right-[2px] w-1.5 h-1.5 rounded-full bg-blue-600 border border-white dark:border-slate-900" />
                     </div>
                     <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900/50 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-700">
-                      <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#dc2626' }} />
+                      <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#2563eb' }} />
                       <div className="text-[10px] font-bold text-slate-900 dark:text-white">Admin Sarria</div>
                       <LucideIcons.ChevronDown size={12} className="text-slate-500 dark:text-slate-400" />
                     </div>
@@ -439,15 +439,15 @@ export default async function HomePage() {
                     <div style={{ position: 'relative', height: 80, display: 'flex', alignItems: 'flex-end' }}>
                       {/* Fake Line Chart using SVG */}
                       <svg width="100%" height="100%" viewBox="0 0 100 40" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
-                        <path d="M0,30 L16,25 L32,35 L48,15 L64,25 L80,5 L100,20" fill="none" stroke="#dc2626" strokeWidth="2" />
-                        <path d="M0,30 L16,25 L32,35 L48,15 L64,25 L80,5 L100,20 L100,40 L0,40 Z" fill="rgba(220,38,38,0.1)" stroke="none" />
-                        <circle cx="0" cy="30" r="2" fill="#dc2626" />
-                        <circle cx="16" cy="25" r="2" fill="#dc2626" />
-                        <circle cx="32" cy="35" r="2" fill="#dc2626" />
-                        <circle cx="48" cy="15" r="2" fill="#dc2626" />
-                        <circle cx="64" cy="25" r="2" fill="#dc2626" />
-                        <circle cx="80" cy="5" r="2" fill="#dc2626" />
-                        <circle cx="100" cy="20" r="2" fill="#dc2626" />
+                        <path d="M0,30 L16,25 L32,35 L48,15 L64,25 L80,5 L100,20" fill="none" stroke="#2563eb" strokeWidth="2" />
+                        <path d="M0,30 L16,25 L32,35 L48,15 L64,25 L80,5 L100,20 L100,40 L0,40 Z" fill="rgba(37,99,235,0.1)" stroke="none" />
+                        <circle cx="0" cy="30" r="2" fill="#2563eb" />
+                        <circle cx="16" cy="25" r="2" fill="#2563eb" />
+                        <circle cx="32" cy="35" r="2" fill="#2563eb" />
+                        <circle cx="48" cy="15" r="2" fill="#2563eb" />
+                        <circle cx="64" cy="25" r="2" fill="#2563eb" />
+                        <circle cx="80" cy="5" r="2" fill="#2563eb" />
+                        <circle cx="100" cy="20" r="2" fill="#2563eb" />
                       </svg>
                       {/* Grid lines */}
                       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', zIndex: -1 }}>
@@ -465,11 +465,11 @@ export default async function HomePage() {
                   <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 p-3 shadow-[0_2px_4px_rgba(0,0,0,0.02)] dark:shadow-none flex flex-col">
                     <div className="text-[11px] font-bold text-slate-900 dark:text-white mb-3">Ventas por categoría</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
-                      <div style={{ width: 60, height: 60, borderRadius: '50%', background: 'conic-gradient(#dc2626 0% 45%, #f59e0b 45% 70%, #10b981 70% 85%, #64748b 85% 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ width: 60, height: 60, borderRadius: '50%', background: 'conic-gradient(#2563eb 0% 45%, #f59e0b 45% 70%, #10b981 70% 85%, #64748b 85% 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <div className="w-10 h-10 rounded-full bg-white dark:bg-slate-900" />
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <div className="flex items-center gap-1 text-[8px] font-semibold text-slate-900 dark:text-white"><div style={{ width: 6, height: 6, borderRadius: '50%', background: '#dc2626' }}/> Electrónicos <span className="text-slate-500 dark:text-slate-400">45%</span></div>
+                        <div className="flex items-center gap-1 text-[8px] font-semibold text-slate-900 dark:text-white"><div style={{ width: 6, height: 6, borderRadius: '50%', background: '#2563eb' }}/> Electrónicos <span className="text-slate-500 dark:text-slate-400">45%</span></div>
                         <div className="flex items-center gap-1 text-[8px] font-semibold text-slate-900 dark:text-white"><div style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b' }}/> Hogar <span className="text-slate-500 dark:text-slate-400">25%</span></div>
                         <div className="flex items-center gap-1 text-[8px] font-semibold text-slate-900 dark:text-white"><div style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }}/> Ropa <span className="text-slate-500 dark:text-slate-400">15%</span></div>
                         <div className="flex items-center gap-1 text-[8px] font-semibold text-slate-900 dark:text-white"><div style={{ width: 6, height: 6, borderRadius: '50%', background: '#64748b' }}/> Otros <span className="text-slate-500 dark:text-slate-400">15%</span></div>
@@ -499,8 +499,8 @@ export default async function HomePage() {
 
             {/* Flotante 1 */}
             <div className="animate-float-delay hidden lg:flex absolute top-10 -right-10 bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.08)] dark:shadow-none items-center gap-4 border border-slate-200 dark:border-slate-800">
-              <div className="w-12 h-12 bg-red-50 dark:bg-red-950/40 rounded-xl flex items-center justify-center">
-                <LucideIcons.Check size={24} className="text-red-600 dark:text-red-500" />
+              <div className="w-12 h-12 bg-blue-50 dark:bg-blue-950/40 rounded-xl flex items-center justify-center">
+                <LucideIcons.Check size={24} className="text-blue-600 dark:text-blue-500" />
               </div>
               <div>
                 <div className="text-[14px] font-extrabold text-slate-900 dark:text-white">Sistema Operativo</div>
@@ -521,7 +521,7 @@ export default async function HomePage() {
               TODO LO QUE TU NEGOCIO NECESITA
             </span>
             <h2 className="text-[40px] font-black text-slate-900 dark:text-white m-0 tracking-tight">
-              Funciones <span className="text-red-600 dark:text-red-500">poderosas</span>, resultados reales
+              Funciones <span className="text-blue-600 dark:text-blue-500">poderosas</span>, resultados reales
             </h2>
           </div>
 
@@ -566,9 +566,9 @@ export default async function HomePage() {
           <div className="flex-[1_1_400px] relative flex flex-col lg:flex-row items-center justify-center gap-4 lg:gap-0 mt-8 md:mt-0 max-w-full p-4 overflow-x-auto">
             {/* Box 1: Super Admin */}
             <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-6 shadow-[0_10px_30px_rgba(0,0,0,0.03)] dark:shadow-[0_10px_30px_rgba(0,0,0,0.2)] z-10 flex flex-col items-center gap-6 w-[180px] shrink-0">
-              <div className="text-[11px] font-black text-red-600 dark:text-red-500 tracking-widest">SUPER ADMIN</div>
-              <div className="w-16 h-16 rounded-full bg-red-50 dark:bg-red-950/30 border-2 border-red-100 dark:border-red-900 flex items-center justify-center">
-                 <LucideIcons.UserCog size={32} className="text-red-600 dark:text-red-500" />
+              <div className="text-[11px] font-black text-blue-600 dark:text-blue-500 tracking-widest">SUPER ADMIN</div>
+              <div className="w-16 h-16 rounded-full bg-blue-50 dark:bg-blue-950/30 border-2 border-blue-100 dark:border-blue-900 flex items-center justify-center">
+                 <LucideIcons.UserCog size={32} className="text-blue-600 dark:text-blue-500" />
               </div>
               <div className="flex flex-col gap-3 items-center text-[11px] font-bold text-slate-600 dark:text-slate-400">
                 <div>Panel Central</div>
@@ -590,7 +590,7 @@ export default async function HomePage() {
               <LucideIcons.Building2 size={48} className="text-slate-600 dark:text-slate-400" strokeWidth={1} />
               <div className="flex flex-col gap-4 w-full pl-5">
                 <div className="flex items-center gap-2.5 text-[12px] font-bold text-slate-600 dark:text-slate-400">
-                  <div className="w-3 h-3 rounded-full bg-red-500" /> Empresa A
+                  <div className="w-3 h-3 rounded-full bg-blue-500" /> Empresa A
                 </div>
                 <div className="flex items-center gap-2.5 text-[12px] font-bold text-slate-600 dark:text-slate-400">
                   <div className="w-3 h-3 rounded-full bg-amber-600" /> Empresa B
@@ -704,7 +704,7 @@ export default async function HomePage() {
       ══════════════════════════════════════════ */}
       <section className="py-[60px] px-6 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800" style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 200px' }}>
         <div className="max-w-[1280px] mx-auto text-center">
-          <div className="text-[11px] font-extrabold text-red-600 dark:text-red-500 tracking-[0.15em] uppercase mb-8">
+          <div className="text-[11px] font-extrabold text-blue-600 dark:text-blue-500 tracking-[0.15em] uppercase mb-8">
             EMPRESAS QUE CONFÍAN EN GNS
           </div>
           <div className="flex flex-wrap justify-center gap-x-[60px] gap-y-[40px] opacity-60 dark:opacity-40">
@@ -772,7 +772,7 @@ export default async function HomePage() {
         <div className="max-w-[1280px] mx-auto relative z-10 flex flex-wrap gap-16 items-center">
 
           <div className="flex-1 min-w-[300px]">
-            <span className="inline-block text-red-600 dark:text-red-500 text-[12px] font-extrabold tracking-[0.15em] uppercase mb-4">
+            <span className="inline-block text-blue-600 dark:text-blue-500 text-[12px] font-extrabold tracking-[0.15em] uppercase mb-4">
               ESTAMOS PARA AYUDARTE
             </span>
             <h2 className="text-[36px] font-black text-slate-900 dark:text-white leading-[1.1] mb-6 tracking-tight">
@@ -783,8 +783,8 @@ export default async function HomePage() {
             </p>
             <div className="flex flex-col gap-5">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-red-50 dark:bg-red-950/30 flex items-center justify-center">
-                  <LucideIcons.Mail size={20} className="text-red-600 dark:text-red-500" />
+                <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center">
+                  <LucideIcons.Mail size={20} className="text-blue-600 dark:text-blue-500" />
                 </div>
                 <div>
                   <div className="text-[12px] text-slate-500 dark:text-slate-400 font-bold mb-1">Correo Electrónico</div>
@@ -808,22 +808,22 @@ export default async function HomePage() {
               <div className="flex flex-wrap gap-5">
                 <div className="flex-1 min-w-[200px]">
                   <label htmlFor="contact-name" className="block text-[12px] font-bold text-slate-700 dark:text-slate-300 mb-2">Nombre completo</label>
-                  <input id="contact-name" type="text" placeholder="Tu nombre" className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-[14px] outline-none focus:border-red-500 dark:focus:border-red-500 transition-colors" />
+                  <input id="contact-name" type="text" placeholder="Tu nombre" className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-[14px] outline-none focus:border-blue-500 dark:focus:border-blue-500 transition-colors" />
                 </div>
                 <div className="flex-1 min-w-[200px]">
                   <label htmlFor="contact-company" className="block text-[12px] font-bold text-slate-700 dark:text-slate-300 mb-2">Empresa</label>
-                  <input id="contact-company" type="text" placeholder="Nombre de tu negocio" className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-[14px] outline-none focus:border-red-500 dark:focus:border-red-500 transition-colors" />
+                  <input id="contact-company" type="text" placeholder="Nombre de tu negocio" className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-[14px] outline-none focus:border-blue-500 dark:focus:border-blue-500 transition-colors" />
                 </div>
               </div>
               <div>
                 <label htmlFor="contact-email" className="block text-[12px] font-bold text-slate-700 dark:text-slate-300 mb-2">Correo electrónico</label>
-                <input id="contact-email" type="email" placeholder="ejemplo@correo.com" className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-[14px] outline-none focus:border-red-500 dark:focus:border-red-500 transition-colors" />
+                <input id="contact-email" type="email" placeholder="ejemplo@correo.com" className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-[14px] outline-none focus:border-blue-500 dark:focus:border-blue-500 transition-colors" />
               </div>
               <div>
                 <label htmlFor="contact-message" className="block text-[12px] font-bold text-slate-700 dark:text-slate-300 mb-2">Mensaje</label>
-                <textarea id="contact-message" placeholder="¿En qué podemos ayudarte?" rows={4} className="w-full p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-[14px] outline-none focus:border-red-500 dark:focus:border-red-500 transition-colors resize-none"></textarea>
+                <textarea id="contact-message" placeholder="¿En qué podemos ayudarte?" rows={4} className="w-full p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-[14px] outline-none focus:border-blue-500 dark:focus:border-blue-500 transition-colors resize-none"></textarea>
               </div>
-              <button type="button" className="btn-red w-full h-12 mt-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-[14px] transition-colors">
+              <button type="button" className="btn-red w-full h-12 mt-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-[14px] transition-colors">
                 Enviar Mensaje
               </button>
             </form>
@@ -840,7 +840,7 @@ export default async function HomePage() {
             <div>
               <div className="flex items-center gap-1.5 mb-5">
                 <span className="font-black text-[32px] text-amber-600 dark:text-amber-500 tracking-tight leading-none">G</span>
-                <span className="font-black text-[32px] text-red-600 dark:text-red-500 tracking-tight leading-none">NS</span>
+                <span className="font-black text-[32px] text-blue-600 dark:text-blue-500 tracking-tight leading-none">NS</span>
                 <div className="flex flex-col ml-2">
                   <span className="text-[10px] font-extrabold text-slate-600 dark:text-slate-300 tracking-[0.05em] leading-[1.1]">
                     GESTIÓN DE NEGOCIOS
@@ -864,36 +864,36 @@ export default async function HomePage() {
             {/* PRODUCTO */}
             <div>
               <div className="text-[11px] font-extrabold text-slate-600 dark:text-slate-300 uppercase mb-5 tracking-[0.05em]">PRODUCTO</div>
-              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-red-600 dark:hover:text-red-500 transition-colors">Funciones</a>
-              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-red-600 dark:hover:text-red-500 transition-colors">Precios</a>
-              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-red-600 dark:hover:text-red-500 transition-colors">Seguridad</a>
-              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-red-600 dark:hover:text-red-500 transition-colors">Actualizaciones</a>
+              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-blue-600 dark:hover:text-blue-500 transition-colors">Funciones</a>
+              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-blue-600 dark:hover:text-blue-500 transition-colors">Precios</a>
+              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-blue-600 dark:hover:text-blue-500 transition-colors">Seguridad</a>
+              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-blue-600 dark:hover:text-blue-500 transition-colors">Actualizaciones</a>
             </div>
 
             {/* EMPRESA */}
             <div>
               <div className="text-[11px] font-extrabold text-slate-600 dark:text-slate-300 uppercase mb-5 tracking-[0.05em]">EMPRESA</div>
-              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-red-600 dark:hover:text-red-500 transition-colors">Sobre Nosotros</a>
-              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-red-600 dark:hover:text-red-500 transition-colors">Blog</a>
-              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-red-600 dark:hover:text-red-500 transition-colors">Casos de Éxito</a>
-              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-red-600 dark:hover:text-red-500 transition-colors">Trabaja con nosotros</a>
+              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-blue-600 dark:hover:text-blue-500 transition-colors">Sobre Nosotros</a>
+              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-blue-600 dark:hover:text-blue-500 transition-colors">Blog</a>
+              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-blue-600 dark:hover:text-blue-500 transition-colors">Casos de Éxito</a>
+              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-blue-600 dark:hover:text-blue-500 transition-colors">Trabaja con nosotros</a>
             </div>
 
             {/* RECURSOS */}
             <div>
               <div className="text-[11px] font-extrabold text-slate-600 dark:text-slate-300 uppercase mb-5 tracking-[0.05em]">RECURSOS</div>
-              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-red-600 dark:hover:text-red-500 transition-colors">Documentación</a>
-              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-red-600 dark:hover:text-red-500 transition-colors">Centro de Ayuda</a>
-              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-red-600 dark:hover:text-red-500 transition-colors">Videos Tutoriales</a>
-              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-red-600 dark:hover:text-red-500 transition-colors">API</a>
+              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-blue-600 dark:hover:text-blue-500 transition-colors">Documentación</a>
+              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-blue-600 dark:hover:text-blue-500 transition-colors">Centro de Ayuda</a>
+              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-blue-600 dark:hover:text-blue-500 transition-colors">Videos Tutoriales</a>
+              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-blue-600 dark:hover:text-blue-500 transition-colors">API</a>
             </div>
 
             {/* LEGAL */}
             <div>
               <div className="text-[11px] font-extrabold text-slate-600 dark:text-slate-300 uppercase mb-5 tracking-[0.05em]">LEGAL</div>
-              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-red-600 dark:hover:text-red-500 transition-colors">Términos y Condiciones</a>
-              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-red-600 dark:hover:text-red-500 transition-colors">Política de Privacidad</a>
-              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-red-600 dark:hover:text-red-500 transition-colors">Política de Cookies</a>
+              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-blue-600 dark:hover:text-blue-500 transition-colors">Términos y Condiciones</a>
+              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-blue-600 dark:hover:text-blue-500 transition-colors">Política de Privacidad</a>
+              <a href="#" className="block text-slate-500 dark:text-slate-400 mb-3 no-underline text-[13px] font-medium hover:text-blue-600 dark:hover:text-blue-500 transition-colors">Política de Cookies</a>
             </div>
 
             {/* SOPORTE */}
@@ -901,7 +901,7 @@ export default async function HomePage() {
               <div className="border border-slate-200 dark:border-slate-800 rounded-2xl p-6 bg-white dark:bg-slate-900 shadow-[0_2px_12px_rgba(0,0,0,0.02)] dark:shadow-none">
                 <div className="text-[13px] font-extrabold text-slate-900 dark:text-white mb-1">¿Necesitas ayuda?</div>
                 <div className="text-[13px] text-slate-600 dark:text-slate-400 mb-4 font-semibold">Estamos aquí para ti</div>
-                <button className="btn-red w-full py-3 text-[13px] font-bold rounded-lg bg-red-600 hover:bg-red-700 text-white border-none cursor-pointer flex justify-center mb-4 transition-colors">
+                <button className="btn-red w-full py-3 text-[13px] font-bold rounded-lg bg-blue-600 hover:bg-blue-700 text-white border-none cursor-pointer flex justify-center mb-4 transition-colors">
                   Contactar Soporte
                 </button>
                 <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 font-bold">
