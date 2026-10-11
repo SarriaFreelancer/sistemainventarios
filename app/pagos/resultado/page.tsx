@@ -13,11 +13,18 @@ function PaymentResultContent() {
   const [status, setStatus] = useState<"LOADING" | "SUCCESS" | "ERROR">("LOADING");
 
   useEffect(() => {
-    // Si el usuario inició el pago desde localhost y Bold retornó por ngrok debido a HTTPS,
+    // Si el usuario inició el pago desde localhost y Bold retornó por un dominio público (o ngrok) debido a la validación HTTPS,
     // devolver inmediatamente el navegador a su origen original (ej. http://localhost:3000)
-    const originalOrigin = typeof window !== 'undefined' ? localStorage.getItem('gns_checkout_origin') : null;
+    const originParam = searchParams.get("origin");
+    const originalOrigin = typeof window !== 'undefined'
+      ? (originParam || localStorage.getItem('gns_checkout_origin'))
+      : null;
+
     if (originalOrigin && originalOrigin !== window.location.origin && typeof window !== 'undefined') {
-      window.location.href = `${originalOrigin}/pagos/resultado${window.location.search}`;
+      const params = new URLSearchParams(window.location.search);
+      params.delete("origin");
+      const qs = params.toString() ? `?${params.toString()}` : "";
+      window.location.href = `${originalOrigin}/pagos/resultado${qs}`;
       return;
     }
 
@@ -59,7 +66,10 @@ function PaymentResultContent() {
   }, [searchParams, update]);
 
   const handleGoToDashboard = () => {
-    const originalOrigin = (typeof window !== 'undefined' && localStorage.getItem('gns_checkout_origin')) || window.location.origin;
+    const originParam = searchParams.get("origin");
+    const originalOrigin =
+      (typeof window !== "undefined" && (originParam || localStorage.getItem("gns_checkout_origin"))) ||
+      window.location.origin;
     window.location.href = `${originalOrigin}/dashboard`;
   };
 
@@ -102,7 +112,10 @@ function PaymentResultContent() {
           </p>
           <button
             onClick={() => {
-              const originalOrigin = (typeof window !== 'undefined' && localStorage.getItem('gns_checkout_origin')) || window.location.origin;
+              const originParam = searchParams.get("origin");
+              const originalOrigin =
+                (typeof window !== "undefined" && (originParam || localStorage.getItem("gns_checkout_origin"))) ||
+                window.location.origin;
               window.location.href = `${originalOrigin}/#planes`;
             }}
             className="w-full py-4 rounded-xl bg-slate-100 text-slate-800 font-bold hover:bg-slate-200 transition cursor-pointer"

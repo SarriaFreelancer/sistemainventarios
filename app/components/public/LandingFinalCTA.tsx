@@ -15,7 +15,7 @@ export default function LandingFinalCTA() {
         {/* Badge */}
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-xs font-black uppercase tracking-wider">
           <ShieldCheck size={14} className="text-blue-400" />
-          Pruébalo Gratis Durante 30 Días
+          Pruébalo Gratis Durante 15 Días
         </div>
 
         {/* Title */}

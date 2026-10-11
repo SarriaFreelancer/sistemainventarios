@@ -346,7 +346,26 @@ export function InteractivePricing({
         "data-api-key",
         process.env.NEXT_PUBLIC_BOLD_API_KEY || "nQW8_xd1GDkl2AjvVHUl_pWo6anZyRTMQ-OYy0TSDUU"
       );
-      const redirectUrl = `${window.location.origin}/pagos/resultado`;
+
+      // Bold Payment Button valida estrictamente que data-redirection-url sea una URL válida con protocolo HTTPS y TLD público.
+      // 'http://localhost:3000/...' es rechazado por el validador de Bold porque localhost no posee TLD y usa HTTP.
+      let redirectUrl = process.env.NEXT_PUBLIC_BOLD_REDIRECT_URL;
+
+      if (!redirectUrl) {
+        const isLocalhost =
+          typeof window !== "undefined" &&
+          (window.location.hostname === "localhost" ||
+            window.location.hostname === "127.0.0.1" ||
+            !window.location.hostname.includes("."));
+
+        if (isLocalhost) {
+          // En entorno local (localhost), usamos la URL HTTPS pública con ?origin= para que el resultado devuelva al usuario a localhost.
+          const publicBase = process.env.NEXT_PUBLIC_APP_URL || "https://gns.sarriatech.tech";
+          redirectUrl = `${publicBase}/pagos/resultado?origin=${encodeURIComponent(window.location.origin)}`;
+        } else {
+          redirectUrl = `${window.location.origin}/pagos/resultado`;
+        }
+      }
 
       script.setAttribute("data-redirection-url", redirectUrl);
       script.setAttribute("data-render-mode", "embedded");
