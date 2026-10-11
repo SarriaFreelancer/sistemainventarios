@@ -240,14 +240,14 @@ export function EnterpriseClient({
       <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         {/* Branch Filter */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">
-            <Building2 className="w-4 h-4 text-blue-500" />
+          <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 text-xs font-bold uppercase tracking-wider">
+            <Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             Sede:
           </div>
           <select
             value={selectedBranch}
             onChange={(e) => handleFilterChange(e.target.value, selectedPeriod)}
-            className="px-3 py-2 text-sm font-medium bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+            className="px-3 py-2 text-sm font-semibold bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-xs"
             disabled={isPending}
           >
             <option value="ALL">🌐 Todas las Sedes (Consolidado Red)</option>
@@ -279,10 +279,10 @@ export function EnterpriseClient({
                     p.id === "custom" ? endDate : undefined
                   )
                 }
-                className={`px-3 py-1.5 rounded-md font-medium transition-all ${
+                className={`px-3 py-1.5 rounded-md font-bold transition-all ${
                   selectedPeriod === p.id
                     ? "bg-blue-600 text-white shadow-sm"
-                    : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                    : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
                 {p.label}
@@ -296,18 +296,18 @@ export function EnterpriseClient({
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg"
+                className="px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 font-medium"
               />
-              <span className="text-xs text-slate-400">-</span>
+              <span className="text-xs text-slate-500 font-bold">-</span>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg"
+                className="px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 font-medium"
               />
               <button
                 onClick={() => handleFilterChange(selectedBranch, "custom", startDate, endDate)}
-                className="px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700"
+                className="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 shadow-xs"
               >
                 Filtrar
               </button>
@@ -323,9 +323,9 @@ export function EnterpriseClient({
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Sales KPI */}
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:border-blue-500/40 transition-all">
+        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:border-blue-500/50 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
               Ventas Consolidadas
             </span>
             <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
@@ -333,20 +333,20 @@ export function EnterpriseClient({
             </div>
           </div>
           <div className="mt-3">
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
+            <h3 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
               {formatCurrency(kpis.totalRevenue)}
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
-              <ShoppingCart className="w-3.5 h-3.5 text-slate-400" />
-              {kpis.totalSalesCount} transacciones completadas
+            <p className="text-xs text-slate-600 dark:text-slate-300 font-medium mt-1.5 flex items-center gap-1.5">
+              <ShoppingCart className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+              <span><strong className="text-slate-900 dark:text-slate-100 font-bold">{kpis.totalSalesCount}</strong> transacciones completadas</span>
             </p>
           </div>
         </div>
 
         {/* Top Performing Branch KPI */}
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:border-emerald-500/40 transition-all">
+        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:border-emerald-500/50 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
               Sede Líder en Ventas
             </span>
             <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
@@ -354,19 +354,20 @@ export function EnterpriseClient({
             </div>
           </div>
           <div className="mt-3">
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white truncate">
+            <h3 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight truncate">
               {kpis.topSellingBranch}
             </h3>
-            <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mt-1">
-              {formatCurrency(kpis.topSellingBranchRevenue)} facturados
+            <p className="text-xs text-emerald-700 dark:text-emerald-400 font-bold mt-1.5 flex items-center gap-1.5">
+              <Trophy className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span>{formatCurrency(kpis.topSellingBranchRevenue)} facturados</span>
             </p>
           </div>
         </div>
 
         {/* Total Stock in Network */}
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:border-indigo-500/40 transition-all">
+        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:border-indigo-500/50 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
               Stock Total en Red
             </span>
             <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
@@ -374,19 +375,20 @@ export function EnterpriseClient({
             </div>
           </div>
           <div className="mt-3">
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
+            <h3 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
               {kpis.totalStockCount.toLocaleString()} unids
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              En {kpis.activeBranchesCount} sedes operativas
+            <p className="text-xs text-slate-600 dark:text-slate-300 font-medium mt-1.5 flex items-center gap-1.5">
+              <Boxes className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+              <span>En <strong className="text-slate-900 dark:text-slate-100 font-bold">{kpis.activeBranchesCount}</strong> sedes operativas</span>
             </p>
           </div>
         </div>
 
         {/* Consolidated Inventory Value */}
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:border-purple-500/40 transition-all">
+        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:border-purple-500/50 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
               Valorización Inventario
             </span>
             <div className="p-2 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
@@ -394,11 +396,12 @@ export function EnterpriseClient({
             </div>
           </div>
           <div className="mt-3">
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
+            <h3 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
               {formatCurrency(kpis.totalInventoryValue)}
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Costo acumulado de existencias
+            <p className="text-xs text-slate-600 dark:text-slate-300 font-medium mt-1.5 flex items-center gap-1.5">
+              <TrendingUp className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
+              <span>Costo acumulado de existencias</span>
             </p>
           </div>
         </div>
@@ -407,14 +410,14 @@ export function EnterpriseClient({
       {/* Comparative Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Sales by Branch Comparative Chart */}
-        <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+        <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <BarChart2 className="w-5 h-5 text-blue-500" />
+                <BarChart2 className="w-5 h-5 text-blue-600 dark:text-blue-500" />
                 Ventas por Sede (Comparativo)
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-0.5">
                 Monto recaudado por cada sede en el período
               </p>
             </div>
@@ -422,25 +425,35 @@ export function EnterpriseClient({
 
           <div className="h-72 w-full">
             {branchRanking.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-slate-400">
-                <Building2 className="w-10 h-10 mb-2 opacity-30" />
+              <div className="h-full flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 font-medium">
+                <Building2 className="w-10 h-10 mb-2 opacity-40 text-blue-500" />
                 <p className="text-sm">Sin ventas registradas en el período seleccionado</p>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={branchRanking} margin={{ top: 10, right: 20, left: 10, bottom: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
-                  <XAxis dataKey="branchName" tick={{ fontSize: 11 }} interval={0} angle={-15} textAnchor="end" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" opacity={0.5} />
+                  <XAxis dataKey="branchName" tick={{ fill: "#334155", fontSize: 11, fontWeight: 600 }} interval={0} angle={-15} textAnchor="end" stroke="#94a3b8" />
                   <YAxis
                     tickFormatter={(val) =>
                       val >= 1000000 ? `$${(val / 1000000).toFixed(1)}M` : `$${(val / 1000).toFixed(0)}k`
                     }
-                    tick={{ fontSize: 11 }}
+                    tick={{ fill: "#334155", fontSize: 11, fontWeight: 600 }}
+                    stroke="#94a3b8"
                   />
                   <Tooltip
-                    cursor={{ fill: "transparent" }}
+                    cursor={{ fill: "rgba(148, 163, 184, 0.15)" }}
                     formatter={(val: any) => [formatCurrency(val), "Ventas"]}
                     labelFormatter={(label) => `Sede: ${label}`}
+                    contentStyle={{
+                      backgroundColor: "#ffffff",
+                      borderColor: "#e2e8f0",
+                      borderRadius: "0.75rem",
+                      boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)",
+                      padding: "8px 12px",
+                    }}
+                    itemStyle={{ color: "#0f172a", fontWeight: 700 }}
+                    labelStyle={{ color: "#334155", fontWeight: 700, marginBottom: "4px" }}
                   />
                   <Bar dataKey="revenue" fill="#3b82f6" radius={[6, 6, 0, 0]} name="Ventas ($ COP)" />
                 </BarChart>
@@ -450,14 +463,14 @@ export function EnterpriseClient({
         </div>
 
         {/* Products by Branch Comparative Chart */}
-        <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+        <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Boxes className="w-5 h-5 text-indigo-500" />
+                <Boxes className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                 Total Productos por Sede (Catálogo)
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-0.5">
                 Cantidad de referencias registradas y disponibles en cada sede
               </p>
             </div>
@@ -468,23 +481,32 @@ export function EnterpriseClient({
 
           <div className="h-72 w-full">
             {branchInventory.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-slate-400">
-                <Boxes className="w-10 h-10 mb-2 opacity-30" />
+              <div className="h-full flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 font-medium">
+                <Boxes className="w-10 h-10 mb-2 opacity-40 text-indigo-500" />
                 <p className="text-sm">Sin productos registrados en las sedes</p>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={branchInventory} margin={{ top: 10, right: 20, left: 10, bottom: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
-                  <XAxis dataKey="branchName" tick={{ fontSize: 11 }} interval={0} angle={-15} textAnchor="end" />
-                  <YAxis tick={{ fontSize: 11 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" opacity={0.5} />
+                  <XAxis dataKey="branchName" tick={{ fill: "#334155", fontSize: 11, fontWeight: 600 }} interval={0} angle={-15} textAnchor="end" stroke="#94a3b8" />
+                  <YAxis tick={{ fill: "#334155", fontSize: 11, fontWeight: 600 }} stroke="#94a3b8" />
                   <Tooltip
-                    cursor={{ fill: "transparent" }}
+                    cursor={{ fill: "rgba(148, 163, 184, 0.15)" }}
                     formatter={(val: any, name: any) => [
                       `${val} referencias`,
                       "Productos Registrados"
                     ]}
                     labelFormatter={(label) => `Sede: ${label}`}
+                    contentStyle={{
+                      backgroundColor: "#ffffff",
+                      borderColor: "#e2e8f0",
+                      borderRadius: "0.75rem",
+                      boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)",
+                      padding: "8px 12px",
+                    }}
+                    itemStyle={{ color: "#0f172a", fontWeight: 700 }}
+                    labelStyle={{ color: "#334155", fontWeight: 700, marginBottom: "4px" }}
                   />
                   <Bar dataKey="count" fill="#6366f1" radius={[6, 6, 0, 0]} name="Productos" />
                 </BarChart>
@@ -494,14 +516,14 @@ export function EnterpriseClient({
         </div>
 
         {/* Timeline Trends Chart */}
-        <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm lg:col-span-2">
+        <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-sm lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-emerald-500" />
+                <TrendingUp className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                 Tendencia Temporal de Ventas por Sede
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-0.5">
                 Evolución diaria de ingresos desagregada por cada sede
               </p>
             </div>
@@ -509,8 +531,8 @@ export function EnterpriseClient({
 
           <div className="h-72 w-full">
             {timelineData.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-slate-400">
-                <TrendingUp className="w-10 h-10 mb-2 opacity-30" />
+              <div className="h-full flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 font-medium">
+                <TrendingUp className="w-10 h-10 mb-2 opacity-40 text-emerald-500" />
                 <p className="text-sm">Sin datos temporales en este período</p>
               </div>
             ) : (
@@ -522,15 +544,27 @@ export function EnterpriseClient({
                       <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
-                  <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" opacity={0.5} />
+                  <XAxis dataKey="date" tick={{ fill: "#334155", fontSize: 11, fontWeight: 600 }} stroke="#94a3b8" />
                   <YAxis
                     tickFormatter={(val) =>
                       val >= 1000000 ? `$${(val / 1000000).toFixed(1)}M` : `$${(val / 1000).toFixed(0)}k`
                     }
-                    tick={{ fontSize: 11 }}
+                    tick={{ fill: "#334155", fontSize: 11, fontWeight: 600 }}
+                    stroke="#94a3b8"
                   />
-                  <Tooltip formatter={(val: any, name: any) => [formatCurrency(val), name]} />
+                  <Tooltip
+                    formatter={(val: any, name: any) => [formatCurrency(val), name]}
+                    contentStyle={{
+                      backgroundColor: "#ffffff",
+                      borderColor: "#e2e8f0",
+                      borderRadius: "0.75rem",
+                      boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)",
+                      padding: "8px 12px",
+                    }}
+                    itemStyle={{ color: "#0f172a", fontWeight: 700 }}
+                    labelStyle={{ color: "#334155", fontWeight: 700, marginBottom: "4px" }}
+                  />
                   <Legend />
                   {branches.map((b: any, idx: number) => (
                     <Area
@@ -551,14 +585,14 @@ export function EnterpriseClient({
       </div>
 
       {/* Branch Performance Ranking Table */}
-      <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+      <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
             <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <Trophy className="w-5 h-5 text-amber-500" />
               Ranking de Rendimiento por Sede
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-0.5">
               Ordenado de la sede con mayor facturación hasta la de menor volumen
             </p>
           </div>
@@ -567,7 +601,7 @@ export function EnterpriseClient({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-800 text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold bg-slate-50/50 dark:bg-slate-800/30">
+              <tr className="border-b border-slate-200 dark:border-slate-800 text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300 font-bold bg-slate-100/90 dark:bg-slate-800/50">
                 <th className="py-3 px-4"># Rank</th>
                 <th className="py-3 px-4">Sede / Ubicación</th>
                 <th className="py-3 px-4">Total Ventas ($)</th>
@@ -580,7 +614,7 @@ export function EnterpriseClient({
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {branchRanking.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-400">
+                  <td colSpan={7} className="py-8 text-center text-slate-600 dark:text-slate-400 font-medium">
                     No hay sedes con actividad en este período.
                   </td>
                 </tr>
@@ -597,68 +631,68 @@ export function EnterpriseClient({
                     >
                       <td className="py-3.5 px-4 font-bold">
                         {isTop1 ? (
-                          <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-extrabold border border-amber-500/40">
+                          <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-400 text-xs font-black border border-amber-500/40">
                             🥇 1
                           </span>
                         ) : isTop2 ? (
-                          <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-300/30 text-slate-700 dark:text-slate-300 text-xs font-bold">
+                          <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-300/40 text-slate-800 dark:text-slate-200 text-xs font-bold border border-slate-300 dark:border-slate-700">
                             🥈 2
                           </span>
                         ) : isTop3 ? (
-                          <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-700/20 text-amber-700 dark:text-amber-500 text-xs font-bold">
+                          <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-700/20 text-amber-800 dark:text-amber-400 text-xs font-bold border border-amber-700/30">
                             🥉 3
                           </span>
                         ) : (
-                          <span className="text-slate-400 font-medium pl-2">{index + 1}</span>
+                          <span className="text-slate-600 dark:text-slate-400 font-bold pl-2">{index + 1}</span>
                         )}
                       </td>
                       <td className="py-3.5 px-4">
-                        <div className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
-                          <Building2 className="w-4 h-4 text-slate-400" />
+                        <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                          <Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                           {b.branchName}
                         </div>
-                        <div className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
-                          <MapPin className="w-3 h-3" />
+                        <div className="text-xs text-slate-600 dark:text-slate-400 flex items-center gap-1 mt-0.5 font-medium">
+                          <MapPin className="w-3 h-3 text-slate-500 dark:text-slate-400" />
                           {b.city || "Principal"}
                         </div>
                       </td>
-                      <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white">
+                      <td className="py-3.5 px-4 font-black text-slate-900 dark:text-white">
                         {formatCurrency(b.revenue)}
                       </td>
-                      <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300">
+                      <td className="py-3.5 px-4 font-semibold text-slate-700 dark:text-slate-200">
                         {b.salesCount} ventas
                       </td>
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-2">
-                          <div className="w-16 h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                          <div className="w-16 h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
                             <div
                               className="h-full bg-blue-600 rounded-full"
                               style={{ width: `${Math.min(b.marketShare, 100)}%` }}
                             />
                           </div>
-                          <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
                             {b.marketShare}%
                           </span>
                         </div>
                       </td>
-                      <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300">
-                        <div className="font-medium text-xs truncate max-w-[180px]">
+                      <td className="py-3.5 px-4 text-slate-800 dark:text-slate-200">
+                        <div className="font-bold text-xs truncate max-w-[180px]">
                           {b.topProduct}
                         </div>
                         {b.topProductQty > 0 && (
-                          <div className="text-[11px] text-slate-400">
+                          <div className="text-[11px] text-slate-600 dark:text-slate-400 font-medium mt-0.5">
                             {b.topProductQty} unids vendidas ({formatCurrency(b.topProductRevenue)})
                           </div>
                         )}
                       </td>
                       <td className="py-3.5 px-4 text-right">
                         <span
-                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
+                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${
                             b.marketShare >= 30
                               ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300"
                               : b.marketShare >= 15
                               ? "bg-blue-100 text-blue-800 dark:bg-blue-950/50 dark:text-blue-300"
-                              : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                              : "bg-slate-200/80 text-slate-800 dark:bg-slate-800 dark:text-slate-200"
                           }`}
                         >
                           {b.marketShare >= 30 ? "Alto Rendimiento" : b.marketShare >= 15 ? "Medio" : "Bajo"}
@@ -674,14 +708,14 @@ export function EnterpriseClient({
       </div>
 
       {/* Branch Inventory Breakdown Cards */}
-      <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+      <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Boxes className="w-5 h-5 text-indigo-500" />
+              <Boxes className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
               Inventario & Existencias por Sede
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-0.5">
               Desglose de artículos, unidades físicas y valor monetario por cada sede
             </p>
           </div>
@@ -691,28 +725,32 @@ export function EnterpriseClient({
           {branchInventory.map((item: any, idx: number) => (
             <div
               key={idx}
-              className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/60"
+              className="p-5 rounded-xl bg-slate-50/90 dark:bg-slate-800/60 border border-slate-200/90 dark:border-slate-700/60 shadow-xs hover:border-blue-400/50 dark:hover:border-blue-500/50 transition-all"
             >
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-sm text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
-                  <Building2 className="w-4 h-4 text-blue-500" />
+              <div className="flex items-center justify-between pb-3 border-b border-slate-200/80 dark:border-slate-700/60">
+                <span className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                   {item.branchName}
                 </span>
-                <span className="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 font-medium">
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300 font-bold border border-blue-200 dark:border-blue-900/50">
                   {item.count} ítems
                 </span>
               </div>
 
-              <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <span className="text-slate-400 block">Stock Físico:</span>
-                  <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">
-                    {item.stock.toLocaleString()} unids
+              <div className="mt-3.5 grid grid-cols-2 gap-3 text-xs">
+                <div className="bg-white dark:bg-slate-900/60 p-2.5 rounded-lg border border-slate-200/70 dark:border-slate-800">
+                  <span className="text-slate-600 dark:text-slate-400 font-bold block text-[11px] uppercase tracking-wider">
+                    Stock Físico
+                  </span>
+                  <span className="font-black text-slate-900 dark:text-white text-base block mt-0.5">
+                    {item.stock.toLocaleString()} <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">unids</span>
                   </span>
                 </div>
-                <div>
-                  <span className="text-slate-400 block">Valorización:</span>
-                  <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">
+                <div className="bg-white dark:bg-slate-900/60 p-2.5 rounded-lg border border-slate-200/70 dark:border-slate-800">
+                  <span className="text-slate-600 dark:text-slate-400 font-bold block text-[11px] uppercase tracking-wider">
+                    Valorización
+                  </span>
+                  <span className="font-black text-slate-900 dark:text-white text-base block mt-0.5">
                     {formatCurrency(item.valuation)}
                   </span>
                 </div>
@@ -887,12 +925,12 @@ export function EnterpriseClient({
                 </label>
               </div>
 
-              <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-lg text-xs text-slate-600 dark:text-slate-400 space-y-1">
-                <p className="font-semibold text-slate-800 dark:text-slate-200">
+              <div className="p-3 bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 rounded-lg text-xs text-slate-700 dark:text-slate-300 space-y-1">
+                <p className="font-bold text-slate-900 dark:text-slate-100">
                   ¿Cómo funciona la migración de catálogo?
                 </p>
-                <p>
-                  Replicará todos los productos de la <strong>Sede Principal</strong> en la sede destino con un código diferenciado (ej: <code>PROD-S2</code>) y los conectará a la bodega correspondiente para permitir ventas independientes o traslados.
+                <p className="leading-relaxed">
+                  Replicará todos los productos de la <strong className="text-slate-900 dark:text-white">Sede Principal</strong> en la sede destino con un código diferenciado (ej: <code className="px-1 py-0.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded font-mono text-[11px]">PROD-S2</code>) y los conectará a la bodega correspondiente para permitir ventas independientes o traslados.
                 </p>
               </div>
 
