@@ -32,17 +32,39 @@ export async function POST(request: Request) {
           data: { status: 'COMPLETED' }
         });
 
-        // 2. Activate Company
-        const rawPlanId = payment.planId ? payment.planId.toLowerCase() : 'basico';
+        // 2. Activate Company with Plan Limits
+        const { getPlanLimits } = await import('@/lib/plans');
+        const limits = getPlanLimits(payment.planId);
+
         await tx.company.update({
           where: { id: payment.companyId },
           data: {
             status: 'ACTIVE',
-            planId: payment.planId
+            planId: payment.planId,
+            isEnterprise: limits.isEnterprise,
+            maxBranches: limits.maxBranches,
+            maxUsers: limits.maxUsers,
+            maxProducts: limits.maxProducts,
           }
         });
 
+        // Asegurar que exista la sede principal si no tiene sedes
+        const existingBranch = await tx.branch.findFirst({
+          where: { companyId: payment.companyId }
+        });
+        if (!existingBranch) {
+          await tx.branch.create({
+            data: {
+              name: 'Sede Principal',
+              companyId: payment.companyId,
+              isMain: true,
+              code: 'SEDE-01'
+            }
+          });
+        }
+
         // 3. Enable modules according to plan settings or active modules
+        const rawPlanId = payment.planId ? payment.planId.toLowerCase() : 'basico';
         const modulesSetting = await tx.setting.findUnique({
           where: { key: `plan_${rawPlanId}_modules` }
         });
