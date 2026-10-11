@@ -84,19 +84,24 @@ export async function POST(request: Request) {
           return acc;
         }, {} as Record<string, string>);
 
-        const maxUsers = settingsMap[`plan_${rawPlanId}_max_users`] ? parseInt(settingsMap[`plan_${rawPlanId}_max_users`]) : (rawPlanId === 'premium' ? 999 : rawPlanId === 'intermedio' ? 5 : 2);
-        const maxProducts = settingsMap[`plan_${rawPlanId}_max_products`] ? parseInt(settingsMap[`plan_${rawPlanId}_max_products`]) : (rawPlanId === 'premium' ? 999999 : rawPlanId === 'intermedio' ? 1000 : 100);
-        const maxSalesPerMonth = settingsMap[`plan_${rawPlanId}_max_sales_per_month`] ? parseInt(settingsMap[`plan_${rawPlanId}_max_sales_per_month`]) : (rawPlanId === 'premium' ? 999999 : rawPlanId === 'intermedio' ? 999999 : 50);
+        const { getPlanLimits } = await import('@/lib/plans');
+        const limits = getPlanLimits(planId);
+
+        const maxUsers = settingsMap[`plan_${rawPlanId}_max_users`] ? parseInt(settingsMap[`plan_${rawPlanId}_max_users`]) : limits.maxUsers;
+        const maxProducts = settingsMap[`plan_${rawPlanId}_max_products`] ? parseInt(settingsMap[`plan_${rawPlanId}_max_products`]) : limits.maxProducts;
+        const maxSalesPerMonth = settingsMap[`plan_${rawPlanId}_max_sales_per_month`] ? parseInt(settingsMap[`plan_${rawPlanId}_max_sales_per_month`]) : 999999;
 
         const company = await tx.company.create({
           data: {
             name: trimmedCompanyName,
             planId: planId,
             status: 'SUSPENDED',
+            isEnterprise: limits.isEnterprise,
+            maxBranches: limits.maxBranches,
             maxUsers: maxUsers,
             maxProducts: maxProducts,
             maxSalesPerMonth: maxSalesPerMonth
-          }
+          } as any
         });
 
         const modulesKey = `plan_${rawPlanId}_modules`;
@@ -128,13 +133,23 @@ export async function POST(request: Request) {
           });
         }
 
+        const mainBranch = await tx.branch.create({
+          data: {
+            name: 'Sede Principal',
+            companyId: company.id,
+            isMain: true,
+            code: 'SEDE-01'
+          }
+        });
+
         const user = await tx.user.create({
           data: {
             name,
             email: normalizedEmail,
             password: hashedPassword,
             companyId: company.id,
-            roleId: adminRole.id
+            roleId: adminRole.id,
+            branchId: mainBranch.id
           }
         });
 

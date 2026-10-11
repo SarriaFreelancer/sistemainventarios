@@ -44,20 +44,19 @@ export async function POST(request: Request) {
         counter++;
       }
 
-      const rawPlanId = planId ? planId.toLowerCase() : 'basico';
-
-      const maxUsers = rawPlanId === 'premium' ? 999 : rawPlanId === 'intermedio' ? 5 : 2;
-      const maxProducts = rawPlanId === 'premium' ? 999999 : rawPlanId === 'intermedio' ? 1000 : 100;
-      const maxSalesPerMonth = rawPlanId === 'premium' ? 999999 : rawPlanId === 'intermedio' ? 999999 : 50;
+      const { getPlanLimits } = await import('@/lib/plans');
+      const limits = getPlanLimits(planId);
 
       company = await prisma.company.create({
         data: {
           name: uniqueCompanyName,
           planId: planId,
           status: 'SUSPENDED',
-          maxUsers,
-          maxProducts,
-          maxSalesPerMonth
+          isEnterprise: limits.isEnterprise,
+          maxBranches: limits.maxBranches,
+          maxUsers: limits.maxUsers,
+          maxProducts: limits.maxProducts,
+          maxSalesPerMonth: 999999
         } as any
       });
 

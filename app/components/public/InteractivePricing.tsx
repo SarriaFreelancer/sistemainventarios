@@ -1,99 +1,46 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Star, Crown, Send, Check, CheckCircle, ArrowRight, ArrowLeft, Loader2, ShieldCheck, X, Zap, Lock, CreditCard } from "lucide-react";
+import {
+  Star,
+  Crown,
+  Send,
+  Check,
+  CheckCircle,
+  ArrowRight,
+  ArrowLeft,
+  Loader2,
+  ShieldCheck,
+  X,
+  Zap,
+  Lock,
+  CreditCard,
+  Building2,
+  Sparkles,
+  Network,
+  HelpCircle,
+} from "lucide-react";
 import { errorAlert, successAlert } from "@/lib/sweetalert";
 import { signIn, getSession } from "next-auth/react";
 
-export function InteractivePricing({ planSettings = {}, allModules = [] }: { planSettings?: any, allModules?: any[] }) {
+export function InteractivePricing({
+  planSettings = {},
+  allModules = [],
+}: {
+  planSettings?: any;
+  allModules?: any[];
+}) {
   const boldContainerRef = useRef<HTMLDivElement>(null);
 
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
   const [step, setStep] = useState<"SELECT_PLAN" | "REGISTER" | "CHECKOUT">("SELECT_PLAN");
   const [authMode, setAuthMode] = useState<"REGISTER" | "LOGIN">("REGISTER");
 
-  // Dynamically build the plans based on the global settings
-  const buildFeatures = (planId: string) => {
-    const rawPlanId = planId.toLowerCase();
-    const maxUsers = planSettings[`plan_${rawPlanId}_max_users`] || (rawPlanId === 'premium' ? '999' : rawPlanId === 'intermedio' ? '5' : '2');
-    const maxProducts = planSettings[`plan_${rawPlanId}_max_products`] || (rawPlanId === 'premium' ? '999999' : rawPlanId === 'intermedio' ? '1000' : '100');
-    const maxSales = planSettings[`plan_${rawPlanId}_max_sales_per_month`] || (rawPlanId === 'premium' ? '999999' : rawPlanId === 'intermedio' ? '999999' : '999999');
+  // Ciclo de facturación: Mensual o Anual
+  const [billingCycle, setBillingCycle] = useState<"MONTHLY" | "ANNUAL">("MONTHLY");
 
-    let modulesList: string[] = [];
-    if (planSettings[`plan_${rawPlanId}_modules`]) {
-      try {
-        const moduleIds: number[] = JSON.parse(planSettings[`plan_${rawPlanId}_modules`]);
-        modulesList = allModules.filter(m => moduleIds.includes(m.id)).map(m => m.name);
-      } catch (e) {
-        modulesList = allModules.map(m => m.name);
-      }
-    } else {
-      if (rawPlanId === 'basico') {
-        modulesList = allModules.filter(m => ['Dashboard', 'Productos', 'Categorías', 'Grupos'].includes(m.name)).map(m => m.name);
-      } else if (rawPlanId === 'intermedio') {
-        modulesList = allModules.filter(m => !['CRM', 'RRHH', 'Auditoría', 'Reportes'].includes(m.name)).map(m => m.name);
-      } else {
-        modulesList = allModules.map(m => m.name);
-      }
-    }
-
-    const limits = [
-      `Hasta ${maxUsers} Usuarios`,
-      `Hasta ${maxProducts} Productos`,
-      maxSales === '999999' ? `Ventas ilimitadas` : `Hasta ${maxSales} Ventas por mes`
-    ];
-
-    return [...limits, ...modulesList];
-  };
-
-  const buildShortFeatures = (planId: string) => {
-    const rawPlanId = planId.toLowerCase();
-    const maxUsers = planSettings[`plan_${rawPlanId}_max_users`] || (rawPlanId === 'premium' ? '999' : rawPlanId === 'intermedio' ? '5' : '2');
-    const maxProducts = planSettings[`plan_${rawPlanId}_max_products`] || (rawPlanId === 'premium' ? '999999' : rawPlanId === 'intermedio' ? '1000' : '100');
-    const maxSales = planSettings[`plan_${rawPlanId}_max_sales_per_month`] || (rawPlanId === 'premium' ? '999999' : rawPlanId === 'intermedio' ? '999999' : '50');
-
-    let base = [
-      maxUsers === '999' ? "Usuarios Ilimitados" : `Hasta ${maxUsers} Usuarios`,
-      maxProducts === '999999' ? "Inventario Ilimitado" : `Inventario (${maxProducts} productos)`,
-      maxSales === '999999' ? "Ventas Ilimitadas" : `Ventas (${maxSales}/mes)`
-    ];
-
-    if (rawPlanId === 'basico') {
-      base.push("Soporte por Email", "Actualizaciones estándar");
-    } else if (rawPlanId === 'intermedio') {
-      base.push("Control de Gastos y Compras", "Soporte Prioritario");
-    } else if (rawPlanId === 'premium') {
-      base.push("Facturación Electrónica DIAN", "Reportes Avanzados e IA", "Soporte VIP 24/7");
-    }
-    return base;
-  };
-
-  const dynamicPlans = [
-    {
-      id: "basico",
-      name: "Plan Básico",
-      price: Number(planSettings?.plan_basico_price) || 49999,
-      shortFeatures: buildShortFeatures("basico"),
-      features: buildFeatures("basico"),
-      recommended: false
-    },
-    {
-      id: "intermedio",
-      name: "Plan Intermedio",
-      price: Number(planSettings?.plan_intermedio_price) || 89999,
-      shortFeatures: buildShortFeatures("intermedio"),
-      features: buildFeatures("intermedio"),
-      recommended: true
-    },
-    {
-      id: "premium",
-      name: "Plan Premium",
-      price: Number(planSettings?.plan_premium_price) || 129999,
-      shortFeatures: buildShortFeatures("premium"),
-      features: buildFeatures("premium"),
-      recommended: false
-    }
-  ];
+  // Categoría de planes: Estándar (1 Sede) vs Enterprise (Multi-Sedes)
+  const [planCategory, setPlanCategory] = useState<"STANDARD" | "ENTERPRISE">("STANDARD");
 
   const [showComparison, setShowComparison] = useState(false);
 
@@ -101,32 +48,31 @@ export function InteractivePricing({ planSettings = {}, allModules = [] }: { pla
     companyName: "",
     name: "",
     email: "",
-    password: ""
+    password: "",
   });
   const [loading, setLoading] = useState(false);
   const [userSession, setUserSession] = useState<any>(null);
 
   useEffect(() => {
-    // Verificar si ya hay una sesión activa al cargar
-    getSession().then(async session => {
+    getSession().then(async (session) => {
       if (session?.user) {
         setUserSession(session.user);
 
-        const isSuperAdmin = (session.user as any)?.role === 'SUPERADMIN';
-        const isSuspended = (session.user as any)?.companyStatus !== 'ACTIVE';
+        const isSuperAdmin = (session.user as any)?.role === "SUPERADMIN";
+        const isSuspended = (session.user as any)?.companyStatus !== "ACTIVE";
 
         if (!isSuperAdmin && isSuspended) {
-          const alreadyShown = sessionStorage.getItem('gns_welcome_plan_alert_shown');
+          const alreadyShown = sessionStorage.getItem("gns_welcome_plan_alert_shown");
           if (!alreadyShown) {
-            sessionStorage.setItem('gns_welcome_plan_alert_shown', 'true');
-            const Swal = (await import('sweetalert2')).default;
+            sessionStorage.setItem("gns_welcome_plan_alert_shown", "true");
+            const Swal = (await import("sweetalert2")).default;
             await Swal.fire({
-              icon: 'info',
-              title: '¡Bienvenido a GNS SarriaTech!',
-              text: 'Tu registro se ha completado exitosamente. Para activar tu sistema e ingresar al Dashboard, por favor selecciona tu plan de licencia y completa el pago.',
-              confirmButtonText: 'Elegir mi Plan',
-              confirmButtonColor: '#dc2626',
-              allowOutsideClick: false
+              icon: "info",
+              title: "¡Bienvenido a GNS SarriaTech!",
+              text: "Tu registro se ha completado exitosamente. Para activar tu sistema e ingresar al Dashboard, por favor selecciona tu plan de licencia y completa el pago.",
+              confirmButtonText: "Elegir mi Plan",
+              confirmButtonColor: "#dc2626",
+              allowOutsideClick: false,
             });
           }
         }
@@ -134,19 +80,170 @@ export function InteractivePricing({ planSettings = {}, allModules = [] }: { pla
     });
   }, []);
 
+  // Planes Estándar (1 Sede)
+  const standardPlans = [
+    {
+      id: "BASIC",
+      name: "Plan Básico",
+      badge: "Negocios Pequeños",
+      monthlyPrice: Number(planSettings?.plan_basico_price) || 49000,
+      annualPrice: Math.round((Number(planSettings?.plan_basico_price) || 49000) * 10), // 2 meses gratis
+      subtitle: "Para emprendedores que inician su control",
+      maxBranchesText: "1 Sede Principal",
+      shortFeatures: [
+        "Hasta 2 Usuarios concurrentes",
+        "Catálogo hasta 300 Productos",
+        "1 Sede Principal de Operación",
+        "Gestión de Stock, Precios y Ventas",
+        "Módulo de Clientes y Cobros",
+        "Soporte Estándar por Correo",
+      ],
+      recommended: false,
+    },
+    {
+      id: "INTERMEDIATE",
+      name: "Plan Intermedio",
+      badge: "MÁS POPULAR",
+      monthlyPrice: Number(planSettings?.plan_intermedio_price) || 89000,
+      annualPrice: Math.round((Number(planSettings?.plan_intermedio_price) || 89000) * 10), // 2 meses gratis
+      subtitle: "Para negocios consolidados en crecimiento",
+      maxBranchesText: "1 Sede Principal",
+      shortFeatures: [
+        "Hasta 5 Usuarios con control de roles",
+        "Catálogo hasta 1.000 Productos",
+        "1 Sede Principal de Operación",
+        "Control WMS Multibodega & Traslados",
+        "Módulo de Gastos, Compras y Proveedores",
+        "Alertas Inteligentes de Vencimiento y Stock",
+        "Soporte Prioritario",
+      ],
+      recommended: true,
+    },
+    {
+      id: "PREMIUM",
+      name: "Plan Premium",
+      badge: "MÁXIMO CONTROL",
+      monthlyPrice: Number(planSettings?.plan_premium_price) || 129000,
+      annualPrice: Math.round((Number(planSettings?.plan_premium_price) || 129000) * 10), // 2 meses gratis
+      subtitle: "Sin límites para empresas de alto rendimiento",
+      maxBranchesText: "1 Sede Principal",
+      shortFeatures: [
+        "Usuarios y Colaboradores ILIMITADOS",
+        "Productos e Inventario ILIMITADO",
+        "1 Sede Principal de Operación",
+        "Punto de Venta POS Rápido e Impresión",
+        "Facturación Electrónica DIAN Integrada",
+        "Módulos CRM, RRHH y Finanzas",
+        "Asistente IA Groq & Métricas Avanzadas",
+        "Soporte VIP 24/7",
+      ],
+      recommended: false,
+    },
+  ];
+
+  // Planes Enterprise Multi-Sedes
+  const enterprisePlans = [
+    {
+      id: "ENTERPRISE_2",
+      name: "Enterprise (2 Sedes)",
+      badge: "DUAL STORE",
+      monthlyPrice: 299000,
+      annualPrice: 2990000, // 2 meses gratis
+      subtitle: "Para negocios con 2 puntos de venta o sucursales",
+      maxBranchesText: "Hasta 2 Sedes Activas",
+      shortFeatures: [
+        "Hasta 2 Sedes / Sucursales Activas",
+        "Usuarios y Empleados ILIMITADOS",
+        "Inventario y Catálogo ILIMITADO",
+        "Tablero Consolidado Multi-Sedes en Tiempo Real",
+        "Aislamiento o Replicación de Productos",
+        "Traslados directos entre sucursales",
+        "Facturación independiente por sede",
+      ],
+      recommended: false,
+    },
+    {
+      id: "ENTERPRISE_5",
+      name: "Enterprise (5 Sedes)",
+      badge: "RECOMENDADO MULTI-SEDES",
+      monthlyPrice: 499000,
+      annualPrice: 4990000, // 2 meses gratis
+      subtitle: "Para redes comerciales y cadenas de sucursales",
+      maxBranchesText: "Hasta 5 Sedes Activas",
+      shortFeatures: [
+        "Hasta 5 Sedes / Sucursales Activas",
+        "Usuarios y Empleados ILIMITADOS",
+        "Inventario y Catálogo ILIMITADO",
+        "Ranking de Sedes Líderes en Ventas",
+        "Comparativas gráficas de facturación",
+        "Navegación fluida de sedes para Administradores",
+        "Auditoría y trazabilidad por sucursal",
+        "Soporte Enterprise VIP Prioritario",
+      ],
+      recommended: true,
+    },
+    {
+      id: "ENTERPRISE_10",
+      name: "Enterprise (10 Sedes)",
+      badge: "ALTA ESCALA",
+      monthlyPrice: 799000,
+      annualPrice: 7990000, // 2 meses gratis
+      subtitle: "Para empresas con amplia cobertura regional",
+      maxBranchesText: "Hasta 10 Sedes Activas",
+      shortFeatures: [
+        "Hasta 10 Sedes / Sucursales Activas",
+        "Usuarios y Empleados ILIMITADOS",
+        "Inventario y Catálogo ILIMITADO",
+        "Consolidado global SaaS + Vista Empresa",
+        "Control WMS avanzado por bodega y sede",
+        "Permisos jerárquicos por sede o globales",
+        "Reportes contables y financieros por sucursal",
+        "Gerente de Cuenta Asignado",
+      ],
+      recommended: false,
+    },
+    {
+      id: "ENTERPRISE_UNLIMITED",
+      name: "Enterprise Ilimitado",
+      badge: "CORPORATIVO TOTAL",
+      monthlyPrice: 1199000,
+      annualPrice: 11990000, // 2 meses gratis
+      subtitle: "Para grandes franquicias y cadenas a nivel nacional",
+      maxBranchesText: "Sedes ILIMITADAS",
+      shortFeatures: [
+        "Sedes y Puntos de Venta ILIMITADOS",
+        "Usuarios y Operaciones ILIMITADAS",
+        "Inventario y Productos ILIMITADOS",
+        "Arquitectura dedicada de alto rendimiento",
+        "Conectores y API personalizada",
+        "Capacitación empresarial a equipos",
+        "SLA de disponibilidad 99.9% garantizado",
+        "Soporte 24/7 con Ingeniero Dedicado",
+      ],
+      recommended: false,
+    },
+  ];
+
+  const currentDisplayPlans = planCategory === "STANDARD" ? standardPlans : enterprisePlans;
+
   const startCheckoutProcess = async (plan: any, isPreLoggedIn = false) => {
-    setSelectedPlan(plan);
+    const finalPrice = billingCycle === "ANNUAL" ? plan.annualPrice : plan.monthlyPrice;
+    const planWithSelectedPrice = {
+      ...plan,
+      price: finalPrice,
+      billingCycle,
+    };
+
+    setSelectedPlan(planWithSelectedPrice);
     setLoading(true);
 
-    // Obtener la sesión más reciente del usuario
     const session = await getSession();
     const activeUser = session?.user || userSession;
 
-    // Si ya tiene sesión iniciada, pasar directo a la pasarela de pagos
     if (isPreLoggedIn || activeUser) {
       if (session?.user) setUserSession(session.user);
       setStep("CHECKOUT");
-      await generateOrderAndShowBold(plan);
+      await generateOrderAndShowBold(planWithSelectedPrice);
     } else {
       setStep("REGISTER");
     }
@@ -158,17 +255,21 @@ export function InteractivePricing({ planSettings = {}, allModules = [] }: { pla
       const res = await fetch("/api/payments/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planId: plan.id, amount: plan.price })
+        body: JSON.stringify({
+          planId: plan.id,
+          amount: plan.price,
+          billingCycle: plan.billingCycle || billingCycle,
+        }),
       });
       const data = await res.json();
       if (res.ok) {
         injectBoldScript(data.orderId, data.hash, data.amountStr, plan);
       } else {
-        errorAlert("Error", data.message || "Error al crear la orden");
+        errorAlert("Error", data.message || "Error al crear la orden de pago");
         setStep("SELECT_PLAN");
       }
     } catch (e) {
-      errorAlert("Error", "Error de red al generar la orden");
+      errorAlert("Error", "Error de conexión al generar la orden de pago");
       setStep("SELECT_PLAN");
     }
   };
@@ -186,52 +287,53 @@ export function InteractivePricing({ planSettings = {}, allModules = [] }: { pla
           body: JSON.stringify({
             ...formData,
             planId: selectedPlan.id,
-            amount: selectedPlan.price
-          })
+            amount: selectedPlan.price,
+            billingCycle: selectedPlan.billingCycle || billingCycle,
+          }),
         });
 
         const data = await res.json();
         if (res.ok) {
-          successAlert("Registro Exitoso", "Procediendo a la pasarela de pagos...");
-          // Iniciar sesión silenciosamente para mantenerlo conectado tras pagar
-          await signIn("credentials", { redirect: false, email: formData.email, password: formData.password });
+          successAlert("Registro Exitoso", "Procediendo a la pasarela de pagos segura...");
+          await signIn("credentials", {
+            redirect: false,
+            email: formData.email,
+            password: formData.password,
+          });
           setStep("CHECKOUT");
           injectBoldScript(data.orderId, data.hash, data.amountStr);
         } else {
-          errorAlert("Error", data.message || "Error al registrar");
+          errorAlert("Error", data.message || "Error al registrar la cuenta");
         }
       } else {
-        // Modo LOGIN
         const result = await signIn("credentials", {
           redirect: false,
           email: formData.email,
-          password: formData.password
+          password: formData.password,
         });
 
         if (result?.error) {
-          errorAlert("Error", "Credenciales inválidas");
+          errorAlert("Error", "Credenciales incorrectas");
         } else {
-          successAlert("Sesión Iniciada", "Procediendo al pago...");
+          successAlert("Sesión Iniciada", "Procediendo al pago seguro...");
           const session = await getSession();
           if (session?.user) {
             setUserSession(session.user);
-            // El usuario ya existe, así que en lugar del endpoint de register, llamamos al nuevo create-order
             setStep("CHECKOUT");
             await generateOrderAndShowBold(selectedPlan);
           }
         }
       }
     } catch (error) {
-      errorAlert("Error", "Error de conexión");
+      errorAlert("Error", "Error de conexión con el servidor");
     } finally {
       setLoading(false);
     }
   };
 
   const injectBoldScript = (orderId: string, hash: string, amountStr: string, planToPay?: any) => {
-    const currentPlan = planToPay || selectedPlan;
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('gns_checkout_origin', window.location.origin);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("gns_checkout_origin", window.location.origin);
     }
     setTimeout(() => {
       if (!boldContainerRef.current) return;
@@ -240,8 +342,10 @@ export function InteractivePricing({ planSettings = {}, allModules = [] }: { pla
       const script = document.createElement("script");
       script.src = "https://checkout.bold.co/library/boldPaymentButton.js";
       script.setAttribute("data-bold-button", "");
-      script.setAttribute("data-api-key", process.env.NEXT_PUBLIC_BOLD_API_KEY || "nQW8_xd1GDkl2AjvVHUl_pWo6anZyRTMQ-OYy0TSDUU");
-      // Redirección dinámica según el origen actual (localhost o producción)
+      script.setAttribute(
+        "data-api-key",
+        process.env.NEXT_PUBLIC_BOLD_API_KEY || "nQW8_xd1GDkl2AjvVHUl_pWo6anZyRTMQ-OYy0TSDUU"
+      );
       const redirectUrl = `${window.location.origin}/pagos/resultado`;
 
       script.setAttribute("data-redirection-url", redirectUrl);
@@ -256,411 +360,641 @@ export function InteractivePricing({ planSettings = {}, allModules = [] }: { pla
   };
 
   return (
-    <section id="planes" className="py-[120px] px-6 bg-white dark:bg-slate-900 transition-colors duration-300">
-      <div className="max-w-[1280px] mx-auto">
-
+    <section id="planes" className="py-20 sm:py-28 px-4 sm:px-6 bg-slate-50 dark:bg-slate-950 transition-colors duration-300 relative">
+      <div className="max-w-[1320px] mx-auto">
         {step === "SELECT_PLAN" && (
           <>
-            <div className="text-center mb-[60px]">
-              <span className="inline-block text-red-600 dark:text-red-500 text-[13px] font-extrabold tracking-[0.15em] uppercase mb-4">
-                ELIGE EL PLAN PERFECTO PARA TU NEGOCIO
-              </span>
-              <h2 className="text-[36px] font-black text-slate-900 dark:text-white m-0 tracking-tight">
-                Planes simples, poderosos y escalables
+            {/* Header del Título */}
+            <div className="text-center mb-10 sm:mb-14 space-y-3">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-red-100 dark:bg-red-950/60 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 text-xs font-black uppercase tracking-wider">
+                <Sparkles size={14} />
+                Planes Flexibles, Escalables y Transparentes
+              </div>
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tight">
+                Elige el plan ideal para tu negocio
               </h2>
+              <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
+                Desde pequeños comercios hasta cadenas y franquicias multi-sede. Sin contratos de permanencia ni costos ocultos.
+              </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-start mx-auto max-w-md md:max-w-4xl xl:max-w-none">
-              {dynamicPlans.map((plan) => (
-                <div key={plan.id} className={`relative flex flex-col h-full bg-white dark:bg-slate-800 rounded-[20px] p-6 md:p-8 border ${plan.recommended ? 'border-amber-600 dark:border-amber-500 shadow-2xl scale-100 lg:scale-105' : 'border-slate-100 dark:border-slate-700 shadow-sm'}`}>
-                  {plan.recommended && (
-                    <div className="absolute top-0 left-0 right-0 bg-amber-600 dark:bg-amber-500 text-white text-[11px] font-extrabold py-1.5 text-center rounded-t-[18px] tracking-[0.1em]">
-                      MÁS POPULAR
-                    </div>
-                  )}
+            {/* Selector de Categoría (Estándar vs Enterprise Multi-Sedes) */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-8">
+              <div className="p-1.5 bg-slate-200/80 dark:bg-slate-800 rounded-2xl border border-slate-300/80 dark:border-slate-700 flex items-center shadow-inner">
+                <button
+                  type="button"
+                  onClick={() => setPlanCategory("STANDARD")}
+                  className={`px-4 sm:px-6 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 ${
+                    planCategory === "STANDARD"
+                      ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-md"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                  }`}
+                >
+                  <Building2 size={16} className={planCategory === "STANDARD" ? "text-red-600" : ""} />
+                  <span>Planes Estándar (1 Sede)</span>
+                </button>
 
-                  <div className={`flex items-center gap-3 ${plan.recommended ? 'mt-6' : ''}`}>
-                    {plan.recommended ? (
-                      <Star size={24} className="text-amber-600 dark:text-amber-500 fill-amber-600 dark:fill-amber-500" />
-                    ) : plan.name.includes("Premium") ? (
-                      <Crown size={24} className="text-amber-600 dark:text-amber-500 fill-amber-600 dark:fill-amber-500" />
-                    ) : (
-                      <Send size={24} className="text-red-600 dark:text-red-500 fill-red-600 dark:fill-red-500" />
-                    )}
-                    <div>
-                      <div className="text-[18px] font-black text-slate-900 dark:text-white uppercase">
-                        {plan.name.replace('Plan ', '')}
-                      </div>
-                      <div className="text-[12px] text-slate-500 dark:text-slate-400 font-medium">
-                        {plan.recommended ? 'Para negocios en crecimiento' : (plan.name.includes('Premium') ? 'Máximo control, sin límites' : 'Ideal para pequeños negocios')}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="my-6 pb-6 border-b border-slate-100 dark:border-slate-700 flex items-end gap-1">
-                    <span className="text-[36px] font-black text-slate-900 dark:text-white leading-none">
-                      ${plan.price.toLocaleString("es-CO")}
-                    </span>
-                    <span className="text-slate-500 dark:text-slate-400 font-semibold text-[14px] pb-1">/mes</span>
-                  </div>
-
-                  <div className="text-[12px] text-slate-500 dark:text-slate-400 font-medium mb-6 text-center">
-                    Facturado mensual
-                  </div>
-
-                  <ul className="m-0 p-0 list-none flex flex-col gap-3 mb-4">
-                    {plan.shortFeatures.map((item: string, i: number) => (
-                      <li key={i} className="flex items-start gap-3 text-slate-900 dark:text-slate-200 text-[13px] font-semibold">
-                        <div className="w-4 h-4 rounded-full bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center shrink-0 mt-[2px]">
-                          <Check size={10} className="text-amber-600 dark:text-amber-500" strokeWidth={3} />
-                        </div>
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-
-
-
-                  {(() => {
-                    const isCurrentPlan = userSession?.companyPlan === plan.id;
-                    const isSuspended = userSession?.companyStatus === 'SUSPENDED';
-                    const currentPlanIndex = dynamicPlans.findIndex(p => p.id === userSession?.companyPlan);
-                    const thisPlanIndex = dynamicPlans.findIndex(p => p.id === plan.id);
-
-                    let btnLabel = `Comenzar Plan ${plan.name.replace('Plan ', '')}`;
-                    let btnDisabled = false;
-                    let isSuspendedAction = false;
-
-                    if (userSession?.companyPlan) {
-                      if (isCurrentPlan) {
-                        if (isSuspended) {
-                          btnLabel = "Pagar Plan";
-                          btnDisabled = false;
-                          isSuspendedAction = true;
-                        } else {
-                          btnLabel = "Plan Actual";
-                          btnDisabled = true;
-                        }
-                      } else if (thisPlanIndex < currentPlanIndex) {
-                        btnLabel = "Bajar a este plan";
-                      } else {
-                        btnLabel = "Mejorar a este plan";
-                      }
-                    }
-
-                    return (
-                      <button
-                        onClick={() => startCheckoutProcess(plan)}
-                        disabled={btnDisabled}
-                        className={`w-full py-3.5 rounded-lg font-bold text-[13px] transition-all duration-200 flex items-center justify-center gap-2 ${
-                          isCurrentPlan && !isSuspendedAction
-                            ? 'bg-emerald-500 text-white border-none cursor-not-allowed opacity-90'
-                            : plan.recommended || isSuspendedAction
-                              ? 'bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white border-none shadow-md hover:shadow-lg'
-                              : 'bg-white dark:bg-slate-800 text-red-600 dark:text-red-400 border border-red-600 dark:border-red-500 hover:bg-red-50 dark:hover:bg-red-950/30'
-                        } ${btnDisabled && !isCurrentPlan ? 'opacity-50 cursor-not-allowed hover:bg-transparent hover:scale-100 hover:shadow-none' : ''}`}
-                      >
-                        {isCurrentPlan && <CheckCircle size={16} />}
-                        {btnLabel}
-                      </button>
-                    );
-                  })()}
-                </div>
-              ))}
-
-              {/* Promo Anual Card */}
-              <div className="flex flex-col h-full bg-white dark:bg-slate-800 rounded-[20px] p-6 md:p-8 border border-slate-200 dark:border-slate-700 justify-center items-center text-center">
-                <h3 className="text-[20px] font-black text-amber-600 dark:text-amber-500 mb-6 leading-snug">
-                  Ahorra más con<br/>nuestro plan anual
-                </h3>
-                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 rounded-full w-[120px] h-[120px] flex flex-col items-center justify-center text-amber-600 dark:text-amber-500 mb-6">
-                  <span className="text-[40px] font-black leading-none">2</span>
-                  <span className="text-[13px] font-extrabold tracking-wide">MESES</span>
-                  <span className="text-[13px] font-extrabold tracking-wide">GRATIS</span>
-                </div>
-                <p className="text-[13px] text-slate-600 dark:text-slate-400 font-semibold mb-8">
-                  Pago anual con<br/>descuento especial
-                </p>
-                <button className="w-full py-3.5 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-[13px] border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-2">
-                  Ver todos los planes anuales <ArrowRight size={16} />
+                <button
+                  type="button"
+                  onClick={() => setPlanCategory("ENTERPRISE")}
+                  className={`px-4 sm:px-6 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 ${
+                    planCategory === "ENTERPRISE"
+                      ? "bg-blue-600 text-white shadow-md"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                  }`}
+                >
+                  <Network size={16} />
+                  <span>Planes Enterprise (Multi-Sedes)</span>
+                  <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-white/20 text-white hidden sm:inline">
+                    NUEVO
+                  </span>
                 </button>
               </div>
             </div>
 
-            <div className="mt-12 text-center">
+            {/* Selector de Ciclo de Facturación (Mensual vs Anual con 2 meses gratis) */}
+            <div className="flex items-center justify-center gap-3 mb-10 sm:mb-12">
+              <span className={`text-xs sm:text-sm font-bold ${billingCycle === "MONTHLY" ? "text-slate-900 dark:text-white" : "text-slate-500 dark:text-slate-400"}`}>
+                Facturación Mensual
+              </span>
+
               <button
-                onClick={() => setShowComparison(true)}
-                className="bg-transparent text-slate-900 dark:text-white font-extrabold text-[15px] border-2 border-slate-900 dark:border-white py-3 px-8 rounded-full hover:bg-slate-900 hover:text-white dark:hover:bg-white dark:hover:text-slate-900 transition-colors inline-flex items-center gap-2 cursor-pointer"
+                type="button"
+                onClick={() => setBillingCycle((prev) => (prev === "MONTHLY" ? "ANNUAL" : "MONTHLY"))}
+                className="relative w-14 h-8 bg-slate-300 dark:bg-slate-700 rounded-full p-1 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                aria-label="Alternar ciclo de facturación"
               >
-                Ver comparativa de planes <ArrowRight size={18} />
+                <div
+                  className={`w-6 h-6 bg-red-600 rounded-full shadow-md transform transition-transform duration-300 ${
+                    billingCycle === "ANNUAL" ? "translate-x-6 bg-emerald-500" : "translate-x-0"
+                  }`}
+                />
+              </button>
+
+              <div className="flex items-center gap-1.5">
+                <span className={`text-xs sm:text-sm font-bold ${billingCycle === "ANNUAL" ? "text-slate-900 dark:text-white" : "text-slate-500 dark:text-slate-400"}`}>
+                  Facturación Anual
+                </span>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 animate-pulse shadow-sm">
+                  🎁 2 MESES GRATIS
+                </span>
+              </div>
+            </div>
+
+            {/* Grid de Tarjetas de Planes */}
+            <div
+              className={`grid gap-6 items-stretch mx-auto ${
+                planCategory === "STANDARD"
+                  ? "grid-cols-1 md:grid-cols-3 max-w-5xl"
+                  : "grid-cols-1 md:grid-cols-2 xl:grid-cols-4 max-w-7xl"
+              }`}
+            >
+              {currentDisplayPlans.map((plan) => {
+                const isAnnual = billingCycle === "ANNUAL";
+                const displayMonthlyEquivalent = isAnnual
+                  ? Math.round(plan.annualPrice / 12)
+                  : plan.monthlyPrice;
+                const savings = plan.monthlyPrice * 12 - plan.annualPrice;
+
+                return (
+                  <div
+                    key={plan.id}
+                    className={`relative flex flex-col justify-between bg-white dark:bg-slate-900 rounded-[28px] p-6 sm:p-7 border transition-all duration-300 hover:shadow-xl ${
+                      plan.recommended
+                        ? "border-amber-500 dark:border-amber-500 shadow-xl shadow-amber-500/10 ring-2 ring-amber-500/20 lg:-translate-y-2"
+                        : "border-slate-200 dark:border-slate-800 shadow-sm"
+                    }`}
+                  >
+                    {/* Badge Superior */}
+                    {plan.recommended && (
+                      <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-amber-500 text-slate-950 text-[10.5px] font-black px-4 py-1 rounded-full uppercase tracking-wider shadow-md">
+                        {plan.badge}
+                      </div>
+                    )}
+
+                    <div>
+                      {/* Cabecera del Plan */}
+                      <div className="flex items-center justify-between mb-3 pt-2">
+                        <div>
+                          <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                            {plan.name}
+                          </h3>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            {plan.subtitle}
+                          </p>
+                        </div>
+                        <div className="p-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white shrink-0">
+                          {planCategory === "ENTERPRISE" ? (
+                            <Network size={22} className="text-blue-500" />
+                          ) : plan.name.includes("Premium") ? (
+                            <Crown size={22} className="text-amber-500" />
+                          ) : plan.recommended ? (
+                            <Star size={22} className="text-amber-500 fill-amber-500" />
+                          ) : (
+                            <Send size={22} className="text-red-500" />
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Badge de Sedes */}
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs font-black text-slate-800 dark:text-slate-200 mb-5">
+                        <Building2 size={13} className="text-primary" />
+                        <span>{plan.maxBranchesText}</span>
+                      </div>
+
+                      {/* Precio */}
+                      <div className="mb-4 pb-5 border-b border-slate-100 dark:border-slate-800">
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
+                            ${displayMonthlyEquivalent.toLocaleString("es-CO")}
+                          </span>
+                          <span className="text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400">
+                            COP /mes
+                          </span>
+                        </div>
+
+                        {isAnnual ? (
+                          <div className="mt-1.5 space-y-0.5">
+                            <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                              Facturado anualmente: ${plan.annualPrice.toLocaleString("es-CO")} COP
+                            </p>
+                            <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                              Ahorras ${savings.toLocaleString("es-CO")} COP al año
+                            </p>
+                          </div>
+                        ) : (
+                          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
+                            Facturación mensual sin permanencia
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Lista de Características */}
+                      <ul className="space-y-2.5 mb-6 text-left">
+                        {plan.shortFeatures.map((feature: string, idx: number) => (
+                          <li key={idx} className="flex items-start gap-2.5 text-xs sm:text-[13px] font-semibold text-slate-700 dark:text-slate-300">
+                            <div className="w-4 h-4 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+                              <Check size={11} strokeWidth={3} />
+                            </div>
+                            <span>{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Botón de Selección */}
+                    <button
+                      type="button"
+                      onClick={() => startCheckoutProcess(plan)}
+                      className={`w-full py-3.5 px-4 rounded-2xl font-black text-xs sm:text-sm transition-all duration-200 flex items-center justify-center gap-2 active:scale-95 shadow-md ${
+                        plan.recommended
+                          ? "bg-red-600 hover:bg-red-700 text-white shadow-red-600/20 hover:shadow-lg"
+                          : planCategory === "ENTERPRISE"
+                          ? "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/20 hover:shadow-lg"
+                          : "bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-800 dark:hover:bg-slate-700"
+                      }`}
+                    >
+                      <span>Comenzar con {plan.name}</span>
+                      <ArrowRight size={16} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* ── BANNER DESTACADO DE MÉTODOS DE PAGO CON PSE ── */}
+            <div className="mt-14 sm:mt-16 p-6 sm:p-8 rounded-[32px] bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white border border-slate-700/80 shadow-2xl relative overflow-hidden">
+              <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-red-600/20 rounded-full blur-[100px] pointer-events-none" />
+
+              <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-6">
+                <div className="space-y-2 text-center lg:text-left max-w-2xl">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-black uppercase tracking-wider">
+                    <ShieldCheck size={14} className="text-emerald-400" />
+                    Pasarela 100% Segura y Certificada
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+                    Paga fácil y rápido con PSE y todos los métodos de pago en Colombia
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                    Aceptamos transferencias directas con <strong>PSE</strong> (cualquier banco nacional), Tarjetas de Crédito, Débito, <strong>Nequi</strong>, <strong>Botón Bancolombia</strong> y efectivo mediante la pasarela líder <strong>Bold</strong>.
+                  </p>
+                </div>
+
+                {/* Badges de Medios de Pago */}
+                <div className="flex flex-wrap items-center justify-center lg:justify-end gap-2.5 shrink-0">
+                  <div className="px-3.5 py-2 rounded-2xl bg-white text-slate-950 font-black text-xs sm:text-sm border border-slate-200 shadow-md flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                    <span>PSE</span>
+                  </div>
+
+                  <div className="px-3.5 py-2 rounded-2xl bg-white text-slate-950 font-black text-xs sm:text-sm border border-slate-200 shadow-md flex items-center gap-1.5">
+                    <CreditCard size={14} className="text-red-600" />
+                    <span>Tarjetas Débito / Crédito</span>
+                  </div>
+
+                  <div className="px-3.5 py-2 rounded-2xl bg-white text-slate-950 font-black text-xs sm:text-sm border border-slate-200 shadow-md flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-purple-600"></span>
+                    <span>Nequi</span>
+                  </div>
+
+                  <div className="px-3.5 py-2 rounded-2xl bg-white text-slate-950 font-black text-xs sm:text-sm border border-slate-200 shadow-md flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                    <span>Bancolombia</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Botón Ver Comparativa Completa */}
+            <div className="mt-10 text-center">
+              <button
+                type="button"
+                onClick={() => setShowComparison(true)}
+                className="bg-transparent text-slate-900 dark:text-white font-extrabold text-xs sm:text-sm border-2 border-slate-900 dark:border-white py-3 px-8 rounded-full hover:bg-slate-900 hover:text-white dark:hover:bg-white dark:hover:text-slate-900 transition-colors inline-flex items-center gap-2 cursor-pointer shadow-sm active:scale-95"
+              >
+                <span>Ver comparativa completa de todos los planes</span>
+                <ArrowRight size={16} />
               </button>
             </div>
           </>
         )}
 
+        {/* Modal / Paso 2: Registro de Usuario y Empresa */}
         {step === "REGISTER" && selectedPlan && (
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800 shadow-xl max-w-xl mx-auto shadow-[0_20px_40px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_40px_rgba(0,0,0,0.4)]">
+          <div className="bg-white dark:bg-slate-900 rounded-[32px] p-6 sm:p-10 border border-slate-200 dark:border-slate-800 shadow-2xl max-w-xl mx-auto animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-4">
-                <button onClick={() => setStep("SELECT_PLAN")} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full cursor-pointer border-none bg-transparent text-slate-500 dark:text-slate-400">
-                  <ArrowLeft size={20} />
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setStep("SELECT_PLAN")}
+                  className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl text-slate-600 dark:text-slate-400 transition"
+                  title="Volver a los planes"
+                >
+                  <ArrowLeft size={18} />
                 </button>
-                <h3 className="text-2xl font-bold m-0 text-slate-900 dark:text-white">
-                  {authMode === "REGISTER" ? `Crea tu cuenta (${selectedPlan.name})` : "Iniciar Sesión"}
-                </h3>
+                <div>
+                  <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
+                    {authMode === "REGISTER" ? `Crea tu cuenta (${selectedPlan.name})` : "Iniciar Sesión"}
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {selectedPlan.billingCycle === "ANNUAL" ? "Facturación Anual con 2 Meses Gratis" : "Facturación Mensual"}
+                  </p>
+                </div>
               </div>
             </div>
 
-            <div className="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-1 mb-6">
+            <div className="flex bg-slate-100 dark:bg-slate-800 rounded-2xl p-1 mb-6">
               <button
+                type="button"
                 onClick={() => setAuthMode("REGISTER")}
-                className={`flex-1 py-2.5 rounded-lg border-none font-bold text-sm cursor-pointer transition-all ${authMode === "REGISTER" ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'bg-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}>
+                className={`flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all ${
+                  authMode === "REGISTER"
+                    ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700"
+                }`}
+              >
                 Nueva Empresa
               </button>
               <button
+                type="button"
                 onClick={() => setAuthMode("LOGIN")}
-                className={`flex-1 py-2.5 rounded-lg border-none font-bold text-sm cursor-pointer transition-all ${authMode === "LOGIN" ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'bg-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}>
+                className={`flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all ${
+                  authMode === "LOGIN"
+                    ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700"
+                }`}
+              >
                 Ya tengo cuenta
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-
+            <form onSubmit={handleSubmit} className="space-y-4">
               {authMode === "REGISTER" && (
                 <>
                   <div>
-                    <label className="text-[14px] font-bold text-slate-700 dark:text-slate-300">Nombre de la Empresa</label>
-                    <input type="text" required value={formData.companyName} onChange={e => setFormData({...formData, companyName: e.target.value})} className="w-full mt-1 px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-red-500/50" />
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                      Nombre de la Empresa o Negocio
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ej. Distribuidora Central S.A.S."
+                      value={formData.companyName}
+                      onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+                      className="w-full mt-1.5 px-4 py-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm outline-none focus:ring-2 focus:ring-red-500/50"
+                    />
                   </div>
                   <div>
-                    <label className="text-[14px] font-bold text-slate-700 dark:text-slate-300">Tu Nombre</label>
-                    <input type="text" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full mt-1 px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-red-500/50" />
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                      Nombre del Administrador
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ej. Carlos Mendoza"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="w-full mt-1.5 px-4 py-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm outline-none focus:ring-2 focus:ring-red-500/50"
+                    />
                   </div>
                 </>
               )}
 
               <div>
-                <label className="text-[14px] font-bold text-slate-700 dark:text-slate-300">Correo Electrónico (Admin)</label>
-                <input type="email" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full mt-1 px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-red-500/50" />
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Correo Electrónico
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder="admin@tuempresa.com"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full mt-1.5 px-4 py-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm outline-none focus:ring-2 focus:ring-red-500/50"
+                />
               </div>
+
               <div>
-                <label className="text-[14px] font-bold text-slate-700 dark:text-slate-300">Contraseña</label>
-                <input type="password" required minLength={6} value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="w-full mt-1 px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-red-500/50" />
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Contraseña
+                </label>
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  placeholder="Mínimo 8 caracteres (letras, números y símbolos)"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className="w-full mt-1.5 px-4 py-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm outline-none focus:ring-2 focus:ring-red-500/50"
+                />
               </div>
 
-              <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700 mt-4">
-                <div className="flex justify-between font-extrabold text-lg">
-                  <span className="text-slate-900 dark:text-slate-200">Total a Pagar Hoy:</span>
-                  <span className="text-red-600 dark:text-red-500">${selectedPlan.price.toLocaleString("es-CO")} COP</span>
+              {/* Resumen del Monto a Pagar */}
+              <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 mt-2 space-y-1">
+                <div className="flex justify-between items-center text-xs font-bold text-slate-600 dark:text-slate-400">
+                  <span>Plan seleccionado:</span>
+                  <span className="font-extrabold text-slate-900 dark:text-white">{selectedPlan.name}</span>
                 </div>
+                <div className="flex justify-between items-center text-sm sm:text-base font-black pt-1 border-t border-slate-200 dark:border-slate-700">
+                  <span className="text-slate-900 dark:text-white">Total a Pagar:</span>
+                  <span className="text-red-600 dark:text-red-400">${selectedPlan.price.toLocaleString("es-CO")} COP</span>
+                </div>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                  Aceptamos PSE, Tarjetas Débito/Crédito y Nequi a través de Bold.
+                </p>
               </div>
 
-              <button type="submit" disabled={loading} className="w-full p-4 mt-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-extrabold border-none cursor-pointer flex justify-center items-center gap-2 disabled:opacity-70 transition-colors">
-                {loading ? <Loader2 className="animate-spin" /> : (authMode === "REGISTER" ? "Registrarse y Proceder al Pago" : "Iniciar Sesión y Pagar")}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full p-4 mt-2 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black text-xs sm:text-sm flex justify-center items-center gap-2 disabled:opacity-70 transition-all shadow-lg active:scale-95"
+              >
+                {loading ? (
+                  <Loader2 className="animate-spin" size={18} />
+                ) : authMode === "REGISTER" ? (
+                  "Registrarse y Proceder al Pago Seguro"
+                ) : (
+                  "Iniciar Sesión y Pagar"
+                )}
               </button>
             </form>
           </div>
         )}
 
+        {/* Paso 3: Checkout con Bold (Integración PSE, Tarjetas, Nequi) */}
         {step === "CHECKOUT" && (
-          <div className="bg-white dark:bg-slate-900 rounded-[28px] sm:rounded-[32px] p-5 sm:p-7 md:p-8 border border-slate-100 dark:border-slate-800 shadow-[0_15px_45px_rgba(0,0,0,0.06)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)] w-full max-w-[460px] mx-auto text-center">
-
-            {/* Header Icon Shield con destellos decorativos */}
-            <div className="flex justify-center mb-3 sm:mb-4">
-              <div className="relative flex items-center justify-center">
-                {/* Círculo verde claro de fondo */}
-                <div className="w-[68px] h-[68px] sm:w-[78px] sm:h-[78px] rounded-full bg-[#e8f7f0] dark:bg-emerald-950/40 flex items-center justify-center shadow-inner">
-                  <ShieldCheck size={38} className="text-[#00c073] sm:w-11 sm:h-11" strokeWidth={2.2} />
-                </div>
+          <div className="bg-white dark:bg-slate-900 rounded-[32px] p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-[480px] mx-auto text-center animate-in fade-in zoom-in-95 duration-200">
+            {/* Header Icon */}
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center shadow-inner">
+                <ShieldCheck size={36} className="text-emerald-500" strokeWidth={2.5} />
               </div>
             </div>
 
-            {/* Title & Subtitle */}
-            <h3 className="text-[22px] sm:text-[26px] font-black mb-1 sm:mb-2 text-slate-900 dark:text-white tracking-tight">
-              {userSession ? '¡Sesión Detectada!' : '¡Registro Completado!'}
+            <h3 className="text-2xl font-black mb-1.5 text-slate-900 dark:text-white">
+              {userSession ? "¡Sesión Verificada!" : "¡Registro Completado!"}
             </h3>
-            <p className="text-slate-600 dark:text-slate-400 mb-4 sm:mb-5 font-normal text-[12.5px] sm:text-[13.5px] leading-relaxed max-w-[380px] mx-auto">
-              Por favor, completa tu pago de forma segura a continuación para{' '}
-              <span className="text-[#00c073] font-bold">activar tu cuenta</span>{' '}
-              inmediatamente.
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mb-5 max-w-sm mx-auto">
+              Realiza tu pago seguro a continuación para activar tu cuenta de inmediato.
             </p>
 
-            {/* Selected Plan Details Banner */}
+            {/* Resumen del Plan */}
             {selectedPlan && (
-              <div className="flex items-center justify-between bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-700/50 rounded-xl sm:rounded-2xl p-3 sm:p-3.5 mb-4 sm:mb-5 text-left shadow-sm">
+              <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 mb-5 text-left">
                 <div>
-                  <span className="text-[9.5px] sm:text-[10.5px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider block">Plan Elegido</span>
-                  <span className="text-[15px] sm:text-[16px] font-black text-slate-900 dark:text-white">{selectedPlan.name}</span>
+                  <span className="text-[10px] font-extrabold text-primary uppercase tracking-wider block">
+                    Plan Seleccionado
+                  </span>
+                  <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
+                    {selectedPlan.name}
+                  </span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">
+                    {selectedPlan.billingCycle === "ANNUAL" ? "Facturación Anual (2 Meses Gratis)" : "Facturación Mensual"}
+                  </span>
                 </div>
                 <div className="text-right">
-                  <span className="text-[16px] sm:text-[17px] font-black text-red-600 dark:text-red-500">${selectedPlan.price.toLocaleString("es-CO")}</span>
-                  <span className="text-[10px] sm:text-[10.5px] font-semibold text-slate-500 dark:text-slate-400 block">COP / mes</span>
+                  <span className="text-base sm:text-lg font-black text-red-600 dark:text-red-400">
+                    ${selectedPlan.price.toLocaleString("es-CO")}
+                  </span>
+                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block">
+                    COP Total
+                  </span>
                 </div>
               </div>
             )}
 
-            {/* Trust Badges Card Container */}
-            <div className="bg-[#f6faf8] dark:bg-slate-800/40 border border-[#e1f0e9] dark:border-slate-700/60 rounded-[16px] sm:rounded-[18px] p-3 sm:p-4 mb-4 sm:mb-5">
-              <div className="grid grid-cols-3 divide-x divide-slate-200/70 dark:divide-slate-700/60 text-center">
-
-                {/* Badge 1 */}
-                <div className="px-1 sm:px-2 flex flex-col items-center">
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#d6f3e6] dark:bg-emerald-900/40 flex items-center justify-center mb-1.5">
-                    <Zap size={14} className="text-[#00c073] fill-[#00c073] sm:w-[15px] sm:h-[15px]" />
-                  </div>
-                  <span className="text-[9.5px] sm:text-[10.5px] font-bold text-slate-900 dark:text-slate-100 leading-tight">Activación inmediata</span>
-                  <span className="text-[8px] sm:text-[9px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">Accede a tu cuenta al instante</span>
-                </div>
-
-                {/* Badge 2 */}
-                <div className="px-1 sm:px-2 flex flex-col items-center">
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#d6f3e6] dark:bg-emerald-900/40 flex items-center justify-center mb-1.5">
-                    <Lock size={14} className="text-[#00c073] sm:w-[15px] sm:h-[15px]" />
-                  </div>
-                  <span className="text-[9.5px] sm:text-[10.5px] font-bold text-slate-900 dark:text-slate-100 leading-tight">Pago 100% seguro</span>
-                  <span className="text-[8px] sm:text-[9px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">Tus datos están protegidos</span>
-                </div>
-
-                {/* Badge 3 */}
-                <div className="px-1 sm:px-2 flex flex-col items-center">
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#d6f3e6] dark:bg-emerald-900/40 flex items-center justify-center mb-1.5">
-                    <CreditCard size={14} className="text-[#00c073] sm:w-[15px] sm:h-[15px]" />
-                  </div>
-                  <span className="text-[9.5px] sm:text-[10.5px] font-bold text-slate-900 dark:text-slate-100 leading-tight">Respaldado por Bold</span>
-                  <span className="text-[8px] sm:text-[9px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">Plataforma confiable</span>
-                </div>
-
+            {/* Métodos de Pago Disponibles en Pasarela Bold */}
+            <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl p-3.5 mb-5 text-center space-y-2">
+              <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-300 flex items-center justify-center gap-1.5">
+                <Lock size={12} className="text-emerald-500" />
+                Medios Aceptados en Pasarela Bold:
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-1.5 text-[11px] font-black text-slate-700 dark:text-slate-300">
+                <span className="px-2 py-0.5 rounded-lg bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300">
+                  PSE (Todos los Bancos)
+                </span>
+                <span className="px-2 py-0.5 rounded-lg bg-red-100 dark:bg-red-900/60 text-red-700 dark:text-red-300">
+                  Tarjetas Crédito/Débito
+                </span>
+                <span className="px-2 py-0.5 rounded-lg bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300">
+                  Nequi & Bancolombia
+                </span>
               </div>
             </div>
 
             {/* Bold Payment Button Container */}
-            <div className="w-full mb-3 sm:mb-4 flex justify-center min-h-[50px]">
+            <div className="w-full mb-4 flex justify-center min-h-[52px]">
               <div
                 ref={boldContainerRef}
-                className="w-full flex justify-center [&_iframe]:!w-full [&_button]:!w-full [&_button]:!max-w-none [&_button]:!h-[48px] sm:[&_button]:!h-[52px] [&_button]:!rounded-xl sm:[&_button]:!rounded-2xl [&_.bold-btn]:!w-full"
+                className="w-full flex justify-center [&_iframe]:!w-full [&_button]:!w-full [&_button]:!max-w-none [&_button]:!h-[52px] [&_button]:!rounded-2xl [&_.bold-btn]:!w-full"
               ></div>
-            </div>
-
-            {/* SSL Security Note */}
-            <div className="flex items-center justify-center gap-2 mb-4 sm:mb-5">
-              <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-[#00c073] flex items-center justify-center shrink-0">
-                <Check size={10} className="text-white sm:w-3 sm:h-3" strokeWidth={3} />
-              </div>
-              <div className="text-left leading-tight">
-                <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px] sm:text-[11.5px]">Pago seguro y encriptado</span>
-                <span className="block text-slate-500 dark:text-slate-400 text-[9.5px] sm:text-[10px]">Tus datos están protegidos con encriptación SSL</span>
-              </div>
-            </div>
-
-            {/* Divider "O si lo prefieres" */}
-            <div className="relative my-3 sm:my-4">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-200/80 dark:border-slate-700/80" />
-              </div>
-              <div className="relative flex justify-center">
-                <span className="bg-white dark:bg-slate-900 px-3 text-[11px] sm:text-[11.5px] text-slate-500 font-medium">O si lo prefieres</span>
-              </div>
             </div>
 
             {/* Back Button */}
             <button
+              type="button"
               onClick={() => {
                 setStep("SELECT_PLAN");
                 if (boldContainerRef.current) boldContainerRef.current.innerHTML = "";
               }}
-              className="w-full max-w-[220px] mx-auto py-2 sm:py-2.5 px-4 bg-white dark:bg-slate-900 text-[#1d2b4f] dark:text-slate-300 border border-[#d8e0ed] dark:border-slate-700 rounded-xl font-bold text-[12px] sm:text-[12.5px] cursor-pointer transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center gap-2 shadow-sm"
+              className="w-full py-3 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-2xl font-bold text-xs transition flex items-center justify-center gap-2"
             >
               <ArrowLeft size={14} />
-              Volver a los planes
+              Volver y cambiar de plan
             </button>
           </div>
         )}
 
+        {/* Modal Comparativa Completa */}
         {showComparison && (
-          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-            <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800">
-              <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900">
-                <h3 className="text-2xl font-black text-slate-900 dark:text-white">Comparativa de Planes</h3>
-                <button onClick={() => setShowComparison(false)} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors">
-                  <X size={24} className="text-slate-500 dark:text-slate-400" />
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white dark:bg-slate-900 rounded-[32px] w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800">
+              <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900">
+                <div>
+                  <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
+                    Comparativa Completa de Planes
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Estándar (1 Sede) y Enterprise Multi-Sedes
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowComparison(false)}
+                  className="p-2.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-2xl text-slate-500 transition"
+                >
+                  <X size={20} />
                 </button>
               </div>
 
-              <div className="overflow-auto p-0">
-                <table className="w-full text-left border-collapse">
-                  <thead className="sticky top-0 bg-slate-100 dark:bg-slate-800 shadow-sm z-10">
-                    <tr>
-                      <th className="p-4 font-bold text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700 w-1/4">Característica</th>
-                      {dynamicPlans.map(plan => (
-                        <th key={plan.id} className={`p-4 font-black text-center border-b border-slate-200 dark:border-slate-700 w-1/4 ${plan.recommended ? 'text-amber-600 dark:text-amber-500' : 'text-slate-900 dark:text-white'}`}>
-                          {plan.name.replace('Plan ', '')}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {/* Límites */}
-                    <tr className="bg-slate-50 dark:bg-slate-900/50">
-                      <td colSpan={4} className="p-3 font-bold text-[13px] text-slate-500 uppercase tracking-wider bg-slate-100 dark:bg-slate-800/80">Límites y Capacidades</td>
-                    </tr>
-                    <tr className="border-b border-slate-100 dark:border-slate-800">
-                      <td className="p-4 font-semibold text-slate-700 dark:text-slate-300">Máximo Usuarios</td>
-                      {dynamicPlans.map(plan => {
-                        const rawPlanId = plan.id.toLowerCase();
-                        const val = planSettings[`plan_${rawPlanId}_max_users`] || (rawPlanId === 'premium' ? '999' : rawPlanId === 'intermedio' ? '5' : '2');
-                        return <td key={plan.id} className="p-4 text-center font-medium text-slate-600 dark:text-slate-400">{val === '999' ? 'Ilimitados' : val}</td>;
-                      })}
-                    </tr>
-                    <tr className="border-b border-slate-100 dark:border-slate-800">
-                      <td className="p-4 font-semibold text-slate-700 dark:text-slate-300">Límite Productos</td>
-                      {dynamicPlans.map(plan => {
-                        const rawPlanId = plan.id.toLowerCase();
-                        const val = planSettings[`plan_${rawPlanId}_max_products`] || (rawPlanId === 'premium' ? '999999' : rawPlanId === 'intermedio' ? '1000' : '100');
-                        return <td key={plan.id} className="p-4 text-center font-medium text-slate-600 dark:text-slate-400">{val === '999999' ? 'Ilimitados' : val}</td>;
-                      })}
-                    </tr>
-                    <tr className="border-b border-slate-100 dark:border-slate-800">
-                      <td className="p-4 font-semibold text-slate-700 dark:text-slate-300">Ventas al mes</td>
-                      {dynamicPlans.map(plan => {
-                        const rawPlanId = plan.id.toLowerCase();
-                        const val = planSettings[`plan_${rawPlanId}_max_sales_per_month`] || (rawPlanId === 'premium' ? '999999' : rawPlanId === 'intermedio' ? '999999' : '50');
-                        return <td key={plan.id} className="p-4 text-center font-medium text-slate-600 dark:text-slate-400">{val === '999999' ? 'Ilimitadas' : val}</td>;
-                      })}
-                    </tr>
+              <div className="overflow-auto p-4 sm:p-6 space-y-6">
+                {/* Tabla Estándar */}
+                <div>
+                  <h4 className="text-sm font-black uppercase text-primary mb-3">
+                    Planes Estándar (1 Sede Principal)
+                  </h4>
+                  <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
+                    <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                      <thead className="bg-slate-100 dark:bg-slate-800 font-black text-slate-900 dark:text-white">
+                        <tr>
+                          <th className="p-3">Característica</th>
+                          <th className="p-3 text-center">Básico</th>
+                          <th className="p-3 text-center text-amber-500">Intermedio ⭐</th>
+                          <th className="p-3 text-center text-red-500">Premium 👑</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+                        <tr>
+                          <td className="p-3 font-bold">Límite Usuarios</td>
+                          <td className="p-3 text-center">2 Usuarios</td>
+                          <td className="p-3 text-center">5 Usuarios</td>
+                          <td className="p-3 text-center font-bold text-emerald-500">Ilimitados</td>
+                        </tr>
+                        <tr>
+                          <td className="p-3 font-bold">Límite Productos</td>
+                          <td className="p-3 text-center">300 Referencias</td>
+                          <td className="p-3 text-center">1.000 Referencias</td>
+                          <td className="p-3 text-center font-bold text-emerald-500">Ilimitados</td>
+                        </tr>
+                        <tr>
+                          <td className="p-3 font-bold">Sedes Permitidas</td>
+                          <td className="p-3 text-center">1 Sede</td>
+                          <td className="p-3 text-center">1 Sede</td>
+                          <td className="p-3 text-center">1 Sede</td>
+                        </tr>
+                        <tr>
+                          <td className="p-3 font-bold">WMS Multibodega</td>
+                          <td className="p-3 text-center text-slate-400">—</td>
+                          <td className="p-3 text-center font-bold text-emerald-500">✔ Sí</td>
+                          <td className="p-3 text-center font-bold text-emerald-500">✔ Sí</td>
+                        </tr>
+                        <tr>
+                          <td className="p-3 font-bold">POS & Facturación DIAN</td>
+                          <td className="p-3 text-center text-slate-400">Básico</td>
+                          <td className="p-3 text-center font-bold text-emerald-500">✔ Sí</td>
+                          <td className="p-3 text-center font-bold text-emerald-500">✔ Avanzado</td>
+                        </tr>
+                        <tr>
+                          <td className="p-3 font-bold">Asistente IA Groq</td>
+                          <td className="p-3 text-center text-slate-400">—</td>
+                          <td className="p-3 text-center text-slate-400">—</td>
+                          <td className="p-3 text-center font-bold text-emerald-500">✔ Completo</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
 
-                    {/* Módulos */}
-                    <tr className="bg-slate-50 dark:bg-slate-900/50">
-                      <td colSpan={4} className="p-3 font-bold text-[13px] text-slate-500 uppercase tracking-wider bg-slate-100 dark:bg-slate-800/80">Módulos del Sistema</td>
-                    </tr>
-                    {allModules.map(mod => (
-                      <tr key={mod.id} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                        <td className="p-4 font-semibold text-slate-700 dark:text-slate-300">{mod.name}</td>
-                        {dynamicPlans.map(plan => {
-                          const hasModule = plan.features.some((f: string) => f.includes(mod.name));
-                          return (
-                            <td key={plan.id} className="p-4 text-center">
-                              {hasModule ? (
-                                <CheckCircle size={20} className="mx-auto text-emerald-500" />
-                              ) : (
-                                <span className="text-slate-300 dark:text-slate-600 font-bold">—</span>
-                              )}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                {/* Tabla Enterprise */}
+                <div>
+                  <h4 className="text-sm font-black uppercase text-blue-600 dark:text-blue-400 mb-3">
+                    Planes Enterprise (Multi-Sedes Corporativo)
+                  </h4>
+                  <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
+                    <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                      <thead className="bg-slate-100 dark:bg-slate-800 font-black text-slate-900 dark:text-white">
+                        <tr>
+                          <th className="p-3">Característica</th>
+                          <th className="p-3 text-center">2 Sedes</th>
+                          <th className="p-3 text-center text-blue-500">5 Sedes ⭐</th>
+                          <th className="p-3 text-center">10 Sedes</th>
+                          <th className="p-3 text-center text-indigo-500">Ilimitadas 👑</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+                        <tr>
+                          <td className="p-3 font-bold">Sedes Incluidas</td>
+                          <td className="p-3 text-center font-bold">2 Sedes</td>
+                          <td className="p-3 text-center font-bold text-blue-500">5 Sedes</td>
+                          <td className="p-3 text-center font-bold">10 Sedes</td>
+                          <td className="p-3 text-center font-bold text-emerald-500">ILIMITADAS</td>
+                        </tr>
+                        <tr>
+                          <td className="p-3 font-bold">Usuarios & Productos</td>
+                          <td className="p-3 text-center text-emerald-500 font-bold">Ilimitados</td>
+                          <td className="p-3 text-center text-emerald-500 font-bold">Ilimitados</td>
+                          <td className="p-3 text-center text-emerald-500 font-bold">Ilimitados</td>
+                          <td className="p-3 text-center text-emerald-500 font-bold">Ilimitados</td>
+                        </tr>
+                        <tr>
+                          <td className="p-3 font-bold">Consolidado Multi-Sedes</td>
+                          <td className="p-3 text-center font-bold text-emerald-500">✔ Sí</td>
+                          <td className="p-3 text-center font-bold text-emerald-500">✔ Sí</td>
+                          <td className="p-3 text-center font-bold text-emerald-500">✔ Sí</td>
+                          <td className="p-3 text-center font-bold text-emerald-500">✔ Sí</td>
+                        </tr>
+                        <tr>
+                          <td className="p-3 font-bold">Navegación entre Sedes</td>
+                          <td className="p-3 text-center font-bold text-emerald-500">✔ Sí</td>
+                          <td className="p-3 text-center font-bold text-emerald-500">✔ Sí</td>
+                          <td className="p-3 text-center font-bold text-emerald-500">✔ Sí</td>
+                          <td className="p-3 text-center font-bold text-emerald-500">✔ Sí</td>
+                        </tr>
+                        <tr>
+                          <td className="p-3 font-bold">Soporte y Asesoría</td>
+                          <td className="p-3 text-center">Prioritario</td>
+                          <td className="p-3 text-center font-bold text-blue-500">VIP 24/7</td>
+                          <td className="p-3 text-center font-bold">Gerente de Cuenta</td>
+                          <td className="p-3 text-center font-bold text-emerald-500">Ingeniero Dedicado</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
-              <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-center">
-                <button onClick={() => setShowComparison(false)} className="px-8 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors">
+
+              <div className="p-4 sm:p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-center">
+                <button
+                  type="button"
+                  onClick={() => setShowComparison(false)}
+                  className="px-8 py-3 bg-red-600 hover:bg-red-700 text-white font-black rounded-2xl text-xs sm:text-sm transition"
+                >
                   Cerrar Comparativa
                 </button>
               </div>
             </div>
           </div>
         )}
-
       </div>
     </section>
   );
