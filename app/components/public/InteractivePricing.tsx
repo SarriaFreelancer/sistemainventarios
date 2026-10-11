@@ -366,7 +366,7 @@ export function InteractivePricing({
           <>
             {/* Header del Título */}
             <div className="text-center mb-10 sm:mb-14 space-y-3">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-red-100 dark:bg-red-950/60 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 text-xs font-black uppercase tracking-wider">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-100 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900 text-blue-600 dark:text-blue-400 text-xs font-black uppercase tracking-wider">
                 <Sparkles size={14} />
                 Planes Flexibles, Escalables y Transparentes
               </div>
@@ -390,7 +390,7 @@ export function InteractivePricing({
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                   }`}
                 >
-                  <Building2 size={16} className={planCategory === "STANDARD" ? "text-red-600" : ""} />
+                  <Building2 size={16} className={planCategory === "STANDARD" ? "text-blue-600" : ""} />
                   <span>Planes Estándar (1 Sede)</span>
                 </button>
 
@@ -421,11 +421,11 @@ export function InteractivePricing({
               <button
                 type="button"
                 onClick={() => setBillingCycle((prev) => (prev === "MONTHLY" ? "ANNUAL" : "MONTHLY"))}
-                className="relative w-14 h-8 bg-slate-300 dark:bg-slate-700 rounded-full p-1 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                className="relative w-14 h-8 bg-slate-300 dark:bg-slate-700 rounded-full p-1 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                 aria-label="Alternar ciclo de facturación"
               >
                 <div
-                  className={`w-6 h-6 bg-red-600 rounded-full shadow-md transform transition-transform duration-300 ${
+                  className={`w-6 h-6 bg-blue-600 rounded-full shadow-md transform transition-transform duration-300 ${
                     billingCycle === "ANNUAL" ? "translate-x-6 bg-emerald-500" : "translate-x-0"
                   }`}
                 />
@@ -491,7 +491,7 @@ export function InteractivePricing({
                           ) : plan.recommended ? (
                             <Star size={22} className="text-amber-500 fill-amber-500" />
                           ) : (
-                            <Send size={22} className="text-red-500" />
+                            <Send size={22} className="text-blue-500" />
                           )}
                         </div>
                       </div>
@@ -548,7 +548,7 @@ export function InteractivePricing({
                       onClick={() => startCheckoutProcess(plan)}
                       className={`w-full py-3.5 px-4 rounded-2xl font-black text-xs sm:text-sm transition-all duration-200 flex items-center justify-center gap-2 active:scale-95 shadow-md ${
                         plan.recommended
-                          ? "bg-red-600 hover:bg-red-700 text-white shadow-red-600/20 hover:shadow-lg"
+                          ? "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/20 hover:shadow-lg"
                           : planCategory === "ENTERPRISE"
                           ? "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/20 hover:shadow-lg"
                           : "bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-800 dark:hover:bg-slate-700"
@@ -564,7 +564,7 @@ export function InteractivePricing({
 
             {/* ── BANNER DESTACADO DE MÉTODOS DE PAGO CON PSE ── */}
             <div className="mt-14 sm:mt-16 p-6 sm:p-8 rounded-[32px] bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white border border-slate-700/80 shadow-2xl relative overflow-hidden">
-              <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-red-600/20 rounded-full blur-[100px] pointer-events-none" />
+              <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-blue-600/20 rounded-full blur-[100px] pointer-events-none" />
 
               <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-6">
                 <div className="space-y-2 text-center lg:text-left max-w-2xl">
@@ -588,7 +588,7 @@ export function InteractivePricing({
                   </div>
 
                   <div className="px-3.5 py-2 rounded-2xl bg-white text-slate-950 font-black text-xs sm:text-sm border border-slate-200 shadow-md flex items-center gap-1.5">
-                    <CreditCard size={14} className="text-red-600" />
+                    <CreditCard size={14} className="text-blue-600" />
                     <span>Tarjetas Débito / Crédito</span>
                   </div>
 
@@ -681,7 +681,7 @@ export function InteractivePricing({
                       placeholder="Ej. Distribuidora Central S.A.S."
                       value={formData.companyName}
                       onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-                      className="w-full mt-1.5 px-4 py-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm outline-none focus:ring-2 focus:ring-red-500/50"
+                      className="w-full mt-1.5 px-4 py-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm outline-none focus:ring-2 focus:ring-blue-500/50"
                     />
                   </div>
                   <div>
@@ -694,7 +694,7 @@ export function InteractivePricing({
                       placeholder="Ej. Carlos Mendoza"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full mt-1.5 px-4 py-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm outline-none focus:ring-2 focus:ring-red-500/50"
+                      className="w-full mt-1.5 px-4 py-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm outline-none focus:ring-2 focus:ring-blue-500/50"
                     />
                   </div>
                 </>
@@ -710,7 +710,7 @@ export function InteractivePricing({
                   placeholder="admin@tuempresa.com"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full mt-1.5 px-4 py-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm outline-none focus:ring-2 focus:ring-red-500/50"
+                  className="w-full mt-1.5 px-4 py-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm outline-none focus:ring-2 focus:ring-blue-500/50"
                 />
               </div>
 
@@ -725,7 +725,7 @@ export function InteractivePricing({
                   placeholder="Mínimo 8 caracteres (letras, números y símbolos)"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full mt-1.5 px-4 py-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm outline-none focus:ring-2 focus:ring-red-500/50"
+                  className="w-full mt-1.5 px-4 py-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm outline-none focus:ring-2 focus:ring-blue-500/50"
                 />
               </div>
 
@@ -737,7 +737,7 @@ export function InteractivePricing({
                 </div>
                 <div className="flex justify-between items-center text-sm sm:text-base font-black pt-1 border-t border-slate-200 dark:border-slate-700">
                   <span className="text-slate-900 dark:text-white">Total a Pagar:</span>
-                  <span className="text-red-600 dark:text-red-400">${selectedPlan.price.toLocaleString("es-CO")} COP</span>
+                  <span className="text-blue-600 dark:text-blue-400">${selectedPlan.price.toLocaleString("es-CO")} COP</span>
                 </div>
                 <p className="text-[10px] text-slate-500 dark:text-slate-400">
                   Aceptamos PSE, Tarjetas Débito/Crédito y Nequi a través de Bold.
@@ -747,7 +747,7 @@ export function InteractivePricing({
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full p-4 mt-2 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black text-xs sm:text-sm flex justify-center items-center gap-2 disabled:opacity-70 transition-all shadow-lg active:scale-95"
+                className="w-full p-4 mt-2 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs sm:text-sm flex justify-center items-center gap-2 disabled:opacity-70 transition-all shadow-lg active:scale-95"
               >
                 {loading ? (
                   <Loader2 className="animate-spin" size={18} />
@@ -793,7 +793,7 @@ export function InteractivePricing({
                   </span>
                 </div>
                 <div className="text-right">
-                  <span className="text-base sm:text-lg font-black text-red-600 dark:text-red-400">
+                  <span className="text-base sm:text-lg font-black text-blue-600 dark:text-blue-400">
                     ${selectedPlan.price.toLocaleString("es-CO")}
                   </span>
                   <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block">
@@ -813,7 +813,7 @@ export function InteractivePricing({
                 <span className="px-2 py-0.5 rounded-lg bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300">
                   PSE (Todos los Bancos)
                 </span>
-                <span className="px-2 py-0.5 rounded-lg bg-red-100 dark:bg-red-900/60 text-red-700 dark:text-red-300">
+                <span className="px-2 py-0.5 rounded-lg bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300">
                   Tarjetas Crédito/Débito
                 </span>
                 <span className="px-2 py-0.5 rounded-lg bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300">
@@ -880,7 +880,7 @@ export function InteractivePricing({
                           <th className="p-3">Característica</th>
                           <th className="p-3 text-center">Básico</th>
                           <th className="p-3 text-center text-amber-500">Intermedio ⭐</th>
-                          <th className="p-3 text-center text-red-500">Premium 👑</th>
+                          <th className="p-3 text-center text-blue-500">Premium 👑</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
@@ -987,7 +987,7 @@ export function InteractivePricing({
                 <button
                   type="button"
                   onClick={() => setShowComparison(false)}
-                  className="px-8 py-3 bg-red-600 hover:bg-red-700 text-white font-black rounded-2xl text-xs sm:text-sm transition"
+                  className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-2xl text-xs sm:text-sm transition"
                 >
                   Cerrar Comparativa
                 </button>

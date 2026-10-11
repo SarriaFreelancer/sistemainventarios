@@ -39,7 +39,7 @@ export function LandingAuthNav({ user }: LandingAuthNavProps) {
           </button>
         </Link>
         <Link href="/auth/register" className="no-underline">
-          <button className="px-4 sm:px-6 py-2 sm:py-2.5 text-[12px] sm:text-[13px] font-bold rounded-lg bg-red-600 hover:bg-red-700 text-white shadow-none transition-colors whitespace-nowrap cursor-pointer">
+          <button className="px-4 sm:px-6 py-2 sm:py-2.5 text-[12px] sm:text-[13px] font-bold rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-none transition-colors whitespace-nowrap cursor-pointer">
             Registrarse
           </button>
         </Link>
@@ -70,7 +70,7 @@ export function LandingAuthNav({ user }: LandingAuthNavProps) {
       <Link href={isSuspended ? "/#planes" : "/dashboard"} className="no-underline">
         <button className={`flex items-center gap-1.5 px-4 py-2 text-[13px] font-bold rounded-lg border-none cursor-pointer transition-all ${
           isSuspended
-            ? 'bg-gradient-to-br from-red-500 to-red-600 text-white hover:scale-105'
+            ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:scale-105 shadow-md shadow-blue-500/20'
             : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-700'
         }`}>
           <LayoutDashboard size={14} />
@@ -80,7 +80,7 @@ export function LandingAuthNav({ user }: LandingAuthNavProps) {
 
       <button
         onClick={() => signOut({ callbackUrl: '/' })}
-        className="flex items-center gap-1.5 px-4 py-2 text-[13px] font-semibold rounded-[10px] bg-transparent text-slate-900 dark:text-white border border-transparent cursor-pointer transition-all hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
+        className="flex items-center gap-1.5 px-4 py-2 text-[13px] font-semibold rounded-[10px] bg-transparent text-slate-900 dark:text-white border border-transparent cursor-pointer transition-all hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30"
       >
         <LogOut size={14} />
         <span className="hidden sm:inline-block">Salir</span>

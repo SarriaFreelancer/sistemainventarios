@@ -55,9 +55,9 @@ export function LandingModules() {
             <div key={idx} className="module-card bg-white dark:bg-slate-900 rounded-2xl p-7 border border-slate-100 dark:border-slate-800 shadow-[0_2px_12px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_12px_rgba(0,0,0,0.2)] flex flex-col items-center text-center">
               <div className="relative w-14 h-14 flex items-center justify-center mb-4 shrink-0">
                 <div className="absolute inset-0 rounded-full" style={{
-                  background: isGold ? 'radial-gradient(circle, rgba(217,119,6,0.15) 0%, rgba(255,255,255,0) 70%)' : 'radial-gradient(circle, rgba(220,38,38,0.15) 0%, rgba(255,255,255,0) 70%)',
+                  background: isGold ? 'radial-gradient(circle, rgba(217,119,6,0.15) 0%, rgba(255,255,255,0) 70%)' : 'radial-gradient(circle, rgba(37,99,235,0.15) 0%, rgba(255,255,255,0) 70%)',
                 }} />
-                <Icon size={26} className={`relative z-10 ${isGold ? 'text-amber-600 dark:text-amber-500' : 'text-red-600 dark:text-red-500'}`} />
+                <Icon size={26} className={`relative z-10 ${isGold ? 'text-amber-600 dark:text-amber-500' : 'text-blue-600 dark:text-blue-500'}`} />
               </div>
               <h3 className="text-[13px] font-extrabold text-slate-900 dark:text-white mb-2.5 leading-snug">{m.name}</h3>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed m-0 font-medium">{m.description}</p>
@@ -77,9 +77,9 @@ export function LandingModules() {
                 <div className="module-card bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-[0_2px_12px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_12px_rgba(0,0,0,0.2)] flex flex-col items-center text-center h-full mx-1">
                   <div className="relative w-14 h-14 flex items-center justify-center mb-4 shrink-0">
                     <div className="absolute inset-0 rounded-full" style={{
-                      background: isGold ? 'radial-gradient(circle, rgba(217,119,6,0.15) 0%, rgba(255,255,255,0) 70%)' : 'radial-gradient(circle, rgba(220,38,38,0.15) 0%, rgba(255,255,255,0) 70%)',
+                      background: isGold ? 'radial-gradient(circle, rgba(217,119,6,0.15) 0%, rgba(255,255,255,0) 70%)' : 'radial-gradient(circle, rgba(37,99,235,0.15) 0%, rgba(255,255,255,0) 70%)',
                     }} />
-                    <Icon size={26} className={`relative z-10 ${isGold ? 'text-amber-600 dark:text-amber-500' : 'text-red-600 dark:text-red-500'}`} />
+                    <Icon size={26} className={`relative z-10 ${isGold ? 'text-amber-600 dark:text-amber-500' : 'text-blue-600 dark:text-blue-500'}`} />
                   </div>
                   <h3 className="text-[14px] font-extrabold text-slate-900 dark:text-white mb-2.5 leading-snug">{m.name}</h3>
                   <p className="text-[12px] text-slate-500 dark:text-slate-400 leading-relaxed m-0 font-medium">{m.description}</p>
