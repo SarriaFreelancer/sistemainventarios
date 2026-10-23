@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { getAuthSession } from "@/auth";
 import { resolveActionCompanyId, resolveActionUserId } from "@/lib/session";
+import { getActiveBranchSession } from "@/app/actions/branch-actions";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 import {
@@ -16,10 +17,60 @@ import {
 } from "@prisma/client";
 
 /**
- * Consulta el estado actual de datos de prueba para la empresa.
- * Retorna si ya existen datos de prueba generados.
+ * Resuelve la sede objetivo para las operaciones de datos de prueba:
+ * 1. Si el usuario pertenece a una sede secundaria fija, retorna esa sede.
+ * 2. Si se especifica explicitBranchId o hay una sede activa en la sesión (selector de sedes), retorna esa sede.
+ * 3. De lo contrario, retorna (o inicializa) la Sede Principal de la empresa.
  */
-export async function getDemoDataStatus(targetCompanyId?: number) {
+async function resolveTargetBranch(companyId: number, explicitBranchId?: number) {
+  const session = await getAuthSession();
+  if (session?.user?.id) {
+    const dbUser = await prisma.user.findUnique({
+      where: { id: Number(session.user.id) },
+      select: { branchId: true, branch: true }
+    });
+    if (session.user.role !== "SUPERADMIN" && dbUser?.branchId && dbUser.branch && !dbUser.branch.isMain && dbUser.branch.companyId === companyId) {
+      return dbUser.branch;
+    }
+  }
+
+  const candidateBranchId = explicitBranchId || (await getActiveBranchSession());
+  if (candidateBranchId) {
+    const selectedBranch = await prisma.branch.findFirst({
+      where: { id: candidateBranchId, companyId }
+    });
+    if (selectedBranch) {
+      return selectedBranch;
+    }
+  }
+
+  let mainBranch = await prisma.branch.findFirst({
+    where: { companyId, isMain: true }
+  });
+  if (!mainBranch) {
+    mainBranch = await prisma.branch.findFirst({
+      where: { companyId }
+    });
+  }
+  if (!mainBranch) {
+    mainBranch = await prisma.branch.create({
+      data: {
+        name: "Sede Principal",
+        code: "SEDE-MAIN",
+        isMain: true,
+        active: true,
+        companyId,
+      }
+    });
+  }
+  return mainBranch;
+}
+
+/**
+ * Consulta el estado actual de datos de prueba para la empresa y sede activa.
+ * Retorna si ya existen datos de prueba generados en la sede actual.
+ */
+export async function getDemoDataStatus(targetCompanyId?: number, targetBranchId?: number) {
   try {
     const session = await getAuthSession();
     if (!session?.user?.id) return { success: false, hasDemoData: false };
@@ -27,8 +78,10 @@ export async function getDemoDataStatus(targetCompanyId?: number) {
     const companyId = targetCompanyId || (await resolveActionCompanyId());
     if (!companyId) return { success: false, hasDemoData: false };
 
-    // 1. Revisar si hay un registro de lote de prueba en AuditLog
-    const demoBatch = await prisma.auditLog.findFirst({
+    const targetBranch = await resolveTargetBranch(companyId, targetBranchId);
+
+    // 1. Revisar registros de lotes de prueba en AuditLog para esta empresa
+    const demoBatches = await prisma.auditLog.findMany({
       where: {
         companyId,
         module: "DEMO_DATA",
@@ -37,34 +90,59 @@ export async function getDemoDataStatus(targetCompanyId?: number) {
       orderBy: { createdAt: "desc" }
     });
 
-    if (demoBatch) {
-      const details = demoBatch.newValues as any;
+    // Buscar lote correspondiente a la sede activa
+    // (Los lotes antiguos sin branchId pertenecen a la Sede Principal)
+    const branchBatch = demoBatches.find((batch) => {
+      const details = batch.newValues as any;
+      if (details?.branchId) {
+        return Number(details.branchId) === targetBranch.id;
+      }
+      return targetBranch.isMain;
+    });
+
+    if (branchBatch) {
+      const details = branchBatch.newValues as any;
       const productCount = Array.isArray(details?.productIds) ? details.productIds.length : 0;
       return {
         success: true,
         hasDemoData: true,
+        branchId: targetBranch.id,
+        branchName: targetBranch.name,
         batchInfo: {
-          createdAt: demoBatch.createdAt,
+          createdAt: branchBatch.createdAt,
           productCount,
           suffix: details?.batchSuffix,
+          branchName: details?.branchName || targetBranch.name,
         }
       };
     }
 
-    // 2. Fallback de verificación: si existen usuarios de prueba o nómina/productos con tags demo
-    const demoUsers = await prisma.user.count({
-      where: { companyId, email: { contains: "@gns-demo.com" } }
-    });
+    // 2. Fallback de verificación solo para la Sede Principal cuando no existen registros en AuditLog
+    if (targetBranch.isMain && demoBatches.length === 0) {
+      const demoUsers = await prisma.user.count({
+        where: { companyId, email: { contains: "@gns-demo.com" } }
+      });
 
-    const demoPayrolls = await prisma.payroll.count({
-      where: { companyId, code: { startsWith: "NOM-" } }
-    });
+      const demoPayrolls = await prisma.payroll.count({
+        where: { companyId, code: { startsWith: "NOM-" } }
+      });
 
-    if (demoUsers > 0 || demoPayrolls > 0) {
-      return { success: true, hasDemoData: true };
+      if (demoUsers > 0 || demoPayrolls > 0) {
+        return {
+          success: true,
+          hasDemoData: true,
+          branchId: targetBranch.id,
+          branchName: targetBranch.name,
+        };
+      }
     }
 
-    return { success: true, hasDemoData: false };
+    return {
+      success: true,
+      hasDemoData: false,
+      branchId: targetBranch.id,
+      branchName: targetBranch.name,
+    };
   } catch (error: any) {
     console.error("[GET_DEMO_DATA_STATUS_ERROR]", error);
     return { success: false, hasDemoData: false };
@@ -72,10 +150,10 @@ export async function getDemoDataStatus(targetCompanyId?: number) {
 }
 
 /**
- * Genera datos de prueba solo si no existen datos de prueba previos en la empresa.
- * Registra un identificador interno (AuditLog DemoBatch) con todos los IDs creados.
+ * Genera datos de prueba solo si no existen datos de prueba previos en la sede activa.
+ * Registra un identificador interno (AuditLog DemoBatch) con todos los IDs creados y la sede atribuida.
  */
-export async function generateDemoData() {
+export async function generateDemoData(targetBranchId?: number) {
   try {
     const session = await getAuthSession();
     if (!session?.user?.id) throw new Error("No autenticado");
@@ -84,37 +162,19 @@ export async function generateDemoData() {
     const userId = await resolveActionUserId(session.user.id);
     const isSuperAdmin = session.user.role === 'SUPERADMIN';
 
-    // Validación previa: no permitir generar si ya existen datos de prueba
-    const status = await getDemoDataStatus(companyId);
+    // 0. OBTENER O CREAR SEDE ACTIVA Y BODEGA PARA ATRIBUCIÓN
+    const mainBranch = await resolveTargetBranch(companyId, targetBranchId);
+
+    // Validación previa por sede: no permitir generar si ya existen datos de prueba en esta sede
+    const status = await getDemoDataStatus(companyId, mainBranch.id);
     if (status.hasDemoData) {
       return {
         success: false,
-        error: "Ya existen datos de prueba activos en esta empresa. Debes eliminarlos antes de generar un nuevo lote de prueba."
+        error: `Ya existen datos de prueba activos en la sede "${mainBranch.name}". Debes eliminarlos antes de generar un nuevo lote de prueba en esta sede.`
       };
     }
 
     const suffix = Date.now().toString().slice(-4);
-
-    // 0. OBTENER O CREAR SEDE PRINCIPAL Y BODEGA PARA ATRIBUCIÓN
-    let mainBranch = await prisma.branch.findFirst({
-      where: { companyId, isMain: true }
-    });
-    if (!mainBranch) {
-      mainBranch = await prisma.branch.findFirst({
-        where: { companyId }
-      });
-    }
-    if (!mainBranch) {
-      mainBranch = await prisma.branch.create({
-        data: {
-          name: "Sede Principal",
-          code: "SEDE-MAIN",
-          isMain: true,
-          active: true,
-          companyId,
-        }
-      });
-    }
 
     let defaultWarehouse = await prisma.warehouse.findFirst({
       where: { companyId, branchId: mainBranch.id }
@@ -122,10 +182,10 @@ export async function generateDemoData() {
     if (!defaultWarehouse) {
       defaultWarehouse = await prisma.warehouse.create({
         data: {
-          name: "Bodega Principal",
-          code: `BOD-${mainBranch.code || 'MAIN'}`,
+          name: mainBranch.isMain ? "Bodega Principal" : `Bodega ${mainBranch.name}`,
+          code: `BOD-${mainBranch.code || mainBranch.id}`,
           type: "GENERAL",
-          isDefault: true,
+          isDefault: mainBranch.isMain,
           companyId,
           branchId: mainBranch.id,
         }
@@ -562,7 +622,7 @@ export async function generateDemoData() {
 
       const sale = await prisma.sale.create({
         data: {
-          saleNumber: `VEN-${saleDate.getFullYear()}${String(saleDate.getMonth() + 1).padStart(2, '0')}${String(saleDate.getDate()).padStart(2, '0')}-${String(i).padStart(3, '0')}`,
+          saleNumber: `VEN-${saleDate.getFullYear()}${String(saleDate.getMonth() + 1).padStart(2, '0')}${String(saleDate.getDate()).padStart(2, '0')}-${suffix}-${String(i).padStart(3, '0')}`,
           userId,
           client: targetCustomer.name,
           customerId: targetCustomer.id,
@@ -726,7 +786,7 @@ export async function generateDemoData() {
     });
     createdPayrollIds.push(payroll.id);
 
-    // 10. USUARIOS DE PRUEBA (Para roles de venta/caja en la empresa)
+    // 10. USUARIOS DE PRUEBA (Para roles de venta/caja en la empresa y sede)
     const userRole = await prisma.role.findFirst({ where: { name: 'USER' } });
     if (userRole) {
       const demoPasswordHash = await bcrypt.hash('Demo123*', 10);
@@ -734,6 +794,7 @@ export async function generateDemoData() {
         where: { email: `vendedor_${suffix}@gns-demo.com` },
         update: {
           companyId,
+          branchId: mainBranch.id,
           roleId: userRole.id,
         },
         create: {
@@ -742,6 +803,7 @@ export async function generateDemoData() {
           password: demoPasswordHash,
           roleId: userRole.id,
           companyId,
+          branchId: mainBranch.id,
           position: "Vendedor / Cajero",
           preferences: { plainPassword: 'Demo123*' },
         }
@@ -757,9 +819,11 @@ export async function generateDemoData() {
         module: "DEMO_DATA",
         action: "BATCH_CREATED",
         entity: "DemoBatch",
-        description: `Lote de datos de demostración generado con sufijo ${suffix}`,
+        description: `Lote de datos de demostración generado en ${mainBranch.name} con sufijo ${suffix}`,
         newValues: {
           batchSuffix: suffix,
+          branchId: mainBranch.id,
+          branchName: mainBranch.name,
           generatedAt: new Date().toISOString(),
           groupIds: createdGroupIds,
           categoryIds: createdCategoryIds,
@@ -786,8 +850,8 @@ export async function generateDemoData() {
     return {
       success: true,
       message: isSuperAdmin
-        ? "Se generaron exitosamente 100 productos, proveedores, ventas, finanzas, nómina y CRM para SuperAdmin."
-        : "Se generaron exitosamente 20 productos de demostración con sus grupos, categorías, ventas, finanzas, RRHH, usuario de prueba y CRM."
+        ? `Se generaron exitosamente 100 productos, proveedores, ventas, finanzas, nómina y CRM en ${mainBranch.name}.`
+        : `Se generaron exitosamente 20 productos de demostración con sus grupos, categorías, ventas, finanzas, RRHH, usuario de prueba y CRM en ${mainBranch.name}.`
     };
   } catch (error: any) {
     console.error(error);
@@ -796,17 +860,19 @@ export async function generateDemoData() {
 }
 
 /**
- * Elimina los datos de la empresa:
- * - mode === 'ONLY_DEMO': Elimina ÚNICAMENTE los registros pertenecientes al lote de prueba (dejando intactos productos/proveedores creados manualmente).
+ * Elimina los datos de la empresa o sede activa:
+ * - mode === 'ONLY_DEMO': Elimina ÚNICAMENTE los registros pertenecientes al lote de prueba de la sede activa (dejando intactos productos/proveedores creados manualmente o de otras sedes).
  * - mode === 'ALL': Vacía todo el catálogo, inventario, ventas, compras, CRM, finanzas y RRHH de la empresa (conservando cuentas de usuario).
  * Requiere la verificación de contraseña del Admin / SuperAdmin (omite verificación de password si es cuenta Google sin contraseña local).
  */
 export async function clearDemoData({
   targetCompanyId,
+  targetBranchId,
   mode = 'ONLY_DEMO',
   password
 }: {
   targetCompanyId?: number;
+  targetBranchId?: number;
   mode?: 'ONLY_DEMO' | 'ALL';
   password?: string;
 }) {
@@ -846,13 +912,28 @@ export async function clearDemoData({
 
     // ── MODO 1: ELIMINAR SOLAMENTE DATOS DE PRUEBA ──
     if (mode === 'ONLY_DEMO') {
-      const demoBatches = await prisma.auditLog.findMany({
+      const targetBranch = !targetCompanyId ? await resolveTargetBranch(companyId, targetBranchId) : null;
+
+      const allDemoBatches = await prisma.auditLog.findMany({
         where: {
           companyId,
           module: "DEMO_DATA",
           action: "BATCH_CREATED"
         }
       });
+
+      const demoBatches = targetBranch
+        ? allDemoBatches.filter(batch => {
+            const details = batch.newValues as any;
+            if (details?.branchId) {
+              return Number(details.branchId) === targetBranch.id;
+            }
+            return targetBranch.isMain;
+          })
+        : allDemoBatches;
+
+      const isPartialBranchClean = targetBranch && demoBatches.length < allDemoBatches.length;
+      const batchLogIds = demoBatches.map(b => b.id);
 
       const productIds = new Set<number>();
       const categoryIds = new Set<number>();
@@ -939,13 +1020,17 @@ export async function clearDemoData({
           await tx.payrollDetail?.deleteMany({ where: { companyId, payrollId: { in: Array.from(payrollIds) } } }).catch(() => {});
           await tx.payroll?.deleteMany({ where: { companyId, id: { in: Array.from(payrollIds) } } }).catch(() => {});
         }
-        await tx.payroll?.deleteMany({ where: { companyId, code: { startsWith: 'NOM-' } } }).catch(() => {});
+        if (!isPartialBranchClean) {
+          await tx.payroll?.deleteMany({ where: { companyId, code: { startsWith: 'NOM-' } } }).catch(() => {});
+        }
 
         if (employeeIds.size > 0) {
           await tx.employeeNovelty?.deleteMany({ where: { companyId, employeeId: { in: Array.from(employeeIds) } } }).catch(() => {});
           await tx.employee?.deleteMany({ where: { companyId, id: { in: Array.from(employeeIds) } } }).catch(() => {});
         }
-        await tx.employee?.deleteMany({ where: { companyId, email: { contains: '@gns-demo.com' } } }).catch(() => {});
+        if (!isPartialBranchClean) {
+          await tx.employee?.deleteMany({ where: { companyId, email: { contains: '@gns-demo.com' } } }).catch(() => {});
+        }
 
         if (positionIds.size > 0) {
           await tx.position?.deleteMany({ where: { companyId, id: { in: Array.from(positionIds) } } }).catch(() => {});
@@ -959,8 +1044,9 @@ export async function clearDemoData({
           await tx.expense.deleteMany({ where: { companyId, id: { in: Array.from(expenseIds) } } }).catch(() => {});
         }
 
-        // Productos demo
+        // Stock en bodegas y Productos demo
         if (productIds.size > 0) {
+          await tx.warehouseStock.deleteMany({ where: { companyId, productId: { in: Array.from(productIds) } } }).catch(() => {});
           await tx.product.deleteMany({ where: { companyId, id: { in: Array.from(productIds) } } }).catch(() => {});
         }
 
@@ -985,18 +1071,30 @@ export async function clearDemoData({
         }
 
         // Usuarios demo temporales
-        await tx.user.deleteMany({ where: { companyId, email: { contains: '@gns-demo.com' } } }).catch(() => {});
+        if (userIds.size > 0) {
+          await tx.user.deleteMany({ where: { companyId, id: { in: Array.from(userIds) } } }).catch(() => {});
+        } else if (!isPartialBranchClean) {
+          await tx.user.deleteMany({ where: { companyId, email: { contains: '@gns-demo.com' } } }).catch(() => {});
+        }
 
         // Eliminar seguimiento del lote
-        await tx.auditLog.deleteMany({
-          where: { companyId, module: "DEMO_DATA" }
-        });
+        if (batchLogIds.length > 0) {
+          await tx.auditLog.deleteMany({
+            where: { companyId, id: { in: batchLogIds } }
+          });
+        } else if (!isPartialBranchClean) {
+          await tx.auditLog.deleteMany({
+            where: { companyId, module: "DEMO_DATA" }
+          });
+        }
       });
 
       revalidatePath("/", "layout");
       return {
         success: true,
-        message: "Se han eliminado exitosamente todos los datos de prueba. Todos tus productos, clientes y registros reales se conservan intactos."
+        message: targetBranch
+          ? `Se han eliminado exitosamente los datos de prueba de "${targetBranch.name}". Tus registros reales y de otras sedes se conservan intactos.`
+          : "Se han eliminado exitosamente todos los datos de prueba. Todos tus productos, clientes y registros reales se conservan intactos."
       };
     }
 

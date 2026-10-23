@@ -48,6 +48,7 @@ export function OnboardingManager({
   // Estado del lote de prueba
   const [hasDemoData, setHasDemoData] = useState<boolean>(false);
   const [batchInfo, setBatchInfo] = useState<any>(null);
+  const [activeBranchName, setActiveBranchName] = useState<string>("");
   const [checkingStatus, setCheckingStatus] = useState<boolean>(true);
 
   // Modal de Limpieza por Empresa (ONLY_DEMO vs ALL)
@@ -74,6 +75,7 @@ export function OnboardingManager({
       const res = await getDemoDataStatus(targetId);
       setHasDemoData(res.hasDemoData);
       setBatchInfo((res as any).batchInfo || null);
+      setActiveBranchName((res as any).branchName || "");
     } catch (err) {
       console.error("Error al obtener estado de datos demo:", err);
     } finally {
@@ -96,7 +98,7 @@ export function OnboardingManager({
     if (hasDemoData) {
       await Swal.fire({
         title: 'Datos de prueba ya existentes',
-        text: 'Ya existen datos de demostración activos en tu empresa. Debes eliminarlos antes de generar un nuevo lote de prueba.',
+        text: `Ya existen datos de demostración activos en ${activeBranchName ? `la sede "${activeBranchName}"` : 'tu empresa'}. Debes eliminarlos antes de generar un nuevo lote de prueba.`,
         icon: 'warning',
         confirmButtonColor: '#3b82f6',
         confirmButtonText: 'Entendido'
@@ -106,7 +108,7 @@ export function OnboardingManager({
 
     const confirm = await Swal.fire({
       title: '¿Generar datos de prueba?',
-      text: "Se inyectarán categorías, productos, ventas, clientes, nómina e inventario de demostración en tu empresa.",
+      text: `Se inyectarán categorías, productos, ventas, clientes, nómina e inventario de demostración en ${activeBranchName ? `la sede "${activeBranchName}"` : 'tu empresa'}.`,
       icon: 'info',
       showCancelButton: true,
       confirmButtonColor: '#10b981',
@@ -199,26 +201,34 @@ export function OnboardingManager({
           </div>
           <div className="flex-1">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-lg font-bold text-foreground">Gestión de Datos y Limpieza por Empresa</h2>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-lg font-bold text-foreground">Gestión de Datos y Limpieza por Empresa</h2>
+                {activeBranchName && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+                    <Building2 size={12} />
+                    {activeBranchName}
+                  </span>
+                )}
+              </div>
 
               {/* Badge de estado de datos demo */}
               {!checkingStatus && (
                 hasDemoData ? (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
                     <AlertCircle size={14} />
-                    Datos de prueba activos
+                    Datos de prueba activos {activeBranchName ? `(${activeBranchName})` : ""}
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                     <CheckCircle2 size={14} />
-                    Sin datos de prueba
+                    Sin datos de prueba {activeBranchName ? `(${activeBranchName})` : ""}
                   </span>
                 )
               )}
             </div>
 
             <p className="text-sm text-muted-foreground mt-1 mb-4">
-              Permite cargar un conjunto de productos, inventario, ventas y CRM de muestra para explorar las funcionalidades del sistema, o realizar limpiezas seguras.
+              Permite cargar un conjunto de productos, inventario, ventas y CRM de muestra para explorar las funcionalidades del sistema en la sede activa, o realizar limpiezas seguras.
               <b> Importante:</b> Las cuentas de usuario y el acceso a la plataforma <b>nunca se eliminan</b> para mantener tu sesión activa.
             </p>
 
@@ -227,9 +237,9 @@ export function OnboardingManager({
               <div className="mb-5 p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-3 text-xs text-amber-800 dark:text-amber-300">
                 <Info size={16} className="flex-shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
                 <div>
-                  <p className="font-semibold">Lote de prueba activo en el sistema</p>
+                  <p className="font-semibold">Lote de prueba activo en {activeBranchName || "el sistema"}</p>
                   <p className="mt-0.5 text-amber-700 dark:text-amber-400">
-                    Ya existen registros de prueba inyectados. Puedes usar <b>&quot;Limpiar Datos de mi Empresa&quot;</b> para borrar únicamente los datos de prueba o realizar un reset completo de la empresa.
+                    Ya existen registros de prueba inyectados en esta sede. Puedes usar <b>&quot;Limpiar Datos de la Empresa&quot;</b> para borrar únicamente los datos de prueba de esta sede o realizar un reset completo.
                   </p>
                 </div>
               </div>

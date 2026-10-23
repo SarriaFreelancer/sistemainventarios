@@ -20,7 +20,7 @@ import { LandingAuthNav } from '@/app/components/public/LandingAuthNav';
 import { LandingModules } from '@/app/components/public/LandingModules';
 import { WhatsAppButton } from '@/app/components/public/WhatsAppButton';
 
-export const revalidate = 3600; // Recalcular (ISR) cada 1 hora
+export const revalidate = 0; // Mostrar cambios de precios y configuración de inmediato
 
 export default async function HomePage() {
   const session = await getAuthSession();
@@ -788,7 +788,7 @@ export default async function HomePage() {
                 </div>
                 <div>
                   <div className="text-[12px] text-slate-500 dark:text-slate-400 font-bold mb-1">Correo Electrónico</div>
-                  <div className="text-[15px] font-extrabold text-slate-900 dark:text-white">contacto@gnssarria.com</div>
+                  <div className="text-[15px] font-extrabold text-slate-900 dark:text-white">sarriatech@gmail.com</div>
                 </div>
               </div>
               <div className="flex items-center gap-4">

@@ -195,6 +195,7 @@ export function LicensesManager({ companies, planSettings = {}, allModules = [] 
     setSavingPlans(false);
 
     if (result.success) {
+      router.refresh();
       successAlert("Planes Actualizados", "La configuración de los planes unitarios y Enterprise se guardó globalmente.");
     } else {
       errorAlert("Error", result.error || "No se pudo guardar la configuración.");
@@ -211,64 +212,76 @@ export function LicensesManager({ companies, planSettings = {}, allModules = [] 
   };
 
   const renderPlanConfig = (title: string, state: any, setState: any, isEnterprise = false) => (
-    <div className={`border rounded-xl p-4 space-y-4 ${isEnterprise ? 'border-indigo-500/40 bg-indigo-950/10 dark:bg-indigo-950/20' : 'border-border bg-muted/5'}`}>
-      <div className="flex items-center justify-between border-b border-border pb-2">
-        <h4 className="font-bold text-md text-foreground flex items-center gap-2">
-          {isEnterprise && <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 font-extrabold border border-indigo-500/30">Enterprise</span>}
-          {title}
-        </h4>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="text-xs font-bold text-muted-foreground uppercase">Máx. Usuarios</label>
-          <input
-            type="number"
-            value={state.maxUsers}
-            onChange={(e) => setState({...state, maxUsers: e.target.value})}
-            className="w-full mt-1 bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
-          />
+    <div className={`border rounded-xl p-4 space-y-4 flex flex-col justify-between ${isEnterprise ? 'border-indigo-500/40 bg-indigo-950/10 dark:bg-indigo-950/20' : 'border-border bg-muted/5'}`}>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between border-b border-border pb-2.5 min-h-[2.25rem]">
+          <h4 className="font-bold text-sm sm:text-base text-foreground flex items-center gap-2 min-w-0">
+            {isEnterprise && <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 font-extrabold border border-indigo-500/30 shrink-0">Enterprise</span>}
+            <span className="truncate" title={title}>{isEnterprise ? title.replace(/^Enterprise\s+/i, '') : title}</span>
+          </h4>
         </div>
-        <div>
-          <label className="text-xs font-bold text-muted-foreground uppercase">Máx. Productos</label>
-          <input
-            type="number"
-            value={state.maxProducts}
-            onChange={(e) => setState({...state, maxProducts: e.target.value})}
-            className="w-full mt-1 bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
-          />
-        </div>
-        {isEnterprise && (
-          <div className="col-span-2">
-            <label className="text-xs font-bold text-indigo-400 uppercase">Límite de Sedes Permitidas</label>
+        <div className="grid grid-cols-2 gap-3 items-end">
+          <div className="flex flex-col justify-end h-full min-w-0">
+            <label className="text-[11px] font-bold text-muted-foreground uppercase leading-tight mb-1.5 whitespace-nowrap truncate" title="Máx. Usuarios">
+              Máx. Usuarios
+            </label>
             <input
               type="number"
-              value={state.maxBranches}
-              onChange={(e) => setState({...state, maxBranches: e.target.value})}
-              className="w-full mt-1 bg-background border border-indigo-500/40 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              value={state.maxUsers}
+              onChange={(e) => setState({...state, maxUsers: e.target.value})}
+              className="w-full h-9 bg-background border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none"
             />
           </div>
-        )}
-        <div className="col-span-2">
-          <label className="text-xs font-bold text-muted-foreground uppercase">Precio (COP)</label>
-          <input
-            type="number"
-            value={state.price}
-            onChange={(e) => setState({...state, price: e.target.value})}
-            className="w-full mt-1 bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
-          />
-        </div>
-        <div className="col-span-2">
-          <label className="text-xs font-bold text-muted-foreground uppercase">Máx. Ventas/Mes (999999 = Sin límite)</label>
-          <input
-            type="number"
-            value={state.maxSales}
-            onChange={(e) => setState({...state, maxSales: e.target.value})}
-            className="w-full mt-1 bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
-          />
+          <div className="flex flex-col justify-end h-full min-w-0">
+            <label className="text-[11px] font-bold text-muted-foreground uppercase leading-tight mb-1.5 whitespace-nowrap truncate" title="Máx. Productos">
+              Máx. Productos
+            </label>
+            <input
+              type="number"
+              value={state.maxProducts}
+              onChange={(e) => setState({...state, maxProducts: e.target.value})}
+              className="w-full h-9 bg-background border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none"
+            />
+          </div>
+          {isEnterprise && (
+            <div className="col-span-2 flex flex-col justify-end min-w-0">
+              <label className="text-[11px] font-bold text-indigo-400 uppercase leading-tight mb-1.5 whitespace-nowrap truncate" title="Límite de Sedes Permitidas">
+                Límite de Sedes Permitidas
+              </label>
+              <input
+                type="number"
+                value={state.maxBranches}
+                onChange={(e) => setState({...state, maxBranches: e.target.value})}
+                className="w-full h-9 bg-background border border-indigo-500/40 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              />
+            </div>
+          )}
+          <div className="col-span-2 flex flex-col justify-end min-w-0">
+            <label className="text-[11px] font-bold text-muted-foreground uppercase leading-tight mb-1.5 whitespace-nowrap truncate" title="Precio (COP)">
+              Precio (COP)
+            </label>
+            <input
+              type="number"
+              value={state.price}
+              onChange={(e) => setState({...state, price: e.target.value})}
+              className="w-full h-9 bg-background border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none"
+            />
+          </div>
+          <div className="col-span-2 flex flex-col justify-end min-w-0">
+            <label className="text-[11px] font-bold text-muted-foreground uppercase leading-tight mb-1.5 whitespace-nowrap truncate" title="Máx. Ventas/Mes (999999 = Sin límite)">
+              Máx. Ventas/Mes (999999 = Sin límite)
+            </label>
+            <input
+              type="number"
+              value={state.maxSales}
+              onChange={(e) => setState({...state, maxSales: e.target.value})}
+              className="w-full h-9 bg-background border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none"
+            />
+          </div>
         </div>
       </div>
       <div>
-        <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">Módulos Permitidos</label>
+        <label className="text-[11px] font-bold text-muted-foreground uppercase mb-2 block">Módulos Permitidos</label>
         <div className="flex flex-col gap-1.5 max-h-[180px] overflow-y-auto pr-2">
           {allModules.map(m => (
             <label key={m.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/30 p-1 rounded transition">

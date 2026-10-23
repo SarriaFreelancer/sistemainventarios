@@ -20,9 +20,20 @@ export interface CustomerRow {
   name: string;
   email: string | null;
   phone: string | null;
+  altPhone?: string | null;
   company: string | null;
+  documentType?: string | null;
+  documentNumber?: string | null;
+  address?: string | null;
+  neighborhood?: string | null;
   city: string | null;
+  department?: string | null;
   country?: string | null;
+  deliveryAddress?: string | null;
+  preferredContactMethod?: string | null;
+  preferredContactTime?: string | null;
+  creditNotes?: string | null;
+  creditStatus?: string | null;
   status: CustomerStatus;
 }
 
@@ -141,15 +152,31 @@ function CreateCustomerModal({ onClose }: { onClose: () => void }) {
             <input name="name" required placeholder="Ej. Juan Pérez" className={inputCls} />
           </div>
           <div>
+            <label className={labelCls}>Tipo y N° Documento</label>
+            <div className="grid grid-cols-3 gap-1.5">
+              <select name="documentType" className={selectCls} defaultValue="CC">
+                <option value="CC">CC</option>
+                <option value="NIT">NIT</option>
+                <option value="CE">CE</option>
+                <option value="PASAPORTE">PAS</option>
+              </select>
+              <input name="documentNumber" placeholder="N° Identificación" className={`${inputCls} col-span-2`} />
+            </div>
+          </div>
+          <div>
             <label className={labelCls}>Email</label>
             <input name="email" type="email" placeholder="juan@empresa.com" className={inputCls} />
           </div>
           <div>
-            <label className={labelCls}>Teléfono</label>
+            <label className={labelCls}>Teléfono Principal *</label>
             <input name="phone" placeholder="+57 300 123 4567" className={inputCls} />
           </div>
           <div>
-            <label className={labelCls}>Empresa</label>
+            <label className={labelCls}>Teléfono Alternativo</label>
+            <input name="altPhone" placeholder="Teléfono secundario" className={inputCls} />
+          </div>
+          <div>
+            <label className={labelCls}>Empresa / Razón Social</label>
             <input name="company" placeholder="Nombre de empresa" className={inputCls} />
           </div>
           <div>
@@ -173,6 +200,10 @@ function CreateCustomerModal({ onClose }: { onClose: () => void }) {
             />
           </div>
           <div>
+            <label className={labelCls}>Barrio / Sector</label>
+            <input name="neighborhood" placeholder="Ej: Chapinero" className={inputCls} />
+          </div>
+          <div>
             <label className={labelCls}>Estado</label>
             <select name="status" className={selectCls} defaultValue={CustomerStatus.ACTIVE}>
               <option value={CustomerStatus.ACTIVE}>Activo</option>
@@ -183,8 +214,12 @@ function CreateCustomerModal({ onClose }: { onClose: () => void }) {
           </div>
         </div>
         <div>
-          <label className={labelCls}>Dirección</label>
+          <label className={labelCls}>Dirección de Residencia / Domicilio</label>
           <input name="address" placeholder="Calle 123 # 45-67" className={inputCls} />
+        </div>
+        <div>
+          <label className={labelCls}>Dirección Alternativa de Entrega</label>
+          <input name="deliveryAddress" placeholder="Dirección de despacho si es diferente a la principal" className={inputCls} />
         </div>
         <div className="pt-2">
           <SubmitBtn pending={isPending} label="Crear Cliente" />
@@ -243,6 +278,23 @@ function EditCustomerModal({
             />
           </div>
           <div>
+            <label className={labelCls}>Tipo y N° Documento</label>
+            <div className="grid grid-cols-3 gap-1.5">
+              <select name="documentType" className={selectCls} defaultValue={customer.documentType || 'CC'}>
+                <option value="CC">CC</option>
+                <option value="NIT">NIT</option>
+                <option value="CE">CE</option>
+                <option value="PASAPORTE">PAS</option>
+              </select>
+              <input
+                name="documentNumber"
+                placeholder="N° Identificación"
+                defaultValue={customer.documentNumber ?? ''}
+                className={`${inputCls} col-span-2`}
+              />
+            </div>
+          </div>
+          <div>
             <label className={labelCls}>Email</label>
             <input
               name="email"
@@ -252,7 +304,7 @@ function EditCustomerModal({
             />
           </div>
           <div>
-            <label className={labelCls}>Teléfono</label>
+            <label className={labelCls}>Teléfono Principal</label>
             <input
               name="phone"
               defaultValue={customer.phone ?? ''}
@@ -260,7 +312,16 @@ function EditCustomerModal({
             />
           </div>
           <div>
-            <label className={labelCls}>Empresa</label>
+            <label className={labelCls}>Teléfono Alternativo</label>
+            <input
+              name="altPhone"
+              placeholder="Teléfono secundario"
+              defaultValue={customer.altPhone ?? ''}
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <label className={labelCls}>Empresa / Razón Social</label>
             <input
               name="company"
               defaultValue={customer.company ?? ''}
@@ -288,6 +349,15 @@ function EditCustomerModal({
             />
           </div>
           <div>
+            <label className={labelCls}>Barrio / Sector</label>
+            <input
+              name="neighborhood"
+              placeholder="Ej: Chapinero"
+              defaultValue={customer.neighborhood ?? ''}
+              className={inputCls}
+            />
+          </div>
+          <div>
             <label className={labelCls}>Estado</label>
             <select name="status" className={selectCls} defaultValue={customer.status}>
               <option value={CustomerStatus.ACTIVE}>Activo</option>
@@ -296,6 +366,24 @@ function EditCustomerModal({
               <option value={CustomerStatus.WON}>Ganado</option>
             </select>
           </div>
+        </div>
+        <div>
+          <label className={labelCls}>Dirección de Residencia / Domicilio</label>
+          <input
+            name="address"
+            placeholder="Calle 123 # 45-67"
+            defaultValue={customer.address ?? ''}
+            className={inputCls}
+          />
+        </div>
+        <div>
+          <label className={labelCls}>Dirección Alternativa de Entrega</label>
+          <input
+            name="deliveryAddress"
+            placeholder="Dirección de despacho si es diferente a la principal"
+            defaultValue={customer.deliveryAddress ?? ''}
+            className={inputCls}
+          />
         </div>
         <div className="pt-2">
           <SubmitBtn pending={isPending} label="Guardar Cambios" />

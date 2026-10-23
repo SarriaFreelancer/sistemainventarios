@@ -145,6 +145,7 @@ export default async function SalesPage() {
         allowNegativeStock={settings?.allowNegativeStock ?? false}
         enableCombos={settings?.enableCombos ?? false}
         allowSaleFromCommittedCombos={settings?.allowSaleFromCommittedCombos ?? false}
+        enableCreditSales={settings?.enableCreditSales ?? false}
       />
     </div>
   );

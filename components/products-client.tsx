@@ -414,26 +414,39 @@ export function ProductsClient(props: {
       </div>
 
       {/* ── KPI Cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {[
           { label: 'Total Productos', value: String(filteredProducts.length), sub: 'en catálogo', icon: ShoppingCart },
           { label: 'Stock Total', value: totalStock.toLocaleString(), sub: 'unidades disponibles', icon: Archive },
           { label: 'Valor Inventario', value: totalValue.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }), sub: 'precio de venta', icon: DollarSign },
           { label: 'Sin Stock', value: String(outOfStock), sub: 'productos agotados', icon: TrendingUp, danger: outOfStock > 0 },
-        ].map(({ label, value, sub, icon: Icon, danger }) => (
-          <div key={label} className="p-5 rounded-[24px] bg-card border border-border shadow-sm flex flex-col gap-3 hover:border-primary/20 hover:shadow-md transition-all duration-300">
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">{label}</p>
-              <div className={`p-1.5 rounded-lg ${danger ? 'bg-red-500/10' : 'bg-primary/10'}`}>
-                <Icon className={`h-4 w-4 ${danger ? 'text-red-500' : 'text-primary'}`} />
+        ].map(({ label, value, sub, icon: Icon, danger }) => {
+          const isVeryLong = value.length > 12;
+          const isMediumLong = value.length > 9 && value.length <= 12;
+          return (
+            <div key={label} className="p-3.5 sm:p-5 rounded-[20px] sm:rounded-[24px] bg-card border border-border shadow-sm flex flex-col justify-between gap-2 sm:gap-3 hover:border-primary/20 hover:shadow-md transition-all duration-300 min-w-0 overflow-hidden">
+              <div className="flex items-center justify-between gap-1.5 min-w-0">
+                <p className="text-[9.5px] sm:text-[10px] font-extrabold uppercase tracking-wider sm:tracking-widest text-muted-foreground truncate">{label}</p>
+                <div className={`p-1.5 rounded-lg shrink-0 ${danger ? 'bg-red-500/10' : 'bg-primary/10'}`}>
+                  <Icon className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${danger ? 'text-red-500' : 'text-primary'}`} />
+                </div>
               </div>
+              <p
+                title={value}
+                className={`font-black leading-tight tracking-tight break-words ${
+                  isVeryLong
+                    ? 'text-xs sm:text-base md:text-lg xl:text-xl'
+                    : isMediumLong
+                    ? 'text-sm sm:text-lg xl:text-2xl'
+                    : 'text-xl sm:text-2xl'
+                } ${danger && outOfStock > 0 ? 'text-red-500' : 'text-foreground'}`}
+              >
+                {value}
+              </p>
+              <p className="text-[10px] text-muted-foreground truncate">{sub}</p>
             </div>
-            <p className={`text-2xl font-black leading-tight ${danger && outOfStock > 0 ? 'text-red-500' : 'text-foreground'}`}>
-              {value}
-            </p>
-            <p className="text-[10px] text-muted-foreground">{sub}</p>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* ── Main Table Card with Connected Type Tabs & Filters ── */}
@@ -991,37 +1004,79 @@ export function ProductsClient(props: {
           ) : (
             paginatedProducts.map(product => {
               const isOut = product.quantityAvailable <= 0;
+              const formattedPrice = product.salePrice.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+              const formattedCost = product.unitCost.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+              const isLongPrice = formattedPrice.length > 12;
+              const isLongCost = formattedCost.length > 12;
+
               return (
                 <div key={product.id} className="p-4 sm:p-5 space-y-3 hover:bg-primary/5 transition-colors overflow-hidden">
-                  <div className="flex items-start justify-between gap-3 min-w-0">
-                    <div className="flex-1 min-w-0 pr-1 space-y-1">
-                      <div className="flex flex-wrap items-center gap-1.5">
+                  {/* Encabezado de tarjeta móvil: Código, Sede, Estado y Nombre */}
+                  <div className="space-y-1.5 min-w-0">
+                    <div className="flex flex-wrap items-center justify-between gap-1.5">
+                      <div className="flex flex-wrap items-center gap-1.5 min-w-0">
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/10 shrink-0">
                           {product.code}
                         </span>
                         {product.branch && (
-                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 shrink-0">
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 truncate max-w-[160px]">
                             📍 {product.branch.name}
                           </span>
                         )}
                       </div>
-                      <h3 className="font-semibold text-foreground text-sm leading-snug break-words">{product.name}</h3>
-                      <p className="text-xs text-muted-foreground truncate">{product.category?.name ?? 'Sin categoría'}</p>
+                      {isOut ? (
+                        <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-red-500/10 text-red-500 border border-red-500/20 shrink-0">Agotado</span>
+                      ) : (
+                        <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 shrink-0">Disponible</span>
+                      )}
                     </div>
-                    <div className="shrink-0 text-right min-w-[90px] max-w-[45%]">
-                      <p className="text-sm sm:text-base font-black text-primary leading-tight break-all">
-                        {product.salePrice.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
+                    <h3 className="font-semibold text-foreground text-sm leading-snug break-words">{product.name}</h3>
+                    <p className="text-xs text-muted-foreground truncate">{product.category?.name ?? 'Sin categoría'}</p>
+                  </div>
+
+                  {/* Bloque adaptable de Precio de Venta y Costo (soporta +2.000 millones sin recortarse) */}
+                  <div className="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-muted/20 border border-border/50 min-w-0">
+                    <div className="min-w-0 overflow-hidden">
+                      <span className="block text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground">
+                        Costo Unit.
+                      </span>
+                      <p
+                        title={formattedCost}
+                        className={`font-bold text-foreground leading-tight tracking-tight break-words mt-0.5 ${
+                          isLongCost ? 'text-[11px] sm:text-xs' : 'text-xs sm:text-sm'
+                        }`}
+                      >
+                        {formattedCost}
                       </p>
-                      <p className={`text-xs mt-1 ${isOut ? 'text-red-500 font-bold' : 'text-muted-foreground'}`}>
-                        Stock: {product.quantityAvailable}
+                    </div>
+                    <div className="min-w-0 overflow-hidden text-right">
+                      <span className="block text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground">
+                        Precio Venta
+                      </span>
+                      <p
+                        title={formattedPrice}
+                        className={`font-black text-primary leading-tight tracking-tight break-words mt-0.5 ${
+                          isLongPrice ? 'text-xs sm:text-sm' : 'text-sm sm:text-base'
+                        }`}
+                      >
+                        {formattedPrice}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Fila inferior: Stock y Acciones */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className={`text-xs ${isOut ? 'text-red-500 font-bold' : 'text-muted-foreground font-semibold'}`}>
+                        Stock: <span className={isOut ? 'text-red-500' : 'text-foreground font-black'}>{product.quantityAvailable}</span>
                       </p>
                       {(() => {
                         const committedData = committedStockMap[product.id];
                         if (!enableCombos || !committedData || committedData.committedInCombos <= 0) return null;
                         const freeStock = Math.max(0, product.quantityAvailable - committedData.committedInCombos);
                         return (
-                          <div className="mt-1 flex flex-col items-end gap-0.5">
-                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 inline-flex items-center gap-1">
+                          <div className="flex items-center gap-1">
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 inline-flex items-center gap-1">
                               <Layers className="w-2.5 h-2.5" />
                               {committedData.committedInCombos} en kits
                             </span>
@@ -1030,14 +1085,8 @@ export function ProductsClient(props: {
                         );
                       })()}
                     </div>
-                  </div>
-                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                    {isOut ? (
-                      <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-red-500/10 text-red-500 border border-red-500/20">Agotado</span>
-                    ) : (
-                      <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">Disponible</span>
-                    )}
-                    <div className="flex items-center gap-1.5 justify-end">
+
+                    <div className="flex items-center gap-1.5 justify-end ml-auto">
                       {['SALE', 'FINISHED_GOOD', 'SERVICE'].includes(product.type || 'SALE') ? (
                         <button
                           onClick={() => handleQuickSell(product)}

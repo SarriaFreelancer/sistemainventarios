@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   ShoppingBag, Plus, Trash2, Search, FileDown,
-  TrendingUp, DollarSign, Receipt, Calendar, X, Package, Check, Download, AlertTriangle, Layers, Sparkles
+  TrendingUp, DollarSign, Receipt, Calendar, X, Package, Check, Download, AlertTriangle, Layers, Sparkles, CreditCard
 } from "lucide-react";
 import { confirmAction, successAlert, errorAlert, brandAlert } from "@/lib/sweetalert";
 // ExcelJS se importa dinámicamente cuando se necesita exportar (await import('exceljs'))
@@ -1650,6 +1650,7 @@ export function SalesClient(props: {
   allowNegativeStock?: boolean;
   enableCombos?: boolean;
   allowSaleFromCommittedCombos?: boolean;
+  enableCreditSales?: boolean;
 }) {
   const {
     initialSales,
@@ -1661,6 +1662,7 @@ export function SalesClient(props: {
     allowNegativeStock = false,
     enableCombos = false,
     allowSaleFromCommittedCombos = false,
+    enableCreditSales = false,
   } = props;
   const router = useRouter();
   const [search, setSearch] = useState('');
@@ -1747,7 +1749,17 @@ export function SalesClient(props: {
             <p className="text-sm text-muted-foreground">Registra y monitorea todas las ventas de tu negocio.</p>
           </div>
         </div>
-        <div className="relative z-10 flex gap-2">
+        <div className="relative z-10 flex flex-wrap gap-2">
+          {enableCreditSales && (
+            <Button
+              variant="outline"
+              onClick={() => router.push('/dashboard/cartera?action=new')}
+              className="h-11 gap-2 px-4 rounded-2xl border-amber-500/30 text-amber-600 hover:bg-amber-500/10 dark:text-amber-400 font-semibold"
+            >
+              <CreditCard className="h-4 w-4" />
+              <span>Venta a Crédito</span>
+            </Button>
+          )}
           <Button
             variant="outline"
             onClick={() => exportSalesToExcel(filtered)}

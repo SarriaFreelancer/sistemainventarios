@@ -60,6 +60,7 @@ export function CrmCustomerTable({
   const filtered = customers.filter(
     (c) =>
       c.name.toLowerCase().includes(search.toLowerCase()) ||
+      (c.documentNumber ?? '').toLowerCase().includes(search.toLowerCase()) ||
       (c.company ?? '').toLowerCase().includes(search.toLowerCase()) ||
       (c.city ?? '').toLowerCase().includes(search.toLowerCase()),
   );
@@ -89,7 +90,7 @@ export function CrmCustomerTable({
       <div className="mb-5">
         <input
           type="search"
-          placeholder="Buscar por nombre, empresa o ciudad..."
+          placeholder="Buscar por nombre, documento, empresa o ciudad..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="h-10 w-full max-w-sm rounded-xl border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
@@ -140,6 +141,11 @@ export function CrmCustomerTable({
                   {/* Name + Email */}
                   <td className="px-4 py-3.5">
                     <p className="font-semibold text-foreground">{customer.name}</p>
+                    {customer.documentNumber && (
+                      <p className="mt-0.5 text-xs font-medium text-primary">
+                        {customer.documentType ?? 'DOC'}: {customer.documentNumber}
+                      </p>
+                    )}
                     {customer.email && (
                       <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
                         <Mail className="h-3 w-3" />

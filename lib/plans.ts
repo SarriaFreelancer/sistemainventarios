@@ -15,9 +15,9 @@ export function normalizePlanKey(planId: string | null | undefined): keyof typeo
   if (clean === 'BASICO' || clean === 'BASIC') return 'BASIC';
   if (clean === 'INTERMEDIO' || clean === 'INTERMEDIATE') return 'INTERMEDIATE';
   if (clean === 'PREMIUM') return 'PREMIUM';
-  if (clean === 'ENTERPRISE_2' || clean === 'ENTERPRISE-2') return 'ENTERPRISE_2';
-  if (clean === 'ENTERPRISE_5' || clean === 'ENTERPRISE-5') return 'ENTERPRISE_5';
-  if (clean === 'ENTERPRISE_10' || clean === 'ENTERPRISE-10') return 'ENTERPRISE_10';
+  if (clean === 'ENTERPRISE_2' || clean === 'ENTERPRISE-2' || clean === 'ENTERPRISE_2_SEDES') return 'ENTERPRISE_2';
+  if (clean === 'ENTERPRISE_5' || clean === 'ENTERPRISE-5' || clean === 'ENTERPRISE_5_SEDES') return 'ENTERPRISE_5';
+  if (clean === 'ENTERPRISE_10' || clean === 'ENTERPRISE-10' || clean === 'ENTERPRISE_10_SEDES') return 'ENTERPRISE_10';
   if (clean === 'ENTERPRISE_UNLIMITED' || clean === 'ENTERPRISE-UNLIMITED') return 'ENTERPRISE_UNLIMITED';
   if (clean === 'ENTERPRISE') return 'ENTERPRISE';
   return (PLANS[clean as keyof typeof PLANS] ? clean : 'PREMIUM') as keyof typeof PLANS;

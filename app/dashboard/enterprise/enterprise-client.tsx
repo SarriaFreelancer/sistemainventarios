@@ -386,17 +386,17 @@ export function EnterpriseClient({
         </div>
 
         {/* Consolidated Inventory Value */}
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:border-purple-500/50 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:border-purple-500/50 transition-all min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider truncate">
               Valorización Inventario
             </span>
-            <div className="p-2 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
+            <div className="p-2 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 shrink-0">
               <TrendingUp className="w-5 h-5" />
             </div>
           </div>
-          <div className="mt-3">
-            <h3 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+          <div className="mt-3 min-w-0">
+            <h3 className="text-lg sm:text-2xl xl:text-3xl font-black text-slate-900 dark:text-white tracking-tight break-words leading-tight">
               {formatCurrency(kpis.totalInventoryValue)}
             </h3>
             <p className="text-xs text-slate-600 dark:text-slate-300 font-medium mt-1.5 flex items-center gap-1.5">
@@ -738,19 +738,19 @@ export function EnterpriseClient({
               </div>
 
               <div className="mt-3.5 grid grid-cols-2 gap-3 text-xs">
-                <div className="bg-white dark:bg-slate-900/60 p-2.5 rounded-lg border border-slate-200/70 dark:border-slate-800">
-                  <span className="text-slate-600 dark:text-slate-400 font-bold block text-[11px] uppercase tracking-wider">
+                <div className="bg-white dark:bg-slate-900/60 p-2.5 rounded-lg border border-slate-200/70 dark:border-slate-800 min-w-0 overflow-hidden">
+                  <span className="text-slate-600 dark:text-slate-400 font-bold block text-[11px] uppercase tracking-wider truncate">
                     Stock Físico
                   </span>
-                  <span className="font-black text-slate-900 dark:text-white text-base block mt-0.5">
+                  <span className="font-black text-slate-900 dark:text-white text-sm sm:text-base block mt-0.5 break-words leading-tight">
                     {item.stock.toLocaleString()} <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">unids</span>
                   </span>
                 </div>
-                <div className="bg-white dark:bg-slate-900/60 p-2.5 rounded-lg border border-slate-200/70 dark:border-slate-800">
-                  <span className="text-slate-600 dark:text-slate-400 font-bold block text-[11px] uppercase tracking-wider">
+                <div className="bg-white dark:bg-slate-900/60 p-2.5 rounded-lg border border-slate-200/70 dark:border-slate-800 min-w-0 overflow-hidden">
+                  <span className="text-slate-600 dark:text-slate-400 font-bold block text-[11px] uppercase tracking-wider truncate">
                     Valorización
                   </span>
-                  <span className="font-black text-slate-900 dark:text-white text-base block mt-0.5">
+                  <span className="font-black text-slate-900 dark:text-white text-xs sm:text-sm md:text-base block mt-0.5 break-words leading-tight tracking-tight">
                     {formatCurrency(item.valuation)}
                   </span>
                 </div>

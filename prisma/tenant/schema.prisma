@@ -102,6 +102,19 @@ model Customer {
   quotes        Quote[]
   code          String?
   sales         Sale[]
+  documentType           String?
+  documentNumber         String?
+  altPhone               String?
+  neighborhood           String?
+  department             String?
+  deliveryAddress        String?
+  preferredContactMethod String?
+  preferredContactTime   String?
+  creditNotes            String?         @db.Text
+  creditStatus           String?         @default("ACTIVE")
+  creditOperations       CreditOperation[]
+  creditPayments         CreditPayment[]
+  creditCollectionActivities CreditCollectionActivity[]
 
   @@index([companyId])
 }
@@ -230,6 +243,7 @@ model Product {
   categoryId         Int
   supplierId         Int
   quantityAvailable  Int                 @default(0)
+  reservedQuantity   Int                 @default(0)
   unitCost           Float               @default(0)
   salePrice          Float               @default(0)
   soldQuantity       Int                 @default(0)
@@ -249,6 +263,7 @@ model Product {
   saleDetails        SaleDetail[]
   purchaseOrderLines PurchaseOrderLine[]
   comboItems         ComboItem[]
+  creditOperationItems CreditOperationItem[]
 
   @@unique([code, companyId])
   @@index([name])
@@ -280,6 +295,7 @@ model Sale {
   customer       Customer?    @relation(fields: [customerId], references: [id], map: "fk_sale_cust")
   branchId       Int?
   branch         Branch?      @relation(fields: [branchId], references: [id], map: "fk_sale_branch")
+  creditOperation CreditOperation?
 
   @@unique([saleNumber, companyId])
   @@index([userId])
@@ -419,6 +435,7 @@ model Branch {
 
   products  Product[]
   sales     Sale[]
+  creditOperations CreditOperation[]
 
   @@index([companyId])
 }
@@ -447,6 +464,7 @@ model Combo {
 
   items           ComboItem[]
   saleDetails     SaleDetail[]
+  creditOperationItems CreditOperationItem[]
 
   @@unique([name, companyId])
   @@index([companyId])
@@ -466,4 +484,253 @@ model ComboItem {
   @@index([comboId])
   @@index([productId])
   @@index([companyId])
+}
+
+// ==========================================
+// MÓDULO CARTERA Y VENTAS A CRÉDITO (TENANT)
+// ==========================================
+
+enum CreditDeliveryMode {
+  IMMEDIATE
+  UPON_PAYMENT
+}
+
+enum CreditOperationStatus {
+  ACTIVE
+  PAID
+  DELIVERED
+  CANCELLED
+  OVERDUE
+}
+
+enum CreditDeliveryStatus {
+  PENDING
+  PARTIAL
+  DELIVERED
+  CANCELLED
+}
+
+enum CreditInstallmentStatus {
+  PENDING
+  PARTIAL
+  PAID
+  OVERDUE
+}
+
+enum CreditPaymentStatus {
+  CONFIRMED
+  VOIDED
+}
+
+model CreditOperation {
+  id                   Int                       @id @default(autoincrement())
+  code                 String
+  companyId            String?
+  customerId           Int
+  customer             Customer                  @relation(fields: [customerId], references: [id], map: "fk_croper_cust")
+  userId               Int                       // Ref lógica a User
+  branchId             Int?
+  branch               Branch?                   @relation(fields: [branchId], references: [id], map: "fk_croper_branch")
+  saleId               Int?                      @unique
+  sale                 Sale?                     @relation(fields: [saleId], references: [id], map: "fk_croper_sale")
+
+  deliveryMode         CreditDeliveryMode        @default(IMMEDIATE)
+  status               CreditOperationStatus     @default(ACTIVE)
+  deliveryStatus       CreditDeliveryStatus      @default(PENDING)
+
+  totalAmount          Float                     @default(0)
+  downPayment          Float                     @default(0)
+  paidAmount           Float                     @default(0)
+  balance              Float                     @default(0)
+
+  // Control de reservas de inventario
+  isStockReserved      Boolean                   @default(false)
+  reservationExpiresAt DateTime?
+
+  // Fechas y condiciones pactadas
+  startDate            DateTime                  @default(now())
+  dueDate              DateTime?
+  lastPaymentDate      DateTime?
+  completedAt          DateTime?
+  cancelledAt          DateTime?
+  cancellationReason   String?                   @db.Text
+
+  notes                String?                   @db.Text
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+
+  items                CreditOperationItem[]
+  installments         CreditInstallment[]
+  payments             CreditPayment[]
+  deliveries           CreditDelivery[]
+  collectionActivities CreditCollectionActivity[]
+
+  @@unique([code, companyId])
+  @@index([companyId])
+  @@index([customerId])
+  @@index([userId])
+  @@index([branchId])
+  @@index([status])
+  @@index([deliveryStatus])
+  @@index([dueDate])
+}
+
+model CreditOperationItem {
+  id                   Int                       @id @default(autoincrement())
+  creditOperationId    Int
+  creditOperation      CreditOperation           @relation(fields: [creditOperationId], references: [id], onDelete: Cascade, map: "fk_croperitem_oper")
+  productId            Int?
+  product              Product?                  @relation(fields: [productId], references: [id], map: "fk_croperitem_prod")
+  comboId              Int?
+  combo                Combo?                    @relation(fields: [comboId], references: [id], map: "fk_croperitem_combo")
+  comboName            String?
+  isCombo              Boolean                   @default(false)
+
+  quantity             Int                       @default(1)
+  deliveredQuantity    Int                       @default(0)
+  reservedQuantity     Int                       @default(0)
+
+  unitPrice            Float                     @default(0)
+  subtotal             Float                     @default(0)
+  discount             Float                     @default(0)
+  total                Float                     @default(0)
+
+  companyId            String?
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+
+  deliveryItems        CreditDeliveryItem[]
+
+  @@index([creditOperationId])
+  @@index([productId])
+  @@index([comboId])
+  @@index([companyId])
+}
+
+model CreditInstallment {
+  id                   Int                       @id @default(autoincrement())
+  creditOperationId    Int
+  creditOperation      CreditOperation           @relation(fields: [creditOperationId], references: [id], onDelete: Cascade, map: "fk_crinst_oper")
+  installmentNumber    Int
+  amount               Float                     @default(0)
+  paidAmount           Float                     @default(0)
+  dueDate              DateTime
+  status               CreditInstallmentStatus   @default(PENDING)
+  notes                String?
+  companyId            String?
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+
+  paymentAllocations   CreditPaymentInstallment[]
+
+  @@index([creditOperationId])
+  @@index([companyId])
+  @@index([dueDate])
+  @@index([status])
+}
+
+model CreditPayment {
+  id                   Int                       @id @default(autoincrement())
+  receiptNumber        String
+  creditOperationId    Int
+  creditOperation      CreditOperation           @relation(fields: [creditOperationId], references: [id], onDelete: Cascade, map: "fk_crpay_oper")
+  customerId           Int
+  customer             Customer                  @relation(fields: [customerId], references: [id], map: "fk_crpay_cust")
+  amount               Float
+  paymentDate          DateTime                  @default(now())
+  paymentMethod        String                    @default("EFECTIVO")
+  reference            String?
+  notes                String?                   @db.Text
+  status               CreditPaymentStatus       @default(CONFIRMED)
+  voidedAt             DateTime?
+  voidedReason         String?                   @db.Text
+  voidedByUserId       Int?
+
+  registeredByUserId   Int                       // Ref lógica a User
+  companyId            String?
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+
+  allocations          CreditPaymentInstallment[]
+
+  @@unique([receiptNumber, companyId])
+  @@index([creditOperationId])
+  @@index([customerId])
+  @@index([registeredByUserId])
+  @@index([companyId])
+  @@index([paymentDate])
+  @@index([status])
+}
+
+model CreditPaymentInstallment {
+  id                   Int                       @id @default(autoincrement())
+  creditPaymentId      Int
+  creditPayment        CreditPayment             @relation(fields: [creditPaymentId], references: [id], onDelete: Cascade, map: "fk_crpayinst_pay")
+  creditInstallmentId  Int
+  creditInstallment    CreditInstallment         @relation(fields: [creditInstallmentId], references: [id], onDelete: Cascade, map: "fk_crpayinst_inst")
+  amount               Float                     @default(0)
+  companyId            String?
+  createdAt            DateTime                  @default(now())
+
+  @@index([creditPaymentId])
+  @@index([creditInstallmentId])
+  @@index([companyId])
+}
+
+model CreditDelivery {
+  id                   Int                       @id @default(autoincrement())
+  deliveryNumber       String
+  creditOperationId    Int
+  creditOperation      CreditOperation           @relation(fields: [creditOperationId], references: [id], onDelete: Cascade, map: "fk_crdel_oper")
+  deliveryDate         DateTime                  @default(now())
+  deliveredByUserId    Int                       // Ref lógica a User
+  notes                String?                   @db.Text
+  companyId            String?
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+
+  items                CreditDeliveryItem[]
+
+  @@unique([deliveryNumber, companyId])
+  @@index([creditOperationId])
+  @@index([deliveredByUserId])
+  @@index([companyId])
+}
+
+model CreditDeliveryItem {
+  id                   Int                       @id @default(autoincrement())
+  creditDeliveryId     Int
+  creditDelivery       CreditDelivery            @relation(fields: [creditDeliveryId], references: [id], onDelete: Cascade, map: "fk_crdelitem_del")
+  operationItemId      Int
+  operationItem        CreditOperationItem       @relation(fields: [operationItemId], references: [id], onDelete: Cascade, map: "fk_crdelitem_item")
+  quantity             Int                       @default(1)
+  companyId            String?
+  createdAt            DateTime                  @default(now())
+
+  @@index([creditDeliveryId])
+  @@index([operationItemId])
+  @@index([companyId])
+}
+
+model CreditCollectionActivity {
+  id                   Int                       @id @default(autoincrement())
+  creditOperationId    Int
+  creditOperation      CreditOperation           @relation(fields: [creditOperationId], references: [id], onDelete: Cascade, map: "fk_crcoll_oper")
+  customerId           Int
+  customer             Customer                  @relation(fields: [customerId], references: [id], map: "fk_crcoll_cust")
+  userId               Int                       // Ref lógica a User
+  channel              String
+  result               String
+  notes                String                    @db.Text
+  commitmentDate       DateTime?
+  commitmentAmount     Float?
+  companyId            String?
+  createdAt            DateTime                  @default(now())
+
+  @@index([creditOperationId])
+  @@index([customerId])
+  @@index([userId])
+  @@index([companyId])
+  @@index([createdAt])
+  @@index([commitmentDate])
 }

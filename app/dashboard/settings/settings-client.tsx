@@ -153,6 +153,13 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
   // Módulo Combos
   const [enableCombos, setEnableCombos] = useState((initialSettings as any).enableCombos ?? false);
   const [allowSaleFromCommittedCombos, setAllowSaleFromCommittedCombos] = useState((initialSettings as any).allowSaleFromCommittedCombos ?? false);
+  // Módulo Cartera y Ventas a Crédito
+  const [enableCreditSales, setEnableCreditSales] = useState((initialSettings as any).enableCreditSales ?? false);
+  const [creditDefaultDeliveryMode, setCreditDefaultDeliveryMode] = useState<string>((initialSettings as any).creditDefaultDeliveryMode || "IMMEDIATE");
+  const [creditEnableStockReservation, setCreditEnableStockReservation] = useState((initialSettings as any).creditEnableStockReservation ?? true);
+  const [creditReservationDays, setCreditReservationDays] = useState((initialSettings as any).creditReservationDays ?? 30);
+  const [creditAllowPartialDeliveries, setCreditAllowPartialDeliveries] = useState((initialSettings as any).creditAllowPartialDeliveries ?? false);
+  const [creditPrefix, setCreditPrefix] = useState((initialSettings as any).creditPrefix || "CRE");
 
   // Facturación Personalizada
   const initialInvoiceConfig = (initialSettings as any).invoiceConfig || {};
@@ -246,6 +253,12 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
       enableWarehouses,
       enableCombos,
       allowSaleFromCommittedCombos,
+      enableCreditSales,
+      creditDefaultDeliveryMode,
+      creditEnableStockReservation,
+      creditReservationDays,
+      creditAllowPartialDeliveries,
+      creditPrefix,
       smtpHost,
       smtpPort: smtpPort ? Number(smtpPort) : null,
       smtpUser,
@@ -1455,6 +1468,132 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
               ) : (
                 <div className="p-3.5 rounded-2xl bg-muted/20 border border-dashed border-border text-center text-xs text-muted-foreground">
                   El módulo de Kits está desactivado. No se ejecutarán validaciones de kits en inventario ni aparecerán en el punto de venta.
+                </div>
+              )}
+            </div>
+
+            {/* SECCIÓN MÓDULO CARTERA Y VENTAS A CRÉDITO */}
+            <div className="space-y-4 border-t border-border/60 pt-6 mt-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                    <Receipt size={18} className="text-primary" />
+                    Módulo de Cartera y Ventas a Crédito
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Habilita la gestión de cuentas por cobrar, calendario de cuotas, abonos y control de entregas inmediatas o reservadas.
+                  </p>
+                </div>
+                <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border ${
+                  enableCreditSales
+                    ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                    : 'bg-muted text-muted-foreground border-border'
+                }`}>
+                  {enableCreditSales ? 'MÓDULO ACTIVO' : 'MÓDULO INACTIVO'}
+                </span>
+              </div>
+
+              {/* Interruptor Principal */}
+              <div className="flex items-center justify-between p-4 border border-border/80 bg-muted/10 rounded-2xl">
+                <div>
+                  <p className="text-sm font-bold text-foreground">Habilitar Módulo de Cartera y Crédito</p>
+                  <p className="text-xs text-muted-foreground">
+                    Activa la sección 'Cartera' en el menú principal, el flujo de ventas a crédito, la bitácora de cobranza y comprobantes de abono.
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={enableCreditSales}
+                  onChange={(e) => setEnableCreditSales(e.target.checked)}
+                  className="w-5 h-5 text-primary bg-muted rounded border-border focus:ring-primary cursor-pointer shrink-0 ml-3"
+                />
+              </div>
+
+              {/* Políticas y Opciones avanzadas: Solo visibles cuando está activo */}
+              {enableCreditSales ? (
+                <div className="p-5 rounded-2xl bg-muted/30 border border-border/80 space-y-4">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <SlidersHorizontal className="h-3.5 w-3.5 text-primary" />
+                    Políticas de Crédito, Entregas y Reservas de la Empresa
+                  </h4>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Modalidad de entrega por defecto */}
+                    <div className="p-4 border border-border bg-card rounded-2xl space-y-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">
+                        Modalidad de Entrega Predeterminada
+                      </label>
+                      <select
+                        value={creditDefaultDeliveryMode}
+                        onChange={(e) => setCreditDefaultDeliveryMode(e.target.value)}
+                        className="w-full h-10 rounded-xl border border-border bg-background px-3 text-xs text-foreground focus:ring-2 focus:ring-primary"
+                      >
+                        <option value="IMMEDIATE">Modalidad A: Entrega Inmediata a Crédito</option>
+                        <option value="UPON_PAYMENT">Modalidad B: Entrega después del Pago Completo</option>
+                      </select>
+                      <p className="text-[11px] text-muted-foreground">
+                        {creditDefaultDeliveryMode === 'IMMEDIATE'
+                          ? 'El cliente recibe el producto de inmediato y el inventario se descuenta al crear el crédito.'
+                          : 'El pedido se reserva y la salida física solo se autoriza una vez confirmado el pago del 100%.'}
+                      </p>
+                    </div>
+
+                    {/* Prefijo de Cartera */}
+                    <div className="p-4 border border-border bg-card rounded-2xl space-y-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">
+                        Prefijo de Operaciones
+                      </label>
+                      <input
+                        type="text"
+                        value={creditPrefix}
+                        onChange={(e) => setCreditPrefix(e.target.value.toUpperCase())}
+                        maxLength={5}
+                        className="w-full h-10 rounded-xl border border-border bg-background px-3 text-xs font-mono font-bold text-foreground focus:ring-2 focus:ring-primary"
+                        placeholder="CRE"
+                      />
+                      <p className="text-[11px] text-muted-foreground">
+                        Prefijo para los códigos de operaciones a crédito (ej: {creditPrefix}-20261022-0001).
+                      </p>
+                    </div>
+
+                    {/* Reserva de Inventario en Modalidad B */}
+                    <div className="flex items-start justify-between p-4 border border-border bg-card rounded-2xl space-x-3">
+                      <div>
+                        <p className="text-sm font-bold text-foreground">Control de Reservas de Stock</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          En pedidos con entrega posterior, bloquea las unidades para que no puedan venderse en mostrador a otro cliente, sin generar salida física anticipada.
+                        </p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={creditEnableStockReservation}
+                        onChange={(e) => setCreditEnableStockReservation(e.target.checked)}
+                        className="w-5 h-5 text-primary bg-muted rounded border-border focus:ring-primary cursor-pointer shrink-0 mt-0.5"
+                      />
+                    </div>
+
+                    {/* Días máximos de Reserva */}
+                    <div className="p-4 border border-border bg-card rounded-2xl space-y-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">
+                        Vigencia Máxima de Reserva (Días)
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={365}
+                        value={creditReservationDays}
+                        onChange={(e) => setCreditReservationDays(Number(e.target.value))}
+                        className="w-full h-10 rounded-xl border border-border bg-background px-3 text-xs font-bold text-foreground focus:ring-2 focus:ring-primary"
+                      />
+                      <p className="text-[11px] text-muted-foreground">
+                        Plazo para cancelar la totalidad antes de alertar por vencimiento de reserva.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3.5 rounded-2xl bg-muted/20 border border-dashed border-border text-center text-xs text-muted-foreground">
+                  El módulo de Cartera y Ventas a Crédito está desactivado. No aparecerá en la navegación ni se permitirán operaciones a crédito.
                 </div>
               )}
             </div>

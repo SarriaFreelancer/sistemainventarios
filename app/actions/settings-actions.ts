@@ -253,8 +253,35 @@ export async function updateCompanySettings(data: any) {
         // Gestión de Combos
         enableCombos: data.enableCombos !== undefined ? Boolean(data.enableCombos) : undefined,
         allowSaleFromCommittedCombos: data.allowSaleFromCommittedCombos !== undefined ? Boolean(data.allowSaleFromCommittedCombos) : undefined,
+        // Gestión de Cartera y Ventas a Crédito
+        enableCreditSales: data.enableCreditSales !== undefined ? Boolean(data.enableCreditSales) : undefined,
+        creditDefaultDeliveryMode: data.creditDefaultDeliveryMode || undefined,
+        creditEnableStockReservation: data.creditEnableStockReservation !== undefined ? Boolean(data.creditEnableStockReservation) : undefined,
+        creditReservationDays: data.creditReservationDays !== undefined ? Number(data.creditReservationDays) : undefined,
+        creditAllowPartialDeliveries: data.creditAllowPartialDeliveries !== undefined ? Boolean(data.creditAllowPartialDeliveries) : undefined,
+        creditPrefix: data.creditPrefix || undefined,
       }
     });
+
+    // Sincronizar CompanyModule para Cartera y Crédito
+    if (data.enableCreditSales !== undefined) {
+      const creditMod = await prisma.module.findFirst({
+        where: { OR: [{ href: '/dashboard/cartera' }, { name: 'Cartera y Crédito' }] }
+      });
+      if (creditMod) {
+        if (data.enableCreditSales) {
+          await prisma.companyModule.upsert({
+            where: { companyId_moduleId: { companyId, moduleId: creditMod.id } },
+            update: {},
+            create: { companyId, moduleId: creditMod.id }
+          }).catch(() => {});
+        } else {
+          await prisma.companyModule.deleteMany({
+            where: { companyId, moduleId: creditMod.id }
+          }).catch(() => {});
+        }
+      }
+    }
 
     if (
       data.themeColor !== undefined ||

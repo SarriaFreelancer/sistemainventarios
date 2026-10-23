@@ -67,10 +67,25 @@ export async function POST(request: Request) {
         }
 
         // Obtener configuración de límites de planes
-        const rawPlanId = planId ? planId.toLowerCase() : 'basico';
+        const planKeyAliases: Record<string, string> = {
+          basic: 'basico',
+          basico: 'basico',
+          intermediate: 'intermedio',
+          intermedio: 'intermedio',
+          premium: 'premium',
+          enterprise_2: 'enterprise_2_sedes',
+          enterprise_2_sedes: 'enterprise_2_sedes',
+          enterprise_5: 'enterprise_5_sedes',
+          enterprise_5_sedes: 'enterprise_5_sedes',
+          enterprise_10: 'enterprise_10_sedes',
+          enterprise_10_sedes: 'enterprise_10_sedes',
+          enterprise_unlimited: 'enterprise_unlimited',
+        };
+        const rawPlanId = planId ? (planKeyAliases[planId.toLowerCase()] || planId.toLowerCase()) : 'basico';
         const settingsKeys = [
           `plan_${rawPlanId}_max_users`,
           `plan_${rawPlanId}_max_products`,
+          `plan_${rawPlanId}_max_branches`,
           `plan_${rawPlanId}_max_sales_per_month`,
           `plan_${rawPlanId}_modules`
         ];
@@ -89,6 +104,7 @@ export async function POST(request: Request) {
 
         const maxUsers = settingsMap[`plan_${rawPlanId}_max_users`] ? parseInt(settingsMap[`plan_${rawPlanId}_max_users`]) : limits.maxUsers;
         const maxProducts = settingsMap[`plan_${rawPlanId}_max_products`] ? parseInt(settingsMap[`plan_${rawPlanId}_max_products`]) : limits.maxProducts;
+        const maxBranches = settingsMap[`plan_${rawPlanId}_max_branches`] ? parseInt(settingsMap[`plan_${rawPlanId}_max_branches`]) : limits.maxBranches;
         const maxSalesPerMonth = settingsMap[`plan_${rawPlanId}_max_sales_per_month`] ? parseInt(settingsMap[`plan_${rawPlanId}_max_sales_per_month`]) : 999999;
 
         const company = await tx.company.create({
@@ -97,7 +113,7 @@ export async function POST(request: Request) {
             planId: planId,
             status: 'SUSPENDED',
             isEnterprise: limits.isEnterprise,
-            maxBranches: limits.maxBranches,
+            maxBranches: maxBranches,
             maxUsers: maxUsers,
             maxProducts: maxProducts,
             maxSalesPerMonth: maxSalesPerMonth
