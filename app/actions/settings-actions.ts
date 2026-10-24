@@ -253,8 +253,81 @@ export async function updateCompanySettings(data: any) {
         // Gestión de Combos
         enableCombos: data.enableCombos !== undefined ? Boolean(data.enableCombos) : undefined,
         allowSaleFromCommittedCombos: data.allowSaleFromCommittedCombos !== undefined ? Boolean(data.allowSaleFromCommittedCombos) : undefined,
+        // Gestión de Cartera y Ventas a Crédito
+        enableCreditSales: data.enableCreditSales !== undefined ? Boolean(data.enableCreditSales) : undefined,
+        creditDefaultDeliveryMode: data.creditDefaultDeliveryMode || undefined,
+        creditEnableStockReservation: data.creditEnableStockReservation !== undefined ? Boolean(data.creditEnableStockReservation) : undefined,
+        creditReservationDays: data.creditReservationDays !== undefined ? Number(data.creditReservationDays) : undefined,
+        creditAllowPartialDeliveries: data.creditAllowPartialDeliveries !== undefined ? Boolean(data.creditAllowPartialDeliveries) : undefined,
+        creditPrefix: data.creditPrefix || undefined,
+        // Tienda Virtual
+        enableOnlineStore: data.enableOnlineStore !== undefined ? Boolean(data.enableOnlineStore) : undefined,
+        storeOrderPrefix: data.storeOrderPrefix || undefined,
       }
     });
+
+    // Sincronizar CompanyModule para Cartera y Crédito
+    if (data.enableCreditSales !== undefined) {
+      const creditMod = await prisma.module.findFirst({
+        where: { OR: [{ href: '/dashboard/cartera' }, { name: 'Cartera y Crédito' }] }
+      });
+      if (creditMod) {
+        if (data.enableCreditSales) {
+          await prisma.companyModule.upsert({
+            where: { companyId_moduleId: { companyId, moduleId: creditMod.id } },
+            update: {},
+            create: { companyId, moduleId: creditMod.id }
+          }).catch(() => {});
+        } else {
+          await prisma.companyModule.deleteMany({
+            where: { companyId, moduleId: creditMod.id }
+          }).catch(() => {});
+        }
+      }
+    }
+
+    // Sincronizar CompanyModule para Tienda Virtual
+    if (data.enableOnlineStore !== undefined) {
+      const storeMod = await prisma.module.findFirst({
+        where: { OR: [{ href: '/dashboard/tienda' }, { name: 'Tienda Virtual' }] }
+      });
+      if (storeMod) {
+        if (data.enableOnlineStore) {
+          await prisma.companyModule.upsert({
+            where: { companyId_moduleId: { companyId, moduleId: storeMod.id } },
+            update: {},
+            create: { companyId, moduleId: storeMod.id }
+          }).catch(() => {});
+
+          // Asegurar que exista el registro de OnlineStore
+          const existingStore = await prisma.onlineStore.findUnique({
+            where: { companyId }
+          });
+          if (!existingStore) {
+            const hex = Math.random().toString(16).substring(2, 10);
+            await prisma.onlineStore.create({
+              data: {
+                slug: `store_${companyId}_${hex}`,
+                name: targetCompany.name,
+                description: `Tienda oficial de ${targetCompany.name}`,
+                phone: data.phone || null,
+                address: data.invoiceConfig?.address || null,
+                city: 'Cali',
+                status: 'ACTIVE',
+                allowDelivery: true,
+                allowPickup: true,
+                allowCoordinate: true,
+                companyId
+              }
+            });
+          }
+        } else {
+          await prisma.companyModule.deleteMany({
+            where: { companyId, moduleId: storeMod.id }
+          }).catch(() => {});
+        }
+      }
+    }
 
     if (
       data.themeColor !== undefined ||

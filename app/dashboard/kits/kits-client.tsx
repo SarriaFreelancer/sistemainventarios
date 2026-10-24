@@ -278,10 +278,10 @@ export function KitsClient({
           </div>
         </div>
 
-        <div className="p-4 rounded-3xl bg-card border border-border/60 shadow-sm relative overflow-hidden">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Valorización Potencial</p>
-          <div className="flex items-baseline gap-2 mt-1">
-            <p className="text-xl sm:text-2xl font-black text-foreground">
+        <div className="p-3.5 sm:p-4 rounded-3xl bg-card border border-border/60 shadow-sm relative overflow-hidden min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground truncate">Valorización Potencial</p>
+          <div className="flex items-baseline gap-2 mt-1 min-w-0">
+            <p className="text-xs sm:text-lg xl:text-2xl font-black text-foreground break-words leading-tight tracking-tight">
               {kpis.potentialValue.toLocaleString("es-CO", {
                 style: "currency",
                 currency: "COP",

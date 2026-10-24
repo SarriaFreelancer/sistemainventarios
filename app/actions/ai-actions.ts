@@ -4,6 +4,7 @@ import { getAuthSession } from '@/auth';
 import { getSessionCompanyId } from '@/lib/session';
 import { prisma } from '@/lib/prisma';
 import { getGroqClient, GROQ_DEFAULT_MODEL, GROQ_FALLBACK_MODELS, GNS_AI_SYSTEM_PROMPT } from '@/lib/groq';
+import { getActiveBranchSession } from '@/app/actions/branch-actions';
 
 export interface BusinessMetrics {
   branchName?: string;
@@ -40,22 +41,41 @@ export async function getTenantBusinessMetrics(): Promise<{ success: boolean; me
 
     const companyId = await getSessionCompanyId();
     const whereTenant: any = companyId ? { companyId } : {};
+    const whereBranch: any = companyId ? { companyId } : {};
 
     const dbUser = await prisma.user.findUnique({
       where: { id: Number(session.user.id) },
       select: { branchId: true, branch: { select: { id: true, name: true, isMain: true } } }
     });
 
+    const activeCookieBranchId = await getActiveBranchSession();
     const isBranchUser = session.user.role !== 'SUPERADMIN' && dbUser?.branchId && !dbUser?.branch?.isMain;
     let branchLabel = 'Sede Principal / Consolidado';
 
     if (isBranchUser && dbUser?.branchId) {
-      whereTenant.branchId = dbUser.branchId;
+      whereBranch.branchId = dbUser.branchId;
       branchLabel = dbUser.branch?.name || `Sede #${dbUser.branchId}`;
+    } else if (activeCookieBranchId) {
+      const selectedBranch = await prisma.branch.findFirst({
+        where: { id: activeCookieBranchId, ...(companyId ? { companyId } : {}) }
+      });
+      if (selectedBranch) {
+        if (selectedBranch.isMain) {
+          whereBranch.OR = [
+            { branchId: selectedBranch.id },
+            { branchId: null },
+            { branch: { isMain: true } }
+          ];
+          branchLabel = `${selectedBranch.name} (Sede Principal)`;
+        } else {
+          whereBranch.branchId = selectedBranch.id;
+          branchLabel = selectedBranch.name;
+        }
+      }
     } else if (companyId) {
       const mainBranch = await prisma.branch.findFirst({ where: { companyId, isMain: true } });
       if (mainBranch) {
-        whereTenant.OR = [
+        whereBranch.OR = [
           { branchId: mainBranch.id },
           { branchId: null },
           { branch: { isMain: true } }
@@ -64,9 +84,9 @@ export async function getTenantBusinessMetrics(): Promise<{ success: boolean; me
       }
     }
 
-    // 1. Obtener productos y existencias
+    // 1. Obtener productos y existencias (filtrados por sede activa)
     const products = await prisma.product.findMany({
-      where: whereTenant,
+      where: whereBranch,
       select: {
         id: true,
         code: true,
@@ -113,7 +133,7 @@ export async function getTenantBusinessMetrics(): Promise<{ success: boolean; me
       }
     }
 
-    // 2. Obtener Kits comerciales
+    // 2. Obtener Kits comerciales (Combo pertenece al tenant companyId)
     const combos = await prisma.combo.findMany({
       where: whereTenant,
       include: {
@@ -148,7 +168,7 @@ export async function getTenantBusinessMetrics(): Promise<{ success: boolean; me
     const [recentSales, recentSaleDetails, recentExpenses] = await Promise.all([
       prisma.sale.findMany({
         where: {
-          ...whereTenant,
+          ...whereBranch,
           status: 'COMPLETED',
           createdAt: { gte: thirtyDaysAgo },
         },
@@ -157,7 +177,7 @@ export async function getTenantBusinessMetrics(): Promise<{ success: boolean; me
       prisma.saleDetail.findMany({
         where: {
           sale: {
-            ...whereTenant,
+            ...whereBranch,
             status: 'COMPLETED',
             createdAt: { gte: thirtyDaysAgo },
           },

@@ -394,18 +394,18 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
           )}
 
           {/* Header */}
-          <header className={cn("flex items-center justify-between border-b border-border px-6 py-4 transition-colors duration-500 min-h-[73px] shrink-0 relative z-20", hasBgImage ? "bg-card/60 backdrop-blur-md" : "bg-card")}>
-            <div className="flex items-center gap-3">
+          <header className={cn("flex items-center justify-between border-b border-border px-3 sm:px-6 py-3 sm:py-4 transition-colors duration-500 min-h-[64px] sm:min-h-[73px] shrink-0 relative z-20 gap-2", hasBgImage ? "bg-card/60 backdrop-blur-md" : "bg-card")}>
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
               <button
                 id="tour-mobile-menu-btn"
                 aria-label="Menú principal"
-                className="rounded-xl border border-border bg-card p-2.5 text-foreground hover:bg-muted transition lg:hidden"
+                className="rounded-xl border border-border bg-card p-2 sm:p-2.5 text-foreground hover:bg-muted transition lg:hidden shrink-0"
                 onClick={() => setIsMenuOpen(true)}
               >
                 <LucideIcons.Menu size={18} />
               </button>
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-2xl overflow-hidden border border-border/80 bg-muted/40 flex items-center justify-center shrink-0 shadow-sm relative p-0.5">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-2xl overflow-hidden border border-border/80 bg-muted/40 flex items-center justify-center shrink-0 shadow-sm relative p-0.5">
                   {companyLogo ? (
                     <img
                       src={companyLogo}
@@ -424,20 +424,20 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                       }}
                     />
                   ) : (
-                    <LucideIcons.Building2 size={20} className="text-primary" />
+                    <LucideIcons.Building2 size={18} className="text-primary sm:w-5 sm:h-5" />
                   )}
                 </div>
-                <div>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <p className={cn("text-[10px] font-extrabold uppercase tracking-widest flex items-center gap-1", hasBgImage ? "text-white drop-shadow-sm" : "text-foreground")}>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-1 sm:gap-1.5">
+                    <p className={cn("text-[9px] sm:text-[10px] font-extrabold uppercase tracking-widest flex items-center gap-1 truncate", hasBgImage ? "text-white drop-shadow-sm" : "text-foreground")}>
                       <span className="hidden sm:inline">EMPRESA:</span>
-                      <span className="font-black truncate max-w-[100px] xs:max-w-[150px] sm:max-w-[220px]">{companyName ? companyName.toUpperCase() : 'GLOBAL'}</span>
+                      <span className="font-black truncate max-w-[90px] xs:max-w-[130px] sm:max-w-[220px]">{companyName ? companyName.toUpperCase() : 'GLOBAL'}</span>
                     </p>
 
                     {/* Identificador y Switcher de Sede (Exclusivo para empresas en Plan Enterprise con Multi-Sedes) */}
                     {isEnterprise && currentBranch && (
                       (session?.user?.role === 'SUPERADMIN' || session?.user?.role === 'ADMIN') && availableBranches.length > 1 ? (
-                        <div className="relative inline-flex items-center">
+                        <div className="relative inline-flex items-center shrink-0">
                           <select
                             value={currentBranch.id}
                             onChange={async (e) => {
@@ -446,7 +446,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                               await setActiveBranchSession(newBranchId);
                               window.location.reload();
                             }}
-                            className="appearance-none inline-flex items-center gap-1.5 pl-6 pr-6 py-1 rounded-full text-[9.5px] sm:text-[10.5px] font-black bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700 shadow-sm hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition cursor-pointer"
+                            className="appearance-none inline-flex items-center gap-1.5 pl-5 sm:pl-6 pr-5 sm:pr-6 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-[10.5px] font-black bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700 shadow-sm hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition cursor-pointer"
                             title="Cambiar de Sede Activa en el Sistema"
                           >
                             {availableBranches.map((b) => (
@@ -455,20 +455,20 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                               </option>
                             ))}
                           </select>
-                          <LucideIcons.MapPin size={11} className="absolute left-2 text-blue-500 pointer-events-none" />
-                          <LucideIcons.ChevronDown size={11} className="absolute right-2 text-blue-500 pointer-events-none" />
+                          <LucideIcons.MapPin size={10} className="absolute left-1.5 sm:left-2 text-blue-500 pointer-events-none" />
+                          <LucideIcons.ChevronDown size={10} className="absolute right-1.5 sm:right-2 text-blue-500 pointer-events-none" />
                         </div>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] sm:text-[9.5px] font-extrabold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 shadow-sm whitespace-nowrap">
-                          <LucideIcons.MapPin size={10} className="shrink-0 text-blue-500" />
-                          <span className="font-semibold text-slate-500 dark:text-slate-400">Sede:</span>
-                          <span className="font-black truncate max-w-[120px]">{currentBranch.name}</span>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[8.5px] sm:text-[9.5px] font-extrabold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 shadow-sm whitespace-nowrap shrink-0">
+                          <LucideIcons.MapPin size={9} className="shrink-0 text-blue-500" />
+                          <span className="font-semibold text-slate-500 dark:text-slate-400 hidden xs:inline">Sede:</span>
+                          <span className="font-black truncate max-w-[80px] xs:max-w-[120px]">{currentBranch.name}</span>
                           {currentBranch.isMain ? (
-                            <span className="text-[8.5px] bg-amber-200/60 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 px-1 py-0.2 rounded font-black uppercase">
+                            <span className="text-[8px] bg-amber-200/60 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 px-1 rounded font-black uppercase">
                               Principal
                             </span>
                           ) : currentBranch.city ? (
-                            <span className="text-[8.5px] opacity-75 hidden md:inline font-normal">
+                            <span className="text-[8px] opacity-75 hidden md:inline font-normal">
                               ({currentBranch.city})
                             </span>
                           ) : null}
@@ -479,30 +479,30 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                     {/* Badge de Período de Prueba */}
                     {trialInfo?.isTrial && (
                       trialInfo.isExpired ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] sm:text-[9.5px] font-extrabold bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/30 whitespace-nowrap">
-                          <LucideIcons.Clock size={11} className="shrink-0" />
+                        <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[8.5px] sm:text-[9.5px] font-extrabold bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/30 whitespace-nowrap shrink-0">
+                          <LucideIcons.Clock size={10} className="shrink-0" />
                           Prueba Vencida
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] sm:text-[9.5px] font-extrabold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30 whitespace-nowrap">
-                          <LucideIcons.Clock size={11} className="shrink-0 text-blue-500" />
+                        <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[8.5px] sm:text-[9.5px] font-extrabold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30 whitespace-nowrap shrink-0">
+                          <LucideIcons.Clock size={10} className="shrink-0 text-blue-500" />
                           <span className="hidden sm:inline">Prueba: {trialInfo.daysLeft} {trialInfo.daysLeft === 1 ? 'día restante' : 'días restantes'}</span>
-                          <span className="sm:hidden">{trialInfo.daysLeft}d restantes</span>
+                          <span className="sm:hidden">{trialInfo.daysLeft}d</span>
                         </span>
                       )
                     )}
                   </div>
-                  <h2 className={cn("text-xs sm:text-base font-black leading-tight truncate", hasBgImage ? "text-white drop-shadow-sm" : "text-foreground")}>ERP Administrador</h2>
+                  <h2 className={cn("text-[11px] sm:text-base font-black leading-tight truncate", hasBgImage ? "text-white drop-shadow-sm" : "text-foreground")}>ERP Administrador</h2>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
               <NotificationBell />
               {/* Theme Toggle Button */}
               <button
                 id="tour-theme-toggle"
-                className="rounded-xl border border-border bg-card p-2.5 text-foreground hover:bg-muted transition-all active:scale-95 shadow-sm"
+                className="rounded-xl border border-border bg-card p-2 sm:p-2.5 text-foreground hover:bg-muted transition-all active:scale-95 shadow-sm"
                 onClick={handleToggleTheme}
                 aria-label="Cambiar Tema"
               >
@@ -511,13 +511,14 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
               </button>
 
               {/* User Dropdown */}
-              <div className="relative">
+              <div className="relative shrink-0">
                 <button
                   id="tour-profile-menu"
                   onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                  className="flex items-center gap-2.5 rounded-full border border-border bg-card p-1.5 pr-3 text-foreground hover:bg-muted transition-all active:scale-95 shadow-sm"
+                  aria-label="Menú de perfil de usuario"
+                  className="flex items-center gap-1.5 sm:gap-2.5 rounded-full border border-border bg-card p-1 sm:p-1.5 sm:pr-3 text-foreground hover:bg-muted transition-all active:scale-95 shadow-sm shrink-0"
                 >
-                  <div className="w-8 h-8 rounded-full overflow-hidden border border-primary/20">
+                  <div className="w-8 h-8 rounded-full overflow-hidden border border-primary/20 shrink-0">
                     <img
                       src={session.user?.image || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80"}
                       alt="Avatar"
@@ -531,7 +532,7 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
                     <span className="text-xs font-bold leading-none text-foreground">{session.user?.name || "Usuario"}</span>
                     <span className="text-[10px] font-semibold text-muted-foreground uppercase mt-0.5">{session.user?.role || "Colaborador"}</span>
                   </div>
-                  <LucideIcons.ChevronDown size={14} className={`text-muted-foreground transition duration-300 ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />
+                  <LucideIcons.ChevronDown size={14} className={`text-muted-foreground transition duration-300 hidden sm:block ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {isProfileDropdownOpen && (
@@ -755,9 +756,29 @@ export function DashboardShell({ children, session, modules, themeConfig, compan
               })}
             </nav>
 
-            <div className="border border-border/80 bg-muted/20 p-4 rounded-xl mt-auto">
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Usuario</p>
-              <p className="text-sm font-bold text-foreground truncate">{session.user?.name ?? 'Usuario GNS'}</p>
+            <div className="border border-border/80 bg-muted/20 p-3.5 rounded-2xl mt-auto flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full overflow-hidden border border-primary/30 shrink-0">
+                <img
+                  src={session.user?.image || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80"}
+                  alt="Avatar"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(session.user?.name || 'User')}&background=random`;
+                  }}
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-foreground truncate">{session.user?.name ?? 'Usuario GNS'}</p>
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase truncate">{session.user?.role || "Colaborador"}</p>
+              </div>
+              <Link
+                href="/dashboard/profile"
+                onClick={() => setIsMenuOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-primary hover:bg-primary/10 transition shrink-0"
+                title="Mi Perfil"
+              >
+                <LucideIcons.User size={16} />
+              </Link>
             </div>
           </div>
         </div>

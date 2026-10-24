@@ -104,6 +104,86 @@ async function ensureModulesInitialized() {
       }
     }
 
+    // Módulo Opcional: Cartera y Crédito (no se auto-vincula a las empresas; solo roles y configuración por tenant)
+    const creditMod = await prisma.module.upsert({
+      where: { name: 'Cartera y Crédito' },
+      update: {
+        href: '/dashboard/cartera',
+        icon: 'CreditCard',
+        description: 'Gestión de cartera, ventas a crédito, cobranza y entregas',
+        isActive: true
+      },
+      create: {
+        name: 'Cartera y Crédito',
+        href: '/dashboard/cartera',
+        icon: 'CreditCard',
+        description: 'Gestión de cartera, ventas a crédito, cobranza y entregas',
+        isActive: true
+      }
+    });
+
+    if (superRole) {
+      await prisma.roleModule.upsert({
+        where: { roleId_moduleId: { roleId: superRole.id, moduleId: creditMod.id } },
+        update: {},
+        create: { roleId: superRole.id, moduleId: creditMod.id }
+      }).catch(() => {});
+    }
+    if (adminRoleObj) {
+      await prisma.roleModule.upsert({
+        where: { roleId_moduleId: { roleId: adminRoleObj.id, moduleId: creditMod.id } },
+        update: {},
+        create: { roleId: adminRoleObj.id, moduleId: creditMod.id }
+      }).catch(() => {});
+    }
+    if (userRoleObj) {
+      await prisma.roleModule.upsert({
+        where: { roleId_moduleId: { roleId: userRoleObj.id, moduleId: creditMod.id } },
+        update: {},
+        create: { roleId: userRoleObj.id, moduleId: creditMod.id }
+      }).catch(() => {});
+    }
+
+    // Módulo Opcional: Tienda Virtual
+    const storeMod = await prisma.module.upsert({
+      where: { name: 'Tienda Virtual' },
+      update: {
+        href: '/dashboard/tienda',
+        icon: 'Store',
+        description: 'Catálogo web público, pedidos online y dominios',
+        isActive: true
+      },
+      create: {
+        name: 'Tienda Virtual',
+        href: '/dashboard/tienda',
+        icon: 'Store',
+        description: 'Catálogo web público, pedidos online y dominios',
+        isActive: true
+      }
+    });
+
+    if (superRole) {
+      await prisma.roleModule.upsert({
+        where: { roleId_moduleId: { roleId: superRole.id, moduleId: storeMod.id } },
+        update: {},
+        create: { roleId: superRole.id, moduleId: storeMod.id }
+      }).catch(() => {});
+    }
+    if (adminRoleObj) {
+      await prisma.roleModule.upsert({
+        where: { roleId_moduleId: { roleId: adminRoleObj.id, moduleId: storeMod.id } },
+        update: {},
+        create: { roleId: adminRoleObj.id, moduleId: storeMod.id }
+      }).catch(() => {});
+    }
+    if (userRoleObj) {
+      await prisma.roleModule.upsert({
+        where: { roleId_moduleId: { roleId: userRoleObj.id, moduleId: storeMod.id } },
+        update: {},
+        create: { roleId: userRoleObj.id, moduleId: storeMod.id }
+      }).catch(() => {});
+    }
+
     isModulesInitialized = true;
   } catch (err) {
     console.error('[MODULE_INIT_ERROR]', err);
@@ -127,6 +207,8 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   let companyName = '';
   let companyLogo: string | null = null;
   let isCombosEnabled = false;
+  let isCreditSalesEnabled = false;
+  let isOnlineStoreEnabled = false;
   let isEnterpriseCompany = false;
   let trialInfo: { isTrial: boolean; trialEndsAt: string | null; isExpired: boolean; daysLeft: number } | null = null;
 
@@ -146,13 +228,15 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         planId: true,
         isEnterprise: true,
         themeConfig: true,
-        setting: { select: { invoiceConfig: true, enableCombos: true } }
+        setting: { select: { invoiceConfig: true, enableCombos: true, enableCreditSales: true, enableOnlineStore: true } }
       }
     });
     companyTheme = company?.themeConfig;
     companyName = company?.name || '';
     companyLogo = (company?.setting?.invoiceConfig as any)?.logo || (company?.themeConfig as any)?.logo || null;
     isCombosEnabled = company?.setting?.enableCombos ?? false;
+    isCreditSalesEnabled = company?.setting?.enableCreditSales ?? false;
+    isOnlineStoreEnabled = company?.setting?.enableOnlineStore ?? false;
     isEnterpriseCompany = Boolean(company?.isEnterprise || company?.planId?.toUpperCase()?.includes('ENTERPRISE'));
 
     let isTrial = false;
@@ -231,6 +315,16 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   // Filtrar el módulo de Kits si está deshabilitado en la configuración de la empresa
   if (!isCombosEnabled && session.user.role !== 'SUPERADMIN') {
     allowedModules = allowedModules.filter(m => m.href !== '/dashboard/kits' && m.href !== '/dashboard/combos');
+  }
+
+  // Filtrar el módulo de Cartera y Crédito si está deshabilitado en la configuración de la empresa
+  if (!isCreditSalesEnabled && session.user.role !== 'SUPERADMIN') {
+    allowedModules = allowedModules.filter(m => m.href !== '/dashboard/cartera');
+  }
+
+  // Filtrar el módulo de Tienda Virtual si está deshabilitado en la configuración de la empresa
+  if (!isOnlineStoreEnabled && session.user.role !== 'SUPERADMIN') {
+    allowedModules = allowedModules.filter(m => m.href !== '/dashboard/tienda');
   }
 
   // Filtrar Enterprise Multi-Sedes: Solo visible si la empresa tiene plan Enterprise y no es usuario restringido a sede secundaria

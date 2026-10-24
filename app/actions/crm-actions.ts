@@ -13,10 +13,20 @@ const customerSchema = z.object({
   name: z.string().min(2, 'El nombre es obligatorio'),
   email: z.string().email('Email inválido').optional().or(z.literal('')),
   phone: z.string().optional().or(z.literal('')),
+  altPhone: z.string().optional().or(z.literal('')),
   company: z.string().optional().or(z.literal('')),
+  documentType: z.string().optional().or(z.literal('')),
+  documentNumber: z.string().optional().or(z.literal('')),
   address: z.string().optional().or(z.literal('')),
+  neighborhood: z.string().optional().or(z.literal('')),
   city: z.string().optional().or(z.literal('')),
+  department: z.string().optional().or(z.literal('')),
   country: z.string().optional().or(z.literal('')),
+  deliveryAddress: z.string().optional().or(z.literal('')),
+  preferredContactMethod: z.string().optional().or(z.literal('')),
+  preferredContactTime: z.string().optional().or(z.literal('')),
+  creditNotes: z.string().optional().or(z.literal('')),
+  creditStatus: z.string().optional().or(z.literal('')),
   status: z.nativeEnum(CustomerStatus).default(CustomerStatus.ACTIVE),
 });
 
@@ -40,10 +50,20 @@ export async function createCustomer(formData: FormData) {
     name: formData.get('name'),
     email: (formData.get('email') as string) || undefined,
     phone: (formData.get('phone') as string) || undefined,
+    altPhone: (formData.get('altPhone') as string) || undefined,
     company: (formData.get('company') as string) || undefined,
+    documentType: (formData.get('documentType') as string) || undefined,
+    documentNumber: (formData.get('documentNumber') as string) || undefined,
     address: (formData.get('address') as string) || undefined,
+    neighborhood: (formData.get('neighborhood') as string) || undefined,
     city: (formData.get('city') as string) || undefined,
+    department: (formData.get('department') as string) || undefined,
     country: (formData.get('country') as string) || undefined,
+    deliveryAddress: (formData.get('deliveryAddress') as string) || undefined,
+    preferredContactMethod: (formData.get('preferredContactMethod') as string) || undefined,
+    preferredContactTime: (formData.get('preferredContactTime') as string) || undefined,
+    creditNotes: (formData.get('creditNotes') as string) || undefined,
+    creditStatus: (formData.get('creditStatus') as string) || undefined,
     status: (formData.get('status') as CustomerStatus) || CustomerStatus.ACTIVE,
   };
 
@@ -53,22 +73,33 @@ export async function createCustomer(formData: FormData) {
   }
 
   try {
-    await prisma.customer.create({
+    const customer = await prisma.customer.create({
       data: {
         name: parsed.data.name,
         email: parsed.data.email || null,
         phone: parsed.data.phone || null,
+        altPhone: parsed.data.altPhone || null,
         company: parsed.data.company || null,
+        documentType: parsed.data.documentType || null,
+        documentNumber: parsed.data.documentNumber || null,
         address: parsed.data.address || null,
+        neighborhood: parsed.data.neighborhood || null,
         city: parsed.data.city || null,
+        department: parsed.data.department || null,
         country: parsed.data.country || 'Colombia',
+        deliveryAddress: parsed.data.deliveryAddress || null,
+        preferredContactMethod: parsed.data.preferredContactMethod || 'WHATSAPP',
+        preferredContactTime: parsed.data.preferredContactTime || null,
+        creditNotes: parsed.data.creditNotes || null,
+        creditStatus: parsed.data.creditStatus || 'ACTIVE',
         status: parsed.data.status,
         companyId: companyId ?? null,
       },
     });
 
     revalidatePath('/dashboard/crm');
-    return { success: true };
+    revalidatePath('/dashboard/cartera');
+    return { success: true, customer };
   } catch (err: any) {
     if (err?.code === 'P2002') {
       return { success: false, error: 'Ya existe un cliente con ese email.' };
@@ -91,9 +122,20 @@ export async function updateCustomer(formData: FormData) {
     name: formData.get('name'),
     email: (formData.get('email') as string) || undefined,
     phone: (formData.get('phone') as string) || undefined,
+    altPhone: (formData.get('altPhone') as string) || undefined,
     company: (formData.get('company') as string) || undefined,
+    documentType: (formData.get('documentType') as string) || undefined,
+    documentNumber: (formData.get('documentNumber') as string) || undefined,
     address: (formData.get('address') as string) || undefined,
+    neighborhood: (formData.get('neighborhood') as string) || undefined,
     city: (formData.get('city') as string) || undefined,
+    department: (formData.get('department') as string) || undefined,
+    country: (formData.get('country') as string) || undefined,
+    deliveryAddress: (formData.get('deliveryAddress') as string) || undefined,
+    preferredContactMethod: (formData.get('preferredContactMethod') as string) || undefined,
+    preferredContactTime: (formData.get('preferredContactTime') as string) || undefined,
+    creditNotes: (formData.get('creditNotes') as string) || undefined,
+    creditStatus: (formData.get('creditStatus') as string) || undefined,
     status: (formData.get('status') as CustomerStatus) || CustomerStatus.ACTIVE,
   };
 
@@ -103,7 +145,7 @@ export async function updateCustomer(formData: FormData) {
   }
 
   try {
-    await prisma.customer.update({
+    const customer = await prisma.customer.update({
       where: {
         id,
         ...(companyId ? { companyId } : {}),
@@ -112,16 +154,27 @@ export async function updateCustomer(formData: FormData) {
         name: parsed.data.name,
         email: parsed.data.email || null,
         phone: parsed.data.phone || null,
+        altPhone: parsed.data.altPhone || null,
         company: parsed.data.company || null,
+        documentType: parsed.data.documentType || null,
+        documentNumber: parsed.data.documentNumber || null,
         address: parsed.data.address || null,
+        neighborhood: parsed.data.neighborhood || null,
         city: parsed.data.city || null,
+        department: parsed.data.department || null,
         country: parsed.data.country || 'Colombia',
+        deliveryAddress: parsed.data.deliveryAddress || null,
+        preferredContactMethod: parsed.data.preferredContactMethod || undefined,
+        preferredContactTime: parsed.data.preferredContactTime || null,
+        creditNotes: parsed.data.creditNotes || null,
+        creditStatus: parsed.data.creditStatus || undefined,
         status: parsed.data.status,
       },
     });
 
     revalidatePath('/dashboard/crm');
-    return { success: true };
+    revalidatePath('/dashboard/cartera');
+    return { success: true, customer };
   } catch (err: any) {
     if (err?.code === 'P2002') {
       return { success: false, error: 'Ya existe un cliente con ese email.' };

@@ -81,6 +81,11 @@ export function InteractivePricing({
   }, []);
 
   // Planes Estándar (1 Sede)
+  const basicoMaxUsers = Number(planSettings?.plan_basico_max_users) || 2;
+  const basicoMaxProducts = Number(planSettings?.plan_basico_max_products) || 300;
+  const intermedioMaxUsers = Number(planSettings?.plan_intermedio_max_users) || 5;
+  const intermedioMaxProducts = Number(planSettings?.plan_intermedio_max_products) || 1000;
+
   const standardPlans = [
     {
       id: "BASIC",
@@ -91,8 +96,8 @@ export function InteractivePricing({
       subtitle: "Para emprendedores que inician su control",
       maxBranchesText: "1 Sede Principal",
       shortFeatures: [
-        "Hasta 2 Usuarios concurrentes",
-        "Catálogo hasta 300 Productos",
+        `Hasta ${basicoMaxUsers} Usuarios concurrentes`,
+        `Catálogo hasta ${basicoMaxProducts.toLocaleString("es-CO")} Productos`,
         "1 Sede Principal de Operación",
         "Gestión de Stock, Precios y Ventas",
         "Módulo de Clientes y Cobros",
@@ -109,8 +114,8 @@ export function InteractivePricing({
       subtitle: "Para negocios consolidados en crecimiento",
       maxBranchesText: "1 Sede Principal",
       shortFeatures: [
-        "Hasta 5 Usuarios con control de roles",
-        "Catálogo hasta 1.000 Productos",
+        `Hasta ${intermedioMaxUsers} Usuarios con control de roles`,
+        `Catálogo hasta ${intermedioMaxProducts.toLocaleString("es-CO")} Productos`,
         "1 Sede Principal de Operación",
         "Control WMS Multibodega & Traslados",
         "Módulo de Gastos, Compras y Proveedores",
@@ -142,17 +147,25 @@ export function InteractivePricing({
   ];
 
   // Planes Enterprise Multi-Sedes
+  const ent2Price = Number(planSettings?.plan_enterprise_2_sedes_price) || 299000;
+  const ent2Branches = Number(planSettings?.plan_enterprise_2_sedes_max_branches) || 2;
+  const ent5Price = Number(planSettings?.plan_enterprise_5_sedes_price) || 499000;
+  const ent5Branches = Number(planSettings?.plan_enterprise_5_sedes_max_branches) || 5;
+  const ent10Price = Number(planSettings?.plan_enterprise_10_sedes_price) || 799000;
+  const ent10Branches = Number(planSettings?.plan_enterprise_10_sedes_max_branches) || 10;
+  const entUnlimPrice = Number(planSettings?.plan_enterprise_unlimited_price) || 1199000;
+
   const enterprisePlans = [
     {
       id: "ENTERPRISE_2",
-      name: "Enterprise (2 Sedes)",
+      name: `Enterprise (${ent2Branches} Sedes)`,
       badge: "DUAL STORE",
-      monthlyPrice: 299000,
-      annualPrice: 2990000, // 2 meses gratis
-      subtitle: "Para negocios con 2 puntos de venta o sucursales",
-      maxBranchesText: "Hasta 2 Sedes Activas",
+      monthlyPrice: ent2Price,
+      annualPrice: Math.round(ent2Price * 10), // 2 meses gratis
+      subtitle: `Para negocios con ${ent2Branches} puntos de venta o sucursales`,
+      maxBranchesText: `Hasta ${ent2Branches} Sedes Activas`,
       shortFeatures: [
-        "Hasta 2 Sedes / Sucursales Activas",
+        `Hasta ${ent2Branches} Sedes / Sucursales Activas`,
         "Usuarios y Empleados ILIMITADOS",
         "Inventario y Catálogo ILIMITADO",
         "Tablero Consolidado Multi-Sedes en Tiempo Real",
@@ -164,14 +177,14 @@ export function InteractivePricing({
     },
     {
       id: "ENTERPRISE_5",
-      name: "Enterprise (5 Sedes)",
+      name: `Enterprise (${ent5Branches} Sedes)`,
       badge: "RECOMENDADO MULTI-SEDES",
-      monthlyPrice: 499000,
-      annualPrice: 4990000, // 2 meses gratis
+      monthlyPrice: ent5Price,
+      annualPrice: Math.round(ent5Price * 10), // 2 meses gratis
       subtitle: "Para redes comerciales y cadenas de sucursales",
-      maxBranchesText: "Hasta 5 Sedes Activas",
+      maxBranchesText: `Hasta ${ent5Branches} Sedes Activas`,
       shortFeatures: [
-        "Hasta 5 Sedes / Sucursales Activas",
+        `Hasta ${ent5Branches} Sedes / Sucursales Activas`,
         "Usuarios y Empleados ILIMITADOS",
         "Inventario y Catálogo ILIMITADO",
         "Ranking de Sedes Líderes en Ventas",
@@ -184,14 +197,14 @@ export function InteractivePricing({
     },
     {
       id: "ENTERPRISE_10",
-      name: "Enterprise (10 Sedes)",
+      name: `Enterprise (${ent10Branches} Sedes)`,
       badge: "ALTA ESCALA",
-      monthlyPrice: 799000,
-      annualPrice: 7990000, // 2 meses gratis
+      monthlyPrice: ent10Price,
+      annualPrice: Math.round(ent10Price * 10), // 2 meses gratis
       subtitle: "Para empresas con amplia cobertura regional",
-      maxBranchesText: "Hasta 10 Sedes Activas",
+      maxBranchesText: `Hasta ${ent10Branches} Sedes Activas`,
       shortFeatures: [
-        "Hasta 10 Sedes / Sucursales Activas",
+        `Hasta ${ent10Branches} Sedes / Sucursales Activas`,
         "Usuarios y Empleados ILIMITADOS",
         "Inventario y Catálogo ILIMITADO",
         "Consolidado global SaaS + Vista Empresa",
@@ -206,8 +219,8 @@ export function InteractivePricing({
       id: "ENTERPRISE_UNLIMITED",
       name: "Enterprise Ilimitado",
       badge: "CORPORATIVO TOTAL",
-      monthlyPrice: 1199000,
-      annualPrice: 11990000, // 2 meses gratis
+      monthlyPrice: entUnlimPrice,
+      annualPrice: Math.round(entUnlimPrice * 10), // 2 meses gratis
       subtitle: "Para grandes franquicias y cadenas a nivel nacional",
       maxBranchesText: "Sedes ILIMITADAS",
       shortFeatures: [
@@ -346,7 +359,26 @@ export function InteractivePricing({
         "data-api-key",
         process.env.NEXT_PUBLIC_BOLD_API_KEY || "nQW8_xd1GDkl2AjvVHUl_pWo6anZyRTMQ-OYy0TSDUU"
       );
-      const redirectUrl = `${window.location.origin}/pagos/resultado`;
+
+      // Bold Payment Button valida estrictamente que data-redirection-url sea una URL válida con protocolo HTTPS y TLD público.
+      // 'http://localhost:3000/...' es rechazado por el validador de Bold porque localhost no posee TLD y usa HTTP.
+      let redirectUrl = process.env.NEXT_PUBLIC_BOLD_REDIRECT_URL;
+
+      if (!redirectUrl) {
+        const isLocalhost =
+          typeof window !== "undefined" &&
+          (window.location.hostname === "localhost" ||
+            window.location.hostname === "127.0.0.1" ||
+            !window.location.hostname.includes("."));
+
+        if (isLocalhost) {
+          // En entorno local (localhost), usamos la URL HTTPS pública con ?origin= para que el resultado devuelva al usuario a localhost.
+          const publicBase = process.env.NEXT_PUBLIC_APP_URL || "https://gns.sarriatech.tech";
+          redirectUrl = `${publicBase}/pagos/resultado?origin=${encodeURIComponent(window.location.origin)}`;
+        } else {
+          redirectUrl = `${window.location.origin}/pagos/resultado`;
+        }
+      }
 
       script.setAttribute("data-redirection-url", redirectUrl);
       script.setAttribute("data-render-mode", "embedded");
@@ -886,14 +918,14 @@ export function InteractivePricing({
                       <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
                         <tr>
                           <td className="p-3 font-bold">Límite Usuarios</td>
-                          <td className="p-3 text-center">2 Usuarios</td>
-                          <td className="p-3 text-center">5 Usuarios</td>
+                          <td className="p-3 text-center">{basicoMaxUsers} Usuarios</td>
+                          <td className="p-3 text-center">{intermedioMaxUsers} Usuarios</td>
                           <td className="p-3 text-center font-bold text-emerald-500">Ilimitados</td>
                         </tr>
                         <tr>
                           <td className="p-3 font-bold">Límite Productos</td>
-                          <td className="p-3 text-center">300 Referencias</td>
-                          <td className="p-3 text-center">1.000 Referencias</td>
+                          <td className="p-3 text-center">{basicoMaxProducts.toLocaleString("es-CO")} Referencias</td>
+                          <td className="p-3 text-center">{intermedioMaxProducts.toLocaleString("es-CO")} Referencias</td>
                           <td className="p-3 text-center font-bold text-emerald-500">Ilimitados</td>
                         </tr>
                         <tr>
@@ -935,18 +967,18 @@ export function InteractivePricing({
                       <thead className="bg-slate-100 dark:bg-slate-800 font-black text-slate-900 dark:text-white">
                         <tr>
                           <th className="p-3">Característica</th>
-                          <th className="p-3 text-center">2 Sedes</th>
-                          <th className="p-3 text-center text-blue-500">5 Sedes ⭐</th>
-                          <th className="p-3 text-center">10 Sedes</th>
+                          <th className="p-3 text-center">{ent2Branches} Sedes</th>
+                          <th className="p-3 text-center text-blue-500">{ent5Branches} Sedes ⭐</th>
+                          <th className="p-3 text-center">{ent10Branches} Sedes</th>
                           <th className="p-3 text-center text-indigo-500">Ilimitadas 👑</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
                         <tr>
                           <td className="p-3 font-bold">Sedes Incluidas</td>
-                          <td className="p-3 text-center font-bold">2 Sedes</td>
-                          <td className="p-3 text-center font-bold text-blue-500">5 Sedes</td>
-                          <td className="p-3 text-center font-bold">10 Sedes</td>
+                          <td className="p-3 text-center font-bold">{ent2Branches} Sedes</td>
+                          <td className="p-3 text-center font-bold text-blue-500">{ent5Branches} Sedes</td>
+                          <td className="p-3 text-center font-bold">{ent10Branches} Sedes</td>
                           <td className="p-3 text-center font-bold text-emerald-500">ILIMITADAS</td>
                         </tr>
                         <tr>

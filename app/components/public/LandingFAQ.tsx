@@ -110,7 +110,7 @@ export default function LandingFAQ() {
           </div>
 
           <a
-            href="https://wa.me/573001234567?text=Hola,%20tengo%20preguntas%20sobre%20GNS%20Sistema%20de%20Inventarios"
+            href="https://wa.me/573106173888?text=Hola,%20tengo%20preguntas%20sobre%20GNS%20Sistema%20de%20Inventarios%20y%20quisiera%20hablar%20con%20un%20asesor"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-800 dark:hover:bg-slate-700 font-bold text-xs sm:text-sm transition-all shadow-md active:scale-95"

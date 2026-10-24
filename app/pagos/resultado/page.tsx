@@ -4,27 +4,39 @@ import React, { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
-
 function PaymentResultContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { update } = useSession();
   const [status, setStatus] = useState<"LOADING" | "SUCCESS" | "ERROR">("LOADING");
 
   useEffect(() => {
-    // Si el usuario inició el pago desde localhost y Bold retornó por ngrok debido a HTTPS,
+    // Si el usuario inició el pago desde localhost y Bold retornó por un dominio público debido a la validación HTTPS,
     // devolver inmediatamente el navegador a su origen original (ej. http://localhost:3000)
-    const originalOrigin = typeof window !== 'undefined' ? localStorage.getItem('gns_checkout_origin') : null;
+    const originParam = searchParams.get("origin");
+    const originalOrigin = typeof window !== 'undefined'
+      ? (originParam || localStorage.getItem('gns_checkout_origin'))
+      : null;
+
     if (originalOrigin && originalOrigin !== window.location.origin && typeof window !== 'undefined') {
-      window.location.href = `${originalOrigin}/pagos/resultado${window.location.search}`;
+      const params = new URLSearchParams(window.location.search);
+      params.delete("origin");
+      const qs = params.toString() ? `?${params.toString()}` : "";
+      window.location.href = `${originalOrigin}/pagos/resultado${qs}`;
       return;
     }
 
-    const paymentStatus = searchParams.get("bold-transaction-status") || searchParams.get("status");
+    const paymentStatus = searchParams.get("bold-transaction-status") || searchParams.get("status") || searchParams.get("bold-tx-status");
     const orderId = searchParams.get("bold-order-id") || searchParams.get("order-id");
 
-    if (paymentStatus === "APPROVED" || paymentStatus === "success") {
+    const refreshUserSession = async () => {
+      try {
+        await fetch('/api/auth/session', { method: 'GET', cache: 'no-store' });
+      } catch (e) {
+        console.warn('Session refresh notice:', e);
+      }
+    };
+
+    if (paymentStatus === "APPROVED" || paymentStatus === "success" || paymentStatus === "approved") {
       if (orderId) {
         // Llama al backend para activar la cuenta
         fetch('/api/payments/verify', {
@@ -36,7 +48,7 @@ function PaymentResultContent() {
         .then(async data => {
           if (data.ok) {
             setStatus("SUCCESS");
-            await update(); // Actualizar token de sesión a ACTIVE
+            await refreshUserSession();
           } else {
             setStatus("ERROR");
           }
@@ -44,22 +56,25 @@ function PaymentResultContent() {
         .catch(async err => {
           console.error(err);
           setStatus("SUCCESS"); // Fallback en caso de que el webhook de Bold lo resuelva
-          await update();
+          await refreshUserSession();
         });
       } else {
         setStatus("SUCCESS");
-        update();
+        refreshUserSession();
       }
-    } else if (paymentStatus === "REJECTED" || paymentStatus === "error") {
+    } else if (paymentStatus === "REJECTED" || paymentStatus === "error" || paymentStatus === "rejected") {
       setStatus("ERROR");
     } else {
       setStatus("SUCCESS");
-      update();
+      refreshUserSession();
     }
-  }, [searchParams, update]);
+  }, [searchParams]);
 
   const handleGoToDashboard = () => {
-    const originalOrigin = (typeof window !== 'undefined' && localStorage.getItem('gns_checkout_origin')) || window.location.origin;
+    const originParam = searchParams.get("origin");
+    const originalOrigin =
+      (typeof window !== "undefined" && (originParam || localStorage.getItem("gns_checkout_origin"))) ||
+      window.location.origin;
     window.location.href = `${originalOrigin}/dashboard`;
   };
 
@@ -102,7 +117,10 @@ function PaymentResultContent() {
           </p>
           <button
             onClick={() => {
-              const originalOrigin = (typeof window !== 'undefined' && localStorage.getItem('gns_checkout_origin')) || window.location.origin;
+              const originParam = searchParams.get("origin");
+              const originalOrigin =
+                (typeof window !== "undefined" && (originParam || localStorage.getItem("gns_checkout_origin"))) ||
+                window.location.origin;
               window.location.href = `${originalOrigin}/#planes`;
             }}
             className="w-full py-4 rounded-xl bg-slate-100 text-slate-800 font-bold hover:bg-slate-200 transition cursor-pointer"

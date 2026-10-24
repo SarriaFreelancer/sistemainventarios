@@ -15,7 +15,7 @@ export default function LandingFinalCTA() {
         {/* Badge */}
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-xs font-black uppercase tracking-wider">
           <ShieldCheck size={14} className="text-blue-400" />
-          Pruébalo Gratis Durante 30 Días
+          Pruébalo Gratis Durante 15 Días
         </div>
 
         {/* Title */}
@@ -40,7 +40,7 @@ export default function LandingFinalCTA() {
           </Link>
 
           <a
-            href="https://wa.me/573001234567?text=Hola,%20quisiera%20asesoría%20para%20implementar%20GNS%20en%20mi%20empresa"
+            href="https://wa.me/573106173888?text=Hola,%20quisiera%20asesoría%20personalizada%20para%20implementar%20GNS%20en%20mi%20empresa"
             target="_blank"
             rel="noopener noreferrer"
             className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-slate-800/80 hover:bg-slate-800 text-slate-200 hover:text-white border border-slate-700 font-bold text-sm sm:text-base flex items-center justify-center gap-2.5 transition-all no-underline"
