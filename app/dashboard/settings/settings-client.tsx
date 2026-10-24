@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { Building, Boxes, ShieldAlert, SlidersHorizontal, Receipt, Upload, Sparkles, Server, ArrowRightLeft, Database, KeyRound, DownloadCloud, Bell, Mail, Loader2, Save, Image as ImageIcon, Trash2, Clock, LayoutTemplate, Monitor, Shield, Palette, Code2, ChevronDown, ChevronUp, Check, Menu, ListFilter, Layers, Network } from "lucide-react";
+import { Building, Boxes, ShieldAlert, SlidersHorizontal, Receipt, Upload, Sparkles, Server, ArrowRightLeft, Database, KeyRound, DownloadCloud, Bell, Mail, Loader2, Save, Image as ImageIcon, Trash2, Clock, LayoutTemplate, Monitor, Shield, Palette, Code2, ChevronDown, ChevronUp, Check, Menu, ListFilter, Layers, Network, Store } from "lucide-react";
 import { updateCompanySettings, uploadCompanyLogo, uploadCompanyBackgroundImage } from "@/app/actions/settings-actions";
 import { generateDemoData, clearDemoData } from "@/app/actions/demo-actions";
 import { successAlert, errorAlert } from "@/lib/sweetalert";
@@ -160,6 +160,8 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
   const [creditReservationDays, setCreditReservationDays] = useState((initialSettings as any).creditReservationDays ?? 30);
   const [creditAllowPartialDeliveries, setCreditAllowPartialDeliveries] = useState((initialSettings as any).creditAllowPartialDeliveries ?? false);
   const [creditPrefix, setCreditPrefix] = useState((initialSettings as any).creditPrefix || "CRE");
+  // Módulo Tienda Virtual
+  const [enableOnlineStore, setEnableOnlineStore] = useState((initialSettings as any).enableOnlineStore ?? false);
 
   // Facturación Personalizada
   const initialInvoiceConfig = (initialSettings as any).invoiceConfig || {};
@@ -254,6 +256,7 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
       enableCombos,
       allowSaleFromCommittedCombos,
       enableCreditSales,
+      enableOnlineStore,
       creditDefaultDeliveryMode,
       creditEnableStockReservation,
       creditReservationDays,
@@ -1594,6 +1597,66 @@ export function SettingsClient({ initialSettings, role, initialServers = [], ini
               ) : (
                 <div className="p-3.5 rounded-2xl bg-muted/20 border border-dashed border-border text-center text-xs text-muted-foreground">
                   El módulo de Cartera y Ventas a Crédito está desactivado. No aparecerá en la navegación ni se permitirán operaciones a crédito.
+                </div>
+              )}
+
+              {/* Módulo de Tienda Virtual */}
+              <div className="flex items-center justify-between border-b border-border/60 pb-3 pt-6">
+                <div>
+                  <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                    <Store size={18} className="text-primary" />
+                    Módulo de Tienda Virtual y Catálogo Web
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Permite a la empresa publicar su catálogo en internet, recibir pedidos con carrito de compras y convertirlos en ventas en GNS.
+                  </p>
+                </div>
+                <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border ${
+                  enableOnlineStore
+                    ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                    : 'bg-muted text-muted-foreground border-border'
+                }`}>
+                  {enableOnlineStore ? 'MÓDULO ACTIVO' : 'MÓDULO INACTIVO'}
+                </span>
+              </div>
+
+              {/* Interruptor Principal Tienda Virtual */}
+              <div className="flex items-center justify-between p-4 border border-border/80 bg-muted/10 rounded-2xl">
+                <div>
+                  <p className="text-sm font-bold text-foreground">Habilitar Tienda Virtual</p>
+                  <p className="text-xs text-muted-foreground">
+                    Activa la sección 'Tienda Virtual' en el panel, genera la URL pública permanente de la tienda y permite publicar productos al catálogo digital.
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={enableOnlineStore}
+                  onChange={(e) => setEnableOnlineStore(e.target.checked)}
+                  className="w-5 h-5 text-primary bg-muted rounded border-border focus:ring-primary cursor-pointer shrink-0 ml-3"
+                />
+              </div>
+
+              {enableOnlineStore ? (
+                <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 text-primary" />
+                      Tienda Virtual habilitada
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Administra tus pedidos, publica productos con precios web y configura tu marca desde el panel dedicado.
+                    </p>
+                  </div>
+                  <a
+                    href="/dashboard/tienda"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-all shrink-0"
+                  >
+                    Ir a Tienda Virtual
+                  </a>
+                </div>
+              ) : (
+                <div className="p-3.5 rounded-2xl bg-muted/20 border border-dashed border-border text-center text-xs text-muted-foreground">
+                  El módulo de Tienda Virtual está desactivado. No se recibirán pedidos web ni estará visible en la navegación.
                 </div>
               )}
             </div>

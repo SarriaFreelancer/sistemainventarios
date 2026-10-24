@@ -71,7 +71,22 @@ export async function middleware(request: NextRequest) {
   };
 
   // Public routes that do not require authentication
-  const publicPaths = ['/auth', '/api/auth', '/enterprise', '/pagos', '/api/payments', '/_next', '/static', '/uploads'];
+  const publicPaths = ['/auth', '/api/auth', '/enterprise', '/pagos', '/api/payments', '/_next', '/static', '/uploads', '/t', '/api/store'];
+
+  // Custom Domain Support: si la petición proviene de un dominio externo personalizado,
+  // reescribir internamente la ruta hacia /t/[dominio]
+  const hostname = request.headers.get('host')?.split(':')[0]?.toLowerCase() || '';
+  const isPlatformDomain = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('sarriatech.tech') || hostname.endsWith('.vercel.app');
+
+  if (!isPlatformDomain && hostname && !request.nextUrl.pathname.startsWith('/api') && !request.nextUrl.pathname.startsWith('/_next')) {
+    // Si viene a la raíz del dominio personalizado o a subrutas, redirigir a /t/[hostname]
+    if (!request.nextUrl.pathname.startsWith('/t/')) {
+      const customUrl = request.nextUrl.clone();
+      customUrl.pathname = `/t/${hostname}${request.nextUrl.pathname === '/' ? '' : request.nextUrl.pathname}`;
+      return addSecurityHeaders(NextResponse.rewrite(customUrl));
+    }
+  }
+
   if (
     request.nextUrl.pathname === '/' ||
     publicPaths.some((p) => request.nextUrl.pathname.startsWith(p))

@@ -129,6 +129,7 @@ model Customer {
   creditOperations       CreditOperation[]
   creditPayments         CreditPayment[]
   creditCollectionActivities CreditCollectionActivity[]
+  storeOrders            StoreOrder[]
 
   @@index([companyId])
 }
@@ -293,6 +294,7 @@ model User {
   reviewedBranchRequests  BranchRequest[]        @relation("ReviewedBranchRequests")
   creditOperations        CreditOperation[]
   creditPayments          CreditPayment[]
+  reviewedStoreOrders     StoreOrder[]           @relation("ReviewedStoreOrders")
   creditDeliveries        CreditDelivery[]
   creditCollectionActivities CreditCollectionActivity[]
 
@@ -429,6 +431,8 @@ model Company {
   creditPayments           CreditPayment[]
   creditDeliveries         CreditDelivery[]
   creditCollectionActivities CreditCollectionActivity[]
+  onlineStore              OnlineStore?
+  storeOrders              StoreOrder[]
 
   @@index([name])
 }
@@ -508,6 +512,10 @@ model Product {
   soldQuantity             Int                       @default(0)
   status                   ProductStatus             @default(AVAILABLE)
   type                     ProductType               @default(SALE)
+  isPublishedWeb           Boolean                   @default(false)
+  webPrice                 Float?
+  description              String?                   @db.Text
+  imageUrl                 String?                   @db.LongText
   productGroupId           Int?
   companyId                Int?
   company                  Company?                  @relation(fields: [companyId], references: [id])
@@ -533,6 +541,7 @@ model Product {
   warehouseTransferItems   WarehouseTransferItem[]
   comboItems               ComboItem[]
   creditOperationItems     CreditOperationItem[]
+  storeOrderItems          StoreOrderItem[]
 
   @@unique([code, companyId])
   @@index([name])
@@ -573,6 +582,7 @@ model Sale {
   dispatchWarehouse   Warehouse?          @relation(fields: [dispatchWarehouseId], references: [id])
   timelineEvents      WarehouseTimeline[]
   creditOperation     CreditOperation?
+  storeOrder          StoreOrder?
 
   @@unique([saleNumber, companyId])
   @@index([userId])
@@ -938,6 +948,10 @@ model CompanySetting {
   creditAllowPartialDeliveries   Boolean  @default(false)
   creditPrefix                   String   @default("CRE")
   creditConsecutive              Int      @default(1)
+  // --- Módulo Tienda Virtual ---
+  enableOnlineStore              Boolean  @default(false)
+  storeOrderPrefix               String   @default("PED")
+  storeOrderConsecutive          Int      @default(1)
   updatedAt                      DateTime @updatedAt
 }
 
@@ -1995,4 +2009,173 @@ model CreditCollectionActivity {
   @@index([companyId])
   @@index([createdAt])
   @@index([commitmentDate])
+}
+
+// ==========================================
+// MÓDULO: TIENDA VIRTUAL (ONLINE STORE)
+// ==========================================
+
+model OnlineStore {
+  id                      String        @id @default(cuid())
+  slug                    String        @unique // Identificador único inmutable de la tienda (ej: store_a1b2c3d4)
+  name                    String        // Nombre comercial de la tienda
+  description             String?       @db.Text
+  logoUrl                 String?       @db.LongText
+  bannerUrl               String?       @db.LongText
+  phone                   String?       // Teléfono / WhatsApp oficial para pedidos
+  email                   String?
+  address                 String?       // Dirección física
+  city                    String?       @default("Cali")
+  currency                String        @default("COP")
+  status                  String        @default("ACTIVE") // ACTIVE, PAUSED, SUSPENDED, PENDING_ACTIVATION
+
+  // Personalización de WhatsApp y apariencia
+  whatsappMessage         String?       @db.Text // Mensaje estándar o editable para el WhatsApp
+  announcementText        String?       @db.Text // Barra superior de promociones o avisos
+  themeColor              String?       @default("#3b82f6") // Color de marca / acento
+  instagramUrl            String?
+  facebookUrl             String?
+  tiktokUrl               String?
+  themeConfig             String?       @db.LongText // Configuración visual completa tipo WordPress (colores, hero, secciones, footer, etc.)
+
+  // Modalidades y políticas de entrega
+  allowDelivery           Boolean       @default(true) // Envío a domicilio
+  allowPickup             Boolean       @default(true) // Recoger en el negocio
+  allowCoordinate         Boolean       @default(true) // Coordinar entrega con el vendedor
+  deliveryCost            Float         @default(0)    // Costo base de domicilio
+  deliveryNotes           String?       @db.Text
+  pickupAddress           String?       @db.Text
+  minOrderAmount          Float         @default(0)
+
+  // Dominios personalizados
+  customDomain            String?       @unique
+  domainStatus            String        @default("DISCONNECTED") // DISCONNECTED, PENDING_VERIFICATION, VERIFIED, ACTIVE, ERROR
+  domainVerificationToken String?
+
+  companyId               Int           @unique
+  company                 Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  orders                  StoreOrder[]
+  domains                 StoreDomain[]
+
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+
+  @@index([slug])
+  @@index([customDomain])
+}
+
+model StoreDomain {
+  id                Int           @id @default(autoincrement())
+  domain            String        @unique
+  storeId           String
+  store             OnlineStore   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  status            String        @default("PENDING_VERIFICATION") // PENDING_VERIFICATION, VERIFIED, ACTIVE, ERROR, DISCONNECTED
+  verificationType  String        @default("TXT") // TXT, CNAME
+  verificationToken String
+  verifiedAt        DateTime?
+  companyId         Int
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([domain])
+  @@index([storeId])
+  @@index([companyId])
+}
+
+model StoreOrder {
+  id                    Int                 @id @default(autoincrement())
+  orderNumber           String              // Referencia legible (ej: PED-0001)
+  orderToken            String              @unique // Token opaco seguro (UUID/cuid) para visualización pública sin adivinación
+  storeId               String
+  store                 OnlineStore         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  companyId             Int
+  company               Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  // Datos del comprador
+  customerName          String
+  customerPhone         String
+  customerEmail         String?
+
+  // Modalidad y entrega
+  deliveryMode          String              // HOME_DELIVERY, PICKUP, COORDINATE
+  deliveryAddress       String?
+  deliveryCity          String?
+  deliveryNeighborhood  String?
+  notes                 String?             @db.Text
+
+  // Importes calculados de forma autoritativa en el servidor
+  subtotal              Float
+  deliveryCost          Float               @default(0)
+  discount              Float               @default(0)
+  total                 Float
+
+  // Estado del pedido
+  status                String              @default("PENDING_REVIEW") // PENDING_REVIEW, ACCEPTED, REJECTED, CANCELLED, COMPLETED_SALE
+  rejectionReason       String?             @db.Text
+
+  // Tratamiento de datos y privacidad
+  privacyAccepted       Boolean             @default(true)
+  privacyVersion        String?             @default("1.0")
+  privacyAcceptedAt     DateTime?           @default(now())
+
+  // Idempotencia y trazabilidad de conversión con el sistema existente
+  idempotencyKey        String?             @unique
+  saleId                Int?                @unique
+  sale                  Sale?               @relation(fields: [saleId], references: [id], onDelete: SetNull)
+  customerId            Int?
+  customer              Customer?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  reviewedById          Int?
+  reviewedBy            User?               @relation("ReviewedStoreOrders", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt            DateTime?
+
+  items                 StoreOrderItem[]
+  history               StoreOrderHistory[]
+
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@unique([orderNumber, companyId])
+  @@index([storeId])
+  @@index([companyId])
+  @@index([orderToken])
+  @@index([status])
+  @@index([customerPhone])
+  @@index([createdAt])
+}
+
+model StoreOrderItem {
+  id                    Int                 @id @default(autoincrement())
+  orderId               Int
+  order                 StoreOrder          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId             Int
+  product               Product             @relation(fields: [productId], references: [id])
+
+  // Snapshot histórico de producto al momento del pedido
+  productName           String
+  productCode           String
+  productImage          String?             @db.LongText
+  quantity              Int                 @default(1)
+  unitPrice             Float               @default(0)
+  subtotal              Float               @default(0)
+
+  createdAt             DateTime            @default(now())
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model StoreOrderHistory {
+  id                    Int                 @id @default(autoincrement())
+  orderId               Int
+  order                 StoreOrder          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  previousStatus        String?
+  newStatus             String
+  comment               String?             @db.Text
+  changedByUserId       Int?
+  createdAt             DateTime            @default(now())
+
+  @@index([orderId])
+  @@index([createdAt])
 }

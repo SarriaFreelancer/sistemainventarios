@@ -260,6 +260,9 @@ export async function updateCompanySettings(data: any) {
         creditReservationDays: data.creditReservationDays !== undefined ? Number(data.creditReservationDays) : undefined,
         creditAllowPartialDeliveries: data.creditAllowPartialDeliveries !== undefined ? Boolean(data.creditAllowPartialDeliveries) : undefined,
         creditPrefix: data.creditPrefix || undefined,
+        // Tienda Virtual
+        enableOnlineStore: data.enableOnlineStore !== undefined ? Boolean(data.enableOnlineStore) : undefined,
+        storeOrderPrefix: data.storeOrderPrefix || undefined,
       }
     });
 
@@ -278,6 +281,49 @@ export async function updateCompanySettings(data: any) {
         } else {
           await prisma.companyModule.deleteMany({
             where: { companyId, moduleId: creditMod.id }
+          }).catch(() => {});
+        }
+      }
+    }
+
+    // Sincronizar CompanyModule para Tienda Virtual
+    if (data.enableOnlineStore !== undefined) {
+      const storeMod = await prisma.module.findFirst({
+        where: { OR: [{ href: '/dashboard/tienda' }, { name: 'Tienda Virtual' }] }
+      });
+      if (storeMod) {
+        if (data.enableOnlineStore) {
+          await prisma.companyModule.upsert({
+            where: { companyId_moduleId: { companyId, moduleId: storeMod.id } },
+            update: {},
+            create: { companyId, moduleId: storeMod.id }
+          }).catch(() => {});
+
+          // Asegurar que exista el registro de OnlineStore
+          const existingStore = await prisma.onlineStore.findUnique({
+            where: { companyId }
+          });
+          if (!existingStore) {
+            const hex = Math.random().toString(16).substring(2, 10);
+            await prisma.onlineStore.create({
+              data: {
+                slug: `store_${companyId}_${hex}`,
+                name: targetCompany.name,
+                description: `Tienda oficial de ${targetCompany.name}`,
+                phone: data.phone || null,
+                address: data.invoiceConfig?.address || null,
+                city: 'Cali',
+                status: 'ACTIVE',
+                allowDelivery: true,
+                allowPickup: true,
+                allowCoordinate: true,
+                companyId
+              }
+            });
+          }
+        } else {
+          await prisma.companyModule.deleteMany({
+            where: { companyId, moduleId: storeMod.id }
           }).catch(() => {});
         }
       }

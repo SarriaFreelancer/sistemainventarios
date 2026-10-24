@@ -115,6 +115,7 @@ model Customer {
   creditOperations       CreditOperation[]
   creditPayments         CreditPayment[]
   creditCollectionActivities CreditCollectionActivity[]
+  storeOrders            StoreOrder[]
 
   @@index([companyId])
 }
@@ -249,6 +250,10 @@ model Product {
   soldQuantity       Int                 @default(0)
   status             ProductStatus       @default(AVAILABLE)
   type               ProductType         @default(SALE)
+  isPublishedWeb     Boolean             @default(false)
+  webPrice           Float?
+  description        String?             @db.Text
+  imageUrl           String?             @db.LongText
   productGroupId     Int?
   companyId          String?
   branchId           Int?
@@ -264,6 +269,7 @@ model Product {
   purchaseOrderLines PurchaseOrderLine[]
   comboItems         ComboItem[]
   creditOperationItems CreditOperationItem[]
+  storeOrderItems    StoreOrderItem[]
 
   @@unique([code, companyId])
   @@index([name])
@@ -296,6 +302,7 @@ model Sale {
   branchId       Int?
   branch         Branch?      @relation(fields: [branchId], references: [id], map: "fk_sale_branch")
   creditOperation CreditOperation?
+  storeOrder     StoreOrder?
 
   @@unique([saleNumber, companyId])
   @@index([userId])
@@ -733,4 +740,152 @@ model CreditCollectionActivity {
   @@index([companyId])
   @@index([createdAt])
   @@index([commitmentDate])
+}
+
+model OnlineStore {
+  id                      String        @id @default(cuid())
+  slug                    String        @unique
+  name                    String
+  description             String?       @db.Text
+  logoUrl                 String?       @db.LongText
+  bannerUrl               String?       @db.LongText
+  phone                   String?
+  email                   String?
+  address                 String?
+  city                    String?       @default("Cali")
+  currency                String        @default("COP")
+  status                  String        @default("ACTIVE")
+  whatsappMessage         String?       @db.Text
+  announcementText        String?       @db.Text
+  themeColor              String?       @default("#3b82f6")
+  instagramUrl            String?
+  facebookUrl             String?
+  tiktokUrl               String?
+  themeConfig             String?       @db.LongText
+  allowDelivery           Boolean       @default(true)
+  allowPickup             Boolean       @default(true)
+  allowCoordinate         Boolean       @default(true)
+  deliveryCost            Float         @default(0)
+  deliveryNotes           String?       @db.Text
+  pickupAddress           String?       @db.Text
+  minOrderAmount          Float         @default(0)
+  customDomain            String?       @unique
+  domainStatus            String        @default("DISCONNECTED")
+  domainVerificationToken String?
+  companyId               String?       @unique
+
+  orders                  StoreOrder[]
+  domains                 StoreDomain[]
+
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+
+  @@index([slug])
+  @@index([customDomain])
+}
+
+model StoreDomain {
+  id                Int           @id @default(autoincrement())
+  domain            String        @unique
+  storeId           String
+  store             OnlineStore   @relation(fields: [storeId], references: [id], onDelete: Cascade, map: "fk_stdom_store")
+  status            String        @default("PENDING_VERIFICATION")
+  verificationType  String        @default("TXT")
+  verificationToken String
+  verifiedAt        DateTime?
+  companyId         String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([domain])
+  @@index([storeId])
+  @@index([companyId])
+}
+
+model StoreOrder {
+  id                    Int                 @id @default(autoincrement())
+  orderNumber           String
+  orderToken            String              @unique
+  storeId               String
+  store                 OnlineStore         @relation(fields: [storeId], references: [id], onDelete: Cascade, map: "fk_stord_store")
+  companyId             String?
+
+  customerName          String
+  customerPhone         String
+  customerEmail         String?
+
+  deliveryMode          String
+  deliveryAddress       String?
+  deliveryCity          String?
+  deliveryNeighborhood  String?
+  notes                 String?             @db.Text
+
+  subtotal              Float
+  deliveryCost          Float               @default(0)
+  discount              Float               @default(0)
+  total                 Float
+
+  status                String              @default("PENDING_REVIEW")
+  rejectionReason       String?             @db.Text
+
+  privacyAccepted       Boolean             @default(true)
+  privacyVersion        String?             @default("1.0")
+  privacyAcceptedAt     DateTime?           @default(now())
+
+  idempotencyKey        String?             @unique
+  saleId                Int?                @unique
+  sale                  Sale?               @relation(fields: [saleId], references: [id], onDelete: SetNull, map: "fk_stord_sale")
+  customerId            Int?
+  customer              Customer?           @relation(fields: [customerId], references: [id], onDelete: SetNull, map: "fk_stord_cust")
+
+  reviewedById          Int?
+  reviewedAt            DateTime?
+
+  items                 StoreOrderItem[]
+  history               StoreOrderHistory[]
+
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@unique([orderNumber, companyId])
+  @@index([storeId])
+  @@index([companyId])
+  @@index([orderToken])
+  @@index([status])
+  @@index([customerPhone])
+  @@index([createdAt])
+}
+
+model StoreOrderItem {
+  id                    Int                 @id @default(autoincrement())
+  orderId               Int
+  order                 StoreOrder          @relation(fields: [orderId], references: [id], onDelete: Cascade, map: "fk_stordit_ord")
+  productId             Int
+  product               Product             @relation(fields: [productId], references: [id], map: "fk_stordit_prod")
+
+  productName           String
+  productCode           String
+  productImage          String?             @db.LongText
+  quantity              Int                 @default(1)
+  unitPrice             Float               @default(0)
+  subtotal              Float               @default(0)
+
+  createdAt             DateTime            @default(now())
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model StoreOrderHistory {
+  id                    Int                 @id @default(autoincrement())
+  orderId               Int
+  order                 StoreOrder          @relation(fields: [orderId], references: [id], onDelete: Cascade, map: "fk_stordhist_ord")
+  previousStatus        String?
+  newStatus             String
+  comment               String?             @db.Text
+  changedByUserId       Int?
+  createdAt             DateTime            @default(now())
+
+  @@index([orderId])
+  @@index([createdAt])
 }
