@@ -119,6 +119,8 @@ export default async function TiendaVirtualPage() {
       isPublishedWeb: true,
       description: true,
       imageUrl: true,
+      galleryImages: true,
+      videoUrl: true,
       categoryId: true,
       productGroupId: true,
       category: {

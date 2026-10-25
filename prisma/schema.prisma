@@ -516,6 +516,8 @@ model Product {
   webPrice                 Float?
   description              String?                   @db.Text
   imageUrl                 String?                   @db.LongText
+  galleryImages            String?                   @db.LongText
+  videoUrl                 String?                   @db.Text
   productGroupId           Int?
   companyId                Int?
   company                  Company?                  @relation(fields: [companyId], references: [id])
@@ -2046,6 +2048,7 @@ model OnlineStore {
   deliveryNotes           String?       @db.Text
   pickupAddress           String?       @db.Text
   minOrderAmount          Float         @default(0)
+  freeShippingThreshold   Float?        @default(0) // Monto mínimo para envío gratis automático (0 = deshabilitado)
 
   // Dominios personalizados
   customDomain            String?       @unique

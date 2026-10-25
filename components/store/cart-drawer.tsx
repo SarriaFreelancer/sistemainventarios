@@ -5,7 +5,13 @@ import Link from 'next/link';
 import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, Package } from 'lucide-react';
 import { useCart } from './cart-context';
 
-export function CartDrawer({ storeSlug }: { storeSlug: string }) {
+export function CartDrawer({
+  storeSlug,
+  freeShippingThreshold = 0,
+}: {
+  storeSlug: string;
+  freeShippingThreshold?: number;
+}) {
   const { items, updateQuantity, removeItem, clearCart, subtotal, totalCount, isCartOpen, setIsCartOpen } = useCart();
 
   if (!isCartOpen) return null;
@@ -16,6 +22,13 @@ export function CartDrawer({ storeSlug }: { storeSlug: string }) {
       currency: 'COP',
       maximumFractionDigits: 0,
     });
+
+  const hasFreeShippingGoal = freeShippingThreshold > 0;
+  const isFreeShippingReached = hasFreeShippingGoal && subtotal >= freeShippingThreshold;
+  const remainingForFree = Math.max(0, freeShippingThreshold - subtotal);
+  const freeShippingProgress = hasFreeShippingGoal
+    ? Math.min(100, Math.round((subtotal / freeShippingThreshold) * 100))
+    : 0;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -47,6 +60,30 @@ export function CartDrawer({ storeSlug }: { storeSlug: string }) {
             <X className="h-5 w-5" />
           </button>
         </div>
+
+        {/* Free Shipping Progress Bar */}
+        {hasFreeShippingGoal && items.length > 0 && (
+          <div className="px-4 py-3 bg-primary/5 border-b border-primary/15 text-xs space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-foreground">
+                {isFreeShippingReached ? (
+                  <span className="text-emerald-600 dark:text-emerald-400">🎉 ¡Tienes Envío Gratis asegurado!</span>
+                ) : (
+                  <span>Agrega {fmt(remainingForFree)} más para <strong>Envío Gratis</strong></span>
+                )}
+              </span>
+              <span className="text-[10px] font-black text-muted-foreground">{freeShippingProgress}%</span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+              <div
+                style={{ width: `${freeShippingProgress}%` }}
+                className={`h-full rounded-full transition-all duration-500 ${
+                  isFreeShippingReached ? 'bg-emerald-500' : 'bg-primary'
+                }`}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Items List */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3">

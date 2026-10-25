@@ -66,6 +66,23 @@ const EMPLOYEE_STATUSES = [
   { value: 'TERMINATED', label: 'Liquidado' },
 ];
 
+const CREDIT_STATUSES = [
+  { value: '', label: 'Todos los estados' },
+  { value: 'ACTIVE', label: 'Vigente' },
+  { value: 'OVERDUE', label: 'En Mora' },
+  { value: 'PAID', label: 'Pagado' },
+  { value: 'CANCELLED', label: 'Cancelado' },
+];
+
+const TRANSFER_STATUSES = [
+  { value: '', label: 'Todos los estados' },
+  { value: 'REQUESTED', label: 'Solicitado' },
+  { value: 'APPROVED', label: 'Aprobado' },
+  { value: 'IN_TRANSIT', label: 'En Tránsito' },
+  { value: 'RECEIVED', label: 'Recibido' },
+  { value: 'CANCELLED', label: 'Cancelado' },
+];
+
 export const REPORT_COLUMNS: Record<string, { id: string; label: string }[]> = {
   products: [
     { id: 'Código', label: 'Código de producto' },
@@ -154,12 +171,64 @@ export const REPORT_COLUMNS: Record<string, { id: string; label: string }[]> = {
     { id: 'Fecha de Contratación', label: 'Fecha de contratación' },
     { id: 'Estado', label: 'Estado del empleado' },
   ],
+  cartera: [
+    { id: '# Operación', label: 'Número de operación' },
+    { id: 'Fecha Apertura', label: 'Fecha de apertura' },
+    { id: 'Fecha Vencimiento', label: 'Fecha de vencimiento' },
+    { id: 'Cliente', label: 'Nombre de cliente' },
+    { id: 'Documento', label: 'Documento de identidad' },
+    { id: 'Teléfono', label: 'Teléfono de contacto' },
+    { id: 'Sede', label: 'Sede / Sucursal' },
+    { id: 'Modalidad Entrega', label: 'Modalidad de entrega' },
+    { id: 'Monto Total', label: 'Monto total del crédito' },
+    { id: 'Cuota Inicial', label: 'Cuota inicial pactada' },
+    { id: 'Total Pagado', label: 'Total recaudado / pagado' },
+    { id: 'Saldo Pendiente', label: 'Saldo pendiente' },
+    { id: 'Estado Cartera', label: 'Estado de la cartera' },
+    { id: 'Días de Mora', label: 'Días de mora calculados' },
+    { id: 'Cuotas Totales', label: 'Número de cuotas totales' },
+    { id: 'Cuotas Pagadas', label: 'Número de cuotas pagadas' },
+    { id: 'Estado Entrega', label: 'Estado de entrega física' },
+    { id: 'Asesor / Vendedor', label: 'Asesor / Vendedor responsable' },
+  ],
+  enterprise: [
+    { id: 'Sede', label: 'Nombre de la sede' },
+    { id: 'Código Sede', label: 'Código de sede' },
+    { id: 'Ciudad Sede', label: 'Ciudad de la sede' },
+    { id: '# Venta', label: 'Número de venta' },
+    { id: 'Fecha', label: 'Fecha' },
+    { id: 'Cliente', label: 'Cliente' },
+    { id: 'Productos', label: 'Productos comprados' },
+    { id: 'Cantidad Total', label: 'Cantidad total' },
+    { id: 'Descuento', label: 'Descuento' },
+    { id: 'Costo Total', label: 'Costo total' },
+    { id: 'Venta Total', label: 'Venta total' },
+    { id: 'Utilidad Bruta', label: 'Utilidad bruta' },
+    { id: 'Margen (%)', label: 'Margen (%)' },
+    { id: 'Método de Pago', label: 'Método de pago' },
+    { id: 'Vendedor', label: 'Vendedor' },
+    { id: 'Estado', label: 'Estado de venta' },
+  ],
+  transfers: [
+    { id: '# Traslado', label: 'Número de traslado' },
+    { id: 'Fecha Creación', label: 'Fecha de creación' },
+    { id: 'Bodega Origen', label: 'Bodega de origen' },
+    { id: 'Bodega Destino', label: 'Bodega de destino' },
+    { id: 'Productos Transferidos', label: 'Productos transferidos' },
+    { id: 'Total Unidades', label: 'Total de unidades transferidas' },
+    { id: 'Estado', label: 'Estado del traslado' },
+    { id: 'Solicitado Por', label: 'Usuario solicitante' },
+    { id: 'Notas / Motivo', label: 'Notas o motivo' },
+  ],
 };
 
 const isProductReport = (type: string) => ['products', 'stock'].includes(type);
 const isSalesReport = (type: string) => type === 'sales';
 const isEmployeeReport = (type: string) => type === 'employees';
-const isDateFilteredReport = (type: string) => ['sales', 'employees', 'purchases', 'payroll'].includes(type);
+const isCarteraReport = (type: string) => type === 'cartera';
+const isEnterpriseReport = (type: string) => type === 'enterprise';
+const isTransfersReport = (type: string) => type === 'transfers';
+const isDateFilteredReport = (type: string) => ['sales', 'employees', 'purchases', 'payroll', 'cartera', 'enterprise', 'transfers'].includes(type);
 
 export function ReportDownloadButton({
   href,
@@ -646,17 +715,30 @@ export function ReportDownloadButton({
                     </div>
                   </div>
 
-                  {(isEmployeeReport(reportType) || isSalesReport(reportType)) && (
+                  {(isEmployeeReport(reportType) || isSalesReport(reportType) || isCarteraReport(reportType) || isTransfersReport(reportType) || isEnterpriseReport(reportType)) && (
                     <div>
                       <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                        {isEmployeeReport(reportType) ? 'Estado del Empleado' : 'Estado de Venta'}
+                        {isEmployeeReport(reportType)
+                          ? 'Estado del Empleado'
+                          : isCarteraReport(reportType)
+                          ? 'Estado de Cartera'
+                          : isTransfersReport(reportType)
+                          ? 'Estado del Traslado'
+                          : 'Estado de Venta'}
                       </label>
                       <select
                         value={filters.status}
                         onChange={set('status')}
                         className="w-full rounded-xl border border-border bg-card px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
                       >
-                        {(isEmployeeReport(reportType) ? EMPLOYEE_STATUSES : SALE_STATUSES).map(s => (
+                        {(isEmployeeReport(reportType)
+                          ? EMPLOYEE_STATUSES
+                          : isCarteraReport(reportType)
+                          ? CREDIT_STATUSES
+                          : isTransfersReport(reportType)
+                          ? TRANSFER_STATUSES
+                          : SALE_STATUSES
+                        ).map(s => (
                           <option key={s.value} value={s.value}>{s.label}</option>
                         ))}
                       </select>

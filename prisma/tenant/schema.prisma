@@ -254,6 +254,8 @@ model Product {
   webPrice           Float?
   description        String?             @db.Text
   imageUrl           String?             @db.LongText
+  galleryImages      String?             @db.LongText
+  videoUrl           String?             @db.Text
   productGroupId     Int?
   companyId          String?
   branchId           Int?
@@ -769,6 +771,7 @@ model OnlineStore {
   deliveryNotes           String?       @db.Text
   pickupAddress           String?       @db.Text
   minOrderAmount          Float         @default(0)
+  freeShippingThreshold   Float?        @default(0)
   customDomain            String?       @unique
   domainStatus            String        @default("DISCONNECTED")
   domainVerificationToken String?

@@ -20,6 +20,8 @@ export interface PublicProduct {
   category: string;
   categoryId: number;
   group?: string | null;
+  galleryImages?: string[] | null;
+  videoUrl?: string | null;
 }
 
 interface ProductCardProps {
@@ -81,19 +83,30 @@ export function ProductCard({ product, onSelect }: ProductCardProps) {
             </div>
           )}
 
-          {/* Stock Badges */}
-          <div className="absolute top-2 right-2 z-10">
-            {!product.inStock ? (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-rose-500/90 text-white backdrop-blur-md shadow-sm">
-                Agotado
-              </span>
-            ) : isLowStock ? (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-amber-500/90 text-white backdrop-blur-md shadow-sm">
-                ¡Últimas {product.availableQuantity}!
-              </span>
-            ) : null}
+            {/* Stock Badges */}
+            <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-1">
+              {!product.inStock ? (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-rose-500/90 text-white backdrop-blur-md shadow-sm">
+                  Agotado
+                </span>
+              ) : isLowStock ? (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-amber-500/90 text-white backdrop-blur-md shadow-sm">
+                  ¡Últimas {product.availableQuantity}!
+                </span>
+              ) : null}
+
+              {product.videoUrl && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-black bg-black/70 text-white backdrop-blur-md shadow-sm">
+                  🎬 Video
+                </span>
+              )}
+              {product.galleryImages && product.galleryImages.length > 0 && (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-black/60 text-white backdrop-blur-md shadow-sm">
+                  📸 +{product.galleryImages.length}
+                </span>
+              )}
+            </div>
           </div>
-        </div>
 
         {/* Content */}
         <div className="space-y-1">

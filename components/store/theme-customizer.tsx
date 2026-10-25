@@ -574,6 +574,56 @@ export function ThemeCustomizer({
                     </div>
                   </div>
 
+                  {/* Imagen de Portada / Banner */}
+                  <div>
+                    <label className="text-xs font-semibold text-foreground block mb-1">
+                      Imagen de Portada / Banner (URL)
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="url"
+                        value={config.hero.bannerImageUrl || ''}
+                        onChange={(e) =>
+                          setConfig((prev) => ({
+                            ...prev,
+                            hero: { ...prev.hero, bannerImageUrl: e.target.value.trim() || undefined },
+                          }))
+                        }
+                        placeholder="https://images.unsplash.com/... o enlace de tu banner"
+                        className="flex-1 h-9 px-3 rounded-xl border border-border bg-background text-xs font-mono"
+                      />
+                      {config.hero.bannerImageUrl && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setConfig((prev) => ({
+                              ...prev,
+                              hero: { ...prev.hero, bannerImageUrl: undefined },
+                            }))
+                          }
+                          className="h-9 px-3 rounded-xl border border-border text-xs text-muted-foreground hover:text-red-500 hover:bg-muted"
+                        >
+                          Quitar
+                        </button>
+                      )}
+                    </div>
+                    <span className="text-[11px] text-muted-foreground mt-1 block">
+                      Opcional. Si colocas una imagen, actuará como fondo estilizado para la cabecera.
+                    </span>
+                    {config.hero.bannerImageUrl && (
+                      <div className="mt-2 h-20 rounded-xl overflow-hidden border border-border bg-muted relative">
+                        <img
+                          src={config.hero.bannerImageUrl}
+                          alt="Banner Preview"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as any).style.display = 'none';
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+
                   <div>
                     <label className="text-xs font-semibold text-foreground block mb-1">
                       Insignia Superior (Badge)
@@ -783,6 +833,42 @@ export function ThemeCustomizer({
                         }
                         className="w-full h-9 px-3 rounded-xl border border-border bg-background text-xs"
                       />
+                    </div>
+                  </div>
+
+                  {/* Estilo de Visualización de Categorías (Shopify style pills vs cards vs chips) */}
+                  <div>
+                    <label className="text-xs font-semibold text-foreground block mb-1.5">
+                      Estilo de Visualización de Categorías
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {[
+                        { id: 'pills', label: 'Cápsulas Modernas (Shopify)', desc: 'Botones redondeados con conteo e ícono' },
+                        { id: 'chips', label: 'Chips Minimalistas', desc: 'Filtros limpios horizontales' },
+                        { id: 'cards', label: 'Tarjetas Clásicas', desc: 'Bloques con fondo suave' },
+                      ].map((st) => (
+                        <button
+                          key={st.id}
+                          type="button"
+                          onClick={() =>
+                            setConfig((prev) => ({
+                              ...prev,
+                              categoriesSection: {
+                                ...prev.categoriesSection,
+                                style: st.id as any,
+                              },
+                            }))
+                          }
+                          className={`p-2.5 rounded-xl border text-left text-xs transition-all ${
+                            (config.categoriesSection.style || 'pills') === st.id
+                              ? 'border-primary bg-primary/5 text-primary font-bold shadow-xs'
+                              : 'border-border text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          <div className="font-semibold">{st.label}</div>
+                          <div className="text-[10px] opacity-75 mt-0.5">{st.desc}</div>
+                        </button>
+                      ))}
                     </div>
                   </div>
 
@@ -1273,18 +1359,19 @@ export function ThemeCustomizer({
                 <div
                   style={{
                     backgroundColor:
-                      config.hero.style === 'gradient'
-                        ? undefined
-                        : config.hero.style === 'dark-banner'
+                      config.hero.style === 'dark-banner'
                         ? '#0f172a'
                         : undefined,
-                    backgroundImage:
-                      config.hero.style === 'gradient'
-                        ? `linear-gradient(135deg, ${config.palette.primaryColor}15 0%, ${config.palette.secondaryColor}25 100%)`
-                        : undefined,
+                    backgroundImage: config.hero.bannerImageUrl
+                      ? `linear-gradient(rgba(15,23,42,0.65), rgba(15,23,42,0.85)), url(${config.hero.bannerImageUrl})`
+                      : config.hero.style === 'gradient'
+                      ? `linear-gradient(135deg, ${config.palette.primaryColor}15 0%, ${config.palette.secondaryColor}25 100%)`
+                      : undefined,
+                    backgroundSize: config.hero.bannerImageUrl ? 'cover' : undefined,
+                    backgroundPosition: config.hero.bannerImageUrl ? 'center' : undefined,
                   }}
                   className={`p-4 border-b border-border/50 text-center space-y-2 ${
-                    config.hero.style === 'dark-banner' ? 'text-white' : ''
+                    config.hero.style === 'dark-banner' || config.hero.bannerImageUrl ? 'text-white' : ''
                   }`}
                 >
                   {config.hero.badgeText && (

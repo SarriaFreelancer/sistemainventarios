@@ -1,7 +1,22 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Plus, Minus, ShoppingBag, Package, Check, Sparkles, Tag, ShieldCheck } from 'lucide-react';
+import {
+  X,
+  Plus,
+  Minus,
+  ShoppingBag,
+  Package,
+  Check,
+  Tag,
+  ShieldCheck,
+  Share2,
+  Video,
+  Image as ImageIcon,
+  ChevronLeft,
+  ChevronRight,
+  MessageCircle,
+} from 'lucide-react';
 import { PublicProduct } from './product-card';
 import { useCart } from './cart-context';
 
@@ -14,8 +29,22 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
   const { addItem, items } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [addedAnimation, setAddedAnimation] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [activeMediaTab, setActiveMediaTab] = useState<'photos' | 'video'>('photos');
+  const [copiedShare, setCopiedShare] = useState(false);
 
   if (!product) return null;
+
+  // Build list of unique images
+  const allImages: string[] = [];
+  if (product.imageUrl) allImages.push(product.imageUrl);
+  if (Array.isArray(product.galleryImages)) {
+    product.galleryImages.forEach((img) => {
+      if (img && !allImages.includes(img)) allImages.push(img);
+    });
+  }
+
+  const activeImage = allImages[selectedImageIndex] || product.imageUrl;
 
   const cartItem = items.find((i) => i.productId === product.id);
   const currentInCart = cartItem?.quantity || 0;
@@ -38,13 +67,45 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
     }, 600);
   };
 
+  // Convert YouTube or Vimeo URLs to embed format
+  const getEmbedInfo = (url?: string | null) => {
+    if (!url) return null;
+    const clean = url.trim();
+
+    // YouTube
+    const ytMatch = clean.match(
+      /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
+    );
+    if (ytMatch && ytMatch[1]) {
+      return { type: 'iframe', src: `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=0&rel=0` };
+    }
+
+    // Vimeo
+    const vimeoMatch = clean.match(/vimeo\.com\/(?:video\/)?([0-9]+)/);
+    if (vimeoMatch && vimeoMatch[1]) {
+      return { type: 'iframe', src: `https://player.vimeo.com/video/${vimeoMatch[1]}` };
+    }
+
+    // Direct MP4 / WebM video
+    return { type: 'video', src: clean };
+  };
+
+  const embedInfo = getEmbedInfo(product.videoUrl);
+
+  const handleShareWhatsApp = () => {
+    if (typeof window === 'undefined') return;
+    const productUrl = window.location.href;
+    const msg = `¡Hola! Mira este producto: *${product.name}* a *${fmt(product.price)}*.\n\nPuedes verlo y pedirlo aquí:\n${productUrl}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in-50 duration-200"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-sm animate-in fade-in-50 duration-200"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-2xl bg-card border border-border/80 rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-200"
+        className="relative w-full max-w-3xl bg-card border border-border/80 rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close button */}
@@ -56,50 +117,129 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
           <X className="h-5 w-5" />
         </button>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 overflow-y-auto">
-          {/* Product Media */}
-          <div className="relative aspect-square sm:aspect-auto sm:h-full bg-muted/30 flex items-center justify-center p-6 border-b sm:border-b-0 sm:border-r border-border/60">
-            {product.imageUrl ? (
-              <img
-                src={product.imageUrl}
-                alt={product.name}
-                className="max-h-72 sm:max-h-80 w-auto object-contain rounded-2xl shadow-sm"
-              />
-            ) : (
-              <div className="flex flex-col items-center justify-center text-muted-foreground/30 py-16 gap-2">
-                <Package className="h-16 w-16 stroke-[1.5]" />
-                <span className="text-xs uppercase font-extrabold tracking-widest">Sin imagen</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 overflow-y-auto">
+          {/* Media Column (Images & Video) */}
+          <div className="relative bg-muted/20 flex flex-col justify-between p-4 sm:p-6 border-b md:border-b-0 md:border-r border-border/60">
+            {/* Media Tabs if video is available */}
+            {embedInfo && (
+              <div className="flex items-center gap-1.5 p-1 rounded-xl bg-background border border-border/80 mb-3 self-center sm:self-start text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => setActiveMediaTab('photos')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                    activeMediaTab === 'photos'
+                      ? 'bg-primary text-primary-foreground shadow-xs'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <ImageIcon className="h-3.5 w-3.5" />
+                  <span>Fotos ({Math.max(1, allImages.length)})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveMediaTab('video')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                    activeMediaTab === 'video'
+                      ? 'bg-primary text-primary-foreground shadow-xs'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <Video className="h-3.5 w-3.5" />
+                  <span>Video Demostrativo</span>
+                </button>
               </div>
             )}
 
-            {/* Badges */}
-            <div className="absolute top-4 left-4 flex flex-col gap-1.5">
-              {product.hasDiscount && (
-                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black bg-rose-500 text-white shadow-md shadow-rose-500/20">
-                  <Tag className="h-3 w-3" />
-                  -{product.discountPercentage}% OFF
-                </span>
+            {/* Main Preview Container */}
+            <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-background/60 border border-border/60 flex items-center justify-center">
+              {activeMediaTab === 'video' && embedInfo ? (
+                embedInfo.type === 'iframe' ? (
+                  <iframe
+                    src={embedInfo.src}
+                    title={product.name}
+                    className="w-full h-full border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                ) : (
+                  <video src={embedInfo.src} controls className="w-full h-full object-contain bg-black" />
+                )
+              ) : activeImage ? (
+                <img
+                  src={activeImage}
+                  alt={product.name}
+                  className="max-h-80 w-auto object-contain transition-all duration-300"
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center text-muted-foreground/30 py-16 gap-2">
+                  <Package className="h-16 w-16 stroke-[1.5]" />
+                  <span className="text-xs uppercase font-extrabold tracking-widest">Sin imagen</span>
+                </div>
               )}
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-background/90 text-foreground border border-border backdrop-blur-md">
-                {product.category}
-              </span>
+
+              {/* Discount Badge */}
+              {product.hasDiscount && (
+                <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black bg-rose-500 text-white shadow-md shadow-rose-500/25">
+                    <Tag className="h-3 w-3" />
+                    -{product.discountPercentage}% OFF
+                  </span>
+                </div>
+              )}
             </div>
+
+            {/* Thumbnail Carousel (if more than 1 image) */}
+            {allImages.length > 1 && (
+              <div className="flex items-center gap-2 mt-3 overflow-x-auto pb-1 pt-1 scrollbar-none justify-start sm:justify-center">
+                {allImages.map((img, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      setSelectedImageIndex(idx);
+                      setActiveMediaTab('photos');
+                    }}
+                    className={`relative h-14 w-14 rounded-xl overflow-hidden border-2 flex-shrink-0 transition-all ${
+                      activeMediaTab === 'photos' && selectedImageIndex === idx
+                        ? 'border-primary ring-2 ring-primary/20 scale-105'
+                        : 'border-border opacity-70 hover:opacity-100'
+                    }`}
+                  >
+                    <img src={img} alt={`Miniatura ${idx + 1}`} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Product Info & Purchase */}
+          {/* Product Details & Purchase */}
           <div className="p-6 flex flex-col justify-between space-y-6">
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div>
-                <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest block">
-                  Código: {product.code}
-                </span>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block">
+                    {product.category} • Código: {product.code}
+                  </span>
+
+                  {/* Share button */}
+                  <button
+                    type="button"
+                    onClick={handleShareWhatsApp}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-border hover:bg-muted text-[11px] font-semibold text-emerald-600 transition-colors"
+                    title="Compartir producto por WhatsApp"
+                  >
+                    <MessageCircle className="h-3.5 w-3.5" />
+                    <span>Compartir</span>
+                  </button>
+                </div>
+
                 <h2 className="text-xl sm:text-2xl font-black text-foreground leading-tight mt-1">
                   {product.name}
                 </h2>
               </div>
 
               {/* Price section */}
-              <div className="p-3.5 rounded-2xl bg-muted/20 border border-border/60">
+              <div className="p-4 rounded-2xl bg-muted/20 border border-border/60">
                 <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
                   Precio unitario
                 </span>
@@ -121,27 +261,27 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
               </div>
 
               {/* Description */}
-              {product.description ? (
-                <div className="space-y-1">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Descripción
-                  </h4>
+              <div className="space-y-1">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Descripción
+                </h4>
+                {product.description ? (
                   <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed whitespace-pre-line">
                     {product.description}
                   </p>
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground italic">
-                  Producto de excelente calidad garantizada por la tienda.
-                </p>
-              )}
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">
+                    Producto oficial garantizado con disponibilidad inmediata.
+                  </p>
+                )}
+              </div>
 
               {/* Availability */}
               <div className="flex items-center gap-2 pt-1 text-xs">
                 {product.inStock ? (
                   <span className="flex items-center gap-1.5 font-bold text-emerald-600 dark:text-emerald-400">
                     <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                    Disponible ({product.availableQuantity} unidades en stock)
+                    Disponible ({product.availableQuantity} unidades listas para entrega)
                   </span>
                 ) : (
                   <span className="flex items-center gap-1.5 font-bold text-rose-500">

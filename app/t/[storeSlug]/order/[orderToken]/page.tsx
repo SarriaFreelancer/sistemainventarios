@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { CheckCircle2, MessageCircle, ArrowLeft, Package, Clock, Truck, Store, MapPin } from 'lucide-react';
 import { getPublicOrderConfirmation } from '@/app/actions/store-actions';
+import { OrderTrackingActions } from '@/components/store/order-tracking-actions';
 
 export const metadata = {
   title: 'Confirmación de Pedido · Tienda Virtual GNS',
@@ -145,22 +146,23 @@ export default async function OrderConfirmationPage(props: {
           </div>
         </div>
 
+        {/* WhatsApp Tracking & Share Actions */}
+        <OrderTrackingActions
+          orderNumber={order.orderNumber}
+          orderToken={order.orderToken}
+          storeSlug={params.storeSlug}
+          storeName={order.store.name}
+          storePhone={order.store.phone}
+          customerName={order.customerName}
+          customerPhone={(order as any).customerPhoneRaw || null}
+          total={order.total}
+        />
+
         {/* Actions */}
-        <div className="pt-4 flex flex-col sm:flex-row gap-3">
-          {whatsappUrl && (
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 h-12 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 transition-all"
-            >
-              <MessageCircle className="h-4 w-4" />
-              <span>Contactar al negocio por WhatsApp</span>
-            </a>
-          )}
+        <div className="pt-2 flex flex-col sm:flex-row gap-3">
           <Link
             href={`/t/${params.storeSlug}`}
-            className="flex-1 h-12 rounded-2xl border border-border bg-card hover:bg-muted text-foreground font-bold text-xs flex items-center justify-center gap-2 transition-all"
+            className="w-full h-12 rounded-2xl border border-border bg-card hover:bg-muted text-foreground font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-xs"
           >
             <ArrowLeft className="h-4 w-4" />
             <span>Volver a la tienda</span>

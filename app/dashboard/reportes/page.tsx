@@ -7,7 +7,10 @@ import {
   BarChart3,
   Calculator,
   Briefcase,
-  Users
+  Users,
+  CreditCard,
+  Building2,
+  ArrowRightLeft
 } from 'lucide-react';
 import { ReportDownloadButton } from '@/components/reports/report-download-button';
 import { prisma } from '@/lib/prisma';
@@ -176,14 +179,74 @@ const REPORTS: ReportCard[] = [
     badgeBg: 'bg-teal-50',
     badgeText: 'text-teal-700',
   },
+  {
+    title: 'Cartera y Créditos',
+    description: 'Control de ventas a crédito, saldos pendientes, cuotas, recaudos y alertas de cartera en mora.',
+    details: [
+      'Código de crédito y cliente',
+      'Fecha apertura, vencimiento y días de mora',
+      'Monto total, abonos y saldo pendiente',
+      'Modalidad y estado de entrega de mercancía',
+      'Cuotas pactadas vs cuotas pagadas',
+    ],
+    href: '/api/reports/cartera',
+    filename: 'reporte_cartera.xlsx',
+    icon: CreditCard,
+    iconBg: 'bg-amber-100',
+    iconColor: 'text-amber-700',
+    accentBar: 'bg-amber-500',
+    badgeLabel: 'Cartera',
+    badgeBg: 'bg-amber-50',
+    badgeText: 'text-amber-800',
+  },
+  {
+    title: 'Ventas Enterprise (Multi-Sedes)',
+    description: 'Consolidado corporativo de ventas por sucursal para comparar rentabilidad, márgenes y rendimiento entre sedes.',
+    details: [
+      'Sede, código de sucursal y ciudad',
+      'Número de venta y vendedor asignado',
+      'Costos, ventas y utilidad neta',
+      'Margen de rentabilidad (%) por sede',
+      'Métodos de pago y estado de la venta',
+    ],
+    href: '/api/reports/enterprise',
+    filename: 'ventas_enterprise.xlsx',
+    icon: Building2,
+    iconBg: 'bg-emerald-100',
+    iconColor: 'text-emerald-700',
+    accentBar: 'bg-emerald-600',
+    badgeLabel: 'Enterprise',
+    badgeBg: 'bg-emerald-50',
+    badgeText: 'text-emerald-800',
+  },
+  {
+    title: 'Traslados de Bodegas',
+    description: 'Trazabilidad completa de movimientos y transferencias de mercancía entre diferentes almacenes.',
+    details: [
+      'Número de traslado y fecha de solicitud',
+      'Bodega origen y bodega destino',
+      'Artículos y cantidades transferidas',
+      'Estado: Solicitado, Aprobado, Tránsito o Recibido',
+      'Usuario responsable y motivo del traslado',
+    ],
+    href: '/api/reports/transfers',
+    filename: 'traslados_bodegas.xlsx',
+    icon: ArrowRightLeft,
+    iconBg: 'bg-indigo-100',
+    iconColor: 'text-indigo-600',
+    accentBar: 'bg-indigo-500',
+    badgeLabel: 'Almacén WMS',
+    badgeBg: 'bg-indigo-50',
+    badgeText: 'text-indigo-700',
+  },
 ];
 
 /* ─── Page ──────────────────────────────────────────────────── */
 export default async function ReportesPage() {
   const session = await getAuthSession();
   const companyId = await getSessionCompanyId();
-  const companyFilter = session?.user?.role !== 'SUPERADMIN' && companyId 
-    ? { companyId } 
+  const companyFilter = session?.user?.role !== 'SUPERADMIN' && companyId
+    ? { companyId }
     : {};
 
   const [categories, suppliers, groups, productMappings, settings] = await Promise.all([

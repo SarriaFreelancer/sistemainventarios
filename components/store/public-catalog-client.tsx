@@ -89,6 +89,7 @@ interface PublicCatalogClientProps {
     deliveryNotes?: string | null;
     pickupAddress?: string | null;
     minOrderAmount: number;
+    freeShippingThreshold?: number;
   };
   products: PublicProduct[];
   categories: { id: number; name: string; count: number }[];
@@ -197,16 +198,19 @@ export function PublicCatalogClient({ store, products, categories }: PublicCatal
       {theme.hero.enabled && (
         <section
           style={{
-            background:
-              theme.hero.style === 'gradient'
-                ? `linear-gradient(135deg, ${brandColor}18 0%, ${brandSecondary}10 50%, transparent 100%)`
-                : theme.hero.style === 'dark-banner'
-                ? '#0f172a'
-                : undefined,
+            background: theme.hero.bannerImageUrl
+              ? `linear-gradient(rgba(15,23,42,0.65), rgba(15,23,42,0.85)), url(${theme.hero.bannerImageUrl})`
+              : theme.hero.style === 'gradient'
+              ? `linear-gradient(135deg, ${brandColor}18 0%, ${brandSecondary}10 50%, transparent 100%)`
+              : theme.hero.style === 'dark-banner'
+              ? '#0f172a'
+              : undefined,
+            backgroundSize: theme.hero.bannerImageUrl ? 'cover' : undefined,
+            backgroundPosition: theme.hero.bannerImageUrl ? 'center' : undefined,
           }}
           className={`relative border-b border-border/80 py-10 sm:py-16 px-4 sm:px-6 lg:px-8 overflow-hidden ${
-            theme.hero.style === 'dark-banner' ? 'text-white' : ''
-          } ${theme.hero.style === 'modern-card' ? 'bg-card/70 backdrop-blur-sm' : ''}`}
+            theme.hero.style === 'dark-banner' || theme.hero.bannerImageUrl ? 'text-white' : ''
+          } ${theme.hero.style === 'modern-card' && !theme.hero.bannerImageUrl ? 'bg-card/70 backdrop-blur-sm' : ''}`}
         >
           {/* Subtle Glow */}
           <div
@@ -391,47 +395,114 @@ export function PublicCatalogClient({ store, products, categories }: PublicCatal
               )}
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              {featuredCategories.map((cat) => {
-                const isSelected = selectedCategory === cat.id;
-                return (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedCategory(cat.id);
-                      scrollToSection('catalogo');
-                    }}
-                    style={{
-                      borderColor: isSelected ? brandColor : undefined,
-                      backgroundColor: isSelected ? `${brandColor}10` : undefined,
-                    }}
-                    className={`p-3.5 rounded-2xl border text-left transition-all group flex flex-col justify-between h-24 ${
-                      isSelected
-                        ? 'shadow-sm font-bold'
-                        : 'border-border/80 bg-card hover:border-primary/50 hover:bg-muted/30'
+            {/* Categorías en formato Cápsulas Shopify (Pills) o Tarjetas según diseño */}
+            {theme.categoriesSection.style === 'cards' ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                {featuredCategories.map((cat) => {
+                  const isSelected = selectedCategory === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCategory(cat.id);
+                        scrollToSection('catalogo');
+                      }}
+                      style={{
+                        borderColor: isSelected ? brandColor : undefined,
+                        backgroundColor: isSelected ? `${brandColor}10` : undefined,
+                      }}
+                      className={`p-3.5 rounded-2xl border text-left transition-all group flex flex-col justify-between h-20 ${
+                        isSelected
+                          ? 'shadow-sm font-bold'
+                          : 'border-border/80 bg-card hover:border-primary/50 hover:bg-muted/30'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <span
+                          style={{ backgroundColor: `${brandColor}15`, color: brandColor }}
+                          className="h-7 w-7 rounded-xl flex items-center justify-center shrink-0"
+                        >
+                          <Tag className="h-3.5 w-3.5" />
+                        </span>
+                        {theme.categoriesSection.showProductCount && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                            {cat.count}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs font-bold text-foreground truncate block">
+                        {cat.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              /* Estilo Shopify: Cápsulas / Filtros Horizontales Compactos Deslizables */
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 pt-1 scrollbar-none">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedCategory('ALL');
+                    scrollToSection('catalogo');
+                  }}
+                  style={{
+                    backgroundColor: selectedCategory === 'ALL' ? brandColor : undefined,
+                    borderColor: selectedCategory === 'ALL' ? brandColor : undefined,
+                  }}
+                  className={`inline-flex items-center gap-2 h-10 px-4 rounded-full text-xs font-bold whitespace-nowrap transition-all border shrink-0 ${
+                    selectedCategory === 'ALL'
+                      ? 'text-white shadow-md shadow-black/10 scale-102'
+                      : 'bg-card border-border/80 text-foreground hover:bg-muted/50'
+                  }`}
+                >
+                  <Tag className="h-3.5 w-3.5" />
+                  <span>Todas las categorías</span>
+                  <span
+                    className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
+                      selectedCategory === 'ALL' ? 'bg-white/20 text-white' : 'bg-muted text-muted-foreground'
                     }`}
                   >
-                    <div className="flex items-center justify-between w-full">
-                      <span
-                        style={{ backgroundColor: `${brandColor}15`, color: brandColor }}
-                        className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform"
-                      >
-                        <Tag className="h-4 w-4" />
-                      </span>
+                    {products.length}
+                  </span>
+                </button>
+
+                {featuredCategories.map((cat) => {
+                  const isSelected = selectedCategory === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCategory(cat.id);
+                        scrollToSection('catalogo');
+                      }}
+                      style={{
+                        backgroundColor: isSelected ? brandColor : undefined,
+                        borderColor: isSelected ? brandColor : undefined,
+                      }}
+                      className={`inline-flex items-center gap-2 h-10 px-4 rounded-full text-xs font-bold whitespace-nowrap transition-all border shrink-0 ${
+                        isSelected
+                          ? 'text-white shadow-md shadow-black/10 scale-102'
+                          : 'bg-card border-border/80 text-foreground hover:bg-muted/50'
+                      }`}
+                    >
+                      <span>{cat.name}</span>
                       {theme.categoriesSection.showProductCount && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                        <span
+                          className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
+                            isSelected ? 'bg-white/20 text-white' : 'bg-muted text-muted-foreground'
+                          }`}
+                        >
                           {cat.count}
                         </span>
                       )}
-                    </div>
-                    <span className="text-xs font-bold text-foreground truncate block">
-                      {cat.name}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </section>
       )}
@@ -716,7 +787,10 @@ export function PublicCatalogClient({ store, products, categories }: PublicCatal
       )}
 
       {/* 10. CARRITO LATERAL (DRAWER) */}
-      <CartDrawer storeSlug={store.slug} />
+      <CartDrawer
+        storeSlug={store.slug}
+        freeShippingThreshold={store.freeShippingThreshold || 0}
+      />
 
       {/* 11. PIE DE PÁGINA (FOOTER) PERSONALIZABLE */}
       <footer className="mt-20 border-t border-border bg-card pt-12 pb-8 px-4 sm:px-6 lg:px-8 text-xs text-muted-foreground">

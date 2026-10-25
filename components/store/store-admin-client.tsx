@@ -95,11 +95,33 @@ export function StoreAdminClient({
   const [selectedProductIds, setSelectedProductIds] = useState<number[]>([]);
   const [copiedUrl, setCopiedUrl] = useState(false);
 
+  // Pagination for catalog
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+
   // Modals
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [editingProduct, setEditingProduct] = useState<any | null>(null);
+  const [productGalleryUrls, setProductGalleryUrls] = useState<string[]>([]);
+  const [newGalleryInput, setNewGalleryInput] = useState<string>('');
+  const [productVideoUrl, setProductVideoUrl] = useState<string>('');
   const [newDomainInput, setNewDomainInput] = useState('');
   const [currentOrigin, setCurrentOrigin] = useState(publicBaseUrl);
+
+  const handleOpenEditProduct = (prod: any) => {
+    setEditingProduct(prod);
+    let parsedGallery: string[] = [];
+    try {
+      if (prod.galleryImages) {
+        parsedGallery = typeof prod.galleryImages === 'string' ? JSON.parse(prod.galleryImages) : prod.galleryImages;
+      }
+    } catch (e) {
+      parsedGallery = [];
+    }
+    setProductGalleryUrls(Array.isArray(parsedGallery) ? parsedGallery : []);
+    setProductVideoUrl(prod.videoUrl || '');
+    setNewGalleryInput('');
+  };
 
   React.useEffect(() => {
     if (typeof window !== 'undefined' && window.location.origin) {
@@ -108,6 +130,24 @@ export function StoreAdminClient({
   }, []);
 
   const publicStoreUrl = store ? `${currentOrigin || publicBaseUrl}/t/${store.slug}` : '';
+
+  const buildWhatsAppNotifyUrl = (ord: any) => {
+    const rawDigits = (ord.customerPhone || '').replace(/\D/g, '');
+    const cleanPhone = rawDigits.startsWith('57') ? rawDigits : rawDigits.length === 10 ? `57${rawDigits}` : rawDigits;
+    const statusLabel =
+      ord.status === 'PENDING_REVIEW'
+        ? 'Pendiente de Revisión'
+        : ord.status === 'ACCEPTED'
+        ? 'Aceptado y en Preparación'
+        : ord.status === 'COMPLETED_SALE'
+        ? 'Venta Confirmada'
+        : ord.status === 'REJECTED'
+        ? 'Rechazado'
+        : ord.status;
+    const trackingUrl = `${currentOrigin || publicBaseUrl}/t/${store?.slug}/order/${ord.orderToken || ord.id}`;
+    const text = `Hola *${ord.customerName}* 👋 Te informamos sobre tu pedido *#${ord.orderNumber}* en *${store?.name}*.\n\n📦 *Estado:* ${statusLabel}\n💰 *Total:* ${fmt(ord.total)}\n\n🔍 Puedes hacer seguimiento en vivo y consultar el detalle de tu pedido sin iniciar sesión aquí:\n${trackingUrl}\n\n¡Gracias por preferirnos!`;
+    return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
+  };
 
   const handleCopyUrl = () => {
     if (!publicStoreUrl) return;
@@ -163,6 +203,12 @@ export function StoreAdminClient({
 
     return matchesSearch && matchesStatus && matchesCategory && matchesGroup;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
+  const effectivePage = Math.min(currentPage, totalPages);
+  const startIndex = (effectivePage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, filteredProducts.length);
+  const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
 
   const publishedCount = products.filter((p) => p.isPublishedWeb).length;
   const discountProductsCount = products.filter((p) => p.webPrice && p.webPrice < p.salePrice).length;
@@ -321,6 +367,7 @@ export function StoreAdminClient({
         deliveryCost: Number(formData.get('deliveryCost') || 0),
         pickupAddress: String(formData.get('pickupAddress') || ''),
         minOrderAmount: Number(formData.get('minOrderAmount') || 0),
+        freeShippingThreshold: Number(formData.get('freeShippingThreshold') || 0),
         status: String(formData.get('status') || 'ACTIVE'),
         whatsappMessage: String(formData.get('whatsappMessage') || ''),
         announcementText: String(formData.get('announcementText') || ''),
@@ -691,6 +738,17 @@ export function StoreAdminClient({
 
                         <td className="px-5 py-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
+                            <a
+                              href={buildWhatsAppNotifyUrl(ord)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="h-8 px-2.5 rounded-lg border border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10 text-xs font-bold inline-flex items-center gap-1 transition-colors"
+                              title="Enviar seguimiento por WhatsApp al comprador"
+                            >
+                              <MessageCircle className="h-3.5 w-3.5" />
+                              <span className="hidden xl:inline">Notificar</span>
+                            </a>
+
                             <button
                               onClick={() => setSelectedOrder(ord)}
                               className="h-8 px-2.5 rounded-lg border border-border bg-card hover:bg-muted text-xs font-bold text-foreground transition-colors"
@@ -761,7 +819,10 @@ export function StoreAdminClient({
                 type="search"
                 placeholder="Buscar por nombre o código..."
                 value={productSearch}
-                onChange={(e) => setProductSearch(e.target.value)}
+                onChange={(e) => {
+                  setProductSearch(e.target.value);
+                  setCurrentPage(1);
+                }}
                 className="h-10 w-full pl-10 pr-3 rounded-xl border border-border bg-card text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
@@ -769,7 +830,10 @@ export function StoreAdminClient({
             {/* Filter Pills */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
               <button
-                onClick={() => setProductStatusFilter('ALL')}
+                onClick={() => {
+                  setProductStatusFilter('ALL');
+                  setCurrentPage(1);
+                }}
                 className={`h-9 px-3.5 rounded-xl text-xs font-bold transition-all shrink-0 border ${
                   productStatusFilter === 'ALL'
                     ? 'bg-foreground text-background border-foreground shadow-sm'
@@ -779,7 +843,10 @@ export function StoreAdminClient({
                 Todos ({products.length})
               </button>
               <button
-                onClick={() => setProductStatusFilter('PUBLISHED')}
+                onClick={() => {
+                  setProductStatusFilter('PUBLISHED');
+                  setCurrentPage(1);
+                }}
                 className={`h-9 px-3.5 rounded-xl text-xs font-bold transition-all shrink-0 border ${
                   productStatusFilter === 'PUBLISHED'
                     ? 'bg-primary text-primary-foreground border-primary shadow-sm'
@@ -789,7 +856,10 @@ export function StoreAdminClient({
                 Publicados ({publishedCount})
               </button>
               <button
-                onClick={() => setProductStatusFilter('UNPUBLISHED')}
+                onClick={() => {
+                  setProductStatusFilter('UNPUBLISHED');
+                  setCurrentPage(1);
+                }}
                 className={`h-9 px-3.5 rounded-xl text-xs font-bold transition-all shrink-0 border ${
                   productStatusFilter === 'UNPUBLISHED'
                     ? 'bg-foreground text-background border-foreground shadow-sm'
@@ -799,7 +869,10 @@ export function StoreAdminClient({
                 No Publicados ({products.length - publishedCount})
               </button>
               <button
-                onClick={() => setProductStatusFilter('DISCOUNTS')}
+                onClick={() => {
+                  setProductStatusFilter('DISCOUNTS');
+                  setCurrentPage(1);
+                }}
                 className={`h-9 px-3.5 rounded-xl text-xs font-bold transition-all shrink-0 border ${
                   productStatusFilter === 'DISCOUNTS'
                     ? 'bg-rose-500 text-white border-rose-500 shadow-sm'
@@ -825,7 +898,10 @@ export function StoreAdminClient({
                   <span className="text-[11px] text-muted-foreground font-semibold">Grupo:</span>
                   <select
                     value={groupFilter}
-                    onChange={(e) => setGroupFilter(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
+                    onChange={(e) => {
+                      setGroupFilter(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
                     className="h-8 px-2.5 rounded-lg border border-border bg-card text-xs font-semibold text-foreground focus:ring-1 focus:ring-primary"
                   >
                     <option value="ALL">Todos los grupos ({productGroups.length})</option>
@@ -844,7 +920,10 @@ export function StoreAdminClient({
                   <span className="text-[11px] text-muted-foreground font-semibold">Categoría:</span>
                   <select
                     value={categoryFilter}
-                    onChange={(e) => setCategoryFilter(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
+                    onChange={(e) => {
+                      setCategoryFilter(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
                     className="h-8 px-2.5 rounded-lg border border-border bg-card text-xs font-semibold text-foreground focus:ring-1 focus:ring-primary"
                   >
                     <option value="ALL">Todas las categorías ({categories.length})</option>
@@ -863,6 +942,7 @@ export function StoreAdminClient({
                   onClick={() => {
                     setCategoryFilter('ALL');
                     setGroupFilter('ALL');
+                    setCurrentPage(1);
                   }}
                   className="text-[11px] text-primary hover:underline font-bold ml-auto"
                 >
@@ -931,14 +1011,14 @@ export function StoreAdminClient({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {filteredProducts.length === 0 ? (
+                  {paginatedProducts.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="py-12 text-center text-xs text-muted-foreground">
                         No hay productos que coincidan con los filtros aplicados.
                       </td>
                     </tr>
                   ) : (
-                    filteredProducts.map((prod) => {
+                    paginatedProducts.map((prod) => {
                       const hasDiscount = Boolean(prod.webPrice && prod.webPrice > 0 && prod.webPrice < prod.salePrice);
                       const discountPct = hasDiscount
                         ? Math.round(((prod.salePrice - (prod.webPrice || 0)) / prod.salePrice) * 100)
@@ -1035,7 +1115,7 @@ export function StoreAdminClient({
 
                           <td className="px-5 py-4 text-right">
                             <button
-                              onClick={() => setEditingProduct(prod)}
+                              onClick={() => handleOpenEditProduct(prod)}
                               className="h-8 px-3 rounded-lg border border-border bg-card hover:bg-muted text-xs font-bold text-foreground transition-colors inline-flex items-center gap-1.5"
                             >
                               <Tag className="h-3 w-3 text-primary" />
@@ -1049,6 +1129,80 @@ export function StoreAdminClient({
                 </tbody>
               </table>
             </div>
+
+            {/* Barra de Paginación */}
+            {filteredProducts.length > 0 && (
+              <div className="p-4 border-t border-border bg-muted/20 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                <div className="flex flex-wrap items-center gap-2 text-muted-foreground">
+                  <span>
+                    Mostrando <strong>{startIndex + 1}</strong> - <strong>{endIndex}</strong> de <strong>{filteredProducts.length}</strong> productos
+                  </span>
+                  <span>•</span>
+                  <div className="flex items-center gap-1.5">
+                    <span>Por página:</span>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => {
+                        setPageSize(Number(e.target.value));
+                        setCurrentPage(1);
+                      }}
+                      className="h-7 px-2 rounded-lg border border-border bg-card text-xs font-bold text-foreground"
+                    >
+                      <option value={15}>15</option>
+                      <option value={30}>30</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={effectivePage <= 1}
+                    className="h-8 px-2.5 rounded-lg border border-border bg-card hover:bg-muted text-xs font-semibold disabled:opacity-40 disabled:pointer-events-none"
+                  >
+                    Anterior
+                  </button>
+
+                  <div className="flex items-center gap-1 px-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter((p) => p === 1 || p === totalPages || Math.abs(p - effectivePage) <= 1)
+                      .map((p, idx, arr) => {
+                        const prev = arr[idx - 1];
+                        return (
+                          <React.Fragment key={p}>
+                            {prev && p - prev > 1 && (
+                              <span className="px-1 text-muted-foreground">...</span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => setCurrentPage(p)}
+                              className={`h-8 w-8 rounded-lg text-xs font-bold transition-all ${
+                                effectivePage === p
+                                  ? 'bg-primary text-primary-foreground shadow-xs'
+                                  : 'border border-border bg-card hover:bg-muted text-foreground'
+                              }`}
+                            >
+                              {p}
+                            </button>
+                          </React.Fragment>
+                        );
+                      })}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={effectivePage >= totalPages}
+                    className="h-8 px-2.5 rounded-lg border border-border bg-card hover:bg-muted text-xs font-semibold disabled:opacity-40 disabled:pointer-events-none"
+                  >
+                    Siguiente
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1346,6 +1500,22 @@ export function StoreAdminClient({
 
               <div className="sm:col-span-2">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">
+                  Monto Mínimo para Envío Gratis Automático ($ COP)
+                </label>
+                <input
+                  type="number"
+                  name="freeShippingThreshold"
+                  defaultValue={store?.freeShippingThreshold ?? 0}
+                  placeholder="Ej. 100000 (Dejar en 0 para desactivar)"
+                  className="h-11 w-full rounded-2xl border border-border bg-background px-3 text-sm text-foreground"
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Si el subtotal del pedido alcanza o supera este monto, el costo del domicilio se vuelve $0 y la tienda muestra una barra de progreso de envío gratis.
+                </p>
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">
                   Dirección exacta de Recogida
                 </label>
                 <input
@@ -1516,6 +1686,17 @@ export function StoreAdminClient({
 
             {/* Action Bar */}
             <div className="pt-4 border-t border-border flex flex-wrap gap-2 justify-end">
+              <a
+                href={buildWhatsAppNotifyUrl(selectedOrder)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="h-10 px-4 rounded-xl border border-emerald-500/30 text-emerald-600 bg-emerald-50/50 hover:bg-emerald-100/60 dark:bg-emerald-950/20 text-xs font-bold inline-flex items-center gap-1.5 transition-colors"
+                title="Notificar por WhatsApp y enviar enlace de seguimiento"
+              >
+                <MessageCircle className="h-4 w-4" />
+                <span>Notificar por WhatsApp</span>
+              </a>
+
               <button
                 onClick={() => setSelectedOrder(null)}
                 className="h-10 px-4 rounded-xl border border-border bg-card hover:bg-muted text-xs font-bold"
@@ -1583,6 +1764,8 @@ export function StoreAdminClient({
                     webPrice,
                     description,
                     imageUrl,
+                    galleryImages: productGalleryUrls,
+                    videoUrl: productVideoUrl,
                   });
                   if (res.success && res.product) {
                     setProducts((prev) =>
@@ -1651,15 +1834,90 @@ export function StoreAdminClient({
 
               <div>
                 <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">
-                  URL de Imagen del Producto
+                  Foto Principal de Portada (URL)
                 </label>
                 <input
                   type="url"
                   name="imageUrl"
                   defaultValue={editingProduct.imageUrl ?? ''}
-                  placeholder="https://ejemplo.com/foto-producto.jpg"
+                  placeholder="https://ejemplo.com/foto-principal.jpg"
                   className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground"
                 />
+              </div>
+
+              {/* Galería Múltiple (Hasta 5 fotos) */}
+              <div className="p-3.5 rounded-2xl bg-muted/20 border border-border space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                    Galería de Fotos Adicionales ({productGalleryUrls.length}/5)
+                  </label>
+                  <span className="text-[10px] text-primary font-semibold">Máximo 5 imágenes</span>
+                </div>
+
+                {/* Lista de fotos añadidas */}
+                {productGalleryUrls.length > 0 && (
+                  <div className="grid grid-cols-5 gap-2">
+                    {productGalleryUrls.map((url, idx) => (
+                      <div key={idx} className="relative group rounded-xl overflow-hidden border border-border bg-card aspect-square">
+                        <img src={url} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setProductGalleryUrls((prev) => prev.filter((_, i) => i !== idx))}
+                          className="absolute inset-0 bg-black/60 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center text-xs font-bold transition-opacity"
+                          title="Eliminar foto"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Input para agregar foto */}
+                {productGalleryUrls.length < 5 && (
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      value={newGalleryInput}
+                      onChange={(e) => setNewGalleryInput(e.target.value)}
+                      placeholder="https://ejemplo.com/otra-foto.jpg"
+                      className="flex-1 h-9 px-3 rounded-xl border border-border bg-background text-xs font-mono"
+                    />
+                    <button
+                      type="button"
+                      disabled={!newGalleryInput.trim()}
+                      onClick={() => {
+                        if (newGalleryInput.trim() && productGalleryUrls.length < 5) {
+                          setProductGalleryUrls((prev) => [...prev, newGalleryInput.trim()]);
+                          setNewGalleryInput('');
+                        }
+                      }}
+                      className="h-9 px-3 rounded-xl bg-primary text-primary-foreground font-bold text-xs disabled:opacity-40"
+                    >
+                      + Agregar Foto
+                    </button>
+                  </div>
+                )}
+                <p className="text-[10px] text-muted-foreground">
+                  Se mostrarán en carrusel en la vista rápida y ficha del producto en la tienda virtual.
+                </p>
+              </div>
+
+              {/* Video del Producto */}
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">
+                  Video del Producto (YouTube, Vimeo o URL directa .mp4)
+                </label>
+                <input
+                  type="url"
+                  value={productVideoUrl}
+                  onChange={(e) => setProductVideoUrl(e.target.value)}
+                  placeholder="https://www.youtube.com/watch?v=... o https://vimeo.com/..."
+                  className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground"
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Opcional. Permite reproducir una demostración del producto directamente en la tienda.
+                </p>
               </div>
 
               <div>

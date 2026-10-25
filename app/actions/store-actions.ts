@@ -98,6 +98,8 @@ export async function getPublicStoreData(slugOrDomain: string) {
         name: true,
         description: true,
         imageUrl: true,
+        galleryImages: true,
+        videoUrl: true,
         salePrice: true,
         webPrice: true,
         quantityAvailable: true,
@@ -123,12 +125,24 @@ export async function getPublicStoreData(slugOrDomain: string) {
         ? Math.round(((regularPrice - webPrice) / regularPrice) * 100)
         : 0;
 
+      let parsedGallery: string[] = [];
+      if (p.galleryImages) {
+        try {
+          const parsed = JSON.parse(p.galleryImages);
+          if (Array.isArray(parsed)) {
+            parsedGallery = parsed.filter((img) => typeof img === 'string' && img.trim().length > 0);
+          }
+        } catch {}
+      }
+
       return {
         id: p.id,
         code: p.code,
         name: p.name,
         description: p.description,
         imageUrl: p.imageUrl,
+        galleryImages: parsedGallery,
+        videoUrl: p.videoUrl || null,
         price: finalPrice,
         regularPrice,
         webPrice,
@@ -181,6 +195,7 @@ export async function getPublicStoreData(slugOrDomain: string) {
         deliveryNotes: store.deliveryNotes,
         pickupAddress: store.pickupAddress,
         minOrderAmount: store.minOrderAmount,
+        freeShippingThreshold: (store as any).freeShippingThreshold ?? 0,
       },
       products: formattedProducts,
       categories: Array.from(categoriesMap.values()),
@@ -273,8 +288,11 @@ export async function calculateCartTotals(
     }
 
     let deliveryCost = 0;
+    const freeShippingThreshold = (store as any).freeShippingThreshold || 0;
+    const isFreeShipping = freeShippingThreshold > 0 && subtotal >= freeShippingThreshold;
+
     if (deliveryMode === 'HOME_DELIVERY') {
-      deliveryCost = store.deliveryCost || 0;
+      deliveryCost = isFreeShipping ? 0 : (store.deliveryCost || 0);
     }
 
     const total = subtotal + deliveryCost;
@@ -453,9 +471,11 @@ export async function getPublicOrderConfirmation(orderToken: string) {
       success: true,
       order: {
         orderNumber: order.orderNumber,
+        orderToken: order.orderToken,
         createdAt: order.createdAt.toISOString(),
         status: order.status,
         customerName: order.customerName,
+        customerPhoneRaw: order.customerPhone,
         customerPhoneMasked: order.customerPhone.slice(0, 3) + '****' + order.customerPhone.slice(-3),
         deliveryMode: order.deliveryMode,
         deliveryAddress: order.deliveryAddress,
@@ -569,6 +589,7 @@ export async function updateStoreConfig(data: {
   deliveryNotes?: string;
   pickupAddress?: string;
   minOrderAmount?: number;
+  freeShippingThreshold?: number;
   status?: string;
   logoUrl?: string;
   bannerUrl?: string;
@@ -599,6 +620,7 @@ export async function updateStoreConfig(data: {
         deliveryNotes: data.deliveryNotes?.trim() || null,
         pickupAddress: data.pickupAddress?.trim() || null,
         minOrderAmount: Number(data.minOrderAmount || 0),
+        freeShippingThreshold: data.freeShippingThreshold !== undefined ? Number(data.freeShippingThreshold || 0) : undefined,
         status: data.status || 'ACTIVE',
         logoUrl: data.logoUrl || undefined,
         bannerUrl: data.bannerUrl || undefined,
@@ -626,6 +648,7 @@ export async function updateStoreConfig(data: {
         deliveryNotes: data.deliveryNotes?.trim() || null,
         pickupAddress: data.pickupAddress?.trim() || null,
         minOrderAmount: Number(data.minOrderAmount || 0),
+        freeShippingThreshold: Number(data.freeShippingThreshold || 0),
         status: data.status || 'ACTIVE',
         logoUrl: data.logoUrl || null,
         bannerUrl: data.bannerUrl || null,
@@ -714,6 +737,8 @@ export async function toggleProductWebPublish(
     webPrice?: number | null;
     description?: string | null;
     imageUrl?: string | null;
+    galleryImages?: string[] | string | null;
+    videoUrl?: string | null;
   }
 ) {
   try {
@@ -727,6 +752,13 @@ export async function toggleProductWebPublish(
       return { success: false, error: 'Producto no encontrado o no pertenece a tu empresa.' };
     }
 
+    const galleryString =
+      data.galleryImages !== undefined
+        ? Array.isArray(data.galleryImages)
+          ? JSON.stringify(data.galleryImages.filter(Boolean))
+          : data.galleryImages
+        : undefined;
+
     const updated = await prisma.product.update({
       where: { id: productId },
       data: {
@@ -734,6 +766,8 @@ export async function toggleProductWebPublish(
         webPrice: data.webPrice !== undefined ? (data.webPrice ? Number(data.webPrice) : null) : undefined,
         description: data.description !== undefined ? data.description : undefined,
         imageUrl: data.imageUrl !== undefined ? data.imageUrl : undefined,
+        galleryImages: galleryString !== undefined ? galleryString : undefined,
+        videoUrl: data.videoUrl !== undefined ? (data.videoUrl ? data.videoUrl.trim() : null) : undefined,
       },
     });
 

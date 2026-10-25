@@ -21,6 +21,7 @@ export interface StoreThemeConfig {
   hero: {
     enabled: boolean;
     style: 'gradient' | 'minimal' | 'modern-card' | 'dark-banner';
+    bannerImageUrl?: string;
     badgeText: string;
     title: string;
     subtitle: string;
@@ -37,6 +38,7 @@ export interface StoreThemeConfig {
   };
   categoriesSection: {
     enabled: boolean;
+    style: 'pills' | 'cards' | 'chips';
     title: string;
     subtitle: string;
     featuredCategoryIds: number[];
@@ -143,6 +145,7 @@ export function getDefaultStoreTheme(storeName?: string): StoreThemeConfig {
     hero: {
       enabled: true,
       style: 'gradient',
+      bannerImageUrl: '',
       badgeText: 'Catálogo Oficial Disponible',
       title: `Bienvenido a ${name}`,
       subtitle:
@@ -185,6 +188,7 @@ export function getDefaultStoreTheme(storeName?: string): StoreThemeConfig {
     },
     categoriesSection: {
       enabled: true,
+      style: 'pills',
       title: 'Explora por Categorías',
       subtitle: 'Encuentra rápidamente lo que buscas organizado por líneas y colecciones',
       featuredCategoryIds: [],
@@ -257,6 +261,7 @@ export function parseStoreThemeConfig(
       hero: {
         ...defaults.hero,
         ...(parsed.hero || {}),
+        bannerImageUrl: parsed.hero?.bannerImageUrl || '',
       },
       features: {
         ...defaults.features,
@@ -268,6 +273,7 @@ export function parseStoreThemeConfig(
       categoriesSection: {
         ...defaults.categoriesSection,
         ...(parsed.categoriesSection || {}),
+        style: parsed.categoriesSection?.style || 'pills',
         featuredCategoryIds: Array.isArray(parsed.categoriesSection?.featuredCategoryIds)
           ? parsed.categoriesSection.featuredCategoryIds
           : [],

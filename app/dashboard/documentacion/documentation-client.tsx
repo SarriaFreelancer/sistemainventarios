@@ -60,7 +60,11 @@ import {
   Printer,
   FileCheck2,
   Share2,
-  PieChart
+  PieChart,
+  Store,
+  Globe,
+  Smartphone,
+  MessageSquare
 } from "lucide-react";
 import { CompanyAiConfig } from "@/app/actions/ai-config-actions";
 
@@ -95,6 +99,10 @@ export function DocumentationClient({ userRole, companyAiConfig, apiKeys = [] }:
     "crm-step": true,
     "rrhh-step": true,
     "finance-step": true,
+    "cartera-step": true,
+    "enterprise-step": true,
+    "transfers-step": true,
+    "store-step": true,
   });
 
   const handleCopy = (text: string, id: string) => {
@@ -116,8 +124,12 @@ export function DocumentationClient({ userRole, companyAiConfig, apiKeys = [] }:
     { id: "products", title: "Productos, Stock & Vencimientos", icon: Package },
     { id: "categories", title: "Categorías & Grupos de Artículos", icon: Layers },
     { id: "warehouses", title: "Bodegas & Almacén WMS", icon: Building2 },
+    { id: "transfers", title: "Traslados entre Bodegas", icon: ArrowRightLeft, badge: "WMS" },
+    { id: "enterprise", title: "GNS Enterprise (Multi-Sedes)", icon: Building2, badge: "Enterprise" },
     { id: "purchases", title: "Compras & Proveedores", icon: Truck },
     { id: "sales", title: "Ventas & Punto de Venta (POS)", icon: ShoppingCart },
+    { id: "cartera", title: "Cartera & Ventas a Crédito", icon: CreditCard, badge: "Nuevo" },
+    { id: "online-store", title: "Tienda Virtual & Catálogo Web", icon: Store, badge: "Web" },
     { id: "invoicing", title: "Facturación & Consecutivos", icon: Receipt },
     { id: "crm", title: "CRM & Gestión de Clientes", icon: Users },
     { id: "rrhh", title: "Recursos Humanos & Nómina", icon: Briefcase },
@@ -1364,6 +1376,314 @@ export function DocumentationClient({ userRole, companyAiConfig, apiKeys = [] }:
                   &nbsp;&nbsp;-H &quot;Authorization: Bearer {activeApiKey}&quot; \<br />
                   &nbsp;&nbsp;-H &quot;Content-Type: application/json&quot;</code>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════
+              SECCIÓN NUEVA: CARTERA & VENTAS A CRÉDITO
+          ══════════════════════════════════════════════════════════════ */}
+          {selectedSection === "cartera" && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="bg-card border border-border rounded-3xl p-6 shadow-sm space-y-2">
+                <div className="flex items-center gap-2 text-primary font-black text-xs uppercase tracking-wider">
+                  <CreditCard size={16} />
+                  <span>Módulo Financiero · Cartera & Cuentas por Cobrar</span>
+                </div>
+                <h2 className="text-xl font-black text-foreground">Gestión de Créditos, Cuotas y Recaudos</h2>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Permite financiar ventas a tus clientes con cronogramas de pago flexibles, modalidades de entrega inmediata o contra-pago, control de mora y emisión de recibos de caja oficiales.
+                </p>
+              </div>
+
+              {/* Acordeón Cartera 1: Modalidades de Entrega */}
+              <div className="border border-border rounded-3xl bg-card overflow-hidden shadow-sm">
+                <button
+                  onClick={() => toggleAccordion("cartera-modalities")}
+                  className="w-full p-5 bg-muted/20 flex items-center justify-between text-left font-black text-xs text-foreground cursor-pointer hover:bg-muted/40 transition"
+                >
+                  <div className="flex items-center gap-2.5 text-primary">
+                    <PackageCheck size={18} />
+                    <span>1. Modalidades de Crédito: Entrega Inmediata vs Contra-Pago</span>
+                  </div>
+                  {openAccordions["cartera-modalities"] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                </button>
+                {openAccordions["cartera-modalities"] !== false && (
+                  <div className="p-6 space-y-4 text-xs text-muted-foreground leading-relaxed border-t border-border">
+                    <p>
+                      Al registrar una venta financiada en GNS, puedes seleccionar dos modalidades de entrega según tus políticas comerciales:
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[11px]">
+                      <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-2">
+                        <span className="font-extrabold text-emerald-700 dark:text-emerald-400 block text-xs">A) Entrega Inmediata (Tradicional)</span>
+                        <p>El cliente retira la mercancía de inmediato al firmar el crédito o abonar la cuota inicial. El inventario se descuenta de bodega al momento de la venta y se genera una cuenta por cobrar con su plan de cuotas.</p>
+                        <span className="inline-block text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950 px-2.5 py-1 rounded-lg">Ideal para: Clientes frecuentes o con cupo aprobado</span>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 space-y-2">
+                        <span className="font-extrabold text-amber-700 dark:text-amber-400 block text-xs">B) Contra Pago Total (Plan Separe / Reserva)</span>
+                        <p>El stock queda reservado formalmente en el almacén para que nadie más lo venda, pero el cliente sólo puede retirar físicamente el producto cuando liquide el 100% de la deuda o según entregas programadas.</p>
+                        <span className="inline-block text-[10px] font-bold text-amber-600 bg-amber-50 dark:bg-amber-950 px-2.5 py-1 rounded-lg">Ideal para: Electrodomésticos, motos o planes separe</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Acordeón Cartera 2: Cuotas y Pagos */}
+              <div className="border border-border rounded-3xl bg-card overflow-hidden shadow-sm">
+                <button
+                  onClick={() => toggleAccordion("cartera-installments")}
+                  className="w-full p-5 bg-muted/20 flex items-center justify-between text-left font-black text-xs text-foreground cursor-pointer hover:bg-muted/40 transition"
+                >
+                  <div className="flex items-center gap-2.5 text-primary">
+                    <Calendar size={18} />
+                    <span>2. Cronograma de Cuotas, Alertas de Mora y Recaudos</span>
+                  </div>
+                  {openAccordions["cartera-installments"] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                </button>
+                {openAccordions["cartera-installments"] !== false && (
+                  <div className="p-6 space-y-4 text-xs text-muted-foreground leading-relaxed border-t border-border">
+                    <p>
+                      Cada crédito calcula automáticamente el valor de las cuotas, fechas de corte y estado de vigencia:
+                    </p>
+                    <ul className="space-y-2 text-[11px]">
+                      <li>• <strong>Generación de Cuotas:</strong> Define el número de cuotas (semanal, quincenal o mensual) y el sistema calculará las fechas límite y el valor sugerido de cada pago.</li>
+                      <li>• <strong>Recaudos con Recibo Oficial:</strong> Al registrar un abono, puedes especificar el medio de pago (Efectivo, Transferencia, Tarjeta, etc.), referencia y notas. El sistema abona automáticamente a las cuotas más antiguas pendientes.</li>
+                      <li>• <strong>Impresión de Recibo de Caja:</strong> Cada pago genera un recibo oficial con consecutivo único imprimible en formato ticket térmico o PDF.</li>
+                      <li>• <strong>Semáforo de Mora:</strong> Las operaciones con saldo pendiente vencido se marcan automáticamente en rojo indicando los días transcurridos para activar llamadas de cobro.</li>
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════
+              SECCIÓN NUEVA: GNS ENTERPRISE (MULTI-SEDES)
+          ══════════════════════════════════════════════════════════════ */}
+          {selectedSection === "enterprise" && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="bg-card border border-border rounded-3xl p-6 shadow-sm space-y-2">
+                <div className="flex items-center gap-2 text-primary font-black text-xs uppercase tracking-wider">
+                  <Building2 size={16} />
+                  <span>Plataforma Corporativa · GNS Enterprise</span>
+                </div>
+                <h2 className="text-xl font-black text-foreground">Gestión Multi-Sedes y Sucursales</h2>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Conecta múltiples locales físicos, sucursales de venta y almacenes bajo una misma organización empresarial con inventarios independientes y consolidados en tiempo real.
+                </p>
+              </div>
+
+              {/* Acordeón Enterprise 1: Estructura */}
+              <div className="border border-border rounded-3xl bg-card overflow-hidden shadow-sm">
+                <button
+                  onClick={() => toggleAccordion("enterprise-arch")}
+                  className="w-full p-5 bg-muted/20 flex items-center justify-between text-left font-black text-xs text-foreground cursor-pointer hover:bg-muted/40 transition"
+                >
+                  <div className="flex items-center gap-2.5 text-primary">
+                    <Layers size={18} />
+                    <span>1. Estructura y Funcionamiento de Sucursales</span>
+                  </div>
+                  {openAccordions["enterprise-arch"] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                </button>
+                {openAccordions["enterprise-arch"] !== false && (
+                  <div className="p-6 space-y-4 text-xs text-muted-foreground leading-relaxed border-t border-border">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-[11px]">
+                      <div className="p-3 rounded-2xl bg-muted/40 border border-border space-y-1">
+                        <span className="font-black text-foreground block">Sede Principal</span>
+                        <p>Define la configuración maestra, el catálogo central de productos y administra la suscripción empresarial.</p>
+                      </div>
+                      <div className="p-3 rounded-2xl bg-muted/40 border border-border space-y-1">
+                        <span className="font-black text-primary block">Sucursales Locales</span>
+                        <p>Cada sucursal opera con su propia caja, almacén local y equipo de vendedores asignados sin mezclar inventario.</p>
+                      </div>
+                      <div className="p-3 rounded-2xl bg-muted/40 border border-border space-y-1">
+                        <span className="font-black text-emerald-600 block">Reportes Consolidados</span>
+                        <p>La gerencia puede comparar en un solo clic las ventas, costos, utilidad neta y margen de cada sucursal.</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Acordeón Enterprise 2: Solicitud de Sedes */}
+              <div className="border border-border rounded-3xl bg-card overflow-hidden shadow-sm">
+                <button
+                  onClick={() => toggleAccordion("enterprise-requests")}
+                  className="w-full p-5 bg-muted/20 flex items-center justify-between text-left font-black text-xs text-foreground cursor-pointer hover:bg-muted/40 transition"
+                >
+                  <div className="flex items-center gap-2.5 text-primary">
+                    <Building size={18} />
+                    <span>2. Solicitud y Aprobación de Nuevas Sedes</span>
+                  </div>
+                  {openAccordions["enterprise-requests"] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                </button>
+                {openAccordions["enterprise-requests"] !== false && (
+                  <div className="p-6 space-y-4 text-xs text-muted-foreground leading-relaxed border-t border-border">
+                    <p>
+                      Para habilitar un nuevo punto de venta en tu suscripción Enterprise:
+                    </p>
+                    <ol className="space-y-2 text-[11px] list-decimal list-inside">
+                      <li>Ingresa a <strong>Enterprise &gt; Sedes</strong> y presiona el botón <strong>&quot;Solicitar Nueva Sede&quot;</strong>.</li>
+                      <li>Diligencia el nombre del establecimiento, ciudad, dirección y teléfono de contacto.</li>
+                      <li>La solicitud queda registrada con estado <em>PENDING</em> para revisión del administrador de la plataforma.</li>
+                      <li>Una vez aprobada, se crea la sucursal y la bodega asociada, permitiendo asignar usuarios y despachar mercancía.</li>
+                    </ol>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════
+              SECCIÓN NUEVA: TRASLADOS ENTRE BODEGAS & WMS
+          ══════════════════════════════════════════════════════════════ */}
+          {selectedSection === "transfers" && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="bg-card border border-border rounded-3xl p-6 shadow-sm space-y-2">
+                <div className="flex items-center gap-2 text-primary font-black text-xs uppercase tracking-wider">
+                  <ArrowRightLeft size={16} />
+                  <span>Logística Interna · Almacén WMS</span>
+                </div>
+                <h2 className="text-xl font-black text-foreground">Traslados de Mercancía entre Bodegas</h2>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Garantiza la trazabilidad del inventario al mover artículos entre bodega central, almacenes auxiliares y puntos de venta físicos.
+                </p>
+              </div>
+
+              {/* Acordeón Traslados 1: Flujo en 4 pasos */}
+              <div className="border border-border rounded-3xl bg-card overflow-hidden shadow-sm">
+                <button
+                  onClick={() => toggleAccordion("transfers-flow")}
+                  className="w-full p-5 bg-muted/20 flex items-center justify-between text-left font-black text-xs text-foreground cursor-pointer hover:bg-muted/40 transition"
+                >
+                  <div className="flex items-center gap-2.5 text-primary">
+                    <Clock size={18} />
+                    <span>1. Ciclo de Vida del Traslado (Estados WMS)</span>
+                  </div>
+                  {openAccordions["transfers-flow"] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                </button>
+                {openAccordions["transfers-flow"] !== false && (
+                  <div className="p-6 space-y-4 text-xs text-muted-foreground leading-relaxed border-t border-border">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-[11px]">
+                      <div className="p-3 rounded-2xl bg-muted/40 border border-border space-y-1">
+                        <span className="font-black text-foreground block">1. REQUESTED</span>
+                        <p>La bodega destino o sucursal solicita los artículos que necesita reabastecer.</p>
+                      </div>
+                      <div className="p-3 rounded-2xl bg-blue-500/10 border border-blue-500/20 space-y-1">
+                        <span className="font-black text-blue-600 block">2. APPROVED</span>
+                        <p>El jefe de almacén emisor valida la disponibilidad de stock y aprueba el traslado.</p>
+                      </div>
+                      <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 space-y-1">
+                        <span className="font-black text-amber-600 block">3. IN_TRANSIT</span>
+                        <p>La mercancía va en ruta con el transportador. Se descuenta de origen pero no se suma en destino hasta confirmar entrega.</p>
+                      </div>
+                      <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-1">
+                        <span className="font-black text-emerald-600 block">4. RECEIVED</span>
+                        <p>El receptor verifica físicamente las unidades y confirma. El stock entra a la bodega destino y se actualiza el Kardex.</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════
+              SECCIÓN NUEVA: TIENDA VIRTUAL & CATÁLOGO WEB
+          ══════════════════════════════════════════════════════════════ */}
+          {selectedSection === "online-store" && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="bg-card border border-border rounded-3xl p-6 shadow-sm space-y-2">
+                <div className="flex items-center gap-2 text-primary font-black text-xs uppercase tracking-wider">
+                  <Store size={16} />
+                  <span>E-Commerce Nativo · GNS Tienda Virtual</span>
+                </div>
+                <h2 className="text-xl font-black text-foreground">Tienda Online, Catálogo Web & Checkout WhatsApp</h2>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Publica tu catálogo en internet con enlace público permanente, carrito de compras, seguimiento de pedidos por WhatsApp y personalizador visual tipo WordPress.
+                </p>
+              </div>
+
+              {/* Acordeón Tienda 1: Personalizador Visual */}
+              <div className="border border-border rounded-3xl bg-card overflow-hidden shadow-sm">
+                <button
+                  onClick={() => toggleAccordion("store-designer")}
+                  className="w-full p-5 bg-muted/20 flex items-center justify-between text-left font-black text-xs text-foreground cursor-pointer hover:bg-muted/40 transition"
+                >
+                  <div className="flex items-center gap-2.5 text-primary">
+                    <SlidersHorizontal size={18} />
+                    <span>1. Personalizador Visual Estilo WordPress & Branding</span>
+                  </div>
+                  {openAccordions["store-designer"] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                </button>
+                {openAccordions["store-designer"] !== false && (
+                  <div className="p-6 space-y-4 text-xs text-muted-foreground leading-relaxed border-t border-border">
+                    <p>
+                      En el módulo de <strong>Tienda Virtual &gt; Personalizador Visual</strong> puedes adaptar la apariencia completa de tu tienda:
+                    </p>
+                    <ul className="space-y-2 text-[11px]">
+                      <li>• <strong>Identidad de Marca:</strong> Sube tu logotipo comercial, favicon, nombre de la tienda y eslogan público.</li>
+                      <li>• <strong>Paleta de Colores & Tipografía:</strong> Selecciona el color primario de acento, fondos y tipografías (Inter, Poppins, Montserrat, etc.).</li>
+                      <li>• <strong>Banners y Promociones:</strong> Configura títulos, llamadas a la acción (CTA) y banners promocionales principales.</li>
+                      <li>• <strong>Diseño de Productos:</strong> Elige entre tarjetas compactas estilo Shopify o tarjetas detalladas con carrusel de fotos.</li>
+                      <li>• <strong>Canal de WhatsApp:</strong> Define el número de WhatsApp oficial y personaliza el mensaje de bienvenida y confirmación de pedidos.</li>
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              {/* Acordeón Tienda 2: Galería de Fotos y Productos */}
+              <div className="border border-border rounded-3xl bg-card overflow-hidden shadow-sm">
+                <button
+                  onClick={() => toggleAccordion("store-products")}
+                  className="w-full p-5 bg-muted/20 flex items-center justify-between text-left font-black text-xs text-foreground cursor-pointer hover:bg-muted/40 transition"
+                >
+                  <div className="flex items-center gap-2.5 text-primary">
+                    <Package size={18} />
+                    <span>2. Gestión del Catálogo y Galerías Multimedia</span>
+                  </div>
+                  {openAccordions["store-products"] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                </button>
+                {openAccordions["store-products"] !== false && (
+                  <div className="p-6 space-y-4 text-xs text-muted-foreground leading-relaxed border-t border-border">
+                    <p>
+                      Los productos de la tienda virtual se alimentan directamente de tu inventario en GNS:
+                    </p>
+                    <ul className="space-y-2 text-[11px]">
+                      <li>• <strong>Control de Publicación:</strong> Decide qué productos son visibles en la tienda web con paginación y filtros rápidos.</li>
+                      <li>• <strong>Hasta 5 Fotos y Video por Producto:</strong> Puedes agregar múltiples imágenes en alta resolución y enlaces de video demostrativo para que los compradores vean todos los detalles del artículo.</li>
+                      <li>• <strong>Precios y Descuentos:</strong> Muestra el precio regular, precio promocional tachado y porcentaje de ahorro automático.</li>
+                      <li>• <strong>Stock en Tiempo Real:</strong> Oculta automáticamente productos agotados o muéstralos como no disponibles según tu preferencia.</li>
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              {/* Acordeón Tienda 3: Checkout y WhatsApp */}
+              <div className="border border-border rounded-3xl bg-card overflow-hidden shadow-sm">
+                <button
+                  onClick={() => toggleAccordion("store-whatsapp")}
+                  className="w-full p-5 bg-muted/20 flex items-center justify-between text-left font-black text-xs text-foreground cursor-pointer hover:bg-muted/40 transition"
+                >
+                  <div className="flex items-center gap-2.5 text-emerald-600 dark:text-emerald-400">
+                    <MessageSquare size={18} />
+                    <span>3. Carrito de Compras & Notificación por WhatsApp Sin Registro Obligatorio</span>
+                  </div>
+                  {openAccordions["store-whatsapp"] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                </button>
+                {openAccordions["store-whatsapp"] !== false && (
+                  <div className="p-6 space-y-4 text-xs text-muted-foreground leading-relaxed border-t border-border">
+                    <p>
+                      Para maximizar la tasa de conversión, tus clientes pueden comprar sin fricción:
+                    </p>
+                    <ul className="space-y-2 text-[11px]">
+                      <li>• <strong>Checkout Sin Iniciar Sesión:</strong> El cliente simplemente agrega productos al carrito, ingresa su nombre, teléfono y dirección de entrega.</li>
+                      <li>• <strong>Confirmación por WhatsApp:</strong> Al enviar el pedido, se genera un enlace directo a WhatsApp con el resumen del pedido preformateado y el código de seguimiento único.</li>
+                      <li>• <strong>Conversión a Venta POS:</strong> En el panel de GNS, tus asesores reciben el pedido como <em>PENDIENTE</em>. Con un solo clic pueden confirmar el pago y convertirlo en una venta formal con factura y descuento de inventario.</li>
+                    </ul>
+                  </div>
+                )}
               </div>
             </div>
           )}

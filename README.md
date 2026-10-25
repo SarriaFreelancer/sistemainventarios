@@ -1,204 +1,341 @@
-# GNS SarriaTech - Sistema ERP & Inventario Multi-Tenant
+# GNS — Gestión de Negocios SarriaTech
+### Plataforma SaaS Multi-Empresa & ERP Empresarial Cloud
 
-Bienvenido a **GNS SarriaTech**, una plataforma ERP moderna, elegante y de alto rendimiento diseñada para la gestión integral de inventarios, transacciones comerciales (POS), proveedores, compras, clientes y reportes de rendimiento.
-
-Este sistema cuenta con una arquitectura **Multi-Tenant (Multi-Inquilino)** de aislamiento estricto, permitiendo que múltiples empresas operen de manera independiente bajo una única base de datos y despliegue.
-
----
-
-## 🚀 Tecnologías Principales
-
-- **Frontend / Backend**: Next.js 15 (App Router), React 19, TypeScript
-- **Estilos**: Tailwind CSS, Lucide Icons, Shadcn UI components
-- **Base de Datos / ORM**: MySQL, Prisma ORM
-- **Autenticación y Seguridad**: NextAuth.js (Sesiones encriptadas), AES-256-CBC (Encriptación de datos sensibles)
-- **Validaciones**: Zod (Validación de esquemas y tipos), Server Actions seguras
+> **Desarrollado por:** SarriaTech Solutions S.A.S.
+> **Desarrollador Líder:** David Sarria
+> **Sitio Web / Soporte:** [https://sarriatech.tech](https://sarriatech.tech)
+> **Versión:** 2.5 Enterprise (Next.js 15 · React 19 · Prisma · MySQL)
 
 ---
 
-## 🔐 Seguridad y Autenticación del Sistema
+## 🌟 1. Visión General & Alcance del Sistema
 
-La plataforma implementa un esquema de seguridad robusto a múltiples niveles:
+**GNS (Gestión de Negocios SarriaTech)** es una plataforma SaaS (*Software as a Service*) integral, modular y escalable para la gestión y administración empresarial. Está diseñada para cubrir todo el ciclo operativo de micro, pequeñas, medianas y grandes empresas:
 
-1. **Autenticación (NextAuth.js):** Manejo seguro de sesiones mediante cookies HTTP-Only y encriptación robusta en el servidor, garantizando que los datos de sesión no sean manipulados desde el lado del cliente (No expone JWT al frontend directamente).
-2. **Encriptación de Datos en Reposo:** Utiliza una `ENCRYPTION_KEY` para cifrar datos altamente sensibles directamente en la base de datos (por ejemplo, credenciales SMTP o API Keys) utilizando el estándar de la industria AES-256-CBC.
-3. **MFA / 2FA Opcional:** Capacidad para exigir Doble Factor de Autenticación a nivel de empresa para elevar la seguridad de los ingresos.
-4. **Validación Zod y Server Actions:** Las mutaciones de datos (crear, editar, eliminar) son validadas en tiempo de ejecución (runtime) en el servidor antes de impactar en la base de datos, evitando inyecciones o datos malformados.
-5. **Auditorías de Sistema (Audit Logs):** Se rastrea cualquier acción crítica (creación, edición o eliminación de registros) realizada por los usuarios, guardando quién, cuándo y qué cambió, asegurando trazabilidad total.
-
----
-
-## 🛠️ Arquitectura Multi-Tenant y Roles
-
-El aislamiento de datos a nivel de base de datos se maneja inyectando y filtrando a través de la propiedad `companyId` (ID de Empresa).
-
-- **Superadmin**: Es el usuario administrador global de la plataforma, el cual tiene acceso completo a la creación y gestión de empresas, usuarios globales, integración de pagos y asignación de licencias o planes a cada inquilino.
-- **Admin**: Administrador específico de cada empresa, con control absoluto del catálogo de productos, proveedores, clientes, compras, reportes y ventas de su respectivo tenant. Tiene acceso a configuraciones críticas de la empresa (facturación, notificaciones, respaldos).
-- **User**: Empleado de la empresa que registra ventas rápidas, consulta stock y visualiza inventarios autorizados, con permisos limitados.
-
-Para garantizar la seguridad de las transacciones, la capa de base de datos implementa las utilidades `withTenantWhere` y `withTenantData` en `lib/tenant-db.ts`, asegurando que ningún usuario pueda listar, modificar o eliminar información de otro inquilino de forma no autorizada.
+- **Arquitectura Multi-Inquilino (Multi-Tenant):** Aislamiento estricto de datos por empresa (`companyId`), con soporte para esquemas compartidos y bases de datos dedicadas por cliente corporativo.
+- **Modelo Híbrido Físico & Digital:** Punto de Venta (POS) en mostrador, facturación electrónica/tirilla, e-commerce público con tienda virtual nativa, catálogo interactivo y checkout directo a WhatsApp.
+- **Logística & Cadena de Suministro (WMS):** Almacenes múltiples, control de lotes con fechas de vencimiento, traslados entre bodegas con estados en tránsito y kardex valorizado.
+- **Operaciones Financieras & Cartera:** Ventas a crédito, control de cuentas por cobrar, alertas de mora, planes separe con reserva de stock y emisión de recibos oficiales de caja.
+- **Escalabilidad Corporativa (Enterprise Multi-Sedes):** Administración de múltiples sucursales físicas con inventarios independientes, catálogo centralizado y consolidado financiero de rentabilidad por sede.
+- **Inteligencia Artificial Generativa (BYOK):** Asistentes y análisis predictivo integrando modelos Google Gemini y OpenAI mediante llaves propias de cada empresa.
+- **Ecosistema Abierto (APIs REST v1 & v2):** Conexión segura mediante Bearer Token y API Keys para sincronizar tiendas externas (Shopify, WooCommerce, MercadoLibre) o ERPs legados.
 
 ---
 
-## 📦 Módulos del Sistema
+## 🏗️ 2. Arquitectura & Stack Tecnológico
 
-1. **Productos e Inventario**: CRUD completo con soporte de códigos administrativos, precios de costo y venta. Control estricto de existencias, con alertas en tiempo real al llegar a stock bajo (Naranja) o stock cero (Rojo).
-2. **Categorías y Grupos**: Clasificación estructurada del catálogo. Cada categoría pertenece obligatoriamente a un grupo y cuenta con un código administrativo.
-3. **Proveedores y Compras**:
-   - Directorio de proveedores soportando "Código o NIT de Empresa".
-   - Panel de **Órdenes de Compra** (generación y recepción de mercancía para abastecer inventario de forma organizada).
-4. **Ventas (POS)**: Registro transaccional de facturas rápidas asociadas a clientes del CRM o consumidores finales.
-   - **Venta Rápida**: Guarda la transacción en estado `PENDING` (pendiente) sin restar inventario de inmediato.
-   - **Completar Venta**: Abre un modal interactivo para seleccionar el método de pago, cobrar y deducir automáticamente las existencias.
-5. **CRM (Clientes)**: Gestión del listado de clientes de la empresa, rastreo de historial e integraciones.
-6. **Centro de Notificaciones**: Campanita interactiva global que notifica en tiempo real sobre ventas completadas (Éxito), stock agotado (Alerta) y finalización de respaldos de base de datos. Integrado con `Sonner` para visualización temporal de _toasts_ elegantes.
-7. **Reportes y Analíticas**: Dashboard interactivo con analíticas de ventas, valor de inventario, ganancias, métricas de rendimiento comercial y fechas de filtrado (hoy, semana, mes, año).
-8. **Auditoría (Log de Acciones)**: Registro inmutable de cada acción generada por los usuarios del sistema.
-9. **Suscripciones y Pagos**: Gestión automatizada de planes (Básico, Intermedio, Premium) restringiendo la cantidad de usuarios y productos por plan. Integrado de base con pasarelas (ej. Bold) para venta de licencias SaaS.
-10. **Configuraciones de Empresa**: Herramienta donde el Administrador ajusta el diseño de su facturación (Logo, colores primarios/secundarios), activa notificaciones, configura respaldos automáticos por `Cron` y establece límites y formatos moneda/fecha.
+| Capa | Tecnologías |
+| :--- | :--- |
+| **Framework Fullstack** | [Next.js 15](https://nextjs.org/) (App Router, Server Actions, Route Handlers) |
+| **Librería UI** | [React 19](https://react.dev/), [Tailwind CSS v3](https://tailwindcss.com/) |
+| **Componentes & Iconos** | Shadcn UI, Radix UI Primitives, Lucide Icons, Sonner Toasts |
+| **Lenguaje** | [TypeScript 5](https://www.typescriptlang.org/) (Tipado estricto de extremo a extremo) |
+| **Base de Datos & ORM** | [MySQL 8+](https://www.mysql.com/), [Prisma ORM](https://www.prisma.io/) (Esquemas Central y Tenant) |
+| **Autenticación & Sesión** | [NextAuth.js (Auth.js)](https://next-auth.js.org/) con sesiones HTTP-Only y RBAC |
+| **Cifrado & Seguridad** | AES-256-CBC para credenciales en reposo, Zod para validación de contratos |
+| **Generación de Reportes** | [ExcelJS](https://github.com/exceljs/exceljs) (Hojas de cálculo nativas con auto-filtros y estilos), PDF Generator |
+| **Tiempo Real & Notificaciones** | Pusher Channels, Webhooks |
+| **Pasarelas de Pago** | Bold Colombia, Wompi, Stripe |
+| **Gestor de Procesos** | PM2 con soporte cluster y reinicio automático |
 
 ---
 
-## ⚙️ Configuración del Entorno Local
+## 📁 3. Estructura del Proyecto
 
-### 1. Variables de Entorno (.env)
-
-Debes crear un archivo `.env` en la raíz del proyecto. Estas son **todas las variables utilizadas** y requeridas para su correcto funcionamiento:
-
-```env
-# ─── Base de Datos (MySQL) ───
-DATABASE_URL="mysql://usuario:contraseña@localhost:3306/nombre_base_datos"
-PLATFORM_DATABASE_URL="mysql://usuario:contraseña@localhost:3306/nombre_base_datos"
-
-# ─── Autenticación y Cifrado ───
-NEXTAUTH_SECRET="tu-secreto-super-seguro"
-NEXTAUTH_URL="http://localhost:3000"
-ENCRYPTION_KEY="0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-
-# ─── Google OAuth 2.0 (Login con Google) ───
-GOOGLE_CLIENT_ID="tu_google_client_id"
-GOOGLE_CLIENT_SECRET="tu_google_client_secret"
-
-# ─── Pusher (Tiempo Real / Chat / Notificaciones) ───
-PUSHER_APP_ID="tu_pusher_app_id"
-PUSHER_SECRET="tu_pusher_secret"
-NEXT_PUBLIC_PUSHER_KEY="tu_pusher_public_key"
-NEXT_PUBLIC_PUSHER_CLUSTER="us2"
-
-# ─── Pasarela de Pagos (Bold Colombia) ───
-NEXT_PUBLIC_BOLD_API_KEY="tu_bold_api_key_publica"
-BOLD_INTEGRITY_KEY="tu_bold_integrity_key_secreta"
-
-# ─── Cron Jobs / Automatizaciones (Opcional) ───
-CRON_SECRET="tu_cron_secret_opcional"
+```text
+invetario_productos/
+├── app/                                # Enrutamiento y vistas Next.js App Router
+│   ├── (auth)/                         # Rutas de autenticación (login, registro, recuperación)
+│   ├── actions/                        # Server Actions para mutaciones seguras
+│   │   ├── store-actions.ts            # Lógica de tienda virtual, personalización y pedidos
+│   │   ├── credit-actions.ts           # Cartera, créditos, cuotas y recibos de caja
+│   │   ├── branch-actions.ts           # Enterprise multi-sedes y solicitudes
+│   │   └── ai-config-actions.ts        # Configuración de Inteligencia Artificial (BYOK)
+│   ├── api/                            # Endpoints REST y Webhooks
+│   │   ├── auth/                       # Endpoints de NextAuth
+│   │   ├── reports/                    # Generadores de reportes ExcelJS en tiempo real
+│   │   │   ├── cartera/                # Reporte de cartera, mora y cuotas
+│   │   │   ├── enterprise/             # Consolidado de ventas multi-sedes
+│   │   │   ├── transfers/              # Trazabilidad de traslados de bodegas
+│   │   │   ├── sales/                  # Historial de ventas POS
+│   │   │   ├── stock/                  # Estado de inventario y alertas
+│   │   │   └── products/               # Catálogo de artículos y costos
+│   │   ├── store/                      # API pública de la tienda virtual
+│   │   └── v2/                         # APIs públicas REST protegidas por API Key
+│   ├── dashboard/                      # Panel de administración protegido (ERP)
+│   │   ├── tienda/                     # Panel de la tienda virtual (Diseño y Catálogo)
+│   │   ├── cartera/                    # Gestión de cartera, cuotas y recibos
+│   │   ├── enterprise/                 # Control corporativo multi-sedes
+│   │   ├── bodegas/                    # WMS, almacenes y traslados
+│   │   ├── productos/                  # Catálogo, variantes, combos y lotes
+│   │   ├── ventas/                     # Punto de Venta (POS) y facturación
+│   │   ├── compras/                    # Órdenes de compra y proveedores
+│   │   ├── crm/                        # Clientes y cotizaciones
+│   │   ├── rrhh/                       # Empleados y liquidación de nómina
+│   │   ├── finanzas/                   # Egresos, caja chica y flujo de efectivo
+│   │   ├── reportes/                   # Centro interactivo de reportes
+│   │   ├── documentacion/              # Manual interactivo oficial
+│   │   └── configuracion/              # Parámetros, consecutivos, DIAN e IA
+│   └── t/                              # Rutas públicas de la Tienda Virtual
+│       └── [storeSlug]/                # Catálogo web, producto, carrito y checkout
+│           └── order/[orderToken]/     # Confirmación y seguimiento de pedido en vivo
+├── components/                         # Componentes reutilizables de UI
+│   ├── store/                          # Componentes del e-commerce y personalizador visual
+│   │   ├── public-catalog-client.tsx   # Vitrina interactiva, filtros y ordenamiento
+│   │   ├── theme-customizer.tsx        # Personalizador visual estilo WordPress
+│   │   ├── store-admin-client.tsx      # Gestión de productos publicados y banners
+│   │   ├── cart-drawer.tsx             # Carrito lateral deslizable
+│   │   └── product-modal.tsx           # Modal rápido de producto con fotos/video
+│   ├── reports/                        # Componentes para exportar Excel y PDF
+│   │   └── report-download-button.tsx  # Selector de columnas, filtros y presets
+│   └── ui/                             # Componentes base Shadcn (Botones, Modales, Tablas)
+├── lib/                                # Utilidades, clientes y lógica de negocio
+│   ├── prisma.ts                       # Instancia global de Prisma Client
+│   ├── store-theme.ts                  # Esquemas y configuraciones de temas visuales
+│   ├── tenant-db.ts                    # Helpers de aislamiento multi-tenant
+│   └── encryption.ts                   # Cifrado simétrico AES-256
+├── prisma/                             # Esquemas y migraciones de base de datos
+│   ├── schema.prisma                   # Esquema maestro de la plataforma
+│   └── tenant/                         # Esquema de base de datos dedicada de tenant
+├── public/                             # Recursos estáticos (Logos, fuentes, iconos)
+├── .env.example                        # Plantilla de variables de entorno
+├── ecosystem.config.cjs                # Configuración de despliegue para PM2
+├── package.json                        # Dependencias y scripts de compilación
+└── tsconfig.json                       # Configuración del compilador TypeScript
 ```
 
-### 2. Instalación de Dependencias
+---
 
-Se recomienda utilizar `pnpm` como gestor de paquetes principal:
+## 🧩 4. Módulos del Sistema GNS
 
-```bash
-pnpm install
-```
+### 🛒 4.1. Tienda Virtual & E-Commerce Nativo
+- **URL Pública Estable e Inmutable:** Cada negocio cuenta con un enlace único y permanente (`/t/store_xxxx`) y soporte para dominios personalizados (`mitienda.com`).
+- **Personalizador Visual Estilo WordPress:**
+  - Ajuste de logotipo comercial, isotipo y eslogan.
+  - Paleta de colores con temas prediseñados (*Azul Profesional, Esmeralda Eco, Púrpura Boutique, Ámbar Dinámico, Glamour Rose, Dark Luxe*) o colores hexadecimales a medida.
+  - Tipografías corporativas, estilos de bordes redondeados y barra superior de anuncios (*promotional banner*).
+  - Personalización de la sección Hero (títulos, subtítulos, botones de acción y fondos degradados o imágenes).
+  - Sección de beneficios destacados, testimonios y pie de página con políticas legales y redes sociales.
+- **Catálogo de Productos & Galerías Multimedia:**
+  - Selección y publicación de artículos con paginación optimizada y filtros por categoría.
+  - Soporte de hasta **5 fotografías en alta resolución** y **enlace a video demostrativo** por producto.
+  - Precios de oferta con etiquetas de descuento en tiempo real y stock dinámico.
+- **Carrito de Compras & Checkout Express:**
+  - Carrito lateral (*Drawer*) fluido para móviles, tablets y computadores.
+  - Selección de método de entrega: Envío a domicilio, retiro en punto físico o coordinar por chat.
+  - **Seguimiento sin Login Forzoso:** El cliente realiza su pedido sin necesidad de crear cuenta ni recordar contraseñas.
+- **Integración con WhatsApp:**
+  - Envío automático de mensaje preformateado a la línea comercial de la tienda con el resumen completo de productos, totales y datos de entrega.
+  - Enlace directo para que el comprador y el vendedor hagan seguimiento al pedido en vivo.
+- **Bandeja de Pedidos en GNS:**
+  - Los pedidos web ingresan en estado `PENDING` para revisión administrativa.
+  - Botón de **conversión a venta POS en un clic**, emitiendo factura y descontando el inventario automáticamente.
 
-### 3. Inicialización de la Base de Datos y Prisma
+---
 
-1. **Sincronizar el esquema con la base de datos MySQL**:
+### 💳 4.2. Cartera & Ventas a Crédito (Cuentas por Cobrar)
+- **Modalidades de Entrega Flexibles:**
+  - **Entrega Inmediata:** Despacha la mercancía al momento de la venta y genera el plan de cobro diferido.
+  - **Contra Pago Total (Plan Separe / Reserva):** Reserva formalmente las existencias en inventario pero retiene la mercancía físicamente hasta que el cliente cancele la totalidad de la deuda.
+- **Cronograma de Amortización & Cuotas:**
+  - Cálculo automático de cuotas (semanal, quincenal, mensual) y fecha límite de pago.
+  - **Semáforo de Mora:** Alertas automáticas para créditos vencidos con cálculo dinámico de días de retraso.
+- **Recaudos & Recibos de Caja Oficiales:**
+  - Registro de abonos parciales o totales con múltiples métodos de pago (Efectivo, Transferencia, Tarjeta).
+  - Aplicación automática a las cuotas más antiguas.
+  - Emisión e impresión de **Recibo de Caja** oficial en formato ticket térmico (58mm/80mm) y tamaño carta PDF.
+  - Trazabilidad y anulación de pagos con registro de auditoría.
+
+---
+
+### 🏢 4.3. GNS Enterprise Multi-Sedes
+- **Gestión Corporativa de Sucursales:** Control centralizado de múltiples puntos de venta, locales comerciales y almacenes.
+- **Flujo de Solicitud de Sedes:** Las empresas en plan Enterprise pueden solicitar la apertura de nuevos locales desde el sistema, quedando sujetos a aprobación del Superadministrador.
+- **Catálogo Maestro vs Catálogos Locales:** Los productos pueden heredarse desde la sede principal o administrarse de forma independiente por cada sucursal.
+- **Inventarios Aislados:** Cada sucursal maneja su propio stock, cajas y bodegas físicas.
+- **Consolidado Ejecutivo de Rentabilidad:** Reportes comparativos de ventas, costos, utilidades y margen neto entre sedes.
+
+---
+
+### 📦 4.4. Almacén WMS & Traslados de Bodegas
+- **Múltiples Almacenes:** Bodega principal, bodegas secundarias, puntos de exhibición y vehículos de despacho.
+- **Flujo Logístico en 4 Fases:**
+  1. `REQUESTED`: Solicitud formal de abastecimiento entre bodegas.
+  2. `APPROVED`: Autorización por el encargado del almacén emisor.
+  3. `IN_TRANSIT`: Mercancía despachada y en ruta (descontada de origen, evitando duplicidad).
+  4. `RECEIVED`: Conteo físico y confirmación de recepción en destino, sumando existencias al Kardex.
+- **Kardex Valorizado:** Registro inmutable de cada entrada, salida y ajuste de inventario.
+
+---
+
+### 🏷️ 4.5. Productos, Lotes & Vencimientos
+- Clasificación por **Grupos y Categorías** con códigos administrativos normalizados.
+- Control de costos de adquisición, margen de ganancia proyectado y precios de venta al público.
+- **Trazabilidad de Lotes:** Registro de números de lote, fechas de fabricación y fechas de expiración con alertas preventivas para productos perecederos o farmacéuticos.
+- Combos y paquetes de productos para promociones especiales.
+
+---
+
+### 🧾 4.6. Punto de Venta (POS) & Facturación
+- Venta rápida en mostrador con soporte de lectores de código de barras.
+- Facturas en estado borrador/pendiente y confirmación inmediata con múltiples métodos de pago.
+- Formatos de impresión configurables: **Ticket Térmico 58mm**, **Ticket Térmico 80mm** y **PDF Tamaño Carta / A4**.
+- Consecutivos autorizados, resolución DIAN / tributaria y notas legales al pie de factura.
+
+---
+
+### 📊 4.7. Centro de Reportes & Analíticas
+- Exportación nativa a **Microsoft Excel (.xlsx)** con estilos profesionales y auto-filtros.
+- Modo de exportación completa o **selector de campos personalizados**.
+- **Guardado de Plantillas (Presets):** Guarda configuraciones de columnas favoritas en base de datos.
+- Reportes incluidos:
+  - Catálogo de Productos y Márgenes
+  - Historial de Ventas POS
+  - Reporte de Stock y Disponibilidad
+  - Proveedores y Contactos
+  - Historial de Compras
+  - Nómina Generada y Empleados
+  - **Cartera y Créditos (Mora, Abonos y Saldos)**
+  - **Ventas Enterprise Multi-Sedes**
+  - **Traslados de Bodegas WMS**
+
+---
+
+### 🤖 4.8. Inteligencia Artificial (BYOK)
+- Conexión flexible de modelos de IA con el enfoque **Bring Your Own Key**:
+  - **Google Gemini:** `gemini-1.5-flash`, `gemini-1.5-pro`, `gemini-2.0-flash`.
+  - **OpenAI:** `gpt-4o`, `gpt-4o-mini`, `o1`.
+- Análisis automatizado de tendencias comerciales, detección de inventario de baja rotación y generación de textos publicitarios para la tienda online.
+
+---
+
+### 🌐 4.9. APIs REST v1 / v2 & Integraciones
+- Autenticación segura mediante cabeceras `Authorization: Bearer <API_KEY>` y `x-api-key`.
+- Endpoints JSON para consultar catálogo, crear ventas, verificar stock y sincronizar clientes con plataformas externas.
+
+---
+
+## ⚙️ 5. Requisitos del Sistema & Instalación
+
+### 📋 Requisitos Previos
+- **Node.js:** Versión 18.18.0 o superior (Recomendado: Node.js 20 LTS o 22 LTS).
+- **Gestor de Paquetes:** `pnpm` (recomendado) o `npm`.
+- **Base de Datos:** MySQL 8.0 o MariaDB 10.5+.
+- **Servidor Web / Proxy Inverso:** Nginx o Apache con certificado SSL (para producción).
+
+---
+
+### 🚀 Instalación Paso a Paso
+
+1. **Clonar el Repositorio:**
    ```bash
+   git clone https://github.com/SarriaFreelancer/sistemainventarios.git
+   cd sistemainventarios
+   ```
+
+2. **Instalar Dependencias:**
+   ```bash
+   pnpm install
+   # o bien: npm install
+   ```
+
+3. **Configurar Variables de Entorno:**
+   Copia el archivo de plantilla `.env.example` a `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+   Diligencia las credenciales requeridas:
+   ```env
+   # ─── Conexión a Base de Datos MySQL ───
+   DATABASE_URL="mysql://usuario:password@localhost:3306/gns_inventarios"
+   PLATFORM_DATABASE_URL="mysql://usuario:password@localhost:3306/gns_inventarios"
+
+   # ─── Autenticación & Seguridad ───
+   NEXTAUTH_SECRET="genera-un-token-aleatorio-de-al-menos-32-caracteres"
+   NEXTAUTH_URL="http://localhost:3000"
+   ENCRYPTION_KEY="0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+   # ─── Pasarela de Pagos Bold (Opcional) ───
+   NEXT_PUBLIC_BOLD_API_KEY="tu_bold_api_key"
+   BOLD_INTEGRITY_KEY="tu_bold_integrity_key"
+
+   # ─── Notificaciones Pusher (Opcional) ───
+   PUSHER_APP_ID="tu_pusher_app_id"
+   PUSHER_SECRET="tu_pusher_secret"
+   NEXT_PUBLIC_PUSHER_KEY="tu_pusher_public_key"
+   NEXT_PUBLIC_PUSHER_CLUSTER="us2"
+   ```
+
+4. **Sincronizar y Generar Prisma ORM:**
+   ```bash
+   # Sincroniza las tablas en la base de datos
    pnpm run db:push
-   ```
 
-2. **Generar el Cliente de Prisma** (OBLIGATORIO tras clonar o modificar `schema.prisma`):
-   ```bash
+   # Genera el cliente tipado de Prisma
    pnpm run db:generate
-   ```
 
-3. **Cargar datos iniciales de prueba (Seed)**:
-   Puebla la base de datos con roles iniciales, empresas de ejemplo y estructura base:
-   ```bash
+   # Puebla datos iniciales (Roles, Superadmin, Empresa demo)
    pnpm run db:seed
    ```
 
----
-
-## 💻 Comandos para Levantar el Servidor
-
-### 🟢 Modo Desarrollo (Local)
-
-- **Modo Estándar (Recomendado)**:
-  ```bash
-  pnpm dev
-  ```
-- **Modo Limpio (Limpia `.next` si hay errores de caché o compilación)**:
-  ```bash
-  pnpm run dev:clean
-  ```
-
-Abre [http://localhost:3000](http://localhost:3000) en tu navegador para ver la aplicación.
+5. **Iniciar el Entorno de Desarrollo:**
+   ```bash
+   pnpm dev
+   ```
+   Abre [http://localhost:3000](http://localhost:3000) en tu navegador.
 
 ---
 
-### 🚀 Modo Producción
+## 🛠️ 6. Scripts Disponibles
 
-1. **Compilar la aplicación**:
+| Script | Descripción |
+| :--- | :--- |
+| `pnpm dev` | Inicia el servidor de desarrollo Next.js en el puerto 3000 |
+| `pnpm build` | Compila la aplicación optimizada para producción |
+| `pnpm start` | Inicia el servidor compilado de producción |
+| `pnpm run db:push` | Sincroniza el esquema de Prisma con la base de datos MySQL |
+| `pnpm run db:generate` | Regenera el cliente `@prisma/client` con tipos TypeScript |
+| `pnpm run db:seed` | Ejecuta el script de siembra de datos iniciales |
+| `pnpm run db:studio` | Abre la interfaz gráfica visual de Prisma Studio |
+| `pnpm test:e2e` | Ejecuta las pruebas automatizadas End-to-End con Playwright |
+
+---
+
+## 🚢 7. Despliegue en Producción con PM2
+
+Para mantener el sistema en ejecución continua en un servidor Linux (Ubuntu/Debian) o Windows Server:
+
+1. **Compilar la versión final:**
    ```bash
    pnpm build
    ```
 
-2. **Iniciar el servidor compilado**:
+2. **Iniciar y registrar el servicio con PM2:**
    ```bash
-   pnpm start
+   # Iniciar el proceso de producción
+   pnpm run pm2:prod
+
+   # Guardar la lista para que reinicie tras un reinicio del servidor
+   pm2 save
+   pm2 startup
+   ```
+
+3. **Comandos útiles de mantenimiento:**
+   ```bash
+   pm2 status              # Verifica el estado del servicio
+   pm2 logs gns            # Monitorea los logs en tiempo real
+   pm2 restart gns         # Reinicia el servicio
    ```
 
 ---
 
-### ⚡ Gestión con PM2 (Servicios en Segundo Plano)
+## 👥 8. Créditos & Derechos de Autor
 
-Si administras el servidor mediante **PM2** (con `ecosystem.config.cjs`):
-
-| Acción | Comando |
-| :--- | :--- |
-| **Iniciar en Desarrollo (gns-dev)** | `pnpm run pm2:dev` |
-| **Iniciar en Producción (gns)** | `pnpm run pm2:prod` |
-| **Ver estado de los servicios** | `pm2 status` |
-| **Ver logs en tiempo real (dev)** | `pm2 logs gns-dev` |
-| **Ver logs en tiempo real (prod)** | `pm2 logs gns` |
-| **Reiniciar servicio** | `pm2 restart gns-dev` *(o `pm2 restart all`)* |
-| **Detener servicio** | `pm2 stop gns-dev` *(o `pm2 stop all`)* |
-| **Guardar configuración activa** | `pm2 save` |
-
-> [!TIP]
-> **Si realizas cambios en la estructura de la base de datos (`schema.prisma`):**
-> 1. `pnpm run db:push`
-> 2. `pnpm run db:generate` *(o `pnpm run prisma:generate`)*
-> 3. `pm2 restart gns-dev` *(o reiniciar tu servidor activo)*
+- **Empresa:** **SarriaTech Solutions S.A.S.**
+- **Desarrollador Principal:** **David Sarria**
+- **Contacto Comercial & Soporte Técnico:** [soporte@sarriatech.tech](mailto:soporte@sarriatech.tech)
+- **Todos los derechos reservados © 2026 SarriaTech Solutions S.A.S.**
 
 ---
 
-## 🧪 Pruebas Automatizadas (E2E)
-
-El proyecto incluye una suite completa de pruebas End-to-End con **Playwright**:
-
-```bash
-# Ejecutar todas las pruebas E2E en consola
-pnpm test:e2e
-
-# Abrir el panel interactivo visual de Playwright
-pnpm test:e2e:ui
-```
-
----
-
-## 🔒 Buenas Prácticas de Seguridad en Git
-
-El archivo `.env` local contiene información crítica y credenciales de acceso a la base de datos en producción. Para evitar fugas de información:
-
-- Nunca comitees el archivo `.env`. El archivo `.gitignore` del proyecto ya lo excluye de manera predeterminada.
-- Si por error Git ya estaba trackeando tu archivo `.env`, puedes desvincularlo sin borrarlo de tu disco duro físico ejecutando:
-  ```bash
-  git rm --cached .env
-  ```
-
----
-
-_GNS SarriaTech — Premium Business System para la gestión eficiente y elegante de tu negocio._
+*GNS SarriaTech — Potencia, elegancia y control total para tu negocio.*
