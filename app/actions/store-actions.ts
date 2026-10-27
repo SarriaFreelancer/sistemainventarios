@@ -1186,3 +1186,151 @@ export async function requestCustomDomain(domain: string) {
     return { success: false, error: error.message || 'Error al registrar dominio.' };
   }
 }
+
+/**
+ * Verifica en tiempo real mediante consultas DNS si los registros TXT y CNAME/A
+ * del dominio personalizado ya se encuentran propagados y configurados.
+ */
+export async function verifyCustomDomain(domain: string) {
+  try {
+    const { companyId } = await getStoreAuthContext();
+    const cleanDomain = domain.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, '');
+
+    const store = await prisma.onlineStore.findUnique({
+      where: { companyId },
+    });
+
+    if (!store) {
+      return { success: false, error: 'Tienda virtual no encontrada.' };
+    }
+
+    const domainRecord = await prisma.storeDomain.findUnique({
+      where: { domain: cleanDomain },
+    });
+
+    if (!domainRecord || domainRecord.storeId !== store.id) {
+      return { success: false, error: 'El dominio no se encuentra registrado para esta tienda.' };
+    }
+
+    const dns = await import('dns/promises');
+
+    let txtFound = false;
+    let foundTxtRecords: string[] = [];
+    try {
+      const txtList = await dns.resolveTxt(cleanDomain);
+      foundTxtRecords = txtList.map((chunks) => chunks.join(''));
+      txtFound = foundTxtRecords.some((txt) =>
+        txt.includes(domainRecord.verificationToken)
+      );
+    } catch (e: any) {
+      // Ignorar error si aún no propaga TXT
+    }
+
+    let cnameTarget = '';
+    try {
+      const cnames = await dns.resolveCname(cleanDomain);
+      if (cnames && cnames.length > 0) {
+        cnameTarget = cnames[0];
+      }
+    } catch (e: any) {
+      // Si no tiene CNAME puede ser dominio raíz con registro A
+    }
+
+    let ipAddresses: string[] = [];
+    try {
+      ipAddresses = await dns.resolve4(cleanDomain);
+    } catch (e: any) {
+      //
+    }
+
+    // Se considera verificado si el TXT coincide con el token
+    const isVerified = txtFound;
+
+    if (isVerified) {
+      await prisma.storeDomain.update({
+        where: { domain: cleanDomain },
+        data: {
+          status: 'ACTIVE',
+          verifiedAt: new Date(),
+        },
+      });
+
+      await prisma.onlineStore.update({
+        where: { id: store.id },
+        data: {
+          customDomain: cleanDomain,
+          domainStatus: 'ACTIVE',
+        },
+      });
+
+      revalidatePath('/dashboard/tienda');
+      return {
+        success: true,
+        status: 'ACTIVE',
+        message: '¡Dominio verificado con éxito! Ahora tu tienda responde en ' + cleanDomain,
+        details: {
+          txtFound,
+          cnameTarget,
+          ipAddresses,
+        },
+      };
+    } else {
+      return {
+        success: false,
+        status: 'PENDING_VERIFICATION',
+        error: `No encontramos aún el registro TXT con el valor "${domainRecord.verificationToken}".`,
+        details: {
+          foundTxtRecords,
+          cnameTarget,
+          ipAddresses,
+          hint: 'La propagación DNS puede demorarse entre 5 minutos y hasta 24 horas dependiendo de tu proveedor de dominio. Si acabas de agregarlo, espera unos minutos e inténtalo de nuevo.',
+        },
+      };
+    }
+  } catch (error: any) {
+    console.error('[VERIFY_CUSTOM_DOMAIN]', error);
+    return { success: false, error: error.message || 'Error al verificar el dominio.' };
+  }
+}
+
+/**
+ * Desvincula un dominio personalizado de la tienda virtual.
+ */
+export async function removeCustomDomain(domain: string) {
+  try {
+    const { companyId } = await getStoreAuthContext();
+    const cleanDomain = domain.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, '');
+
+    const store = await prisma.onlineStore.findUnique({
+      where: { companyId },
+    });
+
+    if (!store) {
+      return { success: false, error: 'Tienda virtual no encontrada.' };
+    }
+
+    await prisma.storeDomain.deleteMany({
+      where: {
+        domain: cleanDomain,
+        storeId: store.id,
+      },
+    });
+
+    if (store.customDomain === cleanDomain) {
+      await prisma.onlineStore.update({
+        where: { id: store.id },
+        data: {
+          customDomain: null,
+          domainStatus: 'PENDING_VERIFICATION',
+          domainVerificationToken: null,
+        },
+      });
+    }
+
+    revalidatePath('/dashboard/tienda');
+    return { success: true };
+  } catch (error: any) {
+    console.error('[REMOVE_CUSTOM_DOMAIN]', error);
+    return { success: false, error: error.message || 'Error al desvincular el dominio.' };
+  }
+}

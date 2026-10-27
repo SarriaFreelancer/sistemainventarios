@@ -38,6 +38,8 @@ import {
   Palette,
   FolderTree,
   Layers,
+  Loader2,
+  Trash2,
 } from 'lucide-react';
 import {
   updateStoreConfig,
@@ -45,7 +47,9 @@ import {
   bulkToggleProductPublish,
   updateStoreOrderStatus,
   convertStoreOrderToSale,
-  requestCustomDomain
+  requestCustomDomain,
+  verifyCustomDomain,
+  removeCustomDomain,
 } from '@/app/actions/store-actions';
 import { successAlert, errorAlert, confirmAction, brandAlert } from '@/lib/sweetalert';
 import { ThemeCustomizer } from './theme-customizer';
@@ -405,6 +409,59 @@ export function StoreAdminClient({
         successAlert('Dominio Registrado', 'Configura los registros DNS indicados para completar la verificación.');
       } else {
         errorAlert('Error', res.error || 'No se pudo vincular el dominio.');
+      }
+    });
+  };
+
+  const [isVerifyingDomain, setIsVerifyingDomain] = useState(false);
+
+  const handleVerifyDomain = async (domain: string) => {
+    if (!domain || isVerifyingDomain) return;
+    setIsVerifyingDomain(true);
+    try {
+      const res = await verifyCustomDomain(domain);
+      if (res.success && res.status === 'ACTIVE') {
+        setStore((prev: any) => ({
+          ...prev,
+          domainStatus: 'ACTIVE',
+        }));
+        successAlert(
+          '¡Dominio Verificado con Éxito!',
+          `Tu dominio ${domain} ya está enlazado y activo. Ahora responderá directamente en tu tienda.`
+        );
+      } else {
+        errorAlert(
+          'Aún no detectamos los registros DNS',
+          res.error || 'Asegúrate de haber guardado los registros TXT y CNAME en el panel de tu proveedor de dominio. Ten en cuenta que la propagación DNS puede demorarse entre 5 minutos y varias horas.'
+        );
+      }
+    } catch (err: any) {
+      errorAlert('Error de Verificación', err.message || 'No se pudo consultar los servidores DNS.');
+    } finally {
+      setIsVerifyingDomain(false);
+    }
+  };
+
+  const handleRemoveDomain = async (domain: string) => {
+    const ok = await confirmAction(
+      '¿Desvincular dominio?',
+      `El dominio ${domain} dejará de apuntar a tu tienda virtual de GNS.`,
+      'Sí, desvincular'
+    );
+    if (!ok) return;
+
+    startTransition(async () => {
+      const res = await removeCustomDomain(domain);
+      if (res.success) {
+        setStore((prev: any) => ({
+          ...prev,
+          customDomain: null,
+          domainStatus: 'PENDING_VERIFICATION',
+          domainVerificationToken: null,
+        }));
+        successAlert('Dominio Desvinculado', 'Tu tienda continuará activa con su enlace permanente oficial.');
+      } else {
+        errorAlert('Error', res.error || 'No se pudo desvincular el dominio.');
       }
     });
   };
@@ -1570,29 +1627,160 @@ export function StoreAdminClient({
 
             {/* Configured Domains */}
             {store?.customDomain && (
-              <div className="p-5 rounded-2xl border border-border bg-muted/20 space-y-4">
-                <div className="flex items-center justify-between">
+              <div className="p-6 rounded-2xl border border-border bg-card space-y-5 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
                   <div>
-                    <p className="text-sm font-bold text-foreground">{store.customDomain}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Estado:{' '}
-                      <span className="font-semibold text-amber-600">
-                        {store.domainStatus === 'ACTIVE' ? 'Verificado y Activo' : 'Pendiente de Configuración DNS'}
-                      </span>
+                    <div className="flex items-center gap-2">
+                      <Globe className="h-5 w-5 text-primary" />
+                      <p className="text-base font-extrabold text-foreground">{store.customDomain}</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+                      <span>Estado:</span>
+                      {store.domainStatus === 'ACTIVE' ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                          <CheckCircle2 className="h-3 w-3" /> Verificado y Activo
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                          <Clock className="h-3 w-3" /> Pendiente de Verificación DNS
+                        </span>
+                      )}
                     </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    {store.domainStatus === 'ACTIVE' && (
+                      <a
+                        href={`https://${store.customDomain}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="h-9 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs inline-flex items-center gap-1.5 shadow-sm transition-all"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        <span>Abrir Tienda</span>
+                      </a>
+                    )}
+
+                    <button
+                      type="button"
+                      disabled={isVerifyingDomain}
+                      onClick={() => handleVerifyDomain(store.customDomain)}
+                      className="h-9 px-4 rounded-xl bg-primary text-primary-foreground font-bold text-xs inline-flex items-center gap-1.5 shadow-sm hover:opacity-90 disabled:opacity-50 transition-all"
+                    >
+                      {isVerifyingDomain ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          <span>Consultando DNS...</span>
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="h-3.5 w-3.5" />
+                          <span>Verificar DNS en Vivo</span>
+                        </>
+                      )}
+                    </button>
+
+                    <a
+                      href={`https://www.whatsmydns.net/#TXT/${store.customDomain}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="h-9 px-3 rounded-xl border border-border bg-card hover:bg-muted text-foreground font-bold text-xs inline-flex items-center gap-1.5 transition-all"
+                      title="Ver mapa de propagación global en WhatsMyDNS"
+                    >
+                      <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="hidden sm:inline">WhatsMyDNS</span>
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveDomain(store.customDomain)}
+                      className="h-9 px-3 rounded-xl border border-rose-500/30 text-rose-600 hover:bg-rose-500/10 font-bold text-xs inline-flex items-center gap-1 transition-all"
+                      title="Desvincular este dominio"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Desvincular</span>
+                    </button>
                   </div>
                 </div>
 
-                <div className="p-4 rounded-xl bg-background border border-border text-xs space-y-2 font-mono">
-                  <p className="font-sans font-bold text-[11px] text-muted-foreground uppercase tracking-wider">
-                    Registro DNS requerido en tu proveedor de dominio:
-                  </p>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 rounded-lg bg-muted/40">
-                    <div>
-                      <span className="text-primary font-bold">Tipo:</span> TXT &nbsp;|&nbsp;
-                      <span className="text-primary font-bold">Host:</span> @ &nbsp;|&nbsp;
-                      <span className="text-primary font-bold">Valor:</span> {store.domainVerificationToken || 'gns-verify=auto'}
+                {/* Explicación paso a paso de registros DNS */}
+                <div className="space-y-4 text-xs">
+                  <div className="p-4 rounded-xl bg-muted/40 border border-border space-y-3">
+                    <div className="flex items-start gap-2.5">
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-black">
+                        1
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <p className="font-bold text-foreground">Registro TXT (Validación de Titularidad)</p>
+                        <p className="text-muted-foreground text-[11px] leading-relaxed">
+                          Agrega este registro en el panel DNS de tu registrador (GoDaddy, Cloudflare, Namecheap, Hostinger, etc.) para certificar que eres el dueño del dominio:
+                        </p>
+                        <div className="mt-2 p-3 rounded-lg bg-card border border-border font-mono text-[11px] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div className="space-y-0.5">
+                            <div><strong className="text-primary font-sans">Tipo:</strong> TXT</div>
+                            <div><strong className="text-primary font-sans">Nombre / Host:</strong> @ (o el subdominio)</div>
+                            <div><strong className="text-primary font-sans">Valor:</strong> {store.domainVerificationToken || 'gns-verify=auto'}</div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(store.domainVerificationToken || '');
+                              successAlert('Copiado', 'Token de verificación copiado al portapapeles.');
+                            }}
+                            className="h-8 px-3 rounded-lg border border-border bg-muted/60 hover:bg-muted font-bold text-xs text-foreground shrink-0 inline-flex items-center gap-1"
+                          >
+                            <Copy className="h-3 w-3" /> Copiar Valor
+                          </button>
+                        </div>
+                      </div>
                     </div>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-muted/40 border border-border space-y-3">
+                    <div className="flex items-start gap-2.5">
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-black">
+                        2
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <p className="font-bold text-foreground">Registro CNAME o A (Enrutamiento del Tráfico Web)</p>
+                        <p className="text-muted-foreground text-[11px] leading-relaxed">
+                          Para que tus clientes lleguen a tu tienda al escribir tu dominio en el navegador, agrega el enrutamiento:
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                          <div className="p-3 rounded-lg bg-card border border-border font-mono text-[11px] space-y-1">
+                            <span className="font-sans font-bold text-foreground block">Opción A: Subdominio (ej. tienda.minegocio.com)</span>
+                            <div><strong className="text-primary font-sans">Tipo:</strong> CNAME</div>
+                            <div><strong className="text-primary font-sans">Nombre / Host:</strong> tienda (o www)</div>
+                            <div><strong className="text-primary font-sans">Destino:</strong> gns.sarriatech.tech</div>
+                          </div>
+                          <div className="p-3 rounded-lg bg-card border border-border font-mono text-[11px] space-y-1">
+                            <span className="font-sans font-bold text-foreground block">Opción B: Dominio Raíz (ej. minegocio.com)</span>
+                            <div><strong className="text-primary font-sans">Tipo:</strong> CNAME Flattening / ANAME</div>
+                            <div><strong className="text-primary font-sans">Nombre / Host:</strong> @</div>
+                            <div><strong className="text-primary font-sans">Destino:</strong> gns.sarriatech.tech</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Diagnóstico & Ayuda */}
+                  <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-900 dark:text-blue-300 text-[11px] space-y-1.5 leading-relaxed">
+                    <p className="font-bold flex items-center gap-1.5 text-xs text-blue-700 dark:text-blue-400">
+                      <Sparkles className="h-3.5 w-3.5" /> ¿Cómo saber si ya funciona?
+                    </p>
+                    <p>
+                      1. Guarda los dos registros anteriores en el panel donde compraste tu dominio.
+                    </p>
+                    <p>
+                      2. Haz clic en el botón <strong>&quot;Verificar DNS en Vivo&quot;</strong>. Nuestro servidor consultará los servidores DNS mundiales.
+                    </p>
+                    <p>
+                      3. En cuanto el registro sea detectado, el estado cambiará a <strong>&quot;Verificado y Activo&quot;</strong> y podrás presionar el botón <strong>&quot;Abrir Tienda&quot;</strong> para ver tu catálogo respondiendo en tu dominio propio.
+                    </p>
+                    <p className="text-[10px] opacity-80 pt-1">
+                      <em>Nota: La propagación mundial de DNS puede demorarse entre 5 minutos y hasta 24 horas dependiendo de las directivas TTL de tu registrador.</em>
+                    </p>
                   </div>
                 </div>
               </div>

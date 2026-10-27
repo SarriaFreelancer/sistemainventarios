@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Search,
   Sparkles,
@@ -14,6 +14,8 @@ import {
   Tag,
   SlidersHorizontal,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   X,
   Phone,
   ShieldCheck,
@@ -151,6 +153,22 @@ export function PublicCatalogClient({ store, products, categories }: PublicCatal
 
     return result;
   }, [products, search, selectedCategory, onlyDiscounts, sortBy]);
+
+  // Paginación para el catálogo público de la tienda
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(16);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, selectedCategory, onlyDiscounts, sortBy, pageSize]);
+
+  const totalPages = Math.ceil(filteredProducts.length / pageSize) || 1;
+  const effectivePage = Math.min(Math.max(1, currentPage), totalPages);
+  const startIndex = (effectivePage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, filteredProducts.length);
+  const paginatedProducts = useMemo(() => {
+    return filteredProducts.slice(startIndex, endIndex);
+  }, [filteredProducts, startIndex, endIndex]);
 
   // Generador de URL de WhatsApp con mensaje configurado
   const whatsappUrl = useMemo(() => {
@@ -687,15 +705,105 @@ export function PublicCatalogClient({ store, products, categories }: PublicCatal
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
-            {filteredProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onSelect={(p) => setSelectedProduct(p)}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+              {paginatedProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onSelect={(p) => setSelectedProduct(p)}
+                />
+              ))}
+            </div>
+
+            {/* Barra de Paginación */}
+            {filteredProducts.length > 0 && totalPages > 1 && (
+              <div className="mt-10 pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <span>
+                    Mostrando <strong className="text-foreground">{startIndex + 1}</strong> a{' '}
+                    <strong className="text-foreground">{endIndex}</strong> de{' '}
+                    <strong className="text-foreground">{filteredProducts.length}</strong> productos
+                  </span>
+                  <span className="hidden sm:inline">·</span>
+                  <div className="hidden sm:flex items-center gap-1.5">
+                    <span>Por página:</span>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => setPageSize(Number(e.target.value))}
+                      className="h-8 rounded-lg border border-border bg-card px-2 text-xs font-semibold text-foreground focus:outline-none"
+                    >
+                      <option value={12}>12</option>
+                      <option value={16}>16</option>
+                      <option value={24}>24</option>
+                      <option value={36}>36</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    disabled={effectivePage === 1}
+                    onClick={() => {
+                      setCurrentPage((p) => Math.max(1, p - 1));
+                      scrollToSection('catalogo');
+                    }}
+                    className="h-9 px-3 rounded-xl border border-border bg-card text-foreground font-bold hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-all inline-flex items-center gap-1 text-xs"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    <span className="hidden xs:inline">Anterior</span>
+                  </button>
+
+                  {/* Botones numéricos */}
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter((p) => p === 1 || p === totalPages || Math.abs(p - effectivePage) <= 1)
+                      .map((p, idx, arr) => {
+                        const prev = arr[idx - 1];
+                        const showEllipsis = prev && p - prev > 1;
+                        return (
+                          <React.Fragment key={p}>
+                            {showEllipsis && <span className="px-1 text-muted-foreground">…</span>}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCurrentPage(p);
+                                scrollToSection('catalogo');
+                              }}
+                              style={{
+                                backgroundColor: effectivePage === p ? brandColor : undefined,
+                                color: effectivePage === p ? '#ffffff' : undefined,
+                              }}
+                              className={`h-9 min-w-9 px-3 rounded-xl font-black text-xs transition-all ${
+                                effectivePage === p
+                                  ? 'shadow-md shadow-primary/20 scale-105'
+                                  : 'border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted'
+                              }`}
+                            >
+                              {p}
+                            </button>
+                          </React.Fragment>
+                        );
+                      })}
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={effectivePage === totalPages}
+                    onClick={() => {
+                      setCurrentPage((p) => Math.min(totalPages, p + 1));
+                      scrollToSection('catalogo');
+                    }}
+                    className="h-9 px-3 rounded-xl border border-border bg-card text-foreground font-bold hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-all inline-flex items-center gap-1 text-xs"
+                  >
+                    <span className="hidden xs:inline">Siguiente</span>
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </section>
 
