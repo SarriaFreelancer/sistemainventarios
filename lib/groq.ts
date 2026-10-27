@@ -1,17 +1,16 @@
 import Groq from 'groq-sdk';
 
-// Modelos activos de alto razonamiento y velocidad ultra rápida en Groq LPU
-export const GROQ_DEFAULT_MODEL = 'llama-3.3-70b-versatile';
-export const GROQ_FAST_MODEL = 'llama-3.1-8b-instant';
-export const GROQ_REASONING_MODEL = 'deepseek-r1-distill-llama-70b';
+// Modelos activos y verificados de alto razonamiento y velocidad ultra rápida en Groq LPU
+export const GROQ_DEFAULT_MODEL = 'qwen/qwen3.8-27b';
+export const GROQ_FAST_MODEL = 'openai/gpt-oss-20b';
+export const GROQ_REASONING_MODEL = 'openai/gpt-oss-120b';
 
 export const GROQ_FALLBACK_MODELS = [
-  'llama-3.3-70b-versatile',
-  'deepseek-r1-distill-llama-70b',
-  'llama-3.1-8b-instant',
-  'mixtral-8x7b-32768',
-  'gemma2-9b-it',
+  'qwen/qwen3.8-27b',
   'openai/gpt-oss-120b',
+  'openai/gpt-oss-20b',
+  'llama-3.3-70b-versatile',
+  'llama-3.1-8b-instant',
 ];
 
 let groqInstance: Groq | null = null;

@@ -374,15 +374,7 @@ Sé muy claro, inspirador, estratégico y profesional.
         break;
       } catch (err: any) {
         lastError = err;
-        const isModelError =
-          err?.status === 404 ||
-          err?.code === 'model_not_found' ||
-          err?.message?.includes('model') ||
-          err?.message?.includes('does not exist');
-        if (!isModelError) {
-          throw err;
-        }
-        console.warn(`[GROQ_FALLBACK] Modelo ${model} no disponible, intentando siguiente fallback...`);
+        console.warn(`[GROQ_FALLBACK] Modelo ${model} no disponible o con error (${err?.status || err?.message}), probando siguiente fallback...`);
       }
     }
 
@@ -455,15 +447,7 @@ export async function sendAiChatMessage(
         break;
       } catch (err: any) {
         lastError = err;
-        const isModelError =
-          err?.status === 404 ||
-          err?.code === 'model_not_found' ||
-          err?.message?.includes('model') ||
-          err?.message?.includes('does not exist');
-        if (!isModelError) {
-          throw err;
-        }
-        console.warn(`[GROQ_FALLBACK] Modelo ${model} no disponible en chat, intentando siguiente fallback...`);
+        console.warn(`[GROQ_FALLBACK] Modelo ${model} no disponible en chat (${err?.status || err?.message}), probando siguiente fallback...`);
       }
     }
 

@@ -40,11 +40,9 @@ interface ChatMessage {
 }
 
 const AI_MODELS = [
-  { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B (Recomendado - Razonamiento Superior)', badge: '70B Flagship' },
-  { id: 'deepseek-r1-distill-llama-70b', name: 'DeepSeek R1 70B (Razonamiento Lógico Profundo)', badge: 'DeepSeek R1' },
-  { id: 'llama-3.1-8b-instant', name: 'Llama 3.1 8B Instant (Ultra Rápido)', badge: 'Instant LPU' },
-  { id: 'mixtral-8x7b-32768', name: 'Mixtral 8x7B 32k (Contexto Extenso)', badge: 'MoE 32k' },
-  { id: 'gemma2-9b-it', name: 'Google Gemma 2 9B IT', badge: 'Google Gemma' },
+  { id: 'qwen/qwen3.8-27b', name: 'Qwen 3.8 27B (Recomendado - Razonamiento Superior & Rápido)', badge: 'Qwen 27B LPU' },
+  { id: 'openai/gpt-oss-120b', name: 'GPT OSS 120B (Máxima Capacidad de Razonamiento)', badge: 'GPT 120B Flagship' },
+  { id: 'openai/gpt-oss-20b', name: 'GPT OSS 20B (Respuestas Instantáneas de Alta Eficiencia)', badge: 'GPT 20B Instant' },
 ];
 
 const SUGGESTED_PROMPTS = [
@@ -79,12 +77,12 @@ export function IaClient({
 }) {
   const [metrics, setMetrics] = useState<BusinessMetrics | null>(initialMetrics);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<string>('llama-3.3-70b-versatile');
+  const [selectedModel, setSelectedModel] = useState<string>('qwen/qwen3.8-27b');
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome',
       role: 'assistant',
-      content: `¡Hola! Soy **GNS AI Advisor**, tu consultor inteligente de inventarios y negocios impulsado por **Groq LPU (Llama 3.3 70B / DeepSeek R1)**.
+      content: `¡Hola! Soy **GNS AI Advisor**, tu consultor inteligente de inventarios y negocios impulsado por **Groq LPU (Qwen 3.8 27B / GPT OSS)**.
 
 Tengo acceso seguro y en tiempo real a las métricas de **${companyName || 'tu empresa'}** (catálogo, existencias, costos, ventas recientes y kits comerciales).
 
@@ -143,7 +141,17 @@ Puedes pulsar cualquiera de las **auditorías rápidas** de arriba o preguntarme
           },
         ]);
       } else {
-        errorAlert('Error de IA', res.error || 'No se pudo conectar con el motor Groq.');
+        const errorMsg = res.error || 'No se pudo conectar con el motor Groq.';
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `assistant-err-${Date.now()}`,
+            role: 'assistant',
+            content: `⚠️ **No fue posible completar la respuesta:**\n\n${errorMsg}\n\n*Si necesitas asistencia técnica inmediata, puedes escribir a soporte por [WhatsApp](https://wa.me/573177797743?text=Hola,%20tengo%20un%20inconveniente%20con%20el%20agente%20de%20IA%20de%20GNS).*`,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          },
+        ]);
+        errorAlert('Error de IA', errorMsg);
       }
     });
   };
@@ -186,7 +194,18 @@ Puedes pulsar cualquiera de las **auditorías rápidas** de arriba o preguntarme
           },
         ]);
       } else {
-        errorAlert('Error en Diagnóstico', res.error || 'No se pudo generar el análisis.');
+        const errorMsg = res.error || 'No se pudo generar el análisis.';
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `diag-err-${Date.now()}`,
+            role: 'assistant',
+            content: `⚠️ **No fue posible generar la auditoría:**\n\n${errorMsg}\n\n*Puedes reintentar seleccionando otro modelo o contactar a soporte por [WhatsApp](https://wa.me/573177797743?text=Hola,%20tengo%20un%20inconveniente%20con%20el%20diagnostico%20de%20IA%20de%20GNS).*`,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            isDiagnostic: true,
+          },
+        ]);
+        errorAlert('Error en Diagnóstico', errorMsg);
       }
     });
   };
